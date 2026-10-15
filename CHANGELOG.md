@@ -1,4 +1,4 @@
-﻿# Catatan Perubahan (Changelog)
+# Catatan Perubahan (Changelog)
 
 Semua perubahan penting OpenSIMRS dicatat di berkas ini.
 
@@ -11,9 +11,9 @@ OpenSIMRS memakai [Semantic Versioning](https://semver.org/lang/id/) `MAYOR.MINO
 
 | Bagian | Naik bila | Contoh |
 |---|---|---|
-| **MAYOR** | Ada perubahan yang tidak kompatibel: struktur data, kontrak API antar-layanan, atau langkah instalasi yang wajib diubah | `1.x` â†’ `2.0.0` |
-| **MINOR** | Ada modul/fitur baru yang kompatibel ke belakang | `1.0.0` â†’ `1.1.0` |
-| **PATCH** | Hanya perbaikan bug dan keamanan | `1.1.0` â†’ `1.1.1` |
+| **MAYOR** | Ada perubahan yang tidak kompatibel: struktur data, kontrak API antar-layanan, atau langkah instalasi yang wajib diubah | `1.x` → `2.0.0` |
+| **MINOR** | Ada modul/fitur baru yang kompatibel ke belakang | `1.0.0` → `1.1.0` |
+| **PATCH** | Hanya perbaikan bug dan keamanan | `1.1.0` → `1.1.1` |
 
 - Rilis pra-stabil diberi akhiran **`-alpha.N`** (fitur masih bertambah, belum disarankan untuk produksi tanpa uji paralel), **`-beta.N`** (fitur lengkap untuk segmen sasaran, fokus stabilisasi), lalu **`-rc.N`** (kandidat rilis).
 - Rilis publik pertama adalah **`1.0.0-alpha.1`**. Versi `0.x` di bawah adalah rekonstruksi tonggak pengembangan sebelum kode dibuka, disusun dari riwayat commit; versi tersebut tidak pernah dirilis sebagai paket.
@@ -57,10 +57,10 @@ Rilis publik pertama sebagai **OpenSIMRS**, sebelumnya dikembangkan secara inter
 - **Docker**: layanan ber-SDK dibangun dengan konteks root repo (`context: .`, `dockerfile: <layanan>/Dockerfile`) dan menyalin `packages/` ke image; `.dockerignore` root baru. Root `docker-compose.yml` menjadi satu-satunya berkas compose.
 - **Deploy generik** di `deploy/server/` (`deploy.sh`, `docker-compose.server.yml`, `gateway.nginx.conf`, `.env.example`): rahasia server di `~/.opensimrs/.env` (`OPENSIMRS_STATE_DIR`), variabel `SERVER_HOST`, `PUBLIC_API_URL`, `FRONTEND_ALLOWED_HOSTS`; perintah `docker compose -p opensimrs -f docker-compose.yml -f deploy/server/docker-compose.server.yml`.
 - **CI** (`ci.yml`): cek sintaks layanan dan `packages/`, uji unit lab-service, muat `schema.sql` lalu migrasi dua kali, `node scripts/dokumen-katalog.mjs --cek`, build frontend.
-- **`schema.sql` hanya struktur + data referensi nasional** (wilayah, ICD-10, ICD-9-CM, SNOMED, LOINC, odontogram), Â±11 MB, tanpa pernyataan kepemilikan objek. Database baru langsung siap untuk `npm run db:migrate` â†’ `npm run db:demo:seed` tanpa `db:demo:reset`.
+- **`schema.sql` hanya struktur + data referensi nasional** (wilayah, ICD-10, ICD-9-CM, SNOMED, LOINC, odontogram), ±11 MB, tanpa pernyataan kepemilikan objek. Database baru langsung siap untuk `npm run db:migrate` → `npm run db:demo:seed` tanpa `db:demo:reset`.
 - Seeder `db:seed:admin` menyalin hak akses dari akun `superadmin` (bawaan `SEED_ADMIN_TEMPLATE`) yang dibuat `db:demo:seed`.
 - MongoDB: layanan memakai akun root dari `.env` (`authSource=admin`); `mongo-init.js` hanya menyiapkan database aplikasi.
-- Berkas dipindah: rencana pengujian kini `docs/testing/rencana-testing.md` (tanpa nama produk lama); `COMUNITY_MANIFETO.md` â†’ `COMMUNITY_MANIFESTO.md`.
+- Berkas dipindah: rencana pengujian kini `docs/testing/rencana-testing.md` (tanpa nama produk lama); `COMUNITY_MANIFETO.md` → `COMMUNITY_MANIFESTO.md`.
 - Lisensi proyek **MIT** (berkas `LICENSE`); kontak resmi `dev@opensimrs.id`.
 
 ### Dihapus
@@ -88,17 +88,17 @@ Layanan penunjang, segmen praktik mandiri siap pakai, dan data demo.
 
 ### Ditambahkan
 - **Layanan baru `penunjang-service`** (port 8099, `/api/v3/penunjang`) dengan helper bersama kunjungan, tagihan, penomoran, dan izin per aksi.
-- **Fisioterapi**: bed, tindakan & paket terapi, order dari RME dan APS (atas permintaan sendiri), validasi â†’ tagihan, penjadwalan slot Ã— bed, booking, evaluasi (fase rehabilitasi + persetujuan tindakan), cetak, empat laporan.
-- **Radiologi**: master pemeriksaan & paket, order RME/APS, worklist â†’ expertise, ruang & alat, penjadwalan per ruang, template expertise, petugas, persiapan pasien, laporan per ruang.
+- **Fisioterapi**: bed, tindakan & paket terapi, order dari RME dan APS (atas permintaan sendiri), validasi → tagihan, penjadwalan slot × bed, booking, evaluasi (fase rehabilitasi + persetujuan tindakan), cetak, empat laporan.
+- **Radiologi**: master pemeriksaan & paket, order RME/APS, worklist → expertise, ruang & alat, penjadwalan per ruang, template expertise, petugas, persiapan pasien, laporan per ruang.
 - **Medical Check Up (MCU)**: perusahaan, paket (item lab/radiologi/tindakan + stasiun), peserta perorangan/korporasi, pemeriksaan per stasiun, kesimpulan fit/unfit, sertifikat, invoice korporasi; **impor Excel** peserta (pasien baru otomatis didaftarkan, pasien lama dikenali dari NIK/No. RM); order lab otomatis tanpa tagihan ganda; harga kontrak per perusahaan; pembayaran invoice bertahap; rekap HRD (PDF/Excel).
 - **Patologi Anatomi**: penerimaan jaringan (penomoran histopatologi, sitologi, potong beku, imunohistokimia), makroskopis/mikroskopis, diagnosis ICD-O, verifikasi dokter spesialis PA, arsip blok & slide, template, laporan resmi & label.
 - **Mikrobiologi**: pewarnaan, kultur, isolat & uji kepekaan antibiotik (S/I/R, panel otomatis), laporan sementara/final, antibiogram, master organisme & antibiotik (kode WHONET).
-- **Bridging LIS** lanjutan: mapping tindakan, unit, dokter, penjamin, dan item hasil di menu **Laboratorium â€º Mapping LIS**; ambil hasil metode GET; No. Lab LIS disimpan dan menjadi kunci pencocokan hasil; **kirim massal peserta MCU** (mode bulk/per order) dengan antrean batch, klaim anti-dobel, status "tidak pasti" + Cek Status, dan kirim ulang yang gagal.
+- **Bridging LIS** lanjutan: mapping tindakan, unit, dokter, penjamin, dan item hasil di menu **Laboratorium › Mapping LIS**; ambil hasil metode GET; No. Lab LIS disimpan dan menjadi kunci pencocokan hasil; **kirim massal peserta MCU** (mode bulk/per order) dengan antrean batch, klaim anti-dobel, status "tidak pasti" + Cek Status, dan kirim ulang yang gagal.
 - **LIS tiruan** `scripts/lis-tiruan.mjs` untuk menguji bridging tanpa server LIS asli.
 - **SOAP Ringkas** satu layar dan **Pendaftaran Ringkas** sebagai bawaan segmen praktik mandiri.
 - **Data demo**: reset & seeder 8 faskes fiktif satu per segmen (`db:demo:reset`, `db:demo:seed`), runner idempoten datamaster penunjang (`db:demo:master-penunjang`), dan seeder transaksi lewat alur API sungguhan (`db:demo:transaksi`).
-- **Tampilan**: tema warna & logo per faskes, header halaman satu baris, grup menu **Penunjang â–¾**, tombol **Lainnya** untuk menu yang tidak muat, menu modul berstatus "Segera", nama faskes di footer, footer OpenSIMRS.
-- **Cetak**: hasil lab berkop logo faskes dengan flag H/L/kritis, legenda, dokter penanggung jawab & QR; RME â€º Cetak Hasil memuat riwayat Lab, Radiologi, PA, Mikrobiologi, Fisioterapi; kuitansi dan tagihan menampilkan rincian voucher & diskon.
+- **Tampilan**: tema warna & logo per faskes, header halaman satu baris, grup menu **Penunjang ▾**, tombol **Lainnya** untuk menu yang tidak muat, menu modul berstatus "Segera", nama faskes di footer, footer OpenSIMRS.
+- **Cetak**: hasil lab berkop logo faskes dengan flag H/L/kritis, legenda, dokter penanggung jawab & QR; RME › Cetak Hasil memuat riwayat Lab, Radiologi, PA, Mikrobiologi, Fisioterapi; kuitansi dan tagihan menampilkan rincian voucher & diskon.
 - **Izin**: menyimpan Manajemen Modul menyinkronkan izin modul aktif ke peran admin faskes (`POST /api/v3/auth/permission/sinkron-modul`); editor Role memakai katalog izin dari server (`GET /api/v3/auth/permission/katalog`); izin per tombol untuk PA, Mikrobiologi, MCU, dan Radiologi.
 - **Manajemen Modul**: fitur boleh mensyaratkan modul lain (`modul_syarat`); katalog diselaraskan dengan dokumen kebutuhan produk lama.
 - Dokumen `docs/ROADMAP.md` dan `docs/KONTEKS-PENGEMBANGAN.md`.
@@ -126,8 +126,8 @@ Integrasi nasional, Manajemen Modul, dan alur klinik terhubung.
 
 ### Ditambahkan
 - **Layanan `satusehat-service`**: sinkronisasi kunjungan rawat jalan selesai ke SATUSEHAT (Kemenkes, FHIR) dengan pekerja otomatis dan pemantauan di Konfigurasi Integrasi.
-- **Layanan `bpjs-service`**: BPJS **PCare** (FKTP: pendaftaran, kunjungan, pemetaan, sinkron otomatis) dan **VClaim** (peserta, rujukan, SEP; halaman Admisi â€º SEP).
-- **Manajemen Modul berbasis segmen faskes**: 8 segmen, preset modul â†’ fitur â†’ bagian (asesmen & resume RME per segmen dan jenis poli), override khusus superadmin dengan riwayat; menu, sidebar, rute, dan komponen mengikuti modul aktif. Katalog disimpan relasional (`ref_*`, `preset_segmen_*`, `faskes_segmen`, override ber-FK).
+- **Layanan `bpjs-service`**: BPJS **PCare** (FKTP: pendaftaran, kunjungan, pemetaan, sinkron otomatis) dan **VClaim** (peserta, rujukan, SEP; halaman Admisi › SEP).
+- **Manajemen Modul berbasis segmen faskes**: 8 segmen, preset modul → fitur → bagian (asesmen & resume RME per segmen dan jenis poli), override khusus superadmin dengan riwayat; menu, sidebar, rute, dan komponen mengikuti modul aktif. Katalog disimpan relasional (`ref_*`, `preset_segmen_*`, `faskes_segmen`, override ber-FK).
 - **Antrian poli terintegrasi**: panggil dari tabel rawat jalan, mulai periksa saat RME dibuka, layar TV mode kiosk (tanpa login, kunci per layar) dengan suara panggilan.
 - **Bridging LIS** (format adamLIS): registrasi order saat validasi dan penerimaan hasil.
 - **Tagihan otomatis**: pemeriksaan lab ditagih saat validasi (dihapus saat batal); biaya kamar rawat inap saat discharge; penggantian item hitung-ulang lewat `replace_ref` dan `replace_category_codes` agar tidak dobel.
@@ -135,7 +135,7 @@ Integrasi nasional, Manajemen Modul, dan alur klinik terhubung.
 - Skrip pemulihan dokumen rekam medis.
 
 ### Diperbaiki
-- Alur klinik (pendaftaran, asesmen perawat, pemeriksaan dokter, discharge, telaah resep), alur farmasi (stok per item, verifikasi resep, harga obat ke tagihan, penyerahan), dan alur rumah sakit IGD â†’ SPRI â†’ rawat inap â†’ discharge.
+- Alur klinik (pendaftaran, asesmen perawat, pemeriksaan dokter, discharge, telaah resep), alur farmasi (stok per item, verifikasi resep, harga obat ke tagihan, penyerahan), dan alur rumah sakit IGD → SPRI → rawat inap → discharge.
 - Panggilan antrian poli selaras dengan status kunjungan; antrean farmasi hanya dibuat bila ada resep.
 - Galat data SATUSEHAT yang belum lengkap dikembalikan sebagai 422, bukan 500.
 
