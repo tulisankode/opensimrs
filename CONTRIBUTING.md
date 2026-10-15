@@ -70,6 +70,8 @@ git push origin fix/b-22-kode-status-dirujuk
 
 **Nama branch:** `<jenis>/<id-backlog>-<ringkasan>`, mis. `feat/b-17-program-kia`, `fix/b-45-batal-order-lab`, `docs/panduan-satusehat`.
 
+> Aturan lengkap versioning, manajemen branch (termasuk `release/*` dan hotfix), syarat persetujuan, cara merge, freeze, dan proses rilis ada di **[Versi, Branch, dan Aturan Merge](./docs/kontributor/ALUR-GIT-RILIS.md)**.
+
 **Isi deskripsi PR:**
 - Apa yang diubah dan **mengapa** (sebut ID backlog/issue, mis. `Menutup #123`, `B-22`).
 - Cara menguji: akun demo dan segmen yang dipakai, langkah, hasil yang diharapkan.
@@ -81,7 +83,7 @@ git push origin fix/b-22-kode-status-dirujuk
 - Satu PR = satu tujuan. Pisahkan perbaikan yang tidak berhubungan.
 - Satu fitur yang menyentuh beberapa layanan cukup **satu PR** (repo ini monorepo): kode layanan + migrasi + katalog + dokumen.
 - PR kecil lebih cepat ditinjau. Buka **draft PR** lebih awal bila pekerjaan besar.
-- PR harus lulus CI (cek sintaks layanan & `packages/`, uji unit lab-service, `schema.sql` + migrasi dua kali, cek dokumen katalog, build frontend) dan ditinjau minimal satu maintainer.
+- PR harus lulus CI (cek sintaks layanan & `packages/`, uji unit lab-service, `schema.sql` + migrasi dua kali, cek dokumen katalog, build frontend) dan disetujui sesuai jenis perubahannya: minimal 1 maintainer bidang, atau 2 persetujuan (termasuk Core Maintainer) untuk SDK, migrasi, autentikasi/izin, integrasi, lintas layanan, dan CI/deploy.
 - Tanggapi masukan reviewer dengan commit baru; jangan *force-push* setelah review dimulai kecuali diminta.
 
 ---

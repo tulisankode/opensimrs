@@ -27,7 +27,8 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 
 ### Ditambahkan
 - Dokumentasi untuk komunitas: [README](./README.md) baru, [Petunjuk Instalasi](./docs/INSTALLATION_GUIDE.md) (jalur coba cepat & implementasi faskes), [Manajemen Modul](./docs/MANAJEMEN-MODUL.md) dengan katalog lengkap, [Roadmap & timeline](./docs/ROADMAP.md) dengan label kontributor, [Panduan Kontribusi](./CONTRIBUTING.md), dan berkas changelog ini.
-- Skrip `install.sh` untuk instalasi lokal tanpa Docker di macOS dan Ubuntu/Debian. Skrip ini mengecek dan memasang dependensi, menyiapkan PostgreSQL/MongoDB, membuat semua `.env` dengan kunci acak, lalu menjalankan instalasi, migrasi, dan data demo.
+- Aturan [versi, branch, dan merge](./docs/kontributor/ALUR-GIT-RILIS.md) untuk contributor, beserta templat Pull Request (`.github/pull_request_template.md`).
+- Skrip `install.sh` (macOS, Ubuntu/Debian) dan `install.cmd`/`install.ps1` (Windows 10/11, winget + Memurai) untuk instalasi lokal tanpa Docker. Skrip ini mengecek dan memasang dependensi, menyiapkan PostgreSQL/MongoDB, membuat semua `.env` dengan kunci acak, lalu menjalankan instalasi, migrasi, dan data demo.
 - Skrip `scripts/dokumen-katalog.mjs` yang membuat tabel katalog modul di `docs/MANAJEMEN-MODUL.md` dari `database/data/katalog-modul.json` (opsi `--cek` untuk CI).
 - [COMMUNITY.md](./COMMUNITY.md): kanal resmi komunitas (grup Telegram, server Discord, grup WhatsApp) beserta aturan forum dan moderasi.
 - Panduan per peran kontributor di [`docs/kontributor/`](./docs/kontributor/README.md): implementator, developer, tester/QA, dan product development.

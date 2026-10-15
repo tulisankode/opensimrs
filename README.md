@@ -93,6 +93,8 @@ npm run dev                              # semua layanan + frontend
 
 **Tanpa Docker (macOS/Ubuntu/Debian):** cukup `./install.sh`. Skrip ini mengecek dan memasang dependensi, menyiapkan database dan semua `.env`, lalu menjalankan instalasi, migrasi, dan data demo. Setelah itu jalankan `npm run dev`. Pakai `./install.sh --cek` untuk hanya memeriksa dependensi.
 
+**Tanpa Docker (Windows 10/11):** jalankan `install.cmd` dari folder repo (klik ganda, atau `.install.cmd` di terminal). Skrip ini melakukan hal yang sama: dependensi dipasang lewat winget (Node.js 22, PostgreSQL 16, MongoDB 7, mongosh, dan Memurai sebagai pengganti Redis). Opsi: `-Cek`, `-Ya`, `-TanpaDemo`, `-Jalankan`. Bila PostgreSQL sudah terpasang, skrip menanyakan sandi superuser `postgres`.
+
 Laptop dengan RAM terbatas: `npm run dev:core` (auth, datamaster, admisi, frontend). Semua di Docker: `npm run stack:up`.
 
 Buka **http://localhost:5520** dan login dengan **`superadmin` / `Demo@2026`**. Akun demo per faskes mengikuti pola `<kode>.<peran>`, mis. `kp.pendaftaran`, `rsd.kasir`, `pm.dr.andi` ([daftar pola akun](./docs/INSTALLATION_GUIDE.md#akun-demo)).
@@ -136,6 +138,7 @@ Rincian arsitektur, konvensi, dan alur bisnis: [Konteks Pengembangan](./docs/KON
 | [Roadmap, Timeline & Backlog](./docs/ROADMAP.md) | Status terkini, fase & timeline, label kontributor, cara mengklaim pekerjaan, backlog |
 | [Changelog](./CHANGELOG.md) | Riwayat perubahan per rilis dan skema versi |
 | [Panduan Kontribusi](./CONTRIBUTING.md) | Alur fork → PR, konvensi commit & kode, aturan keamanan, cara menguji, etika data kesehatan |
+| [Versi, Branch, dan Aturan Merge](./docs/kontributor/ALUR-GIT-RILIS.md) | SemVer & tahap alpha/beta/rc, manajemen branch, syarat persetujuan PR, cara merge, proses rilis |
 | [Peran Kontributor](./docs/kontributor/README.md) | Jenjang & rekognisi; panduan [Implementator](./docs/kontributor/IMPLEMENTATOR.md), [Developer](./docs/kontributor/DEVELOPER.md), [Tester/QA](./docs/kontributor/TESTER-QA.md), [Product Development](./docs/kontributor/PRODUCT-DEV.md) |
 | [Komunitas](./COMMUNITY.md) | Kanal resmi (Telegram, Discord, WhatsApp) dan aturan forum |
 | [Kode Etik](./CODE_OF_CONDUCT.md) · [Tata Kelola](./GOVERNANCE.md) · [Manifesto](./COMMUNITY_MANIFESTO.md) · [Keamanan](./SECURITY.md) | Aturan komunitas, peran & pengambilan keputusan, pelaporan kerentanan |

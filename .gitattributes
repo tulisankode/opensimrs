@@ -1,2 +1,5 @@
 # Skrip shell harus LF agar bisa dijalankan di macOS/Linux walau di-checkout di Windows
 *.sh text eol=lf
+# Skrip Windows memakai CRLF
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

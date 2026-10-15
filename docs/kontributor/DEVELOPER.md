@@ -26,6 +26,7 @@ Rincian, termasuk jalur tanpa Docker: [Petunjuk Instalasi](../INSTALLATION_GUIDE
 ## 2. Alur kerja
 
 - **Fork → branch → PR** ke `main` dengan nama branch `<jenis>/<id-backlog>-<ringkasan>`: [CONTRIBUTING bagian 2](../../CONTRIBUTING.md#2-alur-kontribusi-fork--branch--pr).
+- Versioning, branch `release/*`/hotfix, syarat persetujuan, cara merge, dan proses rilis: [Versi, Branch, dan Aturan Merge](./ALUR-GIT-RILIS.md).
 - Klaim pekerjaan dulu di issue: [cara mengklaim](../ROADMAP.md#5-cara-memilih--mengklaim-pekerjaan).
 - Perubahan besar (struktur data, kontrak API, alur klinis) lewat **RFC** ([GOVERNANCE.md](../../GOVERNANCE.md#rfc-request-for-comments)).
 

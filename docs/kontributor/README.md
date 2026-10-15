@@ -15,6 +15,8 @@ Dokumen terkait: [Panduan Kontribusi](../../CONTRIBUTING.md) · [Tata Kelola](..
 | **Tester/QA** | Penguji manual/otomatis, mahasiswa, staf faskes yang teliti | [TESTER-QA.md](./TESTER-QA.md) |
 | **Product development** | Analis kebutuhan, tenaga medis/klinis (dokter, perawat, apoteker, analis lab, perekam medis), desainer UX | [PRODUCT-DEV.md](./PRODUCT-DEV.md) |
 
+Untuk semua bidang: **[Versi, Branch, dan Aturan Merge](./ALUR-GIT-RILIS.md)** — versioning, nama branch, syarat persetujuan PR, cara merge, dan proses rilis.
+
 Satu orang boleh aktif di lebih dari satu bidang.
 
 ---
