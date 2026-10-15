@@ -275,9 +275,13 @@ export const daftarkanPeserta = async (author, kelompok) => {
 export const pasienValid = async (f, daftar, tanggal) => {
   const uuids = daftar.map((d) => d.patient_uuid);
   if (new Set(uuids).size !== uuids.length) throw permintaanSalah("Ada pasien yang dipilih lebih dari sekali");
-  const pasienDb = await query(`SELECT uuid, no_rm, name FROM patients WHERE uuid = ANY($1) AND faskes_uuid = $2 AND deleted_at IS NULL`, [uuids, f]);
+  const pasienDb = await query(`SELECT uuid, no_rm, name, status FROM patients WHERE uuid = ANY($1) AND faskes_uuid = $2 AND deleted_at IS NULL`, [uuids, f]);
   const hilang = daftar.filter((d) => !pasienDb.some((x) => x.uuid === d.patient_uuid));
   if (hilang.length) throw permintaanSalah(`${hilang.length} pasien tidak ditemukan / belum terdaftar di faskes ini`);
+  const nonaktif = pasienDb.filter((x) => x.status === false);
+  if (nonaktif.length)
+    throw permintaanSalah(`Pasien non-aktif tidak bisa didaftarkan MCU: ${nonaktif.map((x) => `${x.name} (${x.no_rm})`).join(", ")} — aktifkan dulu di Admisi › Data Pasien`);
+  pasienDb.forEach((x) => delete x.status);
   const ganda = await sudahTerdaftar(f, uuids, tanggal);
   if (ganda.length) throw konflik(`Sudah terdaftar MCU pada tanggal ${tanggal}: ${ganda.map((g) => `${g.name} (${g.no_mcu})`).join(", ")}`);
   return daftar.map((d) => ({ ...d, pasien: pasienDb.find((x) => x.uuid === d.patient_uuid) }));

@@ -327,14 +327,14 @@ const validasi = async (req) => {
   });
   const [pasienNik, pasienRm] = await Promise.all([
     query(
-      `SELECT p.uuid, p.no_rm, p.name, p.gender, p.no_identity, bd.birth_date::text AS tgl_lahir FROM patients p
+      `SELECT p.uuid, p.no_rm, p.name, p.gender, p.no_identity, p.status, bd.birth_date::text AS tgl_lahir FROM patients p
          LEFT JOIN birth_details bd ON bd.uuid = p.birth_detail_uuid
         WHERE p.faskes_uuid = $1 AND p.deleted_at IS NULL AND p.no_identity = ANY($2) AND p.no_rm NOT LIKE 'XX%'
         ORDER BY p.created_at`,
       [f, [...new Set(baris.map((x) => x.nomor).filter(Boolean))]],
     ),
     query(
-      `SELECT p.uuid, p.no_rm, p.name, p.gender, p.no_identity, bd.birth_date::text AS tgl_lahir FROM patients p
+      `SELECT p.uuid, p.no_rm, p.name, p.gender, p.no_identity, p.status, bd.birth_date::text AS tgl_lahir FROM patients p
          LEFT JOIN birth_details bd ON bd.uuid = p.birth_detail_uuid
         WHERE p.faskes_uuid = $1 AND p.deleted_at IS NULL AND p.no_rm = ANY($2)`,
       [f, [...new Set(baris.map((x) => x.noRm).filter(Boolean))]],
@@ -378,6 +378,7 @@ const validasi = async (req) => {
     }
     if (!pasien && nomor) pasien = pasienNik.find((p) => p.no_identity === nomor) ?? null;
     if (!pasien && !nomor) galat.push("No. identitas (NIK) wajib diisi untuk pasien baru");
+    if (pasien && pasien.status === false) galat.push(`Pasien ${pasien.no_rm} (${pasien.name}) berstatus non-aktif — aktifkan dulu di Admisi › Data Pasien`);
     if (pasien) {
       if (pasienDipakai.has(pasien.uuid)) galat.push(`Pasien ${pasien.no_rm} sudah ada di baris ${pasienDipakai.get(pasien.uuid)}`);
       else pasienDipakai.set(pasien.uuid, no);

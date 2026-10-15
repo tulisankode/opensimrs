@@ -49,6 +49,17 @@ export default class PatientService {
         return result;
     }
 
+    static async activate(data) {
+        const validData = ZodValidator.validate(PatientValidation.PATIENT_DELETE_VALIDATOR, data);
+        return PatientRepository.activatePatient(validData);
+    }
+
+    // Hapus (soft delete) massal pasien yang belum pernah bertransaksi.
+    static async hapus(data) {
+        const validData = ZodValidator.validate(PatientValidation.PATIENT_DELETE_VALIDATOR, data);
+        return PatientRepository.hapusPatient(validData);
+    }
+
     static async findByUuid(uuid) {
         const data = await PatientRepository.getPatientByUuid(uuid);
         if (!data) throw new NotfoundException("Pasien Tidak Ditemukan");

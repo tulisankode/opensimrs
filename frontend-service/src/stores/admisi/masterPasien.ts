@@ -52,6 +52,14 @@ export const useAdmisiMasterPasienStore = defineStore({
     },
     async deletePasienApi(payload = {}) {
       return apiAdmisiDelete(`/patient/cancel`, payload);
-    }
+    },
+    // Aktifkan kembali pasien non-aktif (massal).
+    async aktifkanPasienApi(payload = {}) {
+      return apiAdmisiPut(`/patient/aktifkan`, payload);
+    },
+    // Hapus massal pasien yang belum pernah bertransaksi; yang sudah bertransaksi dilaporkan di `gagal`.
+    async hapusPasienApi(payload = {}) {
+      return apiAdmisiDelete(`/patient/hapus`, payload);
+    },
   },
 });

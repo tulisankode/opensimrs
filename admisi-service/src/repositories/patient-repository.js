@@ -446,6 +446,13 @@ export default class PatientRepository{
                 ],
             });
 
+            // Pasien non-aktif tidak boleh dipakai mendaftar (APM/kiosk/mobile); ditolak dengan pesan jelas, bukan
+            // "belum terdaftar", agar tidak dibuat pasien ganda dengan identitas yang sama.
+            if (patient && patient.status === false) {
+                throw new BadRequestException(
+                    `Pasien ${patient.getDataValue("no_rm") ?? patient.getDataValue("noRm")} (${patient.name}) berstatus non-aktif — aktifkan dulu di Admisi › Data Pasien`
+                );
+            }
             return patient;
 
         } catch (error) {
@@ -535,6 +542,85 @@ export default class PatientRepository{
         }
     }
 
+    // Aktifkan kembali pasien non-aktif (kebalikan deletePatient). Pasien yang sudah aktif dilewati.
+    static async activatePatient(data){
+        const { faskesUuid } = Context.get(CTX_AUTHOR);
+        data = convertSnakeToCamel(data);
+        const patient = await PatientModel.findAll({ where: { uuid: data.listUuid, faskesUuid }, attributes: ["uuid"] });
+        if (patient.length !== data.listUuid.length) {
+            throw new NotfoundException("Data Pasien tidak ditemukan");
+        }
+        const [jumlah] = await PatientModel.update(
+            { status: true, updatedAt: moment().unix() },
+            { where: { uuid: data.listUuid, faskesUuid, status: { [Op.is]: false } } }
+        );
+        return { diaktifkan: jumlah };
+    }
+
+    // Tabel transaksi yang merujuk pasien (lintas layanan, database bersama). Pasien yang punya baris di salah satu
+    // tabel ini tidak boleh dihapus. Data milik pasien (patient_families, insurance_accounts) bukan transaksi.
+    // Tabel yang belum ada di instalasi (modul belum dimigrasikan) dilewati.
+    static TABEL_TRANSAKSI = [
+        ["rawat_jalans", "kunjungan rawat jalan"], ["admission_rj", "pendaftaran rawat jalan"],
+        ["instalasi_gawat_darurats", "kunjungan IGD"], ["rawat_inaps", "rawat inap"], ["room_monitorings", "monitoring ruangan"],
+        ["antrian", "antrian"], ["log_pelayanan", "riwayat pelayanan"], ["general_consents", "general consent"],
+        ["bills", "tagihan"], ["bpjs", "data BPJS/SEP"], ["bpjs_vclaim_sep", "SEP BPJS"], ["pencatat_task_id", "task ID antrean"],
+        ["order_lab", "order laboratorium"], ["rad_order", "order radiologi"], ["fisio_order", "order fisioterapi"],
+        ["order_fisio", "order fisioterapi"], ["fisio_jadwal", "jadwal fisioterapi"], ["pa_order", "order patologi anatomi"],
+        ["mikro_order", "order mikrobiologi"], ["mcu_peserta", "MCU"], ["prescriptions", "resep"], ["order_alkes", "order alkes"],
+        ["retur", "retur farmasi"],
+    ];
+
+    /**
+     * Jenis transaksi yang dimiliki tiap pasien: { [patientUuid]: ["kunjungan rawat jalan", ...] }.
+     * @param {Array<string>} listUuid
+     */
+    static async transaksiPasien(listUuid) {
+        const [ada] = await sequelizeInstace.query(
+            `SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'patient_uuid'`
+        );
+        const tersedia = new Set(ada.map((r) => r.table_name));
+        const tabel = PatientRepository.TABEL_TRANSAKSI.filter(([t]) => tersedia.has(t));
+        const hasil = {};
+        if (!tabel.length || !listUuid.length) return hasil;
+        // Semua tabel dalam satu kueri (soft delete tetap dihitung sebagai transaksi).
+        const [baris] = await sequelizeInstace.query(
+            tabel.map(([t, label]) => `SELECT DISTINCT patient_uuid, '${label}' AS jenis FROM "${t}" WHERE patient_uuid IN (:uuids)`).join(" UNION "),
+            { replacements: { uuids: listUuid } }
+        );
+        for (const r of baris) (hasil[r.patient_uuid] ??= []).push(r.jenis);
+        return hasil;
+    }
+
+    // Hapus (soft delete) pasien yang belum pernah bertransaksi. Pasien yang punya transaksi dilaporkan di `gagal`.
+    static async hapusPatient(data){
+        const { faskesUuid } = Context.get(CTX_AUTHOR);
+        data = convertSnakeToCamel(data);
+        const listUuid = [...new Set(data.listUuid)];
+        const patient = await PatientModel.findAll({ where: { uuid: listUuid, faskesUuid }, attributes: ["uuid", "noRm", "name"] });
+        const transaksi = await PatientRepository.transaksiPasien(patient.map((p) => p.uuid));
+        const gagal = listUuid
+            .filter((uuid) => !patient.some((p) => p.uuid === uuid))
+            .map((uuid) => ({ uuid, no_rm: null, nama: null, alasan: "Pasien tidak ditemukan" }));
+        const boleh = [];
+        for (const p of patient) {
+            const jenis = transaksi[p.uuid];
+            if (jenis?.length) gagal.push({ uuid: p.uuid, no_rm: p.noRm, nama: p.name, alasan: `Sudah memiliki transaksi: ${[...new Set(jenis)].join(", ")}` });
+            else boleh.push(p);
+        }
+        if (boleh.length) {
+            await PatientModel.update(
+                { deletedAt: moment().unix(), updatedAt: moment().unix() },
+                { where: { uuid: boleh.map((p) => p.uuid), faskesUuid } }
+            );
+        }
+        return {
+            ringkasan: { total: listUuid.length, berhasil: boleh.length, gagal: gagal.length },
+            berhasil: boleh.map((p) => ({ uuid: p.uuid, no_rm: p.noRm, nama: p.name })),
+            gagal,
+        };
+    }
+
     static async getAllPatient(args) {
         const { faskesUuid } = Context.get(CTX_AUTHOR);
         try {
@@ -548,9 +634,15 @@ export default class PatientRepository{
                 ]
             };
 
+            // Bawaan: hanya pasien aktif, agar pasien non-aktif tidak terbaca di pencarian layanan lain (order lab, RI, dst.).
+            // "semua" (halaman Data Pasien) menampilkan semua status; "nonaktif" hanya yang non-aktif.
             if (args.status == "aktif") {
                 filter.status = { [Op.is]: true };
                 filter.noRm = { [Op.notLike]: 'XX%' };
+            } else if (args.status == "nonaktif") {
+                filter.status = { [Op.is]: false };
+            } else if (args.status != "semua") {
+                filter.status = { [Op.is]: true };
             }
 
             const option = {

@@ -17,6 +17,12 @@ test("body bulk: periksa_now boolean, nama & perusahaan tidak kosong", () => {
   assert.equal(buatBodyBulk({ data: [] }).periksa_now, true);
 });
 
+test("body bulk: registrasi.username wajib (bawaan '-'), registrasi lain tidak berubah", () => {
+  const b = buatBodyBulk({ nama: "MCU", perusahaan: "PT A", data: [{ registrasi: { no_registrasi: "LPK001", kode_rs: "B23" }, tindakan: [] }] });
+  assert.deepEqual(b.data[0].registrasi, { username: "-", no_registrasi: "LPK001", kode_rs: "B23" });
+  assert.deepEqual(b.data[0].tindakan, []);
+});
+
 test("201: nolab dicocokkan per no_registrasi; item tanpa rincian → tidak pasti", () => {
   const t = tafsirBulk({ ok: true, pasti: true, status: 201, json: { success: true, code: 201, message: "Data MCU Berhasil Ditambahkan",
     payload: [{ nolab: "J03/251203/0002", no_registrasi: "LPK002" }, { nolab: "J03/251203/0001", no_registrasi: "LPK001" }] } }, item);

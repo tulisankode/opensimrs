@@ -33,7 +33,7 @@ export default class PatientValidation{
     });
 
     static PATIENT_DELETE_VALIDATOR = z.object({
-        list_uuid: z.array(z.string().max(255)),
+        list_uuid: z.array(z.string().max(255)).min(1, "Pilih minimal satu pasien").max(500, "Maksimal 500 pasien sekali proses"),
     });
 
     static PATIENT_UPLOAD_VALIDATOR = z.object({
