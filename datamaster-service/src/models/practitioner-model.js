@@ -59,6 +59,10 @@ const Practitioner = sequelizeInstance.define(
       type: DataTypes.STRING(15),
       allowNull: true,
     },
+    poli_pelayanan: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     status: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

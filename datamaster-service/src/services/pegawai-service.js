@@ -30,7 +30,7 @@ import Result from "../response/result.js";
 import { ZodError } from "zod";
 import { error } from "console";
 import { generateErrorResponse, generateSuccessResponse } from "../helpers/generate-message.js";
-import { isThereDuplicate } from "../helpers/helper.js";
+import { barisData, lemparFileKosong, lemparGalatImport, pesanZod, tanggalExcel, teks } from "../helpers/excel-import.js";
 import { HttpException, HttpStatus } from "../errors/http-exception.js";
 export default class PegawaiService {
 
@@ -155,27 +155,63 @@ export default class PegawaiService {
     return generateSuccessResponse("Berhasil export pegawai", result);
   }
 
+  // Kolom template (frontend "Format Datamaster Pegawai"): No | Tipe Pegawai* | Gelar Awal | Nama Pegawai* |
+  // Gelar Akhir | NIK* | Tanggal Lahir* (DD-MM-YYYY) | Jenis Kelamin*
   static async importPegawai(faskesUuid, filePath) {
     const fileBuffer = await fs.readFile(filePath);
     const data = xlsx.parse(fileBuffer);
-    data[0].data.shift();
-    const pegawaiList = data[0].data.map((pegawai) => {
-      return {
+    const baris = barisData(data[0]?.data);
+    if (baris.length === 0) lemparFileKosong("pegawai");
+
+    const tipeMap = { nakes: 1, "non-nakes": 2, "non nakes": 2, nonnakes: 2 };
+    const genderMap = {
+      "laki-laki": "Laki-laki", "laki laki": "Laki-laki", l: "Laki-laki", pria: "Laki-laki",
+      perempuan: "Perempuan", p: "Perempuan", wanita: "Perempuan",
+    };
+    const galat = [];
+    const pegawaiList = [];
+    for (const { nomor, sel } of baris) {
+      const tipe = tipeMap[(teks(sel[1]) ?? "").toLowerCase()];
+      if (!tipe) galat.push(`baris ${nomor}: tipe pegawai harus Nakes atau Non-Nakes`);
+      const gender = genderMap[(teks(sel[7]) ?? "").toLowerCase()];
+      if (!gender) galat.push(`baris ${nomor}: jenis kelamin harus Laki-laki atau Perempuan`);
+      let tanggal_lahir;
+      try {
+        tanggal_lahir = parseDateString(tanggalExcel(sel[6]));
+      } catch {
+        galat.push(`baris ${nomor}: tanggal lahir harus berformat DD-MM-YYYY`);
+      }
+      const pegawai = {
         faskes_uuid: faskesUuid,
-        tipe: pegawai[1] === "Nakes" ? 1 : 2,
-        first_title: pegawai[2],
-        name: pegawai[3],
-        last_title: pegawai[4],
-        nik: pegawai[5].toString(),
-        tanggal_lahir: parseDateString(pegawai[6]),
-        gender: pegawai[7],
-        status: true
+        tipe,
+        first_title: teks(sel[2]) ?? null,
+        name: teks(sel[3]),
+        last_title: teks(sel[4]) ?? null,
+        nik: teks(sel[5]),
+        tanggal_lahir,
+        gender,
+        status: true,
       };
-    }).filter(d => d !== undefined);
-    isThereDuplicate(pegawaiList.map(p => p.nik), "nik");
-    ZodValidator.validate(PegawaiValidation.IMPORT, pegawaiList);
-    await PegawaiRepository.saveAll(pegawaiList);
-    return generateSuccessResponse("Berhasil import pegawai");
+      if (tipe && gender && tanggal_lahir) {
+        const hasil = PegawaiValidation.CREATE.safeParse(pegawai);
+        if (!hasil.success) pesanZod(hasil.error).forEach((p) => galat.push(`baris ${nomor}: ${p}`));
+      }
+      pegawaiList.push({ nomor, pegawai });
+    }
+
+    // NIK ganda di dalam file maupun yang sudah terdaftar di faskes ini
+    const nikBaris = new Map();
+    for (const { nomor, pegawai } of pegawaiList) {
+      if (!pegawai.nik) continue;
+      if (nikBaris.has(pegawai.nik)) galat.push(`baris ${nomor}: NIK ${pegawai.nik} sama dengan baris ${nikBaris.get(pegawai.nik)}`);
+      else nikBaris.set(pegawai.nik, nomor);
+    }
+    const terdaftar = await PegawaiRepository.findAllByNikIn([...nikBaris.keys()], faskesUuid);
+    for (const p of terdaftar) galat.push(`baris ${nikBaris.get(p.nik)}: NIK ${p.nik} sudah terdaftar sebagai pegawai (${p.name})`);
+
+    lemparGalatImport(galat);
+    await PegawaiRepository.saveAll(pegawaiList.map((p) => p.pegawai));
+    return generateSuccessResponse(`Berhasil import ${pegawaiList.length} pegawai`);
   }
 
   static async deletePegawai(uuid) {

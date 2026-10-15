@@ -319,6 +319,7 @@ Mengelola semua data master sistem (diagnosis, organisasi, lokasi, tarif, dll).
 | PUT | `/practitioner/:uuid` | Update practitioner |
 | DELETE | `/practitioner/:uuid` | Delete practitioner |
 | GET | `/practitioner/export` | Export practitioners |
+| POST | `/practitioner/import` | Import practitioners (Excel, multipart field `file`) |
 
 ### Role & User Management
 | Method | Endpoint | Description |

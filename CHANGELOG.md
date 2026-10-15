@@ -25,7 +25,13 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 
 ## [Belum dirilis]
 
+### Ditambahkan
+- Datamaster **Pegawai** dan **Praktisi**: tombol **Import** dan **Download** template Excel seperti halaman datamaster lain. Template berisi contoh fiktif, sheet *Keterangan*, dan kolom NIK berformat teks. Import praktisi (endpoint baru `POST /api/v3/datamaster/practitioner/import`) merujuk pegawai lewat NIK dan poli lewat nama di master Lokasi. Galat import dilaporkan per nomor baris Excel dan tidak ada data yang tersimpan bila masih ada galat.
+
 ### Diperbaiki
+- Import pegawai: baris kosong tidak lagi membuat import gagal, NIK yang sudah terdaftar ditolak, tanggal lahir dari sel bertipe tanggal Excel diterima, serta tipe dan jenis kelamin tidak membedakan huruf besar/kecil.
+- **Keamanan data:** ekspor praktisi kini hanya berisi praktisi faskes pengguna; sebelumnya ikut mengekspor praktisi semua faskes.
+- Ekspor praktisi menampilkan nama poli pelayanan (sebelumnya berisi nilai true/false); ekspor pegawai menampilkan jenis kelamin Perempuan dengan benar.
 - Tautan Discord di dokumen kini mengarah ke server komunitas OpenSIMRS dengan undangan permanen. Tautan lama adalah undangan grup DM yang kedaluwarsa dalam 24 jam.
 - `install.ps1` (Windows): port PostgreSQL kini dibaca dari `postgresql.conf` layanannya (atau variabel `PG_PORT`) dan dipakai untuk `psql` serta `DB_PORT` di `.env`; sebelumnya selalu 5432 sehingga gagal bila PostgreSQL berjalan di port lain.
 - `install.ps1`: Redis di bawah versi 5 (mis. port Redis lama untuk Windows v3.0) tidak lagi dianggap cukup; skrip menawarkan Memurai. Layanan berstatus *Disabled* dilewati dengan peringatan, dan kegagalan menyalakan layanan tidak lagi dilaporkan sebagai berhasil.

@@ -190,7 +190,7 @@ Mobile route yang dibypass dari auth token user tetapi tetap memakai API key:
 | Faskes | `GET /faskes`, `GET /faskes/aktif`, `GET /faskes/export`, `POST /faskes`, `PUT /faskes/:uuid`, `DELETE /faskes/:uuid`, `POST /faskes/import` |
 | Role | `GET /role`, `GET /role/aktif`, `GET /role/export`, `POST /role`, `PUT /role/:uuid`, `DELETE /role/:uuid`, `POST /role/import` |
 | User | `GET /user`, `GET /user/deleted`, `GET /user/:uuid`, `GET /user/-/export`, `POST /user`, `PUT /user/:uuid`, `PATCH /user/:uuid`, `DELETE /user/:uuid`, `POST /user/import` |
-| Praktisi | `GET /practitioner`, `GET /practitioner/aktif`, `GET /practitioner/poli/aktif`, `GET /practitioner/export`, `POST /practitioner`, `PUT /practitioner/:uuid`, `DELETE /practitioner/:uuid` |
+| Praktisi | `GET /practitioner`, `GET /practitioner/aktif`, `GET /practitioner/poli/aktif`, `GET /practitioner/export`, `POST /practitioner/import`, `POST /practitioner`, `PUT /practitioner/:uuid`, `DELETE /practitioner/:uuid` |
 | Lokasi | `GET /lokasi`, `GET /lokasi/part_of`, `GET /lokasi/part_of/:part_of_uuid`, `GET /lokasi/code/:code`, `GET /lokasi/aktif`, `GET /lokasi/poli/aktif`, `GET /lokasi/export`, `POST /lokasi`, `PUT /lokasi/:uuid`, `DELETE /lokasi/:uuid`, `POST /lokasi/import` |
 | Tarif | `GET /tarif`, `GET /tarif/aktif`, `GET /tarif/export`, `POST /tarif`, `PUT /tarif/:uuid`, `DELETE /tarif/:uuid`, `POST /tarif/import` |
 | Super Admin Gigi | `GET/POST/PUT/DELETE` untuk `/gigi`, `/kategori_gigi`, `/item_gigi`, `/oklusi_gigi`, plus `/aktif`, `/export`, `/import` |

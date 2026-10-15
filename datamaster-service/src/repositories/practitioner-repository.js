@@ -13,8 +13,47 @@ const pegawaiXpractitioner = PegawaiModel.belongsTo(PractitionerModel, {
   as: "pegawai",
 });
 export default class PractitionerRepository extends BaseRePosiotry {
-  static async saveAll(practitionerList) {
+  /**
+   * Praktisi aktif milik pegawai di daftar, untuk import.
+   * @param {Array<string>} pegawaiUuidList
+   * @param {string} faskes_uuid
+   */
+  static async findAllByPegawaiUuidIn(pegawaiUuidList, faskes_uuid) {
+    const result = await PractitionerModel.findAll({
+      where: {
+        pegawai_uuid: { [Op.in]: pegawaiUuidList },
+        faskes_uuid: faskes_uuid,
+        deletedAt: { [Op.is]: null },
+      },
+      attributes: ["uuid", "pegawai_uuid"],
+    });
+    return result.map((r) => r.toJSON());
+  }
+
+  /**
+   * Praktisi aktif yang memakai salah satu kode BPJS atau kode antrian di daftar, untuk import.
+   * @param {{code_bpjs: Array<string>, code_antrian_dokter: Array<string>}} kode
+   * @param {string} faskes_uuid
+   */
+  static async findAllByKodeIn(kode, faskes_uuid) {
+    const kondisi = [];
+    if (kode.code_bpjs.length > 0) kondisi.push({ code_bpjs: { [Op.in]: kode.code_bpjs } });
+    if (kode.code_antrian_dokter.length > 0) kondisi.push({ code_antrian_dokter: { [Op.in]: kode.code_antrian_dokter } });
+    if (kondisi.length === 0) return [];
+    const result = await PractitionerModel.findAll({
+      where: {
+        [Op.or]: kondisi,
+        faskes_uuid: faskes_uuid,
+        deletedAt: { [Op.is]: null },
+      },
+      attributes: ["uuid", "code_bpjs", "code_antrian_dokter"],
+    });
+    return result.map((r) => r.toJSON());
+  }
+
+  static async saveAll(practitionerList, transaction) {
     await PractitionerModel.bulkCreate(practitionerList, {
+      transaction: transaction,
       returning: [
         "id",
         "uuid",
@@ -495,11 +534,12 @@ export default class PractitionerRepository extends BaseRePosiotry {
     });
   }
 
-  static async exportPractitioner() {
+  static async exportPractitioner(faskes_uuid) {
     // tambahkan detail pegawai
     return await Practitioner.findAll({
       where: {
         deletedAt: null,
+        faskes_uuid: faskes_uuid,
       },
       include: [
         {

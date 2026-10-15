@@ -2,7 +2,7 @@ import {
   LokasiModel,
   PartOfLocationModel,
 } from "@opensimrs/model-sdk/datamaster";
-import { Op, Transaction } from "sequelize";
+import { Op, Sequelize, Transaction } from "sequelize";
 import { BaseRePosiotry } from "./base-repository.js";
 import { toEpochDate } from "../helpers/helper.js";
 
@@ -194,6 +194,25 @@ export class PartOfLocationRepository extends BaseRePosiotry {
    * @param {string} faskes_uuid faskes uuid
    * @returns {Promise<PartOfLocationModel>}
    */
+  /**
+   * Sub-lokasi aktif yang namanya ada di daftar (tanpa membedakan huruf besar/kecil), untuk import.
+   * @param {Array<string>} names
+   * @param {string} faskes_uuid
+   */
+  static async findAllAktifByNameInsensitive(names, faskes_uuid) {
+    const partOfLocationList = await PartOfLocationModel.findAll({
+      where: {
+        [Op.and]: [
+          Sequelize.where(Sequelize.fn("lower", Sequelize.col("name")), { [Op.in]: names.map((n) => n.toLowerCase()) }),
+          { faskes_uuid: faskes_uuid },
+          { deletedAt: { [Op.is]: null } },
+        ],
+      },
+      attributes: ["uuid", "name"],
+    });
+    return partOfLocationList.map((r) => r.toJSON());
+  }
+
   static async findByname(name, faskes_uuid) {
     const partOfLocation = await PartOfLocationModel.findOne({
       where: {

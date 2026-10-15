@@ -16,6 +16,11 @@ import { affectedRowMustBeOne } from "../helpers/helper.js";
 import PegawaiRepository from "../repositories/pegawai-repository.js";
 import { GlobalValidation } from "../validations/global-validation.js";
 import { PartOfLocationRepository } from "../repositories/part-of-location-repository.js";
+import xlsx from "node-xlsx";
+import fs from "fs/promises";
+import { barisData, lemparFileKosong, lemparGalatImport, pesanZod, teks } from "../helpers/excel-import.js";
+
+const labelKolom = { nik: "NIK", code_bpjs: "kode HFIS", code_antrian_dokter: "kode antrian" };
 
 export default class PractitionerService {
   /**
@@ -286,9 +291,111 @@ export default class PractitionerService {
     return { paginatedResult, paginationInfo };
   }
 
-  static async exportPractitioner() {
-    const result = await PractitionerRepository.exportPractitioner();
+  static async exportPractitioner(faskes_uuid) {
+    const result = await PractitionerRepository.exportPractitioner(faskes_uuid);
     return successResponse(messageSuccessExport, result);
+  }
+
+  // Kolom template (frontend "Format Datamaster Praktisi"): No | NIK Pegawai* | Nama Pegawai (keterangan) |
+  // Tipe Praktisi* (Dokter/Non-Dokter) | Kode HFIS (BPJS) | SIP | STR | Kode Antrian Dokter | Poli Pelayanan
+  // (nama poli, pisahkan dengan ;). Kode HFIS, kode antrian, dan poli wajib untuk dokter.
+  static async importPractitioner(faskesUuid, filePath) {
+    const fileBuffer = await fs.readFile(filePath);
+    const data = xlsx.parse(fileBuffer);
+    const baris = barisData(data[0]?.data);
+    if (baris.length === 0) lemparFileKosong("praktisi");
+
+    const galat = [];
+    const daftar = baris.map(({ nomor, sel }) => {
+      const tipe = (teks(sel[3]) ?? "").toLowerCase().replace(/\s+/g, "-");
+      const is_doctor = tipe === "dokter" ? true : tipe === "non-dokter" ? false : undefined;
+      if (is_doctor === undefined) galat.push(`baris ${nomor}: tipe praktisi harus Dokter atau Non-Dokter`);
+      return {
+        nomor,
+        nik: teks(sel[1]),
+        is_doctor,
+        code_bpjs: teks(sel[4]),
+        sip: teks(sel[5]) ?? null,
+        str: teks(sel[6]) ?? null,
+        code_antrian_dokter: teks(sel[7]),
+        poli: (teks(sel[8]) ?? "").split(";").map((p) => p.trim()).filter((p) => p !== ""),
+      };
+    });
+
+    // rujukan ke master: pegawai (NIK), praktisi yang sudah ada, kode bentrok, dan poli (lokasi/sub-lokasi)
+    const nikList = [...new Set(daftar.map((d) => d.nik).filter(Boolean))];
+    const namaPoli = [...new Set(daftar.flatMap((d) => d.poli))];
+    const kodeBpjs = daftar.map((d) => d.code_bpjs).filter(Boolean);
+    const kodeAntrian = daftar.map((d) => d.code_antrian_dokter).filter(Boolean);
+    const [pegawaiList, kodeTerpakai, lokasiList, subLokasiList] = await Promise.all([
+      nikList.length ? PegawaiRepository.findAllByNikIn(nikList, faskesUuid) : [],
+      PractitionerRepository.findAllByKodeIn({ code_bpjs: kodeBpjs, code_antrian_dokter: kodeAntrian }, faskesUuid),
+      namaPoli.length ? LokasiRepository.findAllAktifByNameInsensitive(namaPoli, faskesUuid) : [],
+      namaPoli.length ? PartOfLocationRepository.findAllAktifByNameInsensitive(namaPoli, faskesUuid) : [],
+    ]);
+    const praktisiTerdaftar = pegawaiList.length
+      ? await PractitionerRepository.findAllByPegawaiUuidIn(pegawaiList.map((p) => p.uuid), faskesUuid)
+      : [];
+    const poliMap = new Map([...subLokasiList, ...lokasiList].map((l) => [l.name.toLowerCase(), l]));
+
+    const dipakai = { nik: new Map(), code_bpjs: new Map(), code_antrian_dokter: new Map() };
+    const practitionerList = [];
+    for (const d of daftar) {
+      const { nomor } = d;
+      const galatSebelum = galat.length;
+      if (d.is_doctor) {
+        if (!d.code_bpjs) galat.push(`baris ${nomor}: kode HFIS (BPJS) wajib diisi untuk dokter`);
+        if (!d.code_antrian_dokter) galat.push(`baris ${nomor}: kode antrian dokter wajib diisi untuk dokter`);
+        if (d.poli.length === 0) galat.push(`baris ${nomor}: poli pelayanan wajib diisi untuk dokter`);
+      }
+      for (const kunci of ["nik", "code_bpjs", "code_antrian_dokter"]) {
+        if (!d[kunci]) continue;
+        if (dipakai[kunci].has(d[kunci])) galat.push(`baris ${nomor}: ${labelKolom[kunci]} ${d[kunci]} sama dengan baris ${dipakai[kunci].get(d[kunci])}`);
+        else dipakai[kunci].set(d[kunci], nomor);
+      }
+      if (kodeTerpakai.some((k) => d.code_bpjs && k.code_bpjs === d.code_bpjs))
+        galat.push(`baris ${nomor}: kode HFIS ${d.code_bpjs} sudah dipakai praktisi lain`);
+      if (kodeTerpakai.some((k) => d.code_antrian_dokter && k.code_antrian_dokter === d.code_antrian_dokter))
+        galat.push(`baris ${nomor}: kode antrian ${d.code_antrian_dokter} sudah dipakai praktisi lain`);
+
+      const pegawai = pegawaiList.find((p) => p.nik === d.nik);
+      if (!d.nik) galat.push(`baris ${nomor}: NIK pegawai tidak boleh kosong`);
+      else if (!pegawai) galat.push(`baris ${nomor}: pegawai dengan NIK ${d.nik} belum terdaftar, import/tambah pegawai terlebih dahulu`);
+      else if (praktisiTerdaftar.some((p) => p.pegawai_uuid === pegawai.uuid))
+        galat.push(`baris ${nomor}: pegawai ${pegawai.name} (NIK ${d.nik}) sudah terdaftar sebagai praktisi`);
+
+      const poli = [];
+      for (const nama of d.poli) {
+        const lokasi = poliMap.get(nama.toLowerCase());
+        if (lokasi) poli.push({ lokasi_uuid: lokasi.uuid, name: lokasi.name });
+        else galat.push(`baris ${nomor}: poli "${nama}" tidak ditemukan di master lokasi`);
+      }
+      if (d.is_doctor === undefined || !pegawai) continue;
+
+      const practitioner = {
+        uuid: uuidv7(),
+        faskes_uuid: faskesUuid,
+        pegawai_uuid: pegawai.uuid,
+        is_doctor: d.is_doctor,
+        code_bpjs: d.code_bpjs,
+        sip: d.sip,
+        str: d.str,
+        code_antrian_dokter: d.code_antrian_dokter,
+        poli_pelayanan: poli,
+        status: true,
+      };
+      // validasi skema hanya untuk baris yang lolos pengecekan di atas, agar pesan tidak ganda
+      const skema = d.is_doctor ? PractitionerValidation.CREATE_DOKTER : PractitionerValidation.CREATE_NON_DOKTER;
+      const hasil = galat.length === galatSebelum ? skema.safeParse(practitioner) : { success: true };
+      if (!hasil.success) pesanZod(hasil.error).forEach((p) => galat.push(`baris ${nomor}: ${p}`));
+      practitionerList.push({ ...practitioner, poli_pelayanan: JSON.stringify(poli) });
+    }
+
+    lemparGalatImport(galat);
+    await sequelizeInstance.transaction(async (tr) => {
+      await PractitionerRepository.saveAll(practitionerList, tr);
+    });
+    return generateSuccessResponse(`Berhasil import ${practitionerList.length} praktisi`);
   }
 
   static async getAllPractitionerAktif(request) {
