@@ -345,6 +345,8 @@ fi
 
 # ---------- 6. dependensi npm, migrasi, data demo ----------
 judul "Dependensi npm (10–20 menit pada instalasi pertama)"
+# npm audit menghubungi registry untuk tiap layanan dan bisa menggantung di jaringan lambat; jalankan terpisah bila perlu
+export npm_config_audit=false npm_config_fund=false
 npm run install:all
 ok "Dependensi terpasang"
 

@@ -386,6 +386,8 @@ function JalankanNpm($argumen) {
   if ($LASTEXITCODE -ne 0) { Mati ("npm " + ($argumen -join " ") + " gagal (kode $LASTEXITCODE)") }
 }
 Judul "Dependensi npm (10-20 menit pada instalasi pertama)"
+# npm audit menghubungi registry untuk tiap layanan dan bisa menggantung di jaringan lambat; jalankan terpisah bila perlu
+$env:npm_config_audit = "false"; $env:npm_config_fund = "false"
 JalankanNpm @("run", "install:all"); Ok "Dependensi terpasang"
 
 Judul "Migrasi database"
