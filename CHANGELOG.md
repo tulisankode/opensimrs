@@ -34,6 +34,7 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 
 ### Diperbaiki
 - **Clone/instalasi baru (server, Docker, Podman, `install.sh`) gagal menjalankan sebagian layanan** (`Cannot find package 'sequelize' imported from /packages/model-sdk/…`): berkas `.npmrc` (`install-links=true`, memasang SDK lokal sebagai salinan) diabaikan `.gitignore` tiap layanan sehingga tidak pernah ter-commit. Kini `.npmrc` ikut di repo untuk 15 layanan.
+- Gateway server (nginx) tidak lagi menulis mati resolver DNS Docker (`127.0.0.11`): alamat resolver diambil dari `/etc/resolv.conf` kontainer saat start, sehingga gateway juga berfungsi di Podman (sebelumnya semua permintaan API lewat gateway menggantung).
 - stok-farmasi-service tidak lagi mewajibkan `PUBLIC_KEY`/`PRIVATE_KEY` (sisa JWT RS256, tidak dipakai); sebelumnya gagal start di server yang `.env`-nya mengikuti `deploy/server/.env.example`.
 - No. RM pasien baru kini dibuat dari nomor RM terbesar + 1 (sebelumnya jumlah pasien + 1, sehingga bisa bentrok dengan nomor yang sudah dipakai bila ada data pasien yang dihapus permanen).
 - Bridging LIS bulk MCU: `registrasi.username` (wajib di gateway `registrasi_bulk_mcu`) kini selalu dikirim (`-` bila tidak ada petugas); registrasi per order tidak berubah.
