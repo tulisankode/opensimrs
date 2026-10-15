@@ -227,8 +227,11 @@ services:
     restart: always
     mem_limit: 64m
     ports: ["8080:80"]
+    environment:
+      # isi ${NGINX_LOCAL_RESOLVERS} di template dari /etc/resolv.conf (DNS Docker/Podman)
+      NGINX_ENTRYPOINT_LOCAL_RESOLVERS: "1"
     volumes:
-      - ./deploy/server/gateway.nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/server/gateway.nginx.conf:/etc/nginx/templates/default.conf.template:ro
     networks: [opensimrs]
   db:
     mem_limit: 1g

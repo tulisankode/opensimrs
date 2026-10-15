@@ -13,11 +13,8 @@ export class EnvironmentValidation {
     INVENTORY_URL: z.string().url({
       message: "INVENTORY_URL harus berupa URL yang valid",
     }),
-    PUBLIC_KEY: z.string({
-      required_error: "PUBLIC_KEY tidak boleh kosong di .env",
-    }),
-    PRIVATE_KEY: z.string({
-      required_error: "PRIVATE_KEY tidak boleh kosong di .env",
-    }),
+    // Sisa autentikasi RS256 lama; JWT kini HS256 dengan SECRET_KEY (authorization-sdk), jadi opsional.
+    PUBLIC_KEY: z.string().optional(),
+    PRIVATE_KEY: z.string().optional(),
   });
 }
