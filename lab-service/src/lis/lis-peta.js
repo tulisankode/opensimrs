@@ -120,7 +120,8 @@ export const buatBodyBulk = ({ periksaNow = true, nama, perusahaan, data }) => (
   periksa_now: periksaNow !== false,
   nama: strip(nama),
   perusahaan: strip(perusahaan),
-  data,
+  // registrasi bulk mewajibkan registrasi.username (tidak ada di registrasi per order); "-" bila tidak ada petugas
+  data: (data ?? []).map((d) => ({ ...d, registrasi: { username: "-", ...d?.registrasi } })),
 });
 
 const lolos = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
