@@ -17,6 +17,8 @@
 #    ./install.sh --ya            jawab "ya" untuk semua pertanyaan
 #    ./install.sh --tanpa-demo    lewati data demo (db:demo:seed)
 #    ./install.sh --jalankan      langsung "npm run dev" setelah selesai
+#    ./install.sh --podman        PostgreSQL, MongoDB, Redis dijalankan di kontainer Podman (podman compose);
+#                                 layanan & frontend tetap native. Tidak perlu PostgreSQL/MongoDB/Redis dari Homebrew/apt.
 #
 #  Hanya untuk development lokal. Untuk server/production lihat docs/INSTALLATION_GUIDE.md & docs/LINGKUNGAN.md.
 # =====================================================================================
@@ -25,14 +27,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-HANYA_CEK=0; SEMUA_YA=0; TANPA_DEMO=0; JALANKAN=0
+HANYA_CEK=0; SEMUA_YA=0; TANPA_DEMO=0; JALANKAN=0; PODMAN=0
 for arg in "$@"; do
   case "$arg" in
     --cek) HANYA_CEK=1 ;;
     --ya|-y) SEMUA_YA=1 ;;
     --tanpa-demo) TANPA_DEMO=1 ;;
     --jalankan) JALANKAN=1 ;;
-    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+    --podman) PODMAN=1 ;;
+    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
     *) echo "Opsi tidak dikenal: $arg (lihat ./install.sh --help)"; exit 1 ;;
   esac
 done
@@ -91,10 +94,17 @@ cek git      git      ""  git --version
 cek openssl  openssl  ""  openssl version
 cek node     node     20  sh -c "node -v | tr -d v"
 cek npm      npm      ""  npm -v
-cek postgresql psql   15  sh -c "psql --version | grep -Eo '[0-9]+(\.[0-9]+)+'"
-cek redis    redis-server 6 sh -c "redis-server --version | grep -Eo 'v=[0-9.]+' | tr -d v="
-cek mongodb  mongod   6   sh -c "mongod --version | grep -Eo 'v[0-9]+(\.[0-9]+)+' | head -1 | tr -d v"
-cek mongosh  mongosh  ""  mongosh --version
+if [ "$PODMAN" = 1 ]; then
+  # basis data di kontainer: cukup Podman + provider compose (docker-compose v2 atau podman-compose)
+  cek podman podman   4   sh -c "podman --version | grep -Eo '[0-9]+(\.[0-9]+)+'"
+  if ada podman && ! podman compose version >/dev/null 2>&1; then gagal "podman compose belum punya provider (docker-compose)"; KURANG="$KURANG docker-compose"
+  elif ada podman; then ok "podman compose: $(podman compose version 2>/dev/null | grep -Eio 'compose version v?[0-9.]+' | head -1)"; fi
+else
+  cek postgresql psql   15  sh -c "psql --version | grep -Eo '[0-9]+(\.[0-9]+)+'"
+  cek redis    redis-server 6 sh -c "redis-server --version | grep -Eo 'v=[0-9.]+' | tr -d v="
+  cek mongodb  mongod   6   sh -c "mongod --version | grep -Eo 'v[0-9]+(\.[0-9]+)+' | head -1 | tr -d v"
+  cek mongosh  mongosh  ""  mongosh --version
+fi
 if ada node && [ "$(mayor "$(node -v)")" -lt 22 ] 2>/dev/null; then warn "Node.js 22 LTS disarankan (terpasang $(node -v))"; fi
 
 if [ -n "$KURANG" ]; then
@@ -111,6 +121,7 @@ if [ -n "$KURANG" ]; then
           node|npm) PAKET="$PAKET node@22" ;; postgresql) PAKET="$PAKET postgresql@16" ;;
           redis) PAKET="$PAKET redis" ;; mongodb) PAKET="$PAKET mongodb/brew/mongodb-community@7.0" ;;
           mongosh) PAKET="$PAKET mongosh" ;;
+          podman) PAKET="$PAKET podman" ;; docker-compose) PAKET="$PAKET docker-compose" ;;
         esac
       done
       PAKET="$(echo "$PAKET" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
@@ -120,8 +131,13 @@ if [ -n "$KURANG" ]; then
       brew install $PAKET
       for f in postgresql@16 node@22; do p="$(brew --prefix "$f" 2>/dev/null || true)"; [ -d "$p/bin" ] && PATH="$p/bin:$PATH"; done
       export PATH
-      warn "Agar psql/node@22 tersedia di terminal baru, tambahkan ke ~/.zshrc:"
-      echo "      export PATH=\"\$(brew --prefix postgresql@16)/bin:\$(brew --prefix node@22)/bin:\$PATH\""
+      if [ "$PODMAN" = 1 ]; then
+        warn "Agar node@22 tersedia di terminal baru, tambahkan ke ~/.zshrc:"
+        echo "      export PATH=\"\$(brew --prefix node@22)/bin:\$PATH\""
+      else
+        warn "Agar psql/node@22 tersedia di terminal baru, tambahkan ke ~/.zshrc:"
+        echo "      export PATH=\"\$(brew --prefix postgresql@16)/bin:\$(brew --prefix node@22)/bin:\$PATH\""
+      fi
       ;;
     apt)
       PAKET=""; PERLU_MONGO=0; PERLU_NODE=0
@@ -130,6 +146,7 @@ if [ -n "$KURANG" ]; then
           git) PAKET="$PAKET git" ;; openssl) PAKET="$PAKET openssl" ;;
           postgresql) PAKET="$PAKET postgresql postgresql-client" ;; redis) PAKET="$PAKET redis-server" ;;
           node|npm) PERLU_NODE=1 ;; mongodb|mongosh) PERLU_MONGO=1 ;;
+          podman) PAKET="$PAKET podman" ;; docker-compose) PAKET="$PAKET podman-compose" ;;
         esac
       done
       if [ -n "$PAKET" ]; then
@@ -149,26 +166,6 @@ if [ -n "$KURANG" ]; then
 fi
 ok "Semua dependensi tersedia"
 [ "$HANYA_CEK" = 1 ] && exit 0
-
-# ---------- 2. nyalakan layanan ----------
-judul "Menyalakan PostgreSQL, Redis, MongoDB"
-case "$PLATFORM" in
-  mac)
-    for s in postgresql@16 redis mongodb-community@7.0; do
-      if brew list "$s" >/dev/null 2>&1; then brew services start "$s" >/dev/null 2>&1 || true; fi
-    done ;;
-  apt|linux)
-    for s in postgresql redis-server mongod; do sudo systemctl start "$s" 2>/dev/null || sudo service "$s" start 2>/dev/null || true; done ;;
-esac
-
-tunggu() { # tunggu "label" perintah...
-  local label="$1"; shift; local i
-  for i in $(seq 1 30); do "$@" >/dev/null 2>&1 && { ok "$label siap"; return 0; }; sleep 1; done
-  mati "$label belum merespons. Periksa log layanannya lalu jalankan ulang."
-}
-tunggu "PostgreSQL" pg_isready -h 127.0.0.1 -p 5432
-tunggu "Redis"      redis-cli -h 127.0.0.1 ping
-tunggu "MongoDB"    mongosh --quiet --host 127.0.0.1 --eval "db.runCommand({ping:1}).ok"
 
 # ---------- nilai rahasia: pakai ulang dari .env bila ada ----------
 ambil() { [ -f .env ] && grep -E "^$1=" .env | head -1 | cut -d= -f2- || true; }
@@ -196,49 +193,7 @@ K2="$(ambil API_KEY_CHECK_NORM)"; [ -n "$K2" ] || K2="$(acak 32)"
 K3="$(ambil ADMISI_SECRET_KEY)";  [ -n "$K3" ] || K3="$(acak 32)"
 K4="$(ambil ANTRIAN_KEY_SECRET)"; [ -n "$K4" ] || K4="$(acak 32)"
 
-# ---------- 3. PostgreSQL ----------
-judul "PostgreSQL: role, database, skema"
-if [ "$PLATFORM" = mac ]; then pgadmin() { psql -X -q -d postgres "$@"; }; else pgadmin() { sudo -u postgres psql -X -q -d postgres "$@"; }; fi
-
-if [ "$(pgadmin -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" = 1 ]; then
-  # role sudah ada: samakan sandinya dengan .env (lingkungan lokal)
-  pgadmin -c "ALTER ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
-  ok "Role $DB_USER sudah ada (sandi disamakan dengan .env)"
-else
-  pgadmin -c "CREATE ROLE $DB_USER LOGIN PASSWORD '$DB_PASS';"
-  ok "Role $DB_USER dibuat"
-fi
-if [ "$(pgadmin -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAMA'")" = 1 ]; then
-  ok "Database $DB_NAMA sudah ada"
-else
-  pgadmin -c "CREATE DATABASE $DB_NAMA OWNER $DB_USER;"
-  ok "Database $DB_NAMA dibuat"
-fi
-export PGPASSWORD="$DB_PASS"
-if [ "$(psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" -tAc "SELECT to_regclass('public.kelurahan') IS NOT NULL")" = t ]; then
-  ok "schema.sql sudah dimuat sebelumnya (dilewati)"
-else
-  echo "  … memuat schema.sql (struktur + referensi nasional, 1–3 menit)"
-  psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" -v ON_ERROR_STOP=1 -q -f schema.sql >/dev/null
-  ok "schema.sql dimuat"
-fi
-unset PGPASSWORD
-
-# ---------- 4. MongoDB ----------
-judul "MongoDB: akun aplikasi"
-HASIL="$(mongosh --quiet --host 127.0.0.1 --eval "
-  const a = db.getSiblingDB('admin');
-  if (a.getUser('$MONGO_USER')) { a.updateUser('$MONGO_USER', { pwd: '$MONGO_PASS' }); print('diperbarui'); }
-  else { a.createUser({ user: '$MONGO_USER', pwd: '$MONGO_PASS', roles: [{ role: 'readWrite', db: '$DB_NAMA' }] }); print('dibuat'); }
-" 2>&1 || true)"
-case "$HASIL" in
-  *dibuat*|*diperbarui*) ok "Akun MongoDB $MONGO_USER $(echo "$HASIL" | tail -1)" ;;
-  *) gagal "Tidak bisa membuat akun MongoDB: $HASIL"
-     mati "MongoDB Anda tampaknya sudah memakai autentikasi. Buat akun '$MONGO_USER' (readWrite pada '$DB_NAMA', authSource admin) secara manual, isi MONGO_DB_PASSWORD di .env, lalu jalankan ulang." ;;
-esac
-
-# ---------- 5. berkas .env ----------
-judul "Berkas .env"
+# ---------- .env root (dibutuhkan juga oleh podman compose: env_file .env) ----------
 TMP_ENV="$(mktemp)"; trap 'rm -f "$TMP_ENV"' EXIT
 cat > "$TMP_ENV" <<EOF
 DB_DIALECT=postgres
@@ -303,6 +258,121 @@ tulis_env() { # tulis_env <berkas> [port] [modul]
   ok "$f dibuat"
 }
 tulis_env .env
+
+# ---------- 2–4. PostgreSQL, Redis, MongoDB ----------
+tunggu() { # tunggu "label" <percobaan> perintah...   (jeda 2 detik)
+  local label="$1" n="$2"; shift 2; local i
+  for i in $(seq 1 "$n"); do "$@" >/dev/null 2>&1 && { ok "$label siap"; return 0; }; sleep 2; done
+  mati "$label belum merespons. Periksa log layanannya lalu jalankan ulang."
+}
+# psql ke database aplikasi (Podman: lewat kontainer, tanpa psql di host)
+psqlq() {
+  if [ "$PODMAN" = 1 ]; then podman exec -e PGPASSWORD="$DB_PASS" opensimrs-db psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" "$@"
+  else PGPASSWORD="$DB_PASS" psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" "$@"; fi
+}
+
+if [ "$PODMAN" = 1 ]; then
+  judul "PostgreSQL, Redis, MongoDB di Podman"
+  # macOS: kontainer berjalan di VM (podman machine)
+  if [ "$PLATFORM" = mac ] && ! podman info >/dev/null 2>&1; then
+    MESIN="$(podman machine list --format '{{.Name}} {{.Default}}' 2>/dev/null | awk '$2=="true"{print $1}' | tr -d '*' | head -1)"
+    [ -n "$MESIN" ] || MESIN="$(podman machine list --format '{{.Name}}' 2>/dev/null | tr -d '*' | head -1)"
+    if [ -z "$MESIN" ]; then
+      tanya "Buat VM Podman 'opensimrs' (2 CPU, 4 GB RAM, disk 40 GB)?" || mati "Buat VM dulu: podman machine init --cpus 2 --memory 4096 --disk-size 40 opensimrs"
+      podman machine init --cpus 2 --memory 4096 --disk-size 40 opensimrs
+      MESIN=opensimrs
+    fi
+    podman machine start "$MESIN" >/dev/null 2>&1 || true
+    podman info >/dev/null 2>&1 || mati "Podman belum tersambung ke VM '$MESIN' (cek: podman machine list; podman system connection list)"
+    ok "VM Podman '$MESIN' berjalan"
+  fi
+  # Nama image pendek (postgres:16-alpine, mongo, redis) → Docker Hub, agar tidak gagal "short-name resolution"
+  REG='mkdir -p ~/.config/containers && { test -f ~/.config/containers/registries.conf || printf "unqualified-search-registries = [\"docker.io\"]\nshort-name-mode = \"permissive\"\n" > ~/.config/containers/registries.conf; }'
+  if [ "$PLATFORM" = mac ]; then
+    MESIN="$(podman machine list --format '{{.Name}} {{.Default}}' 2>/dev/null | awk '$2=="true"{print $1}' | tr -d '*' | head -1)"
+    [ -n "$MESIN" ] && podman machine ssh "$MESIN" "$REG" >/dev/null 2>&1 || true
+  else
+    bash -c "$REG"
+  fi
+  # Port host dipakai layanan lain (mis. PostgreSQL/MongoDB/Redis Homebrew) → kontainer gagal start
+  for p in 5432 27017 6379; do
+    if (exec 3<>"/dev/tcp/127.0.0.1/$p") 2>/dev/null && ! podman ps --format '{{.Ports}}' | grep -q ":$p->"; then
+      mati "Port $p sudah dipakai layanan lain. Hentikan dulu, mis. macOS: brew services stop postgresql@16 mongodb-community@7.0 redis"
+    fi
+  done
+  # .env root dibaca compose untuk nama/sandi DB & Mongo; schema.sql & akun root Mongo dibuat kontainer saat volume baru
+  podman compose -f docker-compose.yml up -d db mongodb redis || mati "podman compose gagal menyalakan PostgreSQL/MongoDB/Redis (lihat pesan di atas)"
+  echo "  … menunggu PostgreSQL (start pertama memuat schema.sql, 1–3 menit)"
+  tunggu "PostgreSQL" 150 podman exec opensimrs-db pg_isready -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA"
+  tunggu "Redis"      30  podman exec opensimrs-redis redis-cli ping
+  tunggu "MongoDB"    60  podman exec opensimrs-mongodb mongosh --quiet --eval "db.runCommand({ping:1}).ok"
+  # Volume lama dari instalasi sebelumnya memakai sandi lama → migrasi/login gagal: hentikan dengan petunjuk
+  psqlq -tAc "SELECT 1" >/dev/null 2>&1 || mati "Sandi PostgreSQL di .env tidak cocok dengan volume Podman lama. Pakai .env lama, atau hapus volume (DATA HILANG): podman compose -f docker-compose.yml down -v"
+  podman exec opensimrs-mongodb mongosh --quiet -u "$MONGO_USER" -p "$MONGO_PASS" --authenticationDatabase admin --eval "db.runCommand({ping:1}).ok" >/dev/null 2>&1 \
+    || mati "Sandi MongoDB di .env tidak cocok dengan volume Podman lama. Pakai .env lama, atau hapus volume (DATA HILANG): podman compose -f docker-compose.yml down -v"
+  ok "Akun PostgreSQL $DB_USER & MongoDB $MONGO_USER (root) siap"
+  [ "$(psqlq -tAc "SELECT to_regclass('public.kelurahan') IS NOT NULL" 2>/dev/null)" = t ] \
+    && ok "schema.sql termuat" || mati "schema.sql belum termuat. Lihat log: podman logs opensimrs-db"
+else
+# ---------- 2. nyalakan layanan ----------
+judul "Menyalakan PostgreSQL, Redis, MongoDB"
+case "$PLATFORM" in
+  mac)
+    for s in postgresql@16 redis mongodb-community@7.0; do
+      if brew list "$s" >/dev/null 2>&1; then brew services start "$s" >/dev/null 2>&1 || true; fi
+    done ;;
+  apt|linux)
+    for s in postgresql redis-server mongod; do sudo systemctl start "$s" 2>/dev/null || sudo service "$s" start 2>/dev/null || true; done ;;
+esac
+
+tunggu "PostgreSQL" 30 pg_isready -h 127.0.0.1 -p 5432
+tunggu "Redis"      30 redis-cli -h 127.0.0.1 ping
+tunggu "MongoDB"    30 mongosh --quiet --host 127.0.0.1 --eval "db.runCommand({ping:1}).ok"
+
+# ---------- 3. PostgreSQL ----------
+judul "PostgreSQL: role, database, skema"
+if [ "$PLATFORM" = mac ]; then pgadmin() { psql -X -q -d postgres "$@"; }; else pgadmin() { sudo -u postgres psql -X -q -d postgres "$@"; }; fi
+
+if [ "$(pgadmin -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" = 1 ]; then
+  # role sudah ada: samakan sandinya dengan .env (lingkungan lokal)
+  pgadmin -c "ALTER ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
+  ok "Role $DB_USER sudah ada (sandi disamakan dengan .env)"
+else
+  pgadmin -c "CREATE ROLE $DB_USER LOGIN PASSWORD '$DB_PASS';"
+  ok "Role $DB_USER dibuat"
+fi
+if [ "$(pgadmin -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAMA'")" = 1 ]; then
+  ok "Database $DB_NAMA sudah ada"
+else
+  pgadmin -c "CREATE DATABASE $DB_NAMA OWNER $DB_USER;"
+  ok "Database $DB_NAMA dibuat"
+fi
+export PGPASSWORD="$DB_PASS"
+if [ "$(psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" -tAc "SELECT to_regclass('public.kelurahan') IS NOT NULL")" = t ]; then
+  ok "schema.sql sudah dimuat sebelumnya (dilewati)"
+else
+  echo "  … memuat schema.sql (struktur + referensi nasional, 1–3 menit)"
+  psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" -v ON_ERROR_STOP=1 -q -f schema.sql >/dev/null
+  ok "schema.sql dimuat"
+fi
+unset PGPASSWORD
+
+# ---------- 4. MongoDB ----------
+judul "MongoDB: akun aplikasi"
+HASIL="$(mongosh --quiet --host 127.0.0.1 --eval "
+  const a = db.getSiblingDB('admin');
+  if (a.getUser('$MONGO_USER')) { a.updateUser('$MONGO_USER', { pwd: '$MONGO_PASS' }); print('diperbarui'); }
+  else { a.createUser({ user: '$MONGO_USER', pwd: '$MONGO_PASS', roles: [{ role: 'readWrite', db: '$DB_NAMA' }] }); print('dibuat'); }
+" 2>&1 || true)"
+case "$HASIL" in
+  *dibuat*|*diperbarui*) ok "Akun MongoDB $MONGO_USER $(echo "$HASIL" | tail -1)" ;;
+  *) gagal "Tidak bisa membuat akun MongoDB: $HASIL"
+     mati "MongoDB Anda tampaknya sudah memakai autentikasi. Buat akun '$MONGO_USER' (readWrite pada '$DB_NAMA', authSource admin) secara manual, isi MONGO_DB_PASSWORD di .env, lalu jalankan ulang." ;;
+esac
+fi
+
+# ---------- 5. berkas .env ----------
+judul "Berkas .env"
 for p in $LAYANAN; do n="${p%%:*}"; port="${p##*:}"; [ -d "$n-service" ] && tulis_env "$n-service/.env" "$port" "$n"; done
 
 # .env layanan lama yang tidak cocok dengan root → login/koneksi DB akan gagal
@@ -358,7 +428,7 @@ if [ "$TANPA_DEMO" = 1 ]; then
   warn "Data demo dilewati (--tanpa-demo)"
 else
   judul "Data demo"
-  ADA_FASKES="$(PGPASSWORD="$DB_PASS" psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" -tAc "SELECT count(*) FROM faskes" 2>/dev/null || echo 0)"
+  ADA_FASKES="$(psqlq -tAc "SELECT count(*) FROM faskes" 2>/dev/null || echo 0)"
   if [ "${ADA_FASKES:-0}" != 0 ]; then
     ok "Database sudah berisi $ADA_FASKES faskes (data demo dilewati; reset: npm run db:demo:reset -- --ya)"
   elif tanya "Isi data demo (8 faskes fiktif + akun demo)?"; then
@@ -377,5 +447,13 @@ cat <<EOF
   Buka http://localhost:5520 — login demo: superadmin / Demo@2026
   Kata sandi DB, Mongo, dan kunci aplikasi tersimpan di .env (jangan di-commit / dibagikan).
 EOF
+if [ "$PODMAN" = 1 ]; then cat <<EOF
+
+  PostgreSQL, MongoDB, Redis berjalan di Podman:
+    podman compose -f docker-compose.yml up -d db mongodb redis     # nyalakan (mis. setelah restart)
+    podman compose -f docker-compose.yml stop db mongodb redis      # hentikan
+EOF
+  [ "$PLATFORM" = mac ] && echo "    podman machine start                                            # macOS: VM Podman harus menyala dulu"
+fi
 
 if [ "$JALANKAN" = 1 ]; then exec npm run dev; fi

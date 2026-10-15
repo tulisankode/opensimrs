@@ -695,6 +695,24 @@ Buat blok serupa untuk domain frontend ke port 5520. Pastikan `FRONTEND_ALLOWED_
 
 > **Cara cepat (macOS & Ubuntu/Debian): `./install.sh`.** Skrip ini memeriksa dependensi beserta versinya (Node.js, PostgreSQL, Redis, MongoDB, mongosh, dll.), menawarkan pemasangan yang kurang lewat Homebrew/apt, menyalakan layanan, membuat role/database/akun Mongo, memuat `schema.sql`, membuat semua `.env` dengan kunci acak (tidak menimpa yang sudah ada), lalu menjalankan `install:all`, migrasi, dan data demo. Opsi: `--cek` (hanya cek), `--ya` (tanpa tanya), `--tanpa-demo`, `--jalankan` (langsung `npm run dev`). Khusus development lokal. Langkah manual di bawah menjelaskan hal yang sama secara rinci.
 >
+> **macOS/Linux dengan Podman: `./install.sh --podman`.** PostgreSQL, MongoDB, dan Redis dijalankan di kontainer Podman (`podman compose`, file `docker-compose.yml`), sedangkan layanan dan frontend tetap berjalan langsung di mesin (`npm run dev`, cocok untuk development). Tidak perlu memasang PostgreSQL/MongoDB/Redis dari Homebrew/apt. Langkah di MacBook:
+>
+> ```bash
+> brew install podman docker-compose node@22      # docker-compose v2 menjadi provider "podman compose"
+> git clone https://github.com/tulisankode/opensimrs.git && cd opensimrs
+> ./install.sh --cek --podman                      # cek dependensi saja
+> ./install.sh --podman                            # instalasi lengkap (+ --ya untuk tanpa tanya)
+> npm run dev                                      # buka http://localhost:5520 — superadmin / Demo@2026
+> ```
+>
+> Yang dilakukan `--podman` (aman dijalankan berulang):
+> - membuat VM Podman `opensimrs` (2 CPU, 4 GB RAM, disk 40 GB) bila belum ada, lalu menyalakannya; nama image pendek (`postgres:16-alpine`, `mongo`, `redis`) diarahkan ke Docker Hub;
+> - menulis `.env` root (sandi acak) **sebelum** kontainer dinyalakan, karena `podman compose` membacanya untuk nama dan sandi database;
+> - menjalankan `podman compose up -d db mongodb redis`; saat volume masih baru, kontainer PostgreSQL membuat role/database `opensimrs` dan memuat `schema.sql` (1–3 menit), kontainer MongoDB membuat akun root `opensimrs`;
+> - memeriksa sandi di `.env` cocok dengan volume yang ada, lalu melanjutkan langkah biasa: `.env` tiap layanan, `install:all`, migrasi, dan data demo.
+>
+> Catatan: port 5432, 27017, dan 6379 harus kosong (hentikan dulu `brew services stop postgresql@16 mongodb-community@7.0 redis` bila terpasang). Setelah komputer restart, jalankan `podman machine start` lalu `podman compose -f docker-compose.yml up -d db mongodb redis` sebelum `npm run dev`. Bila sandi di `.env` sudah tidak cocok dengan volume lama, skrip berhenti dengan petunjuk; `podman compose -f docker-compose.yml down -v` menghapus volume (**data hilang**).
+>
 > **Windows 10/11: `install.cmd`** (atau `powershell -ExecutionPolicy Bypass -File .\install.ps1`). Skrip ini melakukan langkah yang sama dengan `install.sh`:
 > - dependensi dipasang lewat **winget**: Node.js 22, PostgreSQL 16, MongoDB 7.0, mongosh, dan **Memurai Developer**, layanan Redis-kompatibel untuk Windows (edisi Developer gratis untuk development dan perlu dinyalakan ulang berkala);
 > - bila PostgreSQL dipasang oleh skrip, sandi superuser `postgres` dibuat acak dan ditampilkan sekali di akhir; bila sudah terpasang, skrip menanyakannya (atau isi variabel `PG_SUPERPASS`);
