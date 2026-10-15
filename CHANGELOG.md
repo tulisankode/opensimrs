@@ -27,6 +27,8 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 
 ### Diperbaiki
 - Tautan Discord di dokumen kini mengarah ke server komunitas OpenSIMRS dengan undangan permanen. Tautan lama adalah undangan grup DM yang kedaluwarsa dalam 24 jam.
+- `install.ps1` (Windows): port PostgreSQL kini dibaca dari `postgresql.conf` layanannya (atau variabel `PG_PORT`) dan dipakai untuk `psql` serta `DB_PORT` di `.env`; sebelumnya selalu 5432 sehingga gagal bila PostgreSQL berjalan di port lain.
+- `install.ps1`: Redis di bawah versi 5 (mis. port Redis lama untuk Windows v3.0) tidak lagi dianggap cukup; skrip menawarkan Memurai. Layanan berstatus *Disabled* dilewati dengan peringatan, dan kegagalan menyalakan layanan tidak lagi dilaporkan sebagai berhasil.
 
 ---
 
