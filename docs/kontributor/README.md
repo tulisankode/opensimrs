@@ -35,7 +35,7 @@ Jenjang bersifat **per bidang**: seseorang bisa menjadi Maintainer modul laborat
 
 ## Cara bergabung
 
-1. Bergabung ke kanal komunitas ([Telegram](https://t.me/+uW2ZQA1V7Dc3OTVl), [Discord](https://discord.gg/VNpKKgWw), [WhatsApp](https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t); aturan di [COMMUNITY.md](../../COMMUNITY.md)) dan perkenalkan diri: bidang yang diminati dan latar belakang singkat.
+1. Bergabung ke kanal komunitas ([Telegram](https://t.me/+uW2ZQA1V7Dc3OTVl), [Discord](https://discord.gg/qAWhdzGJTW), [WhatsApp](https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t); aturan di [COMMUNITY.md](../../COMMUNITY.md)) dan perkenalkan diri: bidang yang diminati dan latar belakang singkat.
 2. Baca panduan bidang Anda (tabel di atas) dan [Kode Etik](../../CODE_OF_CONDUCT.md).
 3. Coba OpenSIMRS dengan data demo ([Petunjuk Instalasi, jalur A](../INSTALLATION_GUIDE.md#4-jalur-a--coba-cepat-dengan-data-demo-lokal)).
 4. Pilih pekerjaan pertama di [Roadmap](../ROADMAP.md#6-backlog) atau issue berlabel `good first issue`, `butuh tenaga medis/klinis`, `dokumentasi`; klaim sesuai [cara mengklaim](../ROADMAP.md#5-cara-memilih--mengklaim-pekerjaan).

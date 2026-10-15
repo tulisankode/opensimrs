@@ -1,6 +1,6 @@
 # Kode Etik Komunitas OpenSIMRS
 
-Kami berkomitmen menjadikan komunitas OpenSIMRS ruang kolaborasi yang aman, terbuka, profesional, dan saling menghormati. Kode etik ini berlaku di semua ruang komunitas: repositori GitHub (issue, Pull Request, review), [grup Telegram](https://t.me/+uW2ZQA1V7Dc3OTVl), [server Discord](https://discord.gg/VNpKKgWw), [grup WhatsApp](https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t) ([COMMUNITY.md](./COMMUNITY.md)), serta acara yang mengatasnamakan OpenSIMRS.
+Kami berkomitmen menjadikan komunitas OpenSIMRS ruang kolaborasi yang aman, terbuka, profesional, dan saling menghormati. Kode etik ini berlaku di semua ruang komunitas: repositori GitHub (issue, Pull Request, review), [grup Telegram](https://t.me/+uW2ZQA1V7Dc3OTVl), [server Discord](https://discord.gg/qAWhdzGJTW), [grup WhatsApp](https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t) ([COMMUNITY.md](./COMMUNITY.md)), serta acara yang mengatasnamakan OpenSIMRS.
 
 ---
 

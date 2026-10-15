@@ -61,5 +61,5 @@ OpenSIMRS dirilis di bawah [Lisensi MIT](./LICENSE). Siapa pun, termasuk mitra i
 
 - Umum, keamanan, dan kode etik: **dev@opensimrs.id**
 - Website resmi: [OpenSIMRS.my.id](https://opensimrs.my.id)
-- Kanal komunitas: [Telegram](https://t.me/+uW2ZQA1V7Dc3OTVl) · [Discord](https://discord.gg/VNpKKgWw) · [WhatsApp](https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t) (aturan di [COMMUNITY.md](./COMMUNITY.md))
+- Kanal komunitas: [Telegram](https://t.me/+uW2ZQA1V7Dc3OTVl) · [Discord](https://discord.gg/qAWhdzGJTW) · [WhatsApp](https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t) (aturan di [COMMUNITY.md](./COMMUNITY.md))
 - Pelacakan pekerjaan teknis: GitHub Issues & Pull Request di `github.com/tulisankode/opensimrs`
