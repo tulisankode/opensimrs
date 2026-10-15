@@ -23,6 +23,11 @@ practitionerRouter.get(
   "/practitioner/export",
   PractitionerController.exportPractitioner
 );
+practitionerRouter.post(
+  "/practitioner/import",
+  upload.single("file"),
+  PractitionerController.importPractitioner
+);
 practitionerRouter.get(
   "/practitioner/aktif",
   PractitionerController.getAllPractitionerAktif

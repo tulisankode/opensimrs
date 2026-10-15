@@ -52,6 +52,23 @@ export default class PegawaiRepository extends BaseRePosiotry {
     });
   }
 
+  /**
+   * Pegawai aktif (belum dihapus) dengan NIK di daftar, untuk import.
+   * @param {Array<string>} nikList
+   * @param {string} faskes_uuid
+   */
+  static async findAllByNikIn(nikList, faskes_uuid) {
+    const result = await PegawaiModel.findAll({
+      where: {
+        nik: { [Op.in]: nikList },
+        faskes_uuid: faskes_uuid,
+        deletedAt: { [Op.is]: null },
+      },
+      attributes: ["uuid", "nik", "name"],
+    });
+    return result.map((r) => r.toJSON());
+  }
+
   static async findPegawaiByNIK(nik, faskes_uuid) {
     const pegawai = await PegawaiModel.findOne({
       where: {

@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { usePegawaiStore } from "@/stores/datamaster/pegawai";
 import * as XLSX from "xlsx-js-style";
+import { gayaJudulKolom, jadikanKolomTeks, sheetKeterangan } from "@/utils/excelTemplate";
 import { utilsStore } from "@/stores/utils";
 import CustomChip from "@/components/Base/CustomChip.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
@@ -174,7 +175,7 @@ const downloadExportExcel = async () => {
         GelarAkhir: rows[i].lastTitle ?? "-",
         NIK: rows[i].nik,
         TglLahir: rows[i].tanggalLahir,
-        Gender: rows[i].gender === "perempuan" ? "Perempuan" : "Laki-laki",
+        Gender: rows[i].gender?.toLowerCase() === "perempuan" ? "Perempuan" : "Laki-laki",
         Status: rows[i].status ? "AKTIF" : "NON-AKTIF",
       });
     }
@@ -270,17 +271,26 @@ const downloadFormatExcel = async () => {
       Gender: "Jenis Kelamin*",
     });
 
-    // Add Empty Rows (4 empty rows to match the example)
-
+    // Contoh baris (data fiktif); hapus sebelum import
     data.push({
       No: "1",
       Tipe: "Nakes",
-      Gelar: "Dr",
-      Name: "Zahrotul Hidayah",
-      GelarAkhir: "Sp.Ort",
-      NIK: "32256789065434",
-      TglLahir: "26-12-2004",
+      Gelar: "dr.",
+      Name: "Contoh Pegawai Satu",
+      GelarAkhir: "Sp.PD",
+      NIK: "9999010101900001",
+      TglLahir: "26-12-1990",
       Gender: "Perempuan",
+    });
+    data.push({
+      No: "2",
+      Tipe: "Non-Nakes",
+      Gelar: "",
+      Name: "Contoh Pegawai Dua",
+      GelarAkhir: "S.Kom",
+      NIK: "9999010101900002",
+      TglLahir: "01-02-1995",
+      Gender: "Laki-laki",
     });
 
     // Create Workbook and Worksheet
@@ -297,9 +307,9 @@ const downloadFormatExcel = async () => {
     }, []);
 
     worksheet["!cols"] = columnWidths.map((wch: any) => ({ wch }));
-
-    // Apply Styles to Cells
-    const range = XLSX.utils.decode_range("A1:C5");
+    gayaJudulKolom(worksheet, 8);
+    // NIK (F) dan Tanggal Lahir (G) sebagai teks
+    jadikanKolomTeks(worksheet, [5, 6]);
 
     // Append Worksheet to Workbook and Save
     XLSX.utils.book_append_sheet(
@@ -307,9 +317,36 @@ const downloadFormatExcel = async () => {
       worksheet,
       "Format Datamaster Pegawai"
     );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      sheetKeterangan([
+        "Kolom bertanda * wajib diisi. Hapus baris contoh sebelum import.",
+        "Tipe Pegawai: Nakes atau Non-Nakes.",
+        "NIK: 16 digit, ditulis sebagai teks. NIK yang sudah terdaftar akan ditolak.",
+        "Tanggal Lahir: format DD-MM-YYYY, mis. 26-12-1990.",
+        "Jenis Kelamin: Laki-laki atau Perempuan.",
+        "Gelar Awal dan Gelar Akhir boleh dikosongkan (maks. 25 karakter).",
+      ]),
+      "Keterangan"
+    );
     XLSX.writeFile(workbook, `Format Datamaster Pegawai.xlsx`);
   } catch (error) {
     console.error("Error while exporting Excel", error);
+  }
+};
+
+const handleFileUpload = async (file: File) => {
+  const dataUpload = new FormData();
+  dataUpload.append("file", file);
+
+  UseUtilsStore.setLoading(true);
+  try {
+    await pegawaiStore.importApi(dataUpload);
+    fetchPegawaiData();
+  } catch (error) {
+    console.error("Error uploading file:", error);
+  } finally {
+    UseUtilsStore.setLoading(false);
   }
 };
 </script>
@@ -500,10 +537,9 @@ const downloadFormatExcel = async () => {
       <Footer
         :rows="pegawaiProperties.page_size"
         :totalRecords="pegawaiProperties.total"
-        :showImport="false"
-        :show-download="false"
         @page="handlePage"
         @export="downloadExportExcel"
+        @import="handleFileUpload"
         @download="downloadFormatExcel"
       />
     </template>

@@ -1,6 +1,8 @@
 import { HttpException, HttpStatus } from "../errors/http-exception.js";
 import { generateErrorResponse } from "../helpers/generate-message.js";
 import PractitionerService from "../services/practitioner-service.js";
+import deleteFile from "../helpers/delete-file.js";
+import { validateExcel } from "../helpers/helper.js";
 
 export default class PractitionerController {
   static async createPractitioner(req, res, nextFunction) {
@@ -78,9 +80,23 @@ export default class PractitionerController {
 
   static async exportPractitioner(req, res, nextFunction) {
     try {
-      const result = await PractitionerService.exportPractitioner();
+      const result = await PractitionerService.exportPractitioner(req.author.faskesUuid);
       res.status(200).json(result);
     } catch (error) {
+      nextFunction(error);
+    }
+  }
+
+  static async importPractitioner(req, res, nextFunction) {
+    try {
+      validateExcel(req.file);
+      const result = await PractitionerService.importPractitioner(req.author.faskesUuid, req.file.path);
+      await deleteFile(req.file.path);
+      res.status(200).json(result);
+    } catch (error) {
+      if (req.file && req.file.path) {
+        await deleteFile(req.file.path);
+      }
       nextFunction(error);
     }
   }

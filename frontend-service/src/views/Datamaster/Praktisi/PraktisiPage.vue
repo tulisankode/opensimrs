@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { usePraktisiStore } from "@/stores/datamaster/praktisi";
 import * as XLSX from "xlsx-js-style";
+import { gayaJudulKolom, jadikanKolomTeks, sheetKeterangan } from "@/utils/excelTemplate";
 import { utilsStore } from "@/stores/utils";
 import CustomChip from "@/components/Base/CustomChip.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
@@ -141,6 +142,16 @@ const confirmDelete = async (item: any) => {
   }
 };
 
+// poli_pelayanan tersimpan sebagai teks JSON [{lokasi_uuid, name}]
+const namaPoli = (poli: any) => {
+  try {
+    const daftar = typeof poli === "string" ? JSON.parse(poli) : poli;
+    return Array.isArray(daftar) ? daftar.map((p: any) => p.name).filter(Boolean).join("; ") : "";
+  } catch {
+    return "";
+  }
+};
+
 // Export Excel
 const downloadExportExcel = async () => {
   try {
@@ -166,7 +177,7 @@ const downloadExportExcel = async () => {
       SIP: "SIP",
       STR: "STR",
       Antrian: "Kode Antrian Dokter",
-      Pelayanan: "Pelayanan*",
+      Pelayanan: "Poli Pelayanan",
       Status: "Status",
     });
 
@@ -180,7 +191,7 @@ const downloadExportExcel = async () => {
         SIP: rows[i].sip ?? "-",
         STR: rows[i].str ?? "-",
         Antrian: rows[i].codeAntrianDokter ?? "-",
-        Pelayanan: rows[i].isDoctor,
+        Pelayanan: namaPoli(rows[i].poliPelayanan) || "-",
         Status: rows[i].status ? "AKTIF" : "NON-AKTIF",
       });
     }
@@ -251,6 +262,106 @@ const downloadExportExcel = async () => {
     XLSX.writeFile(workbook, `Datamaster Praktisi.xlsx`);
   } catch (error) {
     console.error("Error while exporting Excel", error);
+  }
+};
+
+const downloadFormatExcel = async () => {
+  try {
+    // Prepare Data for Export
+    const data = [];
+
+    // Header Row
+    data.push({
+      No: "No",
+      NIK: "NIK Pegawai*",
+      Name: "Nama Pegawai",
+      Tipe: "Tipe Praktisi*",
+      Code: "Kode HFIS (BPJS)",
+      SIP: "SIP",
+      STR: "STR",
+      Antrian: "Kode Antrian Dokter",
+      Pelayanan: "Poli Pelayanan",
+    });
+
+    // Contoh baris (data fiktif); hapus sebelum import
+    data.push({
+      No: "1",
+      NIK: "9999010101900001",
+      Name: "Contoh Pegawai Satu",
+      Tipe: "Dokter",
+      Code: "999001",
+      SIP: "SIP/999/2026",
+      STR: "STR-9990001",
+      Antrian: "A",
+      Pelayanan: "Poli Umum; Poli Penyakit Dalam",
+    });
+    data.push({
+      No: "2",
+      NIK: "9999010101900002",
+      Name: "Contoh Pegawai Dua",
+      Tipe: "Non-Dokter",
+      Code: "",
+      SIP: "",
+      STR: "STR-9990002",
+      Antrian: "",
+      Pelayanan: "",
+    });
+
+    // Create Workbook and Worksheet
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(data, { skipHeader: true });
+
+    // Column Widths
+    const columnWidths = data.reduce((widths: any, row: any) => {
+      Object.keys(row).forEach((key, colIdx) => {
+        const cellValue = row[key] ? row[key].toString() : "";
+        widths[colIdx] = Math.max(widths[colIdx] || 10, cellValue.length + 2);
+      });
+      return widths;
+    }, []);
+
+    worksheet["!cols"] = columnWidths.map((wch: any) => ({ wch }));
+    gayaJudulKolom(worksheet, 9);
+    // NIK (B) dan Kode HFIS (E) sebagai teks
+    jadikanKolomTeks(worksheet, [1, 4]);
+
+    // Append Worksheet to Workbook and Save
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Format Datamaster Praktisi"
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      sheetKeterangan([
+        "Kolom bertanda * wajib diisi. Hapus baris contoh sebelum import.",
+        "NIK Pegawai: pegawai harus sudah terdaftar di menu Pegawai (import pegawai lebih dulu).",
+        "Nama Pegawai hanya keterangan dan tidak dibaca saat import.",
+        "Tipe Praktisi: Dokter atau Non-Dokter.",
+        "Dokter wajib mengisi Kode HFIS (BPJS), Kode Antrian Dokter (maks. 15 karakter), dan Poli Pelayanan.",
+        "Poli Pelayanan: nama poli sesuai master Lokasi; lebih dari satu dipisah titik koma (;).",
+        "Kode HFIS dan Kode Antrian tidak boleh sama dengan praktisi lain.",
+      ]),
+      "Keterangan"
+    );
+    XLSX.writeFile(workbook, `Format Datamaster Praktisi.xlsx`);
+  } catch (error) {
+    console.error("Error while exporting Excel", error);
+  }
+};
+
+const handleFileUpload = async (file: File) => {
+  const dataUpload = new FormData();
+  dataUpload.append("file", file);
+
+  UseUtilsStore.setLoading(true);
+  try {
+    await praktisiStore.importApi(dataUpload);
+    fetchPraktisiData();
+  } catch (error) {
+    console.error("Error uploading file:", error);
+  } finally {
+    UseUtilsStore.setLoading(false);
   }
 };
 </script>
@@ -425,10 +536,10 @@ const downloadExportExcel = async () => {
       <Footer
         :rows="praktisiProperties.page_size"
         :totalRecords="praktisiProperties.total"
-        :showImport="false"
-        :showDownload="false"
         @page="handlePage"
         @export="downloadExportExcel"
+        @import="handleFileUpload"
+        @download="downloadFormatExcel"
       />
     </template>
   </Card>

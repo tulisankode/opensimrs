@@ -1,4 +1,4 @@
-import { Op, QueryTypes, Transaction } from "sequelize";
+import { Op, QueryTypes, Sequelize, Transaction } from "sequelize";
 import sequelizeInstance from "@opensimrs/model-sdk/instance";
 import Lokasi from "../models/lokasi-model.js";
 import {
@@ -40,6 +40,25 @@ export default class LokasiRepository extends BaseRePosiotry {
    * @param {Array<string>} names
    * @param {string} faskesUuid
    */
+  /**
+   * Lokasi aktif yang namanya ada di daftar (tanpa membedakan huruf besar/kecil), untuk import.
+   * @param {Array<string>} names
+   * @param {string} faskesUuid
+   */
+  static async findAllAktifByNameInsensitive(names, faskesUuid) {
+    const lokasiList = await LokasiModel.findAll({
+      where: {
+        [Op.and]: [
+          Sequelize.where(Sequelize.fn("lower", Sequelize.col("name")), { [Op.in]: names.map((n) => n.toLowerCase()) }),
+          { faskes_uuid: faskesUuid },
+          { deletedAt: { [Op.is]: null } },
+        ],
+      },
+      attributes: ["uuid", "name"],
+    });
+    return lokasiList.map((r) => r.toJSON());
+  }
+
   static async findAllByNameIn(names, faskesUuid) {
     const lokasiList = await LokasiModel.findAll({
       where: {
