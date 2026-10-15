@@ -26,6 +26,7 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 ## [Belum dirilis]
 
 ### Ditambahkan
+- MCU › Peserta: **Hapus Terpilih** untuk membatalkan banyak peserta sekaligus (centang baris atau semua sesuai filter, maks. 500), mis. sebelum impor ulang file revisi HRD. Aturannya sama dengan pembatalan satuan (status Batal tetap tercatat; peserta selesai/ber-invoice/sudah dibayar ditolak; order lab & radiologi yang belum berisi hasil ikut dibatalkan). Hasil menampilkan peserta yang gagal beserta alasannya dan order yang sudah terkirim ke LIS agar dibatalkan juga di LIS. Endpoint baru `POST /api/v3/penunjang/mcu/peserta/batal-massal`.
 - Datamaster **Pegawai** dan **Praktisi**: tombol **Import** dan **Download** template Excel seperti halaman datamaster lain. Template berisi contoh fiktif, sheet *Keterangan*, dan kolom NIK berformat teks. Import praktisi (endpoint baru `POST /api/v3/datamaster/practitioner/import`) merujuk pegawai lewat NIK dan poli lewat nama di master Lokasi. Galat import dilaporkan per nomor baris Excel dan tidak ada data yang tersimpan bila masih ada galat.
 
 ### Diperbaiki
