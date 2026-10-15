@@ -2,7 +2,6 @@
 !.env*.example
 
 node_modules
-.npmrc
 redis.conf
 *.aof
 *.rdb

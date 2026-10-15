@@ -2,9 +2,7 @@
 node_modules
 .idea
 public.key
-.npmrc
 docker-compose-dev.yml
 redis.conf
-.npmrc
 *.key
 *.http

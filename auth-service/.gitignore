@@ -6,7 +6,6 @@ package-lock.json
 docker-compose-dev.yml
 *.conf
 .idea
-.npmrc
 deploy.sh
 .env*
 .flaskenv*
