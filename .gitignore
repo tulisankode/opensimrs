@@ -5,3 +5,5 @@ node_modules/
 frontend-service/dist/
 *.log
 .DS_Store
+# catatan pribadi Claude Code
+CLAUDE.local.md
