@@ -34,6 +34,7 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 
 ### Diperbaiki
 - **Clone/instalasi baru (server, Docker, Podman, `install.sh`) gagal menjalankan sebagian layanan** (`Cannot find package 'sequelize' imported from /packages/model-sdk/…`): berkas `.npmrc` (`install-links=true`, memasang SDK lokal sebagai salinan) diabaikan `.gitignore` tiap layanan sehingga tidak pernah ter-commit. Kini `.npmrc` ikut di repo untuk 15 layanan.
+- stok-farmasi-service tidak lagi mewajibkan `PUBLIC_KEY`/`PRIVATE_KEY` (sisa JWT RS256, tidak dipakai); sebelumnya gagal start di server yang `.env`-nya mengikuti `deploy/server/.env.example`.
 - No. RM pasien baru kini dibuat dari nomor RM terbesar + 1 (sebelumnya jumlah pasien + 1, sehingga bisa bentrok dengan nomor yang sudah dipakai bila ada data pasien yang dihapus permanen).
 - Bridging LIS bulk MCU: `registrasi.username` (wajib di gateway `registrasi_bulk_mcu`) kini selalu dikirim (`-` bila tidak ada petugas); registrasi per order tidak berubah.
 - Pasien **non-aktif** tidak lagi terbaca di modul lain: pencarian pasien Admisi kini bawaan hanya pasien aktif (sebelumnya form order Laboratorium dan Rawat Inap ikut menampilkan pasien non-aktif), begitu pula pencarian pasien Radiologi, Fisioterapi, Patologi Anatomi, Mikrobiologi, MCU, dan aplikasi mobile. Pendaftaran lewat cek identitas (APM/kiosk), pendaftaran & impor MCU menolak pasien non-aktif dengan pesan untuk mengaktifkannya dulu.
