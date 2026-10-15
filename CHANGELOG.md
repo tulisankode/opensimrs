@@ -25,6 +25,12 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 
 ## [Belum dirilis]
 
+---
+
+## [1.0.0-alpha.1] - 2026-10-15
+
+Rilis publik pertama sebagai **OpenSIMRS**, sebelumnya dikembangkan secara internal.
+
 ### Ditambahkan
 - Dokumentasi untuk komunitas: [README](./README.md) baru, [Petunjuk Instalasi](./docs/INSTALLATION_GUIDE.md) (jalur coba cepat & implementasi faskes), [Manajemen Modul](./docs/MANAJEMEN-MODUL.md) dengan katalog lengkap, [Roadmap & timeline](./docs/ROADMAP.md) dengan label kontributor, [Panduan Kontribusi](./CONTRIBUTING.md), dan berkas changelog ini.
 - Aturan [versi, branch, dan merge](./docs/kontributor/ALUR-GIT-RILIS.md) untuk contributor, beserta templat Pull Request (`.github/pull_request_template.md`).
@@ -34,16 +40,6 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 - Panduan per peran kontributor di [`docs/kontributor/`](./docs/kontributor/README.md): implementator, developer, tester/QA, dan product development.
 - [Spesifikasi Hardware](./docs/SPESIFIKASI-HARDWARE.md) on-premise per segmen faskes dan [aturan lingkungan development/staging/production](./docs/LINGKUNGAN.md).
 - Petunjuk Instalasi kini memuat dua cara yang setara: **dengan Docker** dan **tanpa Docker** (instal native, termasuk produksi dengan pm2/systemd + nginx).
-
-### Keamanan
-- `.env.example` di root dibersihkan dari alamat IP jaringan internal dan contoh kunci API; diganti nilai `localhost` dan isian kosong.
-- Dokumen uji dan audit tidak lagi menyebut alamat server internal.
-
----
-
-## [1.0.0-alpha.1] - 2026-10-15
-
-Rilis publik pertama sebagai **OpenSIMRS**, sebelumnya dikembangkan secara internal.
 
 ### Diubah
 - Kode dipindah ke **satu monorepo** (frontend, 18 layanan backend, migrasi, skrip, dokumen). Sebelumnya setiap layanan berada di repositori terpisah (git submodule). Satu fitur lintas layanan kini cukup satu commit/PR.
@@ -75,6 +71,8 @@ Rilis publik pertama sebagai **OpenSIMRS**, sebelumnya dikembangkan secara inter
 - **`schema.sql` tanpa data pribadi**: data faskes, pasien, dan pengguna dari masa pengembangan dihapus; hanya struktur dan data referensi nasional yang tersisa.
 - Skrip dengan kredensial tertanam dihapus (skrip WSL/MongoDB dan tambalan server); `mongo-init.js` tidak lagi membuat user dengan sandi tertanam.
 - Semua `.env.example` layanan dibersihkan: tanpa alamat IP internal, tanpa kunci terisi, nama database `opensimrs`.
+- `.env.example` di root dibersihkan dari alamat IP jaringan internal dan contoh kunci API; diganti nilai `localhost` dan isian kosong.
+- Dokumen uji dan audit tidak lagi menyebut alamat server internal.
 
 ---
 
