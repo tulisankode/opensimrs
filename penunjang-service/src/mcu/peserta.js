@@ -308,79 +308,146 @@ rute.put(
 // Perorangan: ditolak bila tagihan kasir sudah dibayar (arahkan ke refund di Kasir); bila belum, tagihan ditarik.
 // Order radiologi dibatalkan bila belum ada item yang diperiksa; order laboratorium (lab-service) dibatalkan bila
 // belum ada hasil yang terisi.
+const batalkanPeserta = async (uuid, alasan, author) => {
+  const f = author.faskesUuid;
+  return transaksi(async (k) => {
+    const s = await satu(`SELECT * FROM mcu_peserta WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL FOR UPDATE`, [uuid, f], k);
+    if (!s) throw tidakDitemukan("Peserta MCU");
+    if (s.status === "batal") throw konflik("Peserta MCU sudah dibatalkan");
+    if (s.status === "selesai") throw konflik("Peserta MCU sudah selesai (kesimpulan terbit) dan tidak dapat dibatalkan");
+    if (s.invoice_uuid) throw konflik("Peserta sudah masuk invoice korporasi; batalkan invoice terlebih dahulu");
+
+    if (s.cara_bayar === "perorangan") {
+      const bayar = await statusBayarPeserta(s.uuid, k);
+      if (bayar.dibayar) {
+        throw konflik(
+          `Tagihan MCU ${s.no_mcu} sudah dibayar di Kasir${bayar.invoice ? ` (tagihan ${bayar.invoice})` : ""}. ` +
+            "Pembatalan tidak dapat dilakukan dari modul MCU — proses pengembalian dana (refund) / pembatalan transaksi melalui Kasir terlebih dahulu.",
+        );
+      }
+    }
+
+    let radiologi = null;
+    if (s.rad_order_uuid) {
+      const diperiksa = await satu(
+        `SELECT COUNT(*)::int n FROM rad_order_item WHERE order_uuid = $1 AND status <> 'menunggu' AND deleted_at IS NULL`,
+        [s.rad_order_uuid],
+        k,
+      );
+      if (diperiksa.n === 0) {
+        const r = await satu(
+          `UPDATE rad_order SET status = 'batal', alasan_batal = $1, updated_at = $2
+            WHERE uuid = $3 AND faskes_uuid = $4 AND status IN ('order','valid') AND deleted_at IS NULL RETURNING no_order`,
+          [`Peserta MCU ${s.no_mcu} dibatalkan: ${alasan}`, sekarang(), s.rad_order_uuid, f],
+          k,
+        );
+        radiologi = r ? `Order radiologi ${r.no_order} dibatalkan` : null;
+      } else {
+        radiologi = "Order radiologi sudah diperiksa sehingga tidak dibatalkan";
+      }
+    }
+
+    let labBatal = null;
+    let laboratorium = null;
+    if (s.lab_order_uuid) {
+      const st = await statusOrderLab(s.lab_order_uuid, k);
+      if (st && Number(st.order_status) !== 0) {
+        if (st.terisi > 0 || Number(st.order_status) === 3) laboratorium = `Order laboratorium ${st.no_order} sudah berisi hasil sehingga tidak dibatalkan`;
+        else labBatal = st;
+      }
+    }
+
+    await ubah("mcu_peserta", s.uuid, f, { status: "batal", alasan_batal: alasan }, k);
+    let paket = null;
+    if (s.cara_bayar === "perorangan") {
+      paket = (await satu(`SELECT nama, kode FROM mcu_paket WHERE uuid = $1`, [s.paket_uuid], k)) ?? { nama: "", kode: "" };
+      await tagihanPeserta(s, paket, author, true);
+    }
+    if (labBatal) {
+      try {
+        await batalOrderLab(labBatal.uuid, `Peserta MCU ${s.no_mcu} dibatalkan: ${alasan}`, author.token);
+        laboratorium = `Order laboratorium ${labBatal.no_order} dibatalkan`;
+      } catch (e) {
+        // Kembalikan tagihan yang sudah ditarik, lalu batalkan seluruh pembatalan (rollback).
+        if (paket) await tagihanPeserta(s, paket, author).catch(() => {});
+        throw e;
+      }
+    }
+    // Order yang sudah terdaftar di LIS tidak ikut dibatalkan di LIS: beri tahu petugas.
+    const lis = s.lab_order_uuid
+      ? await satu(
+          `SELECT lis_no_lab FROM lab_lis_kirim WHERE order_lab_uuid = $1 AND status IN ('terkirim','tidak_pasti') ORDER BY updated_at DESC LIMIT 1`,
+          [s.lab_order_uuid],
+          k,
+        )
+      : null;
+    return {
+      uuid: s.uuid,
+      no_mcu: s.no_mcu,
+      radiologi,
+      laboratorium,
+      tagihan: s.cara_bayar === "perorangan" ? "Tagihan kasir ditarik" : null,
+      lis: lis ? `Sudah terkirim ke LIS${lis.lis_no_lab ? ` (No. Lab ${lis.lis_no_lab})` : ""} — batalkan juga di LIS` : null,
+    };
+  });
+};
+
 rute.post(
   "/:uuid/batal",
   izinMcu("Peserta", "BATAL"),
   tangani(async (req, res) => {
-    const f = req.author.faskesUuid;
     wajib(req.body, ["alasan"]);
-    const alasan = String(req.body.alasan).trim();
-    const hasil = await transaksi(async (k) => {
-      const s = await satu(`SELECT * FROM mcu_peserta WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL FOR UPDATE`, [req.params.uuid, f], k);
-      if (!s) throw tidakDitemukan("Peserta MCU");
-      if (s.status === "batal") throw konflik("Peserta MCU sudah dibatalkan");
-      if (s.status === "selesai") throw konflik("Peserta MCU sudah selesai (kesimpulan terbit) dan tidak dapat dibatalkan");
-      if (s.invoice_uuid) throw konflik("Peserta sudah masuk invoice korporasi; batalkan invoice terlebih dahulu");
-
-      if (s.cara_bayar === "perorangan") {
-        const bayar = await statusBayarPeserta(s.uuid, k);
-        if (bayar.dibayar) {
-          throw konflik(
-            `Tagihan MCU ${s.no_mcu} sudah dibayar di Kasir${bayar.invoice ? ` (tagihan ${bayar.invoice})` : ""}. ` +
-              "Pembatalan tidak dapat dilakukan dari modul MCU — proses pengembalian dana (refund) / pembatalan transaksi melalui Kasir terlebih dahulu.",
-          );
-        }
-      }
-
-      let radiologi = null;
-      if (s.rad_order_uuid) {
-        const diperiksa = await satu(
-          `SELECT COUNT(*)::int n FROM rad_order_item WHERE order_uuid = $1 AND status <> 'menunggu' AND deleted_at IS NULL`,
-          [s.rad_order_uuid],
-          k,
-        );
-        if (diperiksa.n === 0) {
-          const r = await satu(
-            `UPDATE rad_order SET status = 'batal', alasan_batal = $1, updated_at = $2
-              WHERE uuid = $3 AND faskes_uuid = $4 AND status IN ('order','valid') AND deleted_at IS NULL RETURNING no_order`,
-            [`Peserta MCU ${s.no_mcu} dibatalkan: ${alasan}`, sekarang(), s.rad_order_uuid, f],
-            k,
-          );
-          radiologi = r ? `Order radiologi ${r.no_order} dibatalkan` : null;
-        } else {
-          radiologi = "Order radiologi sudah diperiksa sehingga tidak dibatalkan";
-        }
-      }
-
-      let labBatal = null;
-      let laboratorium = null;
-      if (s.lab_order_uuid) {
-        const st = await statusOrderLab(s.lab_order_uuid, k);
-        if (st && Number(st.order_status) !== 0) {
-          if (st.terisi > 0 || Number(st.order_status) === 3) laboratorium = `Order laboratorium ${st.no_order} sudah berisi hasil sehingga tidak dibatalkan`;
-          else labBatal = st;
-        }
-      }
-
-      await ubah("mcu_peserta", s.uuid, f, { status: "batal", alasan_batal: alasan }, k);
-      let paket = null;
-      if (s.cara_bayar === "perorangan") {
-        paket = (await satu(`SELECT nama, kode FROM mcu_paket WHERE uuid = $1`, [s.paket_uuid], k)) ?? { nama: "", kode: "" };
-        await tagihanPeserta(s, paket, req.author, true);
-      }
-      if (labBatal) {
-        try {
-          await batalOrderLab(labBatal.uuid, `Peserta MCU ${s.no_mcu} dibatalkan: ${alasan}`, req.author.token);
-          laboratorium = `Order laboratorium ${labBatal.no_order} dibatalkan`;
-        } catch (e) {
-          // Kembalikan tagihan yang sudah ditarik, lalu batalkan seluruh pembatalan (rollback).
-          if (paket) await tagihanPeserta(s, paket, req.author).catch(() => {});
-          throw e;
-        }
-      }
-      return { uuid: s.uuid, no_mcu: s.no_mcu, radiologi, laboratorium, tagihan: s.cara_bayar === "perorangan" ? "Tagihan kasir ditarik" : null };
-    });
+    const hasil = await batalkanPeserta(req.params.uuid, String(req.body.alasan).trim(), req.author);
     kirim(res, hasil, "Peserta MCU berhasil dibatalkan");
+  }),
+);
+
+// Pembatalan massal (mis. sebelum impor ulang file revisi HRD). Tiap peserta diproses dengan aturan & transaksi yang
+// sama seperti pembatalan satuan; peserta yang tidak bisa dibatalkan dilaporkan di `gagal` tanpa menggagalkan yang lain.
+const MAKS_BATAL_MASSAL = 500;
+rute.post(
+  "/batal-massal",
+  izinMcu("Peserta", "BATAL"),
+  tangani(async (req, res) => {
+    const f = req.author.faskesUuid;
+    const b = req.body ?? {};
+    wajib(b, ["alasan"]);
+    const alasan = String(b.alasan).trim();
+    if (!alasan) throw permintaanSalah("alasan tidak boleh kosong");
+    // Peserta terpilih (uuids) atau semua sesuai filter daftar (filter; peserta yang sudah batal dilewati).
+    let uuids;
+    if (Array.isArray(b.uuids)) uuids = [...new Set(b.uuids.map(String))];
+    else if (b.filter && typeof b.filter === "object") {
+      const { w, p } = filterPeserta(b.filter, f);
+      uuids = (await query(`SELECT s.uuid FROM ${DARI_LIS} WHERE ${w} AND s.status <> 'batal' LIMIT ${MAKS_BATAL_MASSAL + 1}`, p)).map((r) => r.uuid);
+    } else throw permintaanSalah("Pilih peserta (uuids) atau kirim filter daftar (filter)");
+    if (!uuids.length) throw permintaanSalah("Tidak ada peserta yang bisa dibatalkan");
+    if (uuids.length > MAKS_BATAL_MASSAL) throw permintaanSalah(`Maksimal ${MAKS_BATAL_MASSAL} peserta per pembatalan — persempit filter (tanggal/perusahaan)`);
+
+    const dikenal = await query(
+      `SELECT s.uuid, s.no_mcu, pt.name FROM mcu_peserta s JOIN patients pt ON pt.uuid = s.patient_uuid
+        WHERE s.uuid = ANY($1::varchar[]) AND s.faskes_uuid = $2 AND s.deleted_at IS NULL`,
+      [uuids, f],
+    );
+    const berhasil = [];
+    const gagal = [];
+    for (const uuid of uuids) {
+      const info = dikenal.find((d) => d.uuid === uuid);
+      if (!info) {
+        gagal.push({ uuid, no_mcu: null, nama: null, alasan: "Peserta MCU tidak ditemukan" });
+        continue;
+      }
+      try {
+        berhasil.push({ ...(await batalkanPeserta(uuid, alasan, req.author)), nama: info.name });
+      } catch (e) {
+        gagal.push({ uuid, no_mcu: info.no_mcu, nama: info.name, alasan: e.message });
+      }
+    }
+    kirim(
+      res,
+      { ringkasan: { total: uuids.length, berhasil: berhasil.length, gagal: gagal.length }, berhasil, gagal },
+      `${berhasil.length} peserta MCU dibatalkan${gagal.length ? `, ${gagal.length} gagal` : ""}`,
+    );
   }),
 );
 

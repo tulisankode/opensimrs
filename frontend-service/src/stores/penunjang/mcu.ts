@@ -126,6 +126,9 @@ export const daftarkanPesertaMcu = (data: {
 }) => apiPenunjangPost("/mcu/peserta", data);
 export const ubahPesertaMcu = (uuid: string, data: Record<string, any>) => apiPenunjangPut(`/mcu/peserta/${uuid}`, data);
 export const batalPesertaMcu = (uuid: string, alasan: string) => apiPenunjangPost(`/mcu/peserta/${uuid}/batal`, { alasan });
+// Pembatalan massal: peserta terpilih (uuids) atau semua sesuai filter daftar (filter).
+export const batalMassalPesertaMcu = (data: { uuids?: string[]; filter?: Record<string, any>; alasan: string }) =>
+  apiPenunjangPost(`/mcu/peserta/batal-massal`, data);
 export const buatOrderLabMcu = (uuid: string) => apiPenunjangPost(`/mcu/peserta/${uuid}/order-lab`, {});
 
 // Impor Excel rombongan korporasi

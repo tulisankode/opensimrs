@@ -10,7 +10,7 @@ import CustomSelect from "@/components/Base/CustomSelect.vue";
 import CustomChip from "@/components/Base/CustomChip.vue";
 import CustomDialog from "@/components/Base/CustomDialog.vue";
 import {
-  daftarPesertaMcu, daftarkanPesertaMcu, batalPesertaMcu, detailPesertaMcu, daftarPaketMcu, daftarPerusahaanMcu, cariPasienMcu,
+  daftarPesertaMcu, daftarkanPesertaMcu, batalPesertaMcu, batalMassalPesertaMcu, detailPesertaMcu, daftarPaketMcu, daftarPerusahaanMcu, cariPasienMcu,
   buatOrderLabMcu, izinMcu, daftarPasienBaruMcu, referensiImporMcu, STATUS_PESERTA, KESIMPULAN_MCU, OPSI_JENIS_MCU, JENIS_MCU, tglIso, tglIndo, rupiah, jenisKelamin,
   STATUS_LIS, FILTER_STATUS_LIS, AKSI_LIS, petunjukGalatLis, type StatusPeserta, type Kesimpulan, type StatusLis, type AksiLis,
 } from "@/stores/penunjang/mcu";
@@ -84,6 +84,8 @@ const toggleStatusLis = (s: string) => {
 // ── Bridging LIS: pilih peserta (checkbox) → kirim / kirim ulang yang gagal / ambil hasil / cek status (batch di server) ──
 const lisAktif = computed(() => fiturAktif("lab_bridging_lis"));
 const bolehLis = computed(() => lisAktif.value && boleh("KIRIM LIS"));
+// Checkbox & bar aksi massal tampil bila ada aksi massal yang diizinkan (LIS dan/atau batal massal).
+const bolehPilih = computed(() => bolehLis.value || boleh("BATAL"));
 const pilihan = ref<any[]>([]);
 const semuaFilter = ref(false); // "pilih semua sesuai filter" (melebihi halaman)
 const jumlahDipilih = computed(() => (semuaFilter.value ? total.value : pilihan.value.length));
@@ -252,6 +254,34 @@ const batal = async () => {
   }
 };
 
+// ── Batal massal (mis. sebelum impor ulang file revisi HRD) ──
+const dialogBatalMassal = ref(false);
+const alasanMassal = ref("");
+const memprosesMassal = ref(false);
+const hasilMassal = ref<any>(null);
+const bukaBatalMassal = () => {
+  if (!jumlahDipilih.value) return;
+  alasanMassal.value = "";
+  hasilMassal.value = null;
+  dialogBatalMassal.value = true;
+};
+const batalMassal = async () => {
+  if (!alasanMassal.value.trim()) return;
+  memprosesMassal.value = true;
+  const res = await batalMassalPesertaMcu({
+    ...(semuaFilter.value ? { filter: filterSaatIni() } : { uuids: pilihan.value.map((p) => p.uuid) }),
+    alasan: alasanMassal.value.trim(),
+  });
+  memprosesMassal.value = false;
+  if (res?.payload) {
+    hasilMassal.value = res.payload;
+    pilihan.value = [];
+    semuaFilter.value = false;
+    muat();
+  }
+};
+const catatanLisMassal = computed(() => (hasilMassal.value?.berhasil ?? []).filter((b: any) => b.lis));
+
 const menu = ref();
 const menuRow = ref<any>(null);
 const itemMenu = computed(() => {
@@ -333,8 +363,8 @@ onMounted(async () => {
       </template>
       <template #content>
         <div class="flex flex-col h-full">
-        <!-- Aksi massal LIS -->
-        <div v-if="bolehLis" class="flex flex-wrap items-center gap-2 px-1 py-2 text-xs border-b border-grey-100" data-uji="bar-lis">
+        <!-- Aksi massal (LIS, batal massal) -->
+        <div v-if="bolehPilih" class="flex flex-wrap items-center gap-2 px-1 py-2 text-xs border-b border-grey-100" data-uji="bar-lis">
           <span class="font-semibold">{{ jumlahDipilih }} peserta dipilih</span>
           <template v-if="!semuaFilter && halamanTerpilihSemua && total > rows.length">
             · <a class="underline cursor-pointer text-opensimrs-300" data-uji="pilih-semua-filter" @click="semuaFilter = true">Pilih semua {{ total }} peserta sesuai filter</a>
@@ -343,20 +373,25 @@ onMounted(async () => {
             (semua sesuai filter) · <a class="underline cursor-pointer text-opensimrs-300" @click="semuaFilter = false">batal</a>
           </template>
           <a v-if="pilihan.length && !semuaFilter" class="underline cursor-pointer text-grey-400" @click="pilihan = []">kosongkan</a>
-          <span v-if="!semuaFilter && pilihan.length" class="text-grey-400">
+          <span v-if="bolehLis && !semuaFilter && pilihan.length" class="text-grey-400">
             ({{ hitungPilihan(['belum']) }} belum · {{ hitungPilihan(['gagal']) }} gagal · {{ hitungPilihan(['terkirim', 'hasil_sebagian', 'hasil_lengkap']) }} terkirim<span v-if="hitungPilihan(['tidak_pasti'])"> · {{ hitungPilihan(['tidak_pasti']) }} tidak pasti</span>)
           </span>
           <div class="flex flex-wrap gap-2 ml-auto">
-            <CustomButton icon="PhPaperPlaneTilt" :label="AKSI_LIS.kirim.label" :disabled="!jumlahDipilih" data-uji="aksi-kirim-lis" @click="bukaLis('kirim')" />
-            <CustomButton icon="PhArrowClockwise" :label="AKSI_LIS.ulang.label" outlined borderColor="border-[#B42318]" textColor="text-[#B42318]" :disabled="!jumlahDipilih" data-uji="aksi-ulang-lis" @click="bukaLis('ulang')" />
-            <CustomButton icon="PhDownloadSimple" :label="AKSI_LIS.hasil.label" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" :disabled="!jumlahDipilih" data-uji="aksi-hasil-lis" @click="bukaLis('hasil')" />
-            <Button text size="small" aria-label="Aksi LIS lain" @click="menuLis.toggle($event)"><PhDotsThreeVertical :size="18" /></Button>
-            <Menu ref="menuLis" :model="itemAksiLis" popup />
+            <template v-if="bolehLis">
+              <CustomButton icon="PhPaperPlaneTilt" :label="AKSI_LIS.kirim.label" :disabled="!jumlahDipilih" data-uji="aksi-kirim-lis" @click="bukaLis('kirim')" />
+              <CustomButton icon="PhArrowClockwise" :label="AKSI_LIS.ulang.label" outlined borderColor="border-[#B42318]" textColor="text-[#B42318]" :disabled="!jumlahDipilih" data-uji="aksi-ulang-lis" @click="bukaLis('ulang')" />
+              <CustomButton icon="PhDownloadSimple" :label="AKSI_LIS.hasil.label" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" :disabled="!jumlahDipilih" data-uji="aksi-hasil-lis" @click="bukaLis('hasil')" />
+            </template>
+            <CustomButton v-if="boleh('BATAL')" icon="PhTrash" label="Hapus Terpilih" backgroundColor="bg-danger-300" :disabled="!jumlahDipilih" data-uji="aksi-batal-massal" @click="bukaBatalMassal" />
+            <template v-if="bolehLis">
+              <Button text size="small" aria-label="Aksi LIS lain" @click="menuLis.toggle($event)"><PhDotsThreeVertical :size="18" /></Button>
+              <Menu ref="menuLis" :model="itemAksiLis" popup />
+            </template>
           </div>
         </div>
         <div class="flex-1 min-h-0">
         <DataTable v-model:selection="pilihan" :value="rows" :loading="memuat" stripedRows class="text-xs" scrollable scrollHeight="flex" dataKey="uuid">
-          <Column v-if="bolehLis" selectionMode="multiple" headerClass="bg-opensimrs-50" class="w-10" />
+          <Column v-if="bolehPilih" selectionMode="multiple" headerClass="bg-opensimrs-50" class="w-10" />
           <template #empty><div class="py-6 text-center text-grey-400">Tidak ada peserta MCU pada filter ini</div></template>
           <Column header="No. MCU / Tanggal" headerClass="bg-opensimrs-50">
             <template #body="{ data }">
@@ -639,6 +674,57 @@ onMounted(async () => {
         <div class="flex justify-end gap-2">
           <CustomButton label="Tutup" outlined borderColor="border-grey-200" textColor="text-grey-400" @click="dialogBatal = false" />
           <CustomButton label="Batalkan Peserta" backgroundColor="bg-danger-300" :disabled="!alasan.trim()" @click="batal" />
+        </div>
+      </template>
+    </CustomDialog>
+
+    <!-- Hapus (batal) massal -->
+    <CustomDialog v-model:visible="dialogBatalMassal" width="620px">
+      <template #header>{{ hasilMassal ? "Hasil Hapus Peserta" : `Hapus ${jumlahDipilih} Peserta MCU` }}</template>
+      <template #body>
+        <div v-if="!hasilMassal" class="flex flex-col gap-2 pt-4 text-sm" data-uji="form-batal-massal">
+          <div>
+            <b>{{ jumlahDipilih }} peserta</b> {{ semuaFilter ? "sesuai filter daftar saat ini" : "terpilih" }} akan dibatalkan
+            (status <b>Batal</b>, tetap tercatat untuk audit). Peserta yang dibatalkan bisa didaftarkan atau diimpor ulang.
+          </div>
+          <div class="text-xs text-grey-400">
+            Aturan sama dengan pembatalan satuan: peserta yang sudah selesai, sudah masuk invoice, atau tagihan perorangannya sudah
+            dibayar tidak dibatalkan. Order laboratorium yang belum berisi hasil dan order radiologi yang belum diperiksa ikut dibatalkan.
+            Order yang sudah terkirim ke LIS perlu dibatalkan juga di LIS.
+          </div>
+          <label class="flex flex-col gap-1">Alasan *<TextArea v-model="alasanMassal" rows="3" placeholder="mis. Revisi daftar peserta dari HRD" /></label>
+        </div>
+        <div v-else class="flex flex-col gap-3 pt-4 text-sm" data-uji="hasil-batal-massal">
+          <div class="flex flex-wrap gap-2 text-xs">
+            <span class="px-2 py-1 rounded bg-[#D1FADF] text-[#027A48]">{{ hasilMassal.ringkasan.berhasil }} dibatalkan</span>
+            <span v-if="hasilMassal.ringkasan.gagal" class="px-2 py-1 rounded bg-[#FDE2E1] text-[#B42318]">{{ hasilMassal.ringkasan.gagal }} gagal</span>
+          </div>
+          <div v-if="hasilMassal.gagal?.length">
+            <div class="mb-1 font-semibold">Tidak dibatalkan</div>
+            <ul class="flex flex-col gap-1 overflow-auto text-xs max-h-48">
+              <li v-for="g in hasilMassal.gagal" :key="g.uuid"><b>{{ g.noMcu ?? "-" }}</b> {{ g.nama ?? "" }} — {{ g.alasan }}</li>
+            </ul>
+          </div>
+          <div v-if="catatanLisMassal.length">
+            <div class="mb-1 font-semibold text-[#B54708]">Perlu dibatalkan juga di LIS</div>
+            <ul class="flex flex-col gap-1 overflow-auto text-xs max-h-48">
+              <li v-for="b in catatanLisMassal" :key="b.uuid"><b>{{ b.noMcu }}</b> {{ b.nama }} — {{ b.lis }}</li>
+            </ul>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <CustomButton :label="hasilMassal ? 'Tutup' : 'Batal'" outlined borderColor="border-grey-200" textColor="text-grey-400" @click="dialogBatalMassal = false" />
+          <CustomButton
+            v-if="!hasilMassal"
+            :label="`Hapus ${jumlahDipilih} Peserta`"
+            backgroundColor="bg-danger-300"
+            :loading="memprosesMassal"
+            :disabled="!alasanMassal.trim()"
+            data-uji="konfirmasi-batal-massal"
+            @click="batalMassal"
+          />
         </div>
       </template>
     </CustomDialog>
