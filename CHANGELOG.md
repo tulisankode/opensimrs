@@ -29,6 +29,7 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 - Tautan Discord di dokumen kini mengarah ke server komunitas OpenSIMRS dengan undangan permanen. Tautan lama adalah undangan grup DM yang kedaluwarsa dalam 24 jam.
 - `install.ps1` (Windows): port PostgreSQL kini dibaca dari `postgresql.conf` layanannya (atau variabel `PG_PORT`) dan dipakai untuk `psql` serta `DB_PORT` di `.env`; sebelumnya selalu 5432 sehingga gagal bila PostgreSQL berjalan di port lain.
 - `install.ps1`: Redis di bawah versi 5 (mis. port Redis lama untuk Windows v3.0) tidak lagi dianggap cukup; skrip menawarkan Memurai. Layanan berstatus *Disabled* dilewati dengan peringatan, dan kegagalan menyalakan layanan tidak lagi dilaporkan sebagai berhasil.
+- `install.ps1`: `.env` root lama yang mengarah ke database lain (nama, user, atau port berbeda, mis. database kerja di kontainer Docker) kini dicadangkan lalu dibuat ulang, sehingga `npm run db:migrate` tidak menyasar database yang salah. Pengecekan `.env` layanan juga membandingkan `DB_NAME`, `DB_USERNAME`, dan `DB_PORT`.
 
 ---
 
