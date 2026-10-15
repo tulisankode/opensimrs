@@ -1,0 +1,38 @@
+import RiwayatMutasiService from "../services/riwayat-mutasi-service.js";
+import successResponse from "../responses/success-response.js";
+
+export default class RiwayatMutasiController {
+  static async getAll(req, res, nextFunction) {
+    try {
+      const options = {
+        ...req.query, 
+        faskes_uuid: req.author.faskesUuid
+      };
+      const result = await RiwayatMutasiService.getAll(options, req.headers);
+      res.status(200).json(successResponse("Data berhasil ditampilkan", result.data, result.pagination));
+    } catch (error) {
+      nextFunction(error);
+    }
+  }
+
+  static async create(req, res, nextFunction) {
+    try {
+      req.body.faskes_uuid = req.author.faskesUuid;
+      req.body.petugas = req.author.username;
+      const result = await RiwayatMutasiService.create(req.body);
+      res.status(200).json(result);
+    } catch (error) {
+      nextFunction(error);
+    }
+
+    // 1. penjualan obat ✅
+    // 2. verifikasi resep dokter ✅
+    // 3. retur alkes & obat ✅
+    // 4. verifikasi farmasi ruangan ✅
+
+    // 5. pengiriman unit ✅
+    // 6. pengeluaran unit ✅
+    // 7. stok adjustment ✅
+    // 8. stok opname ✅
+  }
+}

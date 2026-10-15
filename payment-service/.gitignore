@@ -1,0 +1,11 @@
+.env
+.idea
+.vscode
+/node_modules
+.npmrc
+*.key
+*.pem
+**/src/seed
+*.http
+eslint.config.js
+.prettierrc.json

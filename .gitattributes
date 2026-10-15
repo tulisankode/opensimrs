@@ -1,0 +1,2 @@
+# Skrip shell harus LF agar bisa dijalankan di macOS/Linux walau di-checkout di Windows
+*.sh text eol=lf

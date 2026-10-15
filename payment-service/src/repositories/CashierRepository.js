@@ -1,0 +1,308 @@
+import { Context as Ctx } from '../middlewares/context.js';
+import { CTX_AUTHOR } from '../constants/context-constant.js';
+import { SHIFT_TYPES } from '../constants/app-constants.js';
+import db from '../configs/knex-config.js';
+import CantProcessDataException from '../exceptions/CantProcessDataException.js';
+import moment from 'moment';
+import { uuidv7 } from 'uuidv7';
+import SettingGateway from '../services/external/SettingGateway.js';
+// import { sendSseEvent } from '../helpers/sseService.js';
+
+export default class CashierRepository {
+  static async _getActiveShift(faskesUuid, cashierName, trx = db) {
+    const query = trx('cashier_report')
+      .where('faskes_uuid', faskesUuid)
+      .whereNull('shift_time_closed')
+      .where('type', 'SHIFT')
+      .where('status', true);
+    if (cashierName) {
+      query.where('nama_kasir', cashierName);
+    }
+    return await query
+      .orderBy('id', 'desc')
+      .select('id', 'uuid', 'nama_kasir', 'shift_type', 'beginning_balance', 'shift_time_open')
+      .first();
+  }
+
+  static _calculateShiftTotals(paymentHistory) {
+    return paymentHistory.reduce(
+      (totals, payment) => {
+        const amount = parseFloat(payment.amount) || 0;
+        const method = payment.payment_method;
+        const type = payment.payment_type;
+
+        totals.total += amount;
+
+        if (method === 'CASH' || method === 'TUNAI') {
+          totals.cash += amount;
+        } else if (method === 'TRANSFER') {
+          totals.transfer += amount;
+        } else if (['DEBIT_KREDIT'].includes(method) || type === 'INSURANCE') {
+          totals.debit_kredit += amount;
+        }
+        return totals;
+      },
+      { cash: 0, transfer: 0, debit_kredit: 0, total: 0 }
+    );
+  }
+
+  static _getShiftName(shiftType) {
+    switch (shiftType) {
+      case SHIFT_TYPES.PAGI:
+        return 'Pagi';
+      case SHIFT_TYPES.SIANG:
+        return 'Siang';
+      case SHIFT_TYPES.MALAM:
+        return 'Malam';
+      default:
+        return 'N/A';
+    }
+  }
+
+  static _getShiftsToCloseQuery(faskesUuid, trx) {
+    return trx('cashier_report').where({ faskesUuid: faskesUuid, type: 'SHIFT' }).whereNull('cashier_report_uuid');
+  }
+
+  // Sepertinya tidak digunakan
+  static async _aggregateDailyReportData(shiftsQuery) {
+    return shiftsQuery
+      .clone()
+      .sum({
+        total_balance: 'ballance',
+        total_ppn: 'ppn',
+        total_cash: 'cash',
+        total_debit: 'debit',
+        total_insurance: 'insurance',
+        total_transaction: 'transaction_total',
+      })
+      .first();
+  }
+
+  // Shift untuk menerima pembayaran. Bila fitur "Shift Kasir" tidak aktif (mis. praktik mandiri), shift
+  // dibuka otomatis (saldo awal 0) sehingga kasir langsung bisa menerima bayar tanpa buka/tutup shift.
+  static async shiftUntukPembayaran(faskesUuid, username, trx = db) {
+    const aktif = await this._getActiveShift(faskesUuid, username, trx);
+    if (aktif) return aktif;
+    if ((await SettingGateway.fiturAktif('bayar_shift_kasir')) !== false) return null;
+    await trx('cashier_report').insert({
+      uuid: uuidv7(),
+      faskes_uuid: faskesUuid,
+      type: 'SHIFT',
+      shift_type: null,
+      beginning_balance: 0,
+      shift_time_open: moment().unix(),
+      nama_kasir: username,
+      status: true,
+      created_at: moment().unix(),
+      updated_at: moment().unix(),
+    });
+    return this._getActiveShift(faskesUuid, username, trx);
+  }
+
+  // Method public untuk membuka shift kasir
+  static async OpenShiftCashier(data) {
+    const { faskesUuid, username } = Ctx.get(CTX_AUTHOR);
+    const activeShift = await this._getActiveShift(faskesUuid, username.toString());
+    console.log(`Mencari shift untuk kasir: ${username}, Hasil:`, activeShift);
+    if (activeShift) {
+      throw new CantProcessDataException('Shift kasir masih terbuka');
+    }
+
+    // sendSseEvent({
+    //   event: 'SHIFT_OPENED',
+    //   payload: { cashierName: activeShift.nama_kasir },
+    // });
+
+    return db('cashier_report').insert({
+      uuid: uuidv7(),
+      faskes_uuid: faskesUuid,
+      type: 'SHIFT',
+      shift_type: data.shift_type,
+      beginning_balance: data.beginning_balance,
+      shift_time_open: moment().unix(),
+      nama_kasir: username.toString(),
+      status: true,
+      created_at: moment().unix(),
+      updated_at: moment().unix(),
+    });
+  }
+
+  static async CloseShiftCashier(data) {
+    const { faskesUuid, username } = Ctx.get(CTX_AUTHOR);
+    const activeShift = await this._getActiveShift(faskesUuid, username.toString());
+    if (!activeShift) {
+      throw new CantProcessDataException('Shift kasir belum dibuka');
+    }
+    const paymentHistory = await db('payment_history').where('kasir_uuid', activeShift.uuid);
+
+    const systemTotals = this._calculateShiftTotals(paymentHistory);
+
+    const actualTotals = {
+      cash: parseFloat(data.cash) || 0,
+      transfer: parseFloat(data.debit) || 0,
+      debit_credit: parseFloat(data.debit_credit) || 0,
+    };
+
+    if (systemTotals.cash !== actualTotals.cash) {
+      throw new CantProcessDataException(
+        `Pendapatan Aktual Tunai tidak sesuai. Sistem: ${systemTotals.cash}, Aktual: ${actualTotals.cash}`
+      );
+    }
+
+    const faskesProfile = await db('faskes_profiles')
+      .where('faskes_uuid', faskesUuid)
+      .select('value_ppn', 'status_ppn')
+      .first();
+    if (!faskesProfile) {
+      throw new CantProcessDataException(`Faskes profile dengan uuid ${faskesUuid} tidak ditemukan`);
+    }
+    const ppnValue = systemTotals.total * (faskesProfile.status_ppn ? faskesProfile.value_ppn / 100 : 0);
+    const timeClose = moment().unix();
+
+    await db('cashier_report').where('id', activeShift.id).update({
+      shift_time_closed: timeClose,
+      ballance: systemTotals.total,
+      cash: systemTotals.cash,
+      transfer: systemTotals.transfer,
+      debit_kredit: systemTotals.debit_kredit,
+      ppn: ppnValue,
+      status: false,
+      transaction_total: paymentHistory.length,
+      updated_at: timeClose,
+    });
+
+    // sendSseEvent({
+    //   event: 'SHIFT_CLOSED',
+    //   payload: { cashierName: activeShift.nama_kasir },
+    // });
+
+    return {
+      cashier_name: activeShift.nama_kasir,
+      shift_type: activeShift.shift_type,
+      shift_time_open: activeShift.shift_time_open,
+      shift_time_closed: timeClose,
+      trx_count: paymentHistory.length,
+      final_report: {
+        beginning_balance: activeShift.beginning_balance,
+        cash: systemTotals.cash,
+        transfer: systemTotals.transfer,
+        debit_kredit: systemTotals.debit_kredit,
+        total: systemTotals.total,
+      },
+    };
+  }
+
+  // Method public untuk memeriksa status shift kasir
+  static async CheckCashierShift() {
+    const author = Ctx.get(CTX_AUTHOR);
+    if (!author) return null;
+    const { faskesUuid, iat, username } = author;
+    const activeShift = await this._getActiveShift(faskesUuid, username);
+    if (!activeShift) return { is_open: false };
+
+    const paymentHistory = await db('payment_history').where('kasir_uuid', activeShift.uuid);
+
+    const systemTotals = this._calculateShiftTotals(paymentHistory);
+
+    return {
+      is_open: true,
+      nama_akun: activeShift.nama_kasir,
+      terakhir_login: iat,
+      shift: this._getShiftName(activeShift.shift_type),
+      saldo_awal: activeShift.beginning_balance,
+      tanggal_jam_buka: activeShift.shift_time_open,
+      tanggal_jam_closing: moment().unix(),
+      pendapatan_system: systemTotals,
+    };
+  }
+
+  static async GetCloseDayConfirmationData() {
+    const author = Ctx.get(CTX_AUTHOR);
+    if (!author) return null;
+    const { username, iat } = author;
+    return {
+      nama_akun: username,
+      terakhir_login: iat,
+      tanggal_jam_closing: moment().unix(),
+    };
+  }
+
+  static async CloseDayCashier() {
+    const { faskesUuid, username } = Ctx.get(CTX_AUTHOR);
+    const cashierName = username || 'Unknown';
+    const openShift = await this._getActiveShift(faskesUuid);
+    if (openShift) {
+      throw new CantProcessDataException('Harus menutup shift kasir terlebih dahulu');
+    }
+
+    return db.transaction(async (trx) => {
+      const timeClose = moment().unix();
+      const shiftsToCloseQuery = trx('cashier_report')
+        .where('faskes_uuid', faskesUuid)
+        .whereNull('cashier_report_uuid')
+        .where('type', 'SHIFT');
+
+      const shiftsToUpdate = await shiftsToCloseQuery.clone().select('uuid');
+      if (shiftsToUpdate.length === 0) {
+        await trx('cashier_report').insert({
+          uuid: uuidv7(),
+          faskes_uuid: faskesUuid,
+          type: 'DAYS',
+          days_time_closed: timeClose,
+          status: true,
+          created_at: timeClose,
+          updated_at: timeClose,
+        });
+        return { message: 'Tidak ada shift untuk ditutup, laporan harian kosong telah dibuat.' };
+      }
+
+      const dailyReportData = await shiftsToCloseQuery
+        .clone()
+        .sum({
+          total_balance: 'ballance',
+          total_ppn: 'ppn',
+          total_cash: 'cash',
+          total_debit_kredit: 'debit_kredit',
+          total_transfer: 'transfer',
+          total_transaction: 'transaction_total',
+        })
+        .first();
+
+      const [dayReport] = await trx('cashier_report')
+        .insert({
+          uuid: uuidv7(),
+          faskes_uuid: faskesUuid,
+          nama_kasir: cashierName,
+          type: 'DAYS',
+          days_time_closed: timeClose,
+          ballance: dailyReportData.total_balance || 0,
+          ppn: dailyReportData.total_ppn || 0,
+          cash: dailyReportData.total_cash || 0,
+          transfer: dailyReportData.total_transfer || 0,
+          debit_kredit: dailyReportData.total_debit_kredit || 0,
+          transaction_total: dailyReportData.total_transaction || 0,
+          status: true,
+          created_at: timeClose,
+          updated_at: timeClose,
+        })
+        .returning('uuid');
+
+      const shiftUuidsToUpdate = shiftsToUpdate.map((s) => s.uuid);
+      await trx('cashier_report').whereIn('uuid', shiftUuidsToUpdate).update({ cashier_report_uuid: dayReport.uuid });
+
+      const closedShiftsDetails = await trx('cashier_report')
+        .whereIn('uuid', shiftUuidsToUpdate)
+        .select('shift_type', 'ballance', 'ppn', 'cash', 'debit_kredit', 'transfer', 'transaction_total');
+      return {
+        total: parseFloat(dailyReportData.total_balance) || 0,
+        transaction_total: parseInt(dailyReportData.total_transaction) || 0,
+        cashier_name: cashierName,
+        cash: parseFloat(dailyReportData.total_cash) || 0,
+        debit_kredit: parseFloat(dailyReportData.total_debit_kredit) || 0,
+        transfer: parseFloat(dailyReportData.total_transfer) || 0,
+        time_closed: timeClose,
+        shift: closedShiftsDetails,
+      };
+    });
+  }
+}

@@ -1,0 +1,1256 @@
+import { HttpException, HttpStatus } from "../errors/http-exception.js";
+import { generateErrorResponse } from "./generate-message.js";
+
+export const antrianPermission = {
+  module: "Antrian",
+  subModules: [
+    {
+      name: "Konfigurasi",
+      allows: ["READ", "CREATE", "UPDATE", "DELETE"],
+    },
+    {
+      name: "Data Antrian",
+      allows: ["READ"],
+    },
+    {
+      name: "Layar",
+      allows: ["READ"],
+    },
+    {
+      name: "Apm",
+      allows: ["CREATE PASIEN JKN", "CREATE PASIEN NON-JKN", "CHECKIN", "PRINT"],
+    },
+  ],
+};
+
+export const admisiPermission = {
+  module: "Admisi",
+  subModules: [
+    {
+      name: "Antrian",
+      allows: ["PANGGIL", "LEWATI", "PROSSES", "SELESAI", "CHECKIN"],
+    },
+    {
+      name: "Admisi RJ",
+      allows: ["READ", "CREATE PASIEN RJ", "CREATE GENERAL CONSENT", "UPDATE ADMISI RJ", "CETAK KUNJUNGAN", "CETAK LABEL", "DELETE GENERAL CONSENT", "BATAL RJ"],
+    },
+    {
+      name: "Admisi RI",
+      allows: [
+        "READ",
+        "CREATE BAYI BARU LAHIR",
+        "CREATE PASIEN RI",
+        "CREATE GENERAL CONSENT",
+        "UPDATE ADMISI RI",
+        "CETAK GENERAL CONSENT",
+        "CETAK KUNJUNGAN",
+        "CETAK LABEL",
+        "UPDATE ADMISI RI",
+        "DELETE GENERAL CONSENT",
+      ],
+    },
+    {
+      name: "Admisi IGD",
+      allows: [
+        "CREATE PASIEN IGD",
+        "CREATE GENERAL CONSENT",
+        "UPDATE ADMISI IGD",
+        "UPDATE GENERAL CONSENT",
+        "BATAL IGD",
+        "CETAK GENERAL CONSENT",
+        "CETAK KUNJUNGAN",
+        "CETAK LABEL",
+        "DELETE GENERAL CONSENT",
+      ],
+    },
+    {
+      name: "SEP",
+      allows: ["READ", "CREATE SEP", "CREATE SEP MANUAL", "DELETE", "SIMPAN SEP MANUAL", "DELETE PASIEN"],
+    },
+    {
+      name: "Data Pasien",
+      allows: [
+        "READ",
+        "CREATE PASIEN",
+        "UPDATE BERKAS RM",
+        "UPDATE DATA PASIEN",
+        "DELETE PASIEN",
+        "DELETE BERKAS RM",
+        "IMPORT DATA PASIEN",
+        "CETAK KARTU PASIEN",
+        "UPLOAD BERKAS RM",
+        "PREVIEW BERKAS RM",
+        "GENERAL CONSENT",
+      ],
+    },
+    {
+      name: "Monitoring Kamar",
+      allows: ["READ", "CREATE BAD", "DELETE BAD", "SETTING BAD"],
+    },
+    {
+      name: "Laporan Admisi",
+      features: [
+        {
+          name: "Kunjungan",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Penjamin",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Batal Kunjungan",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Status kamar",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Keperawatan Inap Pasien",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Bayi Baru Lahir",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Rekap Jumlah Pasien BPJS",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+      ],
+    },
+  ],
+};
+
+export const rawatJalanPermission = {
+  module: "Rawat Jalan",
+  subModules: [
+    {
+      name: "Antrian",
+      allows: ["PANGGIL", "LEWATI", "PROSSES", "SELESAI"],
+    },
+    {
+      name: "Poli",
+      allows: ["READ", "BATAL KUNJUNGAN"],
+    },
+    {
+      name: "BPJS-PCARE",
+      features: [
+        {
+          name: "Monitoring Kunjungan",
+          allows: ["READ", "CETAK BPJS"],
+        },
+        {
+          name: "Monitoring Riwayat Kunjungan",
+          allows: ["READ", "CETAK BPJS"],
+        },
+        {
+          name: "Monitoring Obat Kunjungan",
+          allows: ["READ", "CETAK BPJS"],
+        },
+      ],
+    },
+    {
+      name: "Laporan Rawat Jalan",
+      features: [
+        {
+          name: "Kunjungan",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Pembatalan Poli",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Rekap Pembatalan Pasien",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+      ],
+    },
+    {
+      name: "RME",
+      features: [
+        {
+          name: "Rekap Medis",
+          allows: [
+            "READ",
+            "UPDATE PEMERIKSAAN GIGI",
+            "UPDATE PEMERIKSAAN MATA",
+            "UPDATE PEMERIKSAAN FISIK",
+            "UPDATE DERAJAT LUKA BAKAR",
+            "UPDATE PEMERIKSAAN DAN TINDAKAN",
+            "UPDATE REKAM MEDIS",
+            "CETAK LABEL",
+          ],
+        },
+        {
+          name: "Asesmen",
+          allows: ["READ", "CREATE ALERGI", "CREATE ANAMESIS", "CREATE TANDA VITAL", "CREATE ANTROPOMETRI", "CREATE ASESMENT NYERI", "CREATE KESADARAN", "CREATE PEMERIKSAAN FISIK"],
+        },
+        {
+          name: "SOAP",
+          allows: ["READ", "CREATE OBAT", "CREATEE OBAT RACIKAN", "UPDATE OBAT", "DELETE OBAT"],
+        },
+        {
+          name: "Akses Dan Penunjang",
+          allows: [
+            "READ",
+            "CREATE ALKES",
+            "CREATE ALKES MULTIPLE",
+            "DELETE LIST ALKES",
+            "DELETE LIST ALKES MULTIPLE",
+            "DELETE SEMUA",
+            "AMBIL ITEM",
+            "SIMPAN ORDER",
+            "CREATE TINDAKAN",
+            "DELETE LIST TINDAKAN",
+          ],
+        },
+        {
+          name: "Inform Consent",
+          allows: ["READ", "CREATE"],
+        },
+        {
+          name: "Unggah Berkas",
+          allows: ["READ", "UPDATE FILE", "DELETE FILE", "CARI FILE"],
+        },
+        {
+          name: "Resume Dan DISHCARGE",
+          allows: ["READ", "CETAK RESUME MEDIS", "SIMPAN RESUME MEDIS", "DISHCARGE"],
+        },
+        {
+          name: "Cetak Hasil Dan Surat",
+          allows: ["READ", "CETAK HASIL", "CREATE SURAT", "DELETE SURAT KERERANGAN", "CETAK SURAT"],
+        },
+      ],
+    },
+  ],
+};
+
+export const rawatInapPermission = {
+  module: "Rawat Inap",
+  subModules: [
+    {
+      name: "Rawat Inap",
+      allows: ["READ", "BATAL DIRAWAT"],
+    },
+    {
+      name: "Perpindahan Bangsal",
+      allows: ["READ", "BATAL TERIMA", "SETUJU DAN TERIMA"],
+    },
+    {
+      name: "BPJS-PCARE",
+      features: [
+        {
+          name: "Monitoring Kunjungan",
+          allows: ["READ", "CETAK BPJS"],
+        },
+        {
+          name: "Monitoring Riwayat Kunjungan",
+          allows: ["READ", "CETAK BPJS"],
+        },
+        {
+          name: "Monitoring Obat Kunjungan",
+          allows: ["READ", "CETAK BPJS"],
+        },
+      ],
+    },
+    {
+      name: "Laporan",
+      features: [
+        {
+          name: "Monitoring Rawat Inap",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Perpindahan Pasien",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Pembatalan Berobat",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Rekap Tindakan Pasien",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+      ],
+    },
+    {
+      name: "Detail Pasien",
+      features: [
+        {
+          name: "Rekam Medis",
+          allows: ["READ", "UPDATE PEMERIKSAAN FISIK", "UPDATE DERAJAT LUKA BAKAR", "UPDATE PEMERIKSAAN DAN TINDAKAN", "UPDATE REKAM MEDIS", "DELETE SESI"],
+        },
+        {
+          name: "Asesmen",
+          allows: [
+            "READ",
+            "TIDAK ADA ALERGI",
+            "CREATE ALERGI",
+            "CREATE ANAMESIS",
+            "CREATE TANDA VITAL",
+            "CREATE ANTROPOMETRI",
+            "CREATE ASESMENT NYERI",
+            "CREATE KESADARAN",
+            "CREATE PEMERIKSAAN FISIK",
+            "CREATE DERAJAT LUKA BAKAR",
+            "CREATE CATATAN HASIL PENUNJANG",
+            "CREATE DIAGNOSIS DIAGNOSIS PENUNJANG",
+            "CREATE ASUHAN KEPERAWATAN",
+            "CREATE CATATAN PERAWAT",
+            "CREATE INTRUKSI MEDIS",
+            "CREATE PEMERIKSAAN DAN TINDAKAN",
+          ],
+        },
+        {
+          name: "SOAP Dokter",
+          allows: ["READ", "PLAN CREATE OBAT", "PLAN CREATE RACIKAN", "PLAN UPDATE OBAT", "PLAN DELETE OBAT"],
+        },
+        {
+          name: "Inform Consent",
+          allows: ["READ", "CREATE"],
+        },
+        {
+          name: "Alkes Dan Penunjang",
+          allows: [
+            "READ",
+            "ORDER ALKES CREATE ALKES",
+            "ORDER ALKES CREATE ALKES MULTIPLE",
+            "ORDER ALKES DELETE ALKES",
+            "ORDER ALKES DELETE MULTIPLE",
+            "ORDER ALKES DELETE SEMUA",
+            "ORDER ALKES AMBIL ITEM",
+            "ORDER LAB SIMPAN ORDER",
+            "ORDER FISIO CREATE TINDAKAN",
+          ],
+        },
+        {
+          name: "Perpindahan",
+          allows: ["READ", "PINDAHKAN PASIEN"],
+        },
+        {
+          name: "FPO",
+          allows: ["CREATE PEMBERIAN OBAT", "UPDATE PEMBERIAN OBAT", "TANGGAL PEMERIKSAAN", "TANGGAL PEMBERIAN OBAT"],
+        },
+        {
+          name: "Unggah Berkas",
+          allows: ["READ", "UPDATE FILE", "DELETE FILE", "CARI FILE"],
+        },
+        {
+          name: "Resume Dan Dishcarge",
+          allows: ["READ", "CETAK RESUME MEDIS", "SIMPAN RESUME MEDIS", "DISHCARGE"],
+        },
+        {
+          name: "Cetak Hasil Dan Surat",
+          allows: ["READ", "CETAK HASIL PEMERIKSAAN", "SURAT KETERANGAN CREATE SURAT", "SURAT KETERANGAN DELETE SURAT KETERANGAN", "SURAT KETERANGAN CETAK SURAT"],
+        },
+      ],
+    },
+  ],
+};
+
+export const igdPermission = {
+  module: "IGD",
+  subModules: [
+    {
+      name: "IGD",
+      allows: ["READ", "BATAL IGD"],
+    },
+    {
+      name: "BPJS-PCARE",
+      features: [
+        {
+          name: "Monitoring Kunjungan",
+          allows: ["READ", "CETAK BPJS"],
+        },
+        {
+          name: "Monitoring Riwayat Kunjungan",
+          allows: ["READ", "CETAK BPJS"],
+        },
+        {
+          name: "Monitoring Obat Kunjungan",
+          allows: ["READ", "CETAK BPJS"],
+        },
+      ],
+    },
+    {
+      name: "Laporan IGD",
+      features: [
+        {
+          name: "Kunjungan",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Pembatalan Berobat",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Rekap Tindakan Pasien",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+      ],
+    },
+    {
+      name: "Detail Pasien",
+      features: [
+        {
+          name: "Rekam Medis",
+          allows: ["READ", "UPDATE PEMERIKSAAN FISIK", "UPDATE DERAJAT LUKA BAKAR", "UPDATE PEMERIKSAAN DAN TINDAKAN", "UPDATE REKAM MEDIS", "DELETE SESI"],
+        },
+        {
+          name: "Asesmen",
+          allows: [
+            "READ",
+            "TIDAK ADA ALERGI",
+            "CREATE ALERGI",
+            "CREATE ANAMESIS IGD",
+            "CREATE TRIASE",
+            "CREATE TANDA VITAL",
+            "CREATE ANTROPOMETRI",
+            "CREATE ASESMENT NYERI",
+            "CREATE KESADARAN",
+            "CREATE PEMERIKSAAN FISIK",
+            "CREATE DERAJAT LUKA BAKAR",
+            "CREATE CATATAN HASIL PENUNJANG",
+            "CREATE DIAGNOSIS DIAGNOSIS PENUNJANG",
+            "CREATE ASUHAN KEPERAWATAN",
+            "CREATE CATATAN PERAWAT",
+            "CREATE INTRUKSI MEDIS",
+            "CREATE PEMERIKSAAN DAN TINDAKAN",
+          ],
+        },
+        {
+          name: "SOAP Dokter",
+          allows: ["READ", "PLAN CREATE OBAT", "PLAN CREATE RACIKAN", "PLAN UPDATE OBAT", "PLAN DELETE OBAT"],
+        },
+        {
+          name: "Inform Consent",
+          allows: ["READ", "CREATE"],
+        },
+        {
+          name: "Alkes Dan Penunjang",
+          allows: [
+            "READ",
+            "ORDER ALKES CREATE ALKES",
+            "ORDER ALKES CREATE ALKES MULTIPLE",
+            "ORDER ALKES DELETE ALKES",
+            "ORDER ALKES DELETE MULTIPLE",
+            "ORDER ALKES DELETE SEMUA",
+            "ORDER ALKES AMBIL ITEM",
+            "ORDER LAB SIMPAN ORDER",
+            "ORDER FISIO CREATE TINDAKAN",
+          ],
+        },
+        {
+          name: "Perpindahan",
+          allows: ["READ", "PINDAHKAN PASIEN"],
+        },
+        {
+          name: "FPO",
+          allows: ["CREATE PEMBERIAN OBAT", "UPDATE PEMBERIAN OBAT", "TANGGAL PEMERIKSAAN", "TANGGAL PEMBERIAN OBAT"],
+        },
+        {
+          name: "Unggah Berkas",
+          allows: ["READ", "UPDATE FILE", "DELETE FILE", "CARI FILE"],
+        },
+        {
+          name: "Resume Dan Dishcarge",
+          allows: ["READ", "CETAK RESUME MEDIS", "SIMPAN RESUME MEDIS", "DISHCARGE"],
+        },
+        {
+          name: "Cetak Hasil Dan Surat",
+          allows: ["READ", "CETAK HASIL PEMERIKSAAN", "SURAT KETERANGAN CREATE SURAT", "SURAT KETERANGAN DELETE SURAT KETERANGAN", "SURAT KETERANGAN CETAK SURAT"],
+        },
+      ],
+    },
+  ],
+};
+
+export const farmasiPermission = {
+  module: "Farmasi",
+  subModules: [
+    {
+      name: "Panggil Antrian",
+      allows: ["PANGGIL", "LEWATI", "VERIFIKASI", "PENYERAHAN OBAT"],
+    },
+    {
+      name: "Resep Dokter",
+      allows: [
+        "READ",
+        "UPDATE OBAT",
+        "RESEP MASUK BATAL ORDER",
+        "RESEP MASUK PINDAH LOKASI",
+        "RESEP MASUK CETAK",
+        "RESEP MASUK SIMPAN TELAAH",
+        "RESEP MASUK VERIFIKASI",
+        "EDIT OBAT",
+        "SIMPAN EDIT",
+        "OBAT DIGERUS",
+        "SIMPAN DAN UBAH MENJADI RACIK",
+        "MENUNGGU PEMBAYARAN BATAL",
+        "MENUGGU PEMBAYARAN CETAK",
+        "OBAT DISIAPKAN TUNAI CETAK",
+        "OBAT DISIAPKAN TUNAI OBAT SIAP DISERAHKAN",
+        "OBAT DISIAPKAN ASURANSI BATAL",
+        "OBAT DISIAPKAN ASURANSI CETAK",
+        "OBAT DISIAPKAN ASURANSI OBAT SIAP DISERAHKAN",
+        "PENYERAHAN OBAT BATAL PENYERAHAN",
+        "PENYERAHAN OBAT CETAK",
+        "PENYERAHAN OBAT SERAHKAN OBAT",
+      ],
+    },
+    {
+      name: "Penjualan Obat",
+      allows: ["READ", "CREATE BELI OBAT", "CREATE ITEM", "CREATE ITEM OBAT", "CREATE ITEM MULTIPLE", "BATAL PEMBELIAN"],
+    },
+    {
+      name: "Retur Obat dan Material",
+      allows: ["READ", "RETUR"],
+    },
+    {
+      name: "Farmasi Ruangan",
+      allows: [
+        "READ",
+        "ORDER MASUK UPDATE ITEM",
+        "ORDER MASUK BATAL",
+        "ORDER MASUK PINDAH LOKASI ORDER",
+        "ORDER MASUK CETAK",
+        "ORDER MASUK VERIFIKASI",
+        "SEDANG DISIAPKAN BATAL",
+        "SEDANG DISIAPKAN CETAK",
+        "SEDANG DISIAPKAN ALKES SIAP DISERAHKAN",
+        "PENYERAHAN BATAL",
+        "PENYERAHAN CETAK",
+        "PENYERAHAN SERAHKAN",
+      ],
+    },
+    {
+      name: "Riwayat Transaksi",
+      allows: ["READ", "CETAK"],
+    },
+    {
+      name: "Datamaster",
+      features: [
+        {
+          name: "Satuan",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Bentuk Sediaan",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Kategori Obat",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Manufaktur",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Jenis Stok",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Lokasi Stok",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Item Medis",
+          allows: ["READ", "CREATE ITEM MEDIS", "UPDATE", "DELETE ITEM MEDIS", "CREATE KONVERSI SATUAN", "DELETE SATUAN PEMBELIAN", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Aturan Pakai",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Komposisi",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Konfigurasi Harga",
+          allows: [
+            "READ",
+            "CREATE TARIF JASA BARU EMBALASE DAN RACIK",
+            "UPDATE TARIF JASA BARU EMBALASE DAN RACIK",
+            "DELETE TARIF JASA BARU EMBALASE DAN RACIK",
+            "SIMPAN PERUBAHAN",
+            "SIMPAN BENTUK RACIKAN",
+            "INPUT MARGIN",
+            "INPUT PPN",
+          ],
+        },
+      ],
+    },
+    {
+      name: "Riwayat Transaksi",
+      features: [
+        {
+          name: "Pendapatan",
+          allows: ["READ", "CETAK"],
+        },
+        {
+          name: "Waktu Tunggu",
+          allows: ["READ", "CETAK"],
+        },
+        {
+          name: "Rekap Pendapatan Per Apotik",
+          allows: ["READ", "CETAK"],
+        },
+      ],
+    },
+  ],
+};
+
+export const laboraturiumPermission = {
+  module: "Laboratorium",
+  subModules: [
+    {
+      name: "Order Lab",
+      allows: ["READ", "CREATE", "UPDATE PROFILE PASIEN", "UPDATE ORDER LAB", "BATAL ORDER", "REKAM MEDIS", "CETAK LABEL", "CETAK PENGANTAR", "VALIDASI ORDER", "RIWAYAT PEMERIKSAAN RM"],
+    },
+    {
+      name: "Hasil Pemeriksaan",
+      allows: ["READ", "DETAIL RM", "RIWAYAT", "RIWAYAT PEMERIKSAAN RM", "RIWAYAT PEMERIKSAAN LAB", "CETAK LABEL", "CETAK HASIL", "SIMPAN HASIL", "SELESAI"],
+    },
+    {
+      name: "Expertise",
+      allows: ["READ", "DETAIL RM", "RIWAYAT", "CETAK HASIL", "SIMPAN EXPERTISE"],
+    },
+    {
+      name: "Datamaster",
+      features: [
+        {
+          name: "Kategori Pemeriksaan",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Kelompok Pemeriksaan",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Item Pemeriksaan",
+          allows: ["READ", "CREATE ITEM PEMERIKSAAN", "UPDATE ITEM PEMERIKSAAN", "DELETE ITEM PEMERIKSAAN", "NILAI RUJUKAN", "UPDATE NILAI RUJUKAN", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Spesimen",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Tarif Lab",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+      ],
+    },
+    {
+      name: "Laporan",
+      features: [
+        {
+          name: "Kunjungan",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Waktu Tunggu TAT",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Rekap Jumlah Pemeriksaan",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+      ],
+    },
+  ],
+};
+
+export const fisioTerapiPermission = {
+  module: "Fisioterapi",
+  subModules: [
+    {
+      name: "Order Fisioterapi",
+      allows: [
+        "READ",
+        "CREATE ORDER",
+        "CREATE TINDAKAN",
+        "UPDATE ASSESMENT MEDIS",
+        "UPDATE RINCIAN PEMERIKSAAN & BIAYA",
+        "UPDATE PROFILE PASIEN",
+        "DELETE ITEM LIST TINDAKAN",
+        "BATAL ORDER",
+        "REKAM MEDIS",
+        "VALIDASI DOKTER",
+        "CETAK LABEL",
+        "RIWAYAT",
+      ],
+    },
+    {
+      name: "Penjadwalan Terapi",
+      allows: ["READ", "REKAM MEDIS", "RIWAYAT PEMERIKSAAN", "SIMPAN DAN MULAI TERAPI"],
+    },
+    {
+      name: "Evaluasi Terapi",
+      allows: ["READ", "EVALUASI"],
+    },
+    {
+      name: "Booking Terapi",
+      allows: ["READ", "CREATE BOOKING TERAPI", "UPDATE BOOKING", "BATAL BOOKING", "DAFTAR"],
+    },
+    {
+      name: "Datamaster",
+      features: [
+        {
+          name: "Bed Ruangan",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+      ],
+    },
+    {
+      name: "Laporan Fisio",
+      features: [
+        {
+          name: "Kunjungan",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Rekapitulasi Kunjungan Jenis Fisioterapi",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Rekapitulasi Terapi",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Rekapitulasi Pendapatan Fisioterapi",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+      ],
+    },
+    {
+      name: "RME",
+      features: [
+        {
+          name: "Rekam Medis",
+          allows: ["READ", "UPDATE PEMERIKSAAN GIGI", "UPDATE PEMERIKSAAN MATA", "UPDATE PEMERIKSAAN FISIK", "UPDATE DERAJAT LUKA BAKAR", "UPDATE RM"],
+        },
+        {
+          name: "Assesmen",
+          allows: [
+            "READ",
+            "TIDAK ADA ALERGI",
+            "CREATE ALERGI",
+            "CREATE ANAMNESIS",
+            "CREATE TANDA VITAL",
+            "CREATE ANTROPOMETRI",
+            "CREATE ASESMEN NYERI",
+            "CREATE KESADARAN",
+            "CREATE PEMERIKSAAN FISIK",
+            "CREATE DERAJAT LUKA BAKAR",
+            "CREATE CATATAN HASIL PENUNJANG",
+            "CREATE DIAGNOSIS DOKTER",
+            "CREATE ASUHAN KEPERAWATAN",
+            "CREATE CATATAN PERAWAT",
+            "CREATE INSTRUKSI MEDIS",
+            "CREATE PEMERIKSAAN DAN TINDAKAN",
+          ],
+        },
+        {
+          name: "SOAPIER",
+          allows: ["READ", "PLAN CREATE OBAT", "PLAN CREATE OBAT RACIKAN", "PLAN UPDATE OBAT", "PLAN DELETE OBAT"],
+        },
+        {
+          name: "Alkes dan Penunjang",
+          allows: [
+            "READ",
+            "ORDER ALKES CREATE ALKES",
+            "ORDER ALKES CREATE OBAT MULTIPLE",
+            "ORDER ALKES DELETE ALKES",
+            "ORDER ALKES DELETE ALKES MULTIPLE",
+            "ORDER ALKES DELETE SEMUA",
+            "ORDER ALKES AMBIL ITEM",
+            "ORDER ALKES SIMPAN ORDER",
+            "ORDER ALKES CREATE TINDAKAN",
+          ],
+        },
+        {
+          name: "Inform Consent",
+          allows: ["READ", "CETAK LABEL", "CREATE"],
+        },
+        {
+          name: "Unggah Berkas",
+          allows: ["READ", "UPDATE FILE TERUNGGAH", "DELETE FILE TERUNGGAH"],
+        },
+        {
+          name: "Resume dan Discharge",
+          allows: ["READ", "CETAK RESUME MEDIS", "SIMPAN RESUME MEDIS", "DISCHARGE"],
+        },
+        {
+          name: "Cetak Hasil dan Surat",
+          allows: ["READ", "CETAK HASIL PEMERIKSAAN CETAK HASIL", "SURAT KETERANGAN CREATE SURAT", "SURAT KETERANGAN CETAK SURAT"],
+        },
+      ],
+    },
+  ],
+};
+
+export const trainingPermission = {
+  module: "Training",
+  subModules: [
+    {
+      name: "Daftar Kelas",
+      allows: ["READ", "CREATE DAFTAR KELAS", "BATAL DAFTAR"],
+    },
+    {
+      name: "Booking Kelas",
+      allows: ["READ", "CREATE BOOKING", "UPDATE BOOKING", "BATAL BOOKING", "DAFTAR"],
+    },
+    {
+      name: "Datamaster",
+      allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT KELAS", "EKSPOR KELAS"],
+    },
+    {
+      name: "Laporan",
+      allows: ["READ"],
+    },
+  ],
+};
+
+export const pembayaranPermission = {
+  module: "Pembayaran",
+  subModules: [
+    {
+      name: "Kasir",
+      allows: ["READ", "OPEN KASIR", "BAYAR", "CETAK INVOICE", "CETAK RINCIAN BIAYA", "CLOSE HARIAN", "CLOSE BILL", "CLOSE KASIR"],
+    },
+    {
+      name: "Transaksi",
+      allows: ["READ", "CETAK INVOICE", "CETAK RINCIAN BIAYA"],
+    },
+    {
+      name: "Closed Bill",
+      allows: ["READ", "LUNASKAN"],
+    },
+    {
+      name: "Laporan Pembayaran",
+      features: [
+        {
+          name: "Pendapatan",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Kunjungan",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          name: "Closing Kasir",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+      ],
+    },
+  ],
+};
+
+export const stokPermission = {
+  module: "STOK",
+  subModules: [
+    {
+      name: "Permintaan Barang",
+      features: [
+        {
+          name: "Permintaan Unit",
+          allows: ["READ", "CREATE PERMINTAAN", "CREATE ITEM", "CREATE ITEM MULTIPLE", "DELETE ITEM MULTIPLE", "DELETE SEMUA", "AMBIL ITEM", "BATAL PERMINTAAN"],
+        },
+      ],
+    },
+    {
+      name: "Pengeluaran Barang",
+      features: [
+        {
+          name: "Verifikasi dan Pengiriman Unit",
+          allows: ["READ", "TOLAK PERMINTAAN", "VERIFIKASI", "CETAK", "KIRIM BARANG"],
+        },
+        {
+          name: "Pengeluaran Unit",
+          allows: ["READ", "CREATE PENGELUARAN", "CREATE ITEM", "CREATE ITEM MULTIPLE", "DELETE ITEM PENGELUARAN", "DELETE ITEM MULTIPLE", "DELETE SEMUA", "AMBIL ITEM", "CETAK"],
+        },
+        {
+          name: "Retur Unit",
+          allows: ["READ", "CREATE RETUR", "CREATE ITEM", "CREATE ITEM MULTIPLE", "DELETE ITEM RETUR"],
+        },
+      ],
+    },
+    {
+      name: "Penerimaan Barang",
+      features: [
+        {
+          name: "Penerimaan Unit",
+          allows: ["READ"],
+        },
+        {
+          name: "Penerimaan Retur Unit",
+          allows: ["READ"],
+        },
+      ],
+    },
+    {
+      name: "Kartu Stok dan Mutasi",
+      allows: ["READ", "CETAK KARTU STOK DAN MUTASI"],
+    },
+    {
+      name: "Stok Opname",
+      allows: [
+        "READ",
+        "CREATE STOK OPNAME",
+        "DELETE ITEM STOK OPNAME",
+        "REKONISIL DARI MATER ITEM",
+        "REKONISIL DARI STOK ITEM",
+        "SIMPAN DRAFT",
+        "SIMPAN DAN AKHIRI SO",
+        "DOWNLOAD LEMBAR KERJA",
+        "IMPORT EXCEL",
+        "CETAK",
+      ],
+    },
+    {
+      name: "Stok Adjustment",
+      allows: ["READ", "ADJUSTMENT", "ADJUST"],
+    },
+  ],
+};
+
+export const inventoryPermission = {
+  module: "Inventory",
+  subModules: [
+    {
+      name: "Pengadaan Barang",
+      features: [
+        {
+          name: "Verifikasi Pembelian Barang Supplier",
+          allows: ["READ", "CREATE PEMBELIAN", "CREATE ITEM PEMBELIAN", "UPDATE PEMBELIAN", "DELETE ITEM PEMBELIAN", "CARI MULTIPLE", "SIMPAN PEMBELIAN", "AMBIL ITEM", "BATALKAN PEMBELIAN"],
+        },
+      ],
+    },
+    {
+      name: "Verifikasi Pembelian Barang Supplier",
+      allows: ["READ", "VERIFIKASI"],
+    },
+    {
+      name: "Retur dan Penggantian Supplier",
+      allows: ["READ", "CREATE RETUR", "CREATE ITEM RETUR", "DELETE ITEM RETUR", "CARI DAN PILIH FAKTUR", "CARI MULTIPLE", "SIMPAN DAN TERIMA PENGGANTIAN", "AMBIL ITEM", "SIMPAN DAN PROSES RETUR"],
+    },
+    {
+      name: "Pengeluaran Barang",
+      features: [
+        {
+          name: "Verifikasi dan Penerimaan Barang Unit",
+          allows: ["READ", "CETAK", "TOLAK PERMINTAAN", "VERIFIKASI", "KIRIM BARANG"],
+        },
+        {
+          name: "Pengeluaran Barang Unit",
+          allows: ["READ", "CREATE PENGELUARAN", "CREATE ITEM PENGELUARAN", "CETAK", "CARI MULTIPLE"],
+        },
+      ],
+    },
+    {
+      name: "Penerimaan Barang",
+      features: [
+        {
+          name: "Penerimaan Pembelian",
+          allows: ["READ", "TERIMA PEMBELIAN"],
+        },
+        {
+          name: "Penerimaan Retur Unit",
+          allows: ["READ"],
+        },
+      ],
+    },
+    {
+      name: "Datamaster Supplier",
+      allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Riwayat Tarif",
+      allows: ["READ"],
+    },
+    {
+      name: "Kartu Stok dan Mutasi",
+      allows: ["READ", "CETAK"],
+    },
+    {
+      name: "Stok Opname",
+      allows: [
+        "READ",
+        "CREATE STOK OPNAME",
+        "DELETE ITEM STOK OPNAME",
+        "ACTION REKONISIL DARI MASTER ITEM",
+        "ACTION REKONISIL DARI STOK ITEM",
+        "SIMPAN DRAFT",
+        "SIMPAN DAN AKHIR SO",
+        "DOWNLOAD LEMBAR KERJA",
+        "IMPORT EXCEL",
+        "CETAK",
+      ],
+    },
+    {
+      name: "Stok Adjustment",
+      allows: ["READ", "ADJUST", "ADJUST ITEM"],
+    },
+    {
+      name: "Laporan Inventory",
+      features: [
+        {
+          name: "Obat Expired",
+          allows: ["READ", "CETAK LAPORAN"],
+        },
+        {
+          allows: ["READ", "CETAK LAPORAN"],
+          name: "Persediaan",
+        },
+      ],
+    },
+  ],
+};
+
+export const datamasterPermission = {
+  module: "Datamaster",
+  subModules: [
+    {
+      name: "User",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Role",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Pegawai",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Praktisioner",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "DETAIL DATA PRAKSTISI", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Ruangan",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Kategori Ruangan",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Diagnosis ICD-10",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "ICD-9 CM",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Snomed-CT",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "LOINC",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Tindakan",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Tarif",
+      allows: [
+        "READ",
+        "CREATE TARIF",
+        "CREATE TINDAKAN",
+        "CREATE KOMPONEN TARIF",
+        "CREATE JENIS PEMBAYARAN",
+        "UPDATE TARIF",
+        "DELETE TARIF",
+        "DELETE TINDAKAN",
+        "DELETE KOMPONEN TARIF",
+        "DELETE JENIS PEMERIKSAAN",
+        "IMPORT",
+        "EXPORT",
+      ],
+    },
+    {
+      name: "Komponen Tarif",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Faskes",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Organisasi",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Lokasi",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Penjamin",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Voucher",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "General Consent",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Gigi FDI",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Kategori Gigi",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Item Gigi",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+    {
+      name: "Oklusi",
+      allows: ["CREATE", "READ", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+    },
+  ],
+};
+
+export const laporanPermission = {
+  module: "Laporan",
+  subModules: [
+    {
+      name: "Jumlah Kunjungan Berdasarkan Status Rawat",
+      allows: ["READ", "CETAK LAPORAN"],
+    },
+    {
+      name: "Rekapitulasi Tindakan",
+      allows: ["READ", "CETAK LAPORAN"],
+    },
+    {
+      name: "Rekapitulasi Pemeriksaan Lab",
+      allows: ["READ", "CETAK LAPORAN"],
+    },
+    {
+      name: "Rekapitulasi Pendapatan Fisioterapi",
+      allows: ["READ", "CETAK LAPORAN"],
+    },
+    {
+      name: "Rekapitulasi Pendapatan",
+      allows: ["READ", "CETAK LAPORAN"],
+    },
+    {
+      name: "Rekapitulasi Diagnosis berdasarkan Umur Pasien",
+      allows: ["READ", "CETAK LAPORAN"],
+    },
+  ],
+};
+
+export const settingPermission = {
+  module: "Setting",
+  subModules: [
+    {
+      name: "Profile Faskes",
+      allows: ["READ", "UPDATE PROFILE", "UPDATE LOGO DAN WARNA"],
+    },
+    {
+      name: "Konfigurasi Integrasi",
+      allows: ["READ", "UPDATE KONFIGURASI VCLAIM", "UPDATE KONFIGURASI SATUSEHAT", "UPDATE KONFIGURASI LAINNYA"],
+    },
+    {
+      name: "Print Out",
+      allows: ["READ", "UPDATE PRINT OUT", "DELETE GAMBAR", "CARI FILE"],
+    },
+    {
+      name: "System",
+      allows: ["READ", "UPDATE PPN"],
+    },
+    {
+      name: "Profile Saya",
+      allows: ["READ", "UPDATE FOTO PROFILE DAN NAMA LENGKAP", "UPDATE USERNAME DAN PASSWORD"],
+    },
+  ],
+};
+
+export const profilePermission = {
+  module: "Setting",
+  subModules: [
+    {
+      name: "Profile Saya",
+      allows: ["READ", "UPDATE FOTO PROFILE DAN NAMA LENGKAP", "UPDATE USERNAME DAN PASSWORD"],
+    },
+  ],
+};
+
+export const dashboardPermission = {
+  module: "Dashboard",
+  subModules: [],
+};
+
+/**
+ *
+ * @param {Array<string>} permissionList
+ * @returns {Array<Object>} permissions
+ */
+export function mapPermission(permissionList) {
+  const permissions = [];
+  const lowerCasePermissionList = permissionList.map((prms) => prms.toLowerCase());
+  const cleanedPermissionList = removeLeadingSpaces(lowerCasePermissionList);
+
+  const permissionMap = {
+    antrian: antrianPermission,
+    admisi: admisiPermission,
+    "rawat jalan": rawatJalanPermission,
+    "rawat inap": rawatInapPermission,
+    igd: igdPermission,
+    farmasi: farmasiPermission,
+    laboratorium: laboraturiumPermission,
+    fisioterapi: fisioTerapiPermission,
+    training: trainingPermission,
+    pembayaran: pembayaranPermission,
+    stok: stokPermission,
+    inventory: inventoryPermission,
+    datamaster: datamasterPermission,
+    dashboard: dashboardPermission,
+    setting: settingPermission,
+    profile: profilePermission,
+    laporan: laporanPermission,
+  };
+
+  cleanedPermissionList.forEach((permission) => {
+    if (permissionMap.hasOwnProperty(permission)) {
+      permissions.push(permissionMap[permission]);
+    }
+  });
+
+  return permissions;
+}
+
+/**
+ * Removes leading spaces from each element in the array.
+ * @param {Array<Array<string>>} arrayOfArrays
+ * @returns {Array<Array<string>>}
+ */
+export function removeLeadingSpaces(arrayOfArrays) {
+  return arrayOfArrays.map((innerArray) => innerArray.trimStart());
+}
+
+/**
+ *
+ * @param {Array<string>} role
+ * @param {Array<string>} targetRole
+ */
+export function checkRole(role, targetRole) {
+  role.forEach((r) => {
+    if (!targetRole.includes(r)) {
+      throw new HttpException(generateErrorResponse("Gagal", "invalid", `Role ${r} tidak ada dalam daftar role yang tersedia.`), HttpStatus.BAD_REQUEST);
+    }
+  });
+}

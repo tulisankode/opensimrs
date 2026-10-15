@@ -1,0 +1,30 @@
+{
+  "name": "@opensimrs/permission-sdk",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Middleware pengecekan izin (permission) untuk layanan OpenSIMRS",
+  "type": "module",
+  "main": "permission-middleware.js",
+  "exports": {
+    ".": {
+      "import": "./src/permission.builder.js"
+    },
+    "./exceptions": {
+      "import": "./src/exceptions/not-allowed-exception.js"
+    },
+    "./context": {
+      "import": "./src/context/permission.context.js"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "redis": "^4.7.0"
+  },
+  "keywords": [
+    "opensimrs",
+    "permission-sdk"
+  ],
+  "license": "ISC",
+  "author": "anata alliano"
+}

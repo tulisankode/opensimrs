@@ -1,0 +1,33 @@
+{
+  "name": "@opensimrs/authorization-sdk",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Middleware otorisasi JWT (HS256) + Redis untuk layanan OpenSIMRS",
+  "type": "module",
+  "main": "auth.js",
+  "exports": {
+    ".": {
+      "import": "./auth.js"
+    },
+    "./generateKeyRedis": {
+      "import": "./utils/generate-redis-key.js"
+    },
+    "./jwt-utils": {
+      "import": "./utils/jwt-utils.js"
+    },
+    "./sdkException": {
+      "import": "./exceptions/authorization-sdk-exception.js"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "redis": "^4.7.0"
+  },
+  "keywords": [
+    "opensimrs",
+    "authorization-sdk"
+  ],
+  "license": "ISC",
+  "author": "alliano"
+}

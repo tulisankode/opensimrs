@@ -1,0 +1,148 @@
+import BadRequestException from "../errors/bad-request-exception.js";
+import * as XLSX from "xlsx";
+
+export default class Utils {
+    static camelToSnakeObject(obj, exclude = []) {
+        const newObj = {};
+
+        for (let key in obj) {
+            if (obj.hasOwnProperty(key)) {
+
+                if(exclude.includes(key)){
+                    newObj[key] = obj[key];
+                    continue;
+                }
+
+                const snakeCaseKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
+                newObj[snakeCaseKey] = obj[key];
+            }
+        }
+
+        return newObj;
+    }
+
+    static snakeToCamelObject(obj) {
+        const newObj = {};
+
+        for (let key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                const camelCaseKey = key.replace(/_([a-z])/g, (match, p1) => p1.toUpperCase());
+                newObj[camelCaseKey] = obj[key];
+            }
+        }
+
+        return newObj;
+    }
+
+    static paginationHelper(page, limit, total) {
+        const total_pages = Math.ceil(total / limit);
+        const next = page < total_pages ? page + 1 : null;
+        const prev = page > 1 ? page - 1 : null;
+        return {
+            page: parseInt(page),
+            page_size: parseInt(limit),
+            total_pages,
+            total: total,
+            next_page: next,
+            prev_page: prev
+        };
+    }
+
+    static pelayananToJenisStockCode(pelayanan){
+        switch(pelayanan){
+            case 'ri':
+                return '0';
+            case 'rj':
+                return '1';
+            case 'igd':
+                return '2';
+            case 'fisio':
+                return '3';
+            default:
+                return '9';
+        }
+    }
+
+    static nullToType(key, dataType = String) {
+        if (key === null || key === undefined || key === ''){
+            switch (dataType)
+            {
+                case String:
+                    return ''
+                case Number:
+                    return 0
+                case Boolean:
+                    return false
+                case Object:
+                    return {}
+                case Array:
+                    return []
+                }
+        }
+
+        return key
+    }
+
+    static numberTo10Digit(num){
+        if (num instanceof String){
+            num = parseInt(num)
+        }
+
+        if (num <=0){
+            num = 1
+        }
+
+        const power = (num.toString().length - 10) * -1
+
+        return Math.floor(num * Math.pow(10, power))
+    }
+
+    static generate4Code(initialCode = ""){
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const charactersLength = characters.length;
+        for (let i = 0; i < 4; i++) {
+            initialCode += characters.charAt(Math.floor(Math.random() * charactersLength));
+        }
+
+        return initialCode
+    }
+
+    static parseExcelToJSON(req, sheetOrder = 0){
+        const file = req.files?.files || null;
+        const availableMimeTypes = ["application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+        if (!file) {
+            throw new BadRequestException("kunci 'files' tidak ditemukan");
+        }
+
+        if (!availableMimeTypes.includes(file.mimetype)) {
+            throw new BadRequestException("file bukan excel");
+        }
+
+        const wb = XLSX.read(file.data, {type: 'buffer'});
+        const sheet = wb.Sheets[wb.SheetNames[sheetOrder]];
+
+        return XLSX.utils.sheet_to_json(sheet, {raw: true, defval: null});
+    }
+
+    static convertDateInReport(){
+        const now = new Date(Date.now());
+
+        const bulan = [
+            "JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI",
+            "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"
+        ];
+
+        const tanggal = now.getDate();
+
+        const bulanIndex = now.getMonth();
+
+        const tahun = now.getFullYear();
+
+        const jam = now.getHours();
+
+        const menit = now.getMinutes();
+
+        const menitString = menit < 10 ? '0' + menit : menit;
+
+       return `${tanggal} ${bulan[bulanIndex]} ${tahun} PUKUL ${jam}.${menitString}`;}
+}

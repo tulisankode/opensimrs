@@ -1,0 +1,39 @@
+@import "./base.css";
+@import "@fontsource/poppins";
+
+/* Palet tema bawaan (teal OpenSIMRS) dalam format "R G B"; ditimpa src/utils/tema.ts sesuai warna faskes. */
+:root {
+  --opensimrs-50: 232 248 246;
+  --opensimrs-75: 159 226 219;
+  --opensimrs-100: 119 214 203;
+  --opensimrs-200: 60 196 181;
+  --opensimrs-300: 20 184 166;
+  --opensimrs-400: 14 129 116;
+  --opensimrs-500: 12 112 101;
+}
+
+html {
+  overflow: hidden;
+}
+
+/* Scroll bar stylings */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: var(--lightestgrey);
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--opensimrs-300));
+  border-radius: 5px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--opensimrs-100));
+}

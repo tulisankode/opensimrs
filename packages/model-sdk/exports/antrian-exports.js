@@ -1,0 +1,1 @@
+export {default as JadwalDokterModel} from "../models/antrian/jadwal-dokter-model.js";

@@ -1,0 +1,1628 @@
+{
+  "_keterangan": "Katalog modul/fitur/bagian OpenSIMRS & preset segmen. Dimuat ke tabel ref_* lewat migrasi (database/lib/sinkron-katalog.cjs). Ubah file ini lalu buat migrasi sinkron baru.",
+  "jenis_poli": [
+    {
+      "kode": "umum",
+      "nama": "Umum",
+      "urutan": 1
+    },
+    {
+      "kode": "gigi",
+      "nama": "Gigi & Mulut",
+      "urutan": 2
+    },
+    {
+      "kode": "mata",
+      "nama": "Mata",
+      "urutan": 3
+    },
+    {
+      "kode": "anak",
+      "nama": "Anak",
+      "urutan": 4
+    },
+    {
+      "kode": "kandungan",
+      "nama": "Kebidanan & Kandungan",
+      "urutan": 5
+    },
+    {
+      "kode": "penyakit_dalam",
+      "nama": "Penyakit Dalam",
+      "urutan": 6
+    },
+    {
+      "kode": "bedah",
+      "nama": "Bedah",
+      "urutan": 7
+    },
+    {
+      "kode": "tht",
+      "nama": "THT",
+      "urutan": 8
+    },
+    {
+      "kode": "saraf",
+      "nama": "Saraf",
+      "urutan": 9
+    },
+    {
+      "kode": "kulit",
+      "nama": "Kulit & Kelamin",
+      "urutan": 10
+    },
+    {
+      "kode": "jiwa",
+      "nama": "Jiwa",
+      "urutan": 11
+    },
+    {
+      "kode": "kia_kb",
+      "nama": "KIA/KB",
+      "urutan": 12
+    },
+    {
+      "kode": "lainnya",
+      "nama": "Lainnya",
+      "urutan": 13
+    }
+  ],
+  "segmen": [
+    {
+      "kode": "praktik_mandiri",
+      "nama": "Dokter Praktik Mandiri",
+      "urutan": 1,
+      "ringkas": "1 dokter, rawat jalan; daftar–periksa–resep–bayar sederhana."
+    },
+    {
+      "kode": "klinik_pratama",
+      "nama": "Klinik Pratama",
+      "urutan": 2,
+      "ringkas": "Pelayanan dasar, apotek & lab sederhana; FKTP BPJS."
+    },
+    {
+      "kode": "klinik_utama",
+      "nama": "Klinik Utama",
+      "urutan": 3,
+      "ringkas": "Pelayanan spesialistik, penunjang, rawat inap terbatas; FKRTL BPJS."
+    },
+    {
+      "kode": "puskesmas",
+      "nama": "Puskesmas",
+      "urutan": 4,
+      "ringkas": "FKTP pemerintah: banyak poli, program, laporan dinkes."
+    },
+    {
+      "kode": "rs_d",
+      "nama": "Rumah Sakit Kelas D",
+      "urutan": 5,
+      "ringkas": "Pelayanan dasar RS: rawat jalan, IGD, rawat inap, penunjang."
+    },
+    {
+      "kode": "rs_c",
+      "nama": "Rumah Sakit Kelas C",
+      "urutan": 6,
+      "ringkas": "Kelas D + kamar operasi, gizi, koding rekam medis."
+    },
+    {
+      "kode": "rs_b",
+      "nama": "Rumah Sakit Kelas B",
+      "urutan": 7,
+      "ringkas": "Kelas C + ICU, CSSD, bank darah, akuntansi."
+    },
+    {
+      "kode": "rs_a",
+      "nama": "Rumah Sakit Kelas A",
+      "urutan": 8,
+      "ringkas": "Pelayanan paripurna & rujukan nasional/provinsi, termasuk UTD."
+    }
+  ],
+  "modul": [
+    {
+      "kode": "dashboard",
+      "nama": "Dashboard",
+      "kelompok": "Inti",
+      "inti": true,
+      "tersedia": true,
+      "deskripsi": "Ringkasan kunjungan & pendapatan.",
+      "menu": [
+        "Dashboard"
+      ],
+      "rute": [
+        "/dashboard"
+      ],
+      "urutan": 1
+    },
+    {
+      "kode": "pendaftaran",
+      "nama": "Pendaftaran Pasien",
+      "kelompok": "Inti",
+      "inti": true,
+      "tersedia": true,
+      "deskripsi": "Data pasien, No. RM, pendaftaran kunjungan rawat jalan.",
+      "menu": [
+        "Admisi"
+      ],
+      "rute": [
+        "/admisi"
+      ],
+      "urutan": 2
+    },
+    {
+      "kode": "rawat_jalan",
+      "nama": "RME Rawat Jalan",
+      "kelompok": "Inti",
+      "inti": true,
+      "tersedia": true,
+      "deskripsi": "Pemeriksaan, SOAP, diagnosis ICD-10, tindakan, resep, resume.",
+      "menu": [
+        "Rawat Jalan"
+      ],
+      "rute": [
+        "/rawat-jalan"
+      ],
+      "urutan": 3
+    },
+    {
+      "kode": "pembayaran",
+      "nama": "Kasir & Pembayaran",
+      "kelompok": "Inti",
+      "inti": true,
+      "tersedia": true,
+      "deskripsi": "Tagihan otomatis dari tindakan, obat, penunjang & kamar; pembayaran.",
+      "menu": [
+        "Pembayaran"
+      ],
+      "rute": [
+        "/pembayaran"
+      ],
+      "urutan": 4
+    },
+    {
+      "kode": "datamaster",
+      "nama": "Data Master",
+      "kelompok": "Inti",
+      "inti": true,
+      "tersedia": true,
+      "deskripsi": "Pegawai, praktisi, lokasi/poli, tarif, penjamin.",
+      "menu": [
+        "Datamaster"
+      ],
+      "rute": [
+        "/datamaster"
+      ],
+      "urutan": 5
+    },
+    {
+      "kode": "laporan",
+      "nama": "Laporan",
+      "kelompok": "Inti",
+      "inti": true,
+      "tersedia": true,
+      "deskripsi": "Laporan kunjungan, diagnosis, keuangan.",
+      "menu": [
+        "Laporan"
+      ],
+      "rute": [
+        "/laporan"
+      ],
+      "urutan": 6
+    },
+    {
+      "kode": "satusehat",
+      "nama": "SATUSEHAT",
+      "kelompok": "Inti",
+      "inti": true,
+      "tersedia": true,
+      "deskripsi": "Integrasi wajib Kemenkes (RME).",
+      "menu": [],
+      "rute": [],
+      "urutan": 7
+    },
+    {
+      "kode": "antrian",
+      "nama": "Antrian & Layar Panggil",
+      "kelompok": "Layanan",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Nomor antrian, panggilan pasien, layar TV kiosk bersuara.",
+      "menu": [
+        "Antrian"
+      ],
+      "rute": [
+        "/antrian",
+        "/layar"
+      ],
+      "urutan": 8
+    },
+    {
+      "kode": "farmasi",
+      "nama": "Farmasi",
+      "kelompok": "Layanan",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Telaah, verifikasi, penyiapan & penyerahan resep; stok depo.",
+      "menu": [
+        "Farmasi"
+      ],
+      "rute": [
+        "/farmasi"
+      ],
+      "urutan": 9
+    },
+    {
+      "kode": "inventory",
+      "nama": "Gudang & Pengadaan",
+      "kelompok": "Layanan",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Gudang, pembelian, distribusi ke depo, stok opname.",
+      "menu": [
+        "Inventory"
+      ],
+      "rute": [
+        "/inventory"
+      ],
+      "urutan": 10
+    },
+    {
+      "kode": "laboratorium",
+      "nama": "Laboratorium",
+      "kelompok": "Penunjang",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Order, validasi, hasil, expertise, bridging LIS.",
+      "menu": [
+        "Laboratorium"
+      ],
+      "rute": [
+        "/laboratorium",
+        "/laporan/rekapitulasi-pemeriksaan-lab",
+        "/datamaster/loinc"
+      ],
+      "urutan": 11
+    },
+    {
+      "kode": "fisioterapi",
+      "nama": "Fisioterapi / Rehabilitasi Medik",
+      "kelompok": "Penunjang",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Order terapi dari RME, penjadwalan & booking sesi, evaluasi terapi, bed/ruang terapi.",
+      "menu": [
+        "Fisioterapi"
+      ],
+      "rute": [
+        "/fisioterapi"
+      ],
+      "urutan": 12
+    },
+    {
+      "kode": "radiologi",
+      "nama": "Radiologi",
+      "kelompok": "Penunjang",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Order & hasil radiologi, bridging PACS.",
+      "menu": [
+        "Radiologi"
+      ],
+      "rute": [
+        "/radiologi"
+      ],
+      "urutan": 13
+    },
+    {
+      "kode": "rawat_inap",
+      "nama": "Rawat Inap",
+      "kelompok": "Layanan",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Bed & kamar, perpindahan bangsal, discharge, biaya kamar otomatis.",
+      "menu": [
+        "Rawat Inap"
+      ],
+      "rute": [
+        "/rawat-inap",
+        "/admisi/rawat-inap",
+        "/admisi/monitoring-kamar",
+        "/datamaster/ruangan",
+        "/datamaster/kategori-ruangan",
+        "/admisi/laporan/status-kamar",
+        "/admisi/laporan/keperawatan-inap-pasien"
+      ],
+      "urutan": 14
+    },
+    {
+      "kode": "igd",
+      "nama": "IGD",
+      "kelompok": "Layanan",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Pendaftaran & pelayanan gawat darurat, SPRI ke rawat inap.",
+      "menu": [
+        "IGD"
+      ],
+      "rute": [
+        "/igd",
+        "/admisi/igd"
+      ],
+      "urutan": 15
+    },
+    {
+      "kode": "bpjs_fktp",
+      "nama": "BPJS FKTP (PCare)",
+      "kelompok": "Penjaminan",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Pendaftaran & kunjungan PCare, rujukan keluar, kapitasi.",
+      "menu": [],
+      "rute": [],
+      "urutan": 16
+    },
+    {
+      "kode": "bpjs_fkrtl",
+      "nama": "BPJS FKRTL (VClaim/SEP)",
+      "kelompok": "Penjaminan",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "SEP, rujukan masuk, klaim INA-CBG.",
+      "menu": [],
+      "rute": [
+        "/admisi/sep",
+        "/rawat-jalan/bpjs"
+      ],
+      "urutan": 17
+    },
+    {
+      "kode": "program_puskesmas",
+      "nama": "Program Puskesmas",
+      "kelompok": "Puskesmas",
+      "inti": false,
+      "tersedia": false,
+      "deskripsi": "KIA/KB, imunisasi, MTBS, UKM, laporan LB1 & dinkes.",
+      "menu": [],
+      "rute": [],
+      "urutan": 18
+    },
+    {
+      "kode": "kamar_operasi",
+      "nama": "Kamar Operasi",
+      "kelompok": "Rumah Sakit",
+      "inti": false,
+      "tersedia": false,
+      "deskripsi": "Jadwal operasi, laporan operasi & anestesi.",
+      "menu": [],
+      "rute": [],
+      "urutan": 19
+    },
+    {
+      "kode": "icu",
+      "nama": "ICU / Intensif",
+      "kelompok": "Rumah Sakit",
+      "inti": false,
+      "tersedia": false,
+      "deskripsi": "Pemantauan intensif & flowsheet.",
+      "menu": [],
+      "rute": [],
+      "urutan": 20
+    },
+    {
+      "kode": "gizi",
+      "nama": "Gizi",
+      "kelompok": "Rumah Sakit",
+      "inti": false,
+      "tersedia": false,
+      "deskripsi": "Diet & distribusi makan pasien rawat inap.",
+      "menu": [],
+      "rute": [],
+      "urutan": 21
+    },
+    {
+      "kode": "koding_rm",
+      "nama": "Koding & Rekam Medis",
+      "kelompok": "Rumah Sakit",
+      "inti": false,
+      "tersedia": false,
+      "deskripsi": "Koding ICD untuk klaim, peminjaman & retensi berkas.",
+      "menu": [],
+      "rute": [],
+      "urutan": 22
+    },
+    {
+      "kode": "cssd",
+      "nama": "CSSD",
+      "kelompok": "Rumah Sakit",
+      "inti": false,
+      "tersedia": false,
+      "deskripsi": "Sterilisasi alat.",
+      "menu": [],
+      "rute": [],
+      "urutan": 23
+    },
+    {
+      "kode": "bank_darah",
+      "nama": "Bank Darah RS (BDRS)",
+      "kelompok": "Rumah Sakit",
+      "inti": false,
+      "tersedia": false,
+      "deskripsi": "Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi.",
+      "menu": [],
+      "rute": [],
+      "urutan": 24
+    },
+    {
+      "kode": "utd",
+      "nama": "UTD / UPTD Produksi Darah",
+      "kelompok": "Rumah Sakit",
+      "inti": false,
+      "tersedia": false,
+      "deskripsi": "Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi.",
+      "menu": [],
+      "rute": [],
+      "urutan": 25
+    },
+    {
+      "kode": "akuntansi",
+      "nama": "Akuntansi & Remunerasi",
+      "kelompok": "Rumah Sakit",
+      "inti": false,
+      "tersedia": false,
+      "deskripsi": "Jurnal, laporan keuangan, jasa pelayanan.",
+      "menu": [],
+      "rute": [],
+      "urutan": 26
+    },
+    {
+      "kode": "training",
+      "nama": "Kelas Training",
+      "kelompok": "Layanan",
+      "inti": false,
+      "tersedia": false,
+      "deskripsi": "Kelas olahraga/edukasi berbayar (yoga, pilates, senam hamil): jadwal kelas, kuota slot, booking peserta.",
+      "menu": [
+        "Training"
+      ],
+      "rute": [
+        "/training"
+      ],
+      "urutan": 27
+    },
+    {
+      "kode": "mcu",
+      "nama": "Medical Check Up (MCU)",
+      "kelompok": "Layanan",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Paket MCU perorangan & korporasi: pendaftaran rombongan, alur stasiun pemeriksaan, kesimpulan fit/unfit, laporan & tagihan perusahaan.",
+      "menu": [
+        "MCU"
+      ],
+      "rute": [
+        "/mcu"
+      ],
+      "urutan": 28
+    },
+    {
+      "kode": "patologi_anatomi",
+      "nama": "Patologi Anatomi",
+      "kelompok": "Penunjang",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Histopatologi, sitologi & potong beku: order, penerimaan jaringan, makroskopis, mikroskopis, diagnosis (ICD-O), arsip blok & slide.",
+      "menu": [
+        "Patologi Anatomi"
+      ],
+      "rute": [
+        "/patologi-anatomi"
+      ],
+      "urutan": 29
+    },
+    {
+      "kode": "mikrobiologi",
+      "nama": "Mikrobiologi",
+      "kelompok": "Penunjang",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Pewarnaan, kultur, identifikasi kuman & uji kepekaan antibiotik (S/I/R), laporan sementara & antibiogram.",
+      "menu": [
+        "Mikrobiologi"
+      ],
+      "rute": [
+        "/mikrobiologi"
+      ],
+      "urutan": 30
+    }
+  ],
+  "fitur": [
+    {
+      "kode": "rme_asesmen",
+      "modul": "rawat_jalan",
+      "nama": "Asesmen",
+      "deskripsi": "Tab Asesmen: tanda vital, pemeriksaan fisik, skrining & asesmen terstruktur.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 1
+    },
+    {
+      "kode": "rme_penunjang",
+      "modul": "laboratorium",
+      "nama": "Order Penunjang dari RME",
+      "deskripsi": "Tab Penunjang di RME: order laboratorium (dan fisioterapi).",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 2
+    },
+    {
+      "kode": "rme_alkes",
+      "modul": "farmasi",
+      "nama": "Order Alkes/BMHP",
+      "deskripsi": "Tab Alkes di RME: permintaan alat kesehatan & BMHP ke farmasi.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 3
+    },
+    {
+      "kode": "rme_inform_consent",
+      "modul": "rawat_jalan",
+      "nama": "Inform Consent",
+      "deskripsi": "Tab persetujuan tindakan kedokteran.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 4
+    },
+    {
+      "kode": "rme_unggah_berkas",
+      "modul": "rawat_jalan",
+      "nama": "Unggah Berkas",
+      "deskripsi": "Lampiran foto/dokumen (hasil luar, foto luka) pada rekam medis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 5
+    },
+    {
+      "kode": "rme_resume",
+      "modul": "rawat_jalan",
+      "nama": "Resume & Discharge",
+      "deskripsi": "Resume medis & penutupan kunjungan (memicu tagihan & antrian farmasi).",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 6
+    },
+    {
+      "kode": "rme_cetak_surat",
+      "modul": "rawat_jalan",
+      "nama": "Cetak Hasil & Surat",
+      "deskripsi": "Cetak hasil pemeriksaan, surat sakit, rujukan, SPRI, dll.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 7
+    },
+    {
+      "kode": "rme_soap_ringkas",
+      "modul": "rawat_jalan",
+      "nama": "SOAP Ringkas (1 layar)",
+      "deskripsi": "Satu layar S-O-A-P + tanda vital + resep + selesai, untuk praktik mandiri.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 8
+    },
+    {
+      "kode": "rme_fpo",
+      "modul": "rawat_inap",
+      "nama": "Form Pemberian Obat (FPO)",
+      "deskripsi": "Pencatatan pemberian obat harian pasien rawat inap/IGD.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 9
+    },
+    {
+      "kode": "ri_perpindahan",
+      "modul": "rawat_inap",
+      "nama": "Perpindahan Bed & Bangsal",
+      "deskripsi": "Permintaan & persetujuan pindah bed/ruangan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/rawat-inap/perpindahan-bangsal"
+      ],
+      "urutan": 10
+    },
+    {
+      "kode": "farmasi_ruangan",
+      "modul": "farmasi",
+      "nama": "Farmasi Ruangan",
+      "deskripsi": "Permintaan & pemakaian obat/alkes oleh ruangan rawat inap/IGD.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/farmasi/farmasi-ruangan"
+      ],
+      "urutan": 11
+    },
+    {
+      "kode": "farmasi_penjualan_bebas",
+      "modul": "farmasi",
+      "nama": "Penjualan Obat Bebas (OTC)",
+      "deskripsi": "Penjualan obat tanpa resep kepada pembeli umum.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/farmasi/penjualan-obat"
+      ],
+      "urutan": 12
+    },
+    {
+      "kode": "antrian_layar_kiosk",
+      "modul": "antrian",
+      "nama": "Layar TV Kiosk",
+      "deskripsi": "Link layar antrian TV tanpa login, dengan suara panggilan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 13
+    },
+    {
+      "kode": "antrian_apm",
+      "modul": "antrian",
+      "nama": "Anjungan Pasien Mandiri (APM)",
+      "deskripsi": "Pasien mengambil nomor, check-in & mendaftar sendiri di anjungan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/antrian/apm"
+      ],
+      "urutan": 14
+    },
+    {
+      "kode": "bayar_diskon_voucher",
+      "modul": "pembayaran",
+      "nama": "Diskon & Voucher",
+      "deskripsi": "Pemberian diskon persen & penggunaan voucher di kasir.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/datamaster/voucher"
+      ],
+      "urutan": 15
+    },
+    {
+      "kode": "bayar_shift_kasir",
+      "modul": "pembayaran",
+      "nama": "Shift Kasir",
+      "deskripsi": "Buka/tutup shift dengan saldo awal & closing harian. Tanpa fitur ini kasir langsung menerima pembayaran.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/pembayaran/laporan/closing"
+      ],
+      "urutan": 16
+    },
+    {
+      "kode": "bayar_aps_otc",
+      "modul": "pembayaran",
+      "nama": "Transaksi APS & OTC",
+      "deskripsi": "Tagihan pasien atas permintaan sendiri (lab tanpa kunjungan) & penjualan obat bebas.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/pembayaran/transaksi/APSOTC"
+      ],
+      "urutan": 17
+    },
+    {
+      "kode": "dm_referensi_kode",
+      "modul": "datamaster",
+      "nama": "Referensi Kode Klinis",
+      "deskripsi": "Kelola master ICD-10, ICD-9 CM & SNOMED CT (pencarian diagnosis/tindakan tetap berfungsi tanpa menu ini).",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/datamaster/diagnosis-icd10",
+        "/datamaster/icd9-cm",
+        "/datamaster/snomed-ct"
+      ],
+      "urutan": 18
+    },
+    {
+      "kode": "farmasi_laporan_lanjutan",
+      "modul": "farmasi",
+      "nama": "Laporan Farmasi Lanjutan",
+      "deskripsi": "Waktu tunggu pelayanan resep (indikator mutu) & rekap pendapatan per apotik.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/farmasi/laporan/waktu-tunggu",
+        "/farmasi/laporan/rekap-pendapatan-dokter-resep-per-apotik"
+      ],
+      "urutan": 19
+    },
+    {
+      "kode": "lab_bridging_lis",
+      "modul": "laboratorium",
+      "nama": "Bridging LIS (adamLIS)",
+      "deskripsi": "Kirim order ke alat/LIS & terima hasil otomatis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 20
+    },
+    {
+      "kode": "lab_expertise",
+      "modul": "laboratorium",
+      "nama": "Expertise Dokter Lab",
+      "deskripsi": "Interpretasi hasil oleh dokter spesialis patologi klinik.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/laboratorium/expertise"
+      ],
+      "urutan": 21
+    },
+    {
+      "kode": "bdrs_permintaan",
+      "modul": "bank_darah",
+      "nama": "Permintaan Darah",
+      "deskripsi": "Permintaan darah dari ruangan/IGD/OK beserta golongan & jumlah kantong.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 22
+    },
+    {
+      "kode": "bdrs_crossmatch",
+      "modul": "bank_darah",
+      "nama": "Uji Silang Serasi",
+      "deskripsi": "Pemeriksaan golongan darah & crossmatch sebelum transfusi.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 23
+    },
+    {
+      "kode": "bdrs_stok",
+      "modul": "bank_darah",
+      "nama": "Stok & Serah Terima Darah",
+      "deskripsi": "Penerimaan dari UTD, penyimpanan, kedaluwarsa, serah terima & pemantauan reaksi transfusi.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 24
+    },
+    {
+      "kode": "utd_donor",
+      "modul": "utd",
+      "nama": "Rekrutmen & Seleksi Donor",
+      "deskripsi": "Pendaftaran donor, kuesioner, pemeriksaan Hb/tekanan darah, riwayat & kartu donor.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 25
+    },
+    {
+      "kode": "utd_aftap",
+      "modul": "utd",
+      "nama": "Pengambilan Darah (Aftap)",
+      "deskripsi": "Pencatatan pengambilan darah, nomor kantong & reaksi donor; donor mobile/kegiatan.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 26
+    },
+    {
+      "kode": "utd_imltd",
+      "modul": "utd",
+      "nama": "Uji Saring IMLTD",
+      "deskripsi": "Uji saring infeksi menular lewat transfusi darah (HIV, HBsAg, HCV, sifilis) & konfirmasi.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 27
+    },
+    {
+      "kode": "utd_komponen",
+      "modul": "utd",
+      "nama": "Pengolahan Komponen",
+      "deskripsi": "Pemisahan whole blood menjadi PRC, TC, FFP, cryo; pelabelan & karantina.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 28
+    },
+    {
+      "kode": "utd_distribusi",
+      "modul": "utd",
+      "nama": "Penyimpanan & Distribusi",
+      "deskripsi": "Stok per golongan/komponen, distribusi ke BDRS/RS lain, pemusnahan kantong reaktif/kedaluwarsa.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 29
+    },
+    {
+      "kode": "utd_pelaporan",
+      "modul": "utd",
+      "nama": "Pelaporan UTD",
+      "deskripsi": "Laporan produksi, donor & distribusi untuk Dinkes/Kemenkes.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 30
+    },
+    {
+      "kode": "daftar_general_consent",
+      "modul": "pendaftaran",
+      "nama": "General Consent",
+      "deskripsi": "Persetujuan umum saat pendaftaran + datamaster format consent.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/datamaster/general-consent"
+      ],
+      "urutan": 31
+    },
+    {
+      "kode": "farmasi_telaah",
+      "modul": "farmasi",
+      "nama": "Telaah & Validasi Resep",
+      "deskripsi": "Telaah administratif, farmasetik & klinis sebelum obat diserahkan (standar pelayanan kefarmasian).",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 32
+    },
+    {
+      "kode": "farmasi_racikan",
+      "modul": "farmasi",
+      "nama": "Obat Racikan",
+      "deskripsi": "Order obat racikan (puyer, kapsul, salep) dari RME.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 33
+    },
+    {
+      "kode": "farmasi_obat_kronis",
+      "modul": "farmasi",
+      "nama": "Obat Kronis BPJS (23/7)",
+      "deskripsi": "Penandaan obat kronis: 7 hari masuk paket INA-CBG, 23 hari ditagihkan terpisah ke BPJS.",
+      "tersedia": true,
+      "wajib": false,
+      "modul_syarat": "bpjs_fkrtl",
+      "rute": [],
+      "urutan": 34
+    },
+    {
+      "kode": "farmasi_substitusi",
+      "modul": "farmasi",
+      "nama": "Substitusi Obat",
+      "deskripsi": "Apoteker mengganti obat dengan padanannya (generik/merek lain) saat telaah resep.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 35
+    },
+    {
+      "kode": "farmasi_retur",
+      "modul": "farmasi",
+      "nama": "Retur Obat & Material",
+      "deskripsi": "Pengembalian obat/BMHP dari pasien atau ruangan ke farmasi.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/farmasi/retur-obat-&-material"
+      ],
+      "urutan": 36
+    },
+    {
+      "kode": "inv_pengadaan_po",
+      "modul": "inventory",
+      "nama": "Pembelian ke Supplier (PO)",
+      "deskripsi": "Surat pesanan ke supplier beserta verifikasinya.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/inventory/pengadaan-barang/pembelian-barang-supplier",
+        "/inventory/pengadaan-barang/verifikasi-pembelian-barang-supplier"
+      ],
+      "urutan": 37
+    },
+    {
+      "kode": "inv_retur_supplier",
+      "modul": "inventory",
+      "nama": "Retur & Penggantian Supplier",
+      "deskripsi": "Mengembalikan barang rusak/ED ke supplier dan mencatat penggantiannya.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/inventory/pengadaan-barang/retur-penggantian-barang-supplier"
+      ],
+      "urutan": 38
+    },
+    {
+      "kode": "inv_stok_opname",
+      "modul": "inventory",
+      "nama": "Stok Opname",
+      "deskripsi": "Penghitungan fisik stok berkala.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/inventory/stok-opname"
+      ],
+      "urutan": 39
+    },
+    {
+      "kode": "inv_stok_adjustment",
+      "modul": "inventory",
+      "nama": "Penyesuaian Stok",
+      "deskripsi": "Koreksi stok di luar opname (rusak, hilang, selisih).",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/inventory/stok-adjustment"
+      ],
+      "urutan": 40
+    },
+    {
+      "kode": "inv_marketplace",
+      "modul": "inventory",
+      "nama": "Pembelian via Marketplace",
+      "deskripsi": "Pengadaan barang lewat marketplace mitra (afiliasi).",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 41
+    },
+    {
+      "kode": "lab_rujukan",
+      "modul": "laboratorium",
+      "nama": "Lab Rujukan",
+      "deskripsi": "Pemeriksaan yang dirujuk ke laboratorium luar beserta input hasilnya.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 42
+    },
+    {
+      "kode": "ri_bayi_baru_lahir",
+      "modul": "rawat_inap",
+      "nama": "Registrasi Bayi Baru Lahir",
+      "deskripsi": "Pendaftaran bayi baru lahir dari ibu yang dirawat, beserta laporannya.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/admisi/laporan/bayi-baru-lahir"
+      ],
+      "urutan": 43
+    },
+    {
+      "kode": "antrian_online_bpjs",
+      "modul": "antrian",
+      "nama": "Antrean Online BPJS (Mobile JKN)",
+      "deskripsi": "Sinkron antrean & task id ke BPJS, ambil antrean dari Mobile JKN.",
+      "tersedia": false,
+      "wajib": false,
+      "modul_syarat": "bpjs_fkrtl",
+      "rute": [],
+      "urutan": 44
+    },
+    {
+      "kode": "vclaim_rencana_kontrol",
+      "modul": "bpjs_fkrtl",
+      "nama": "Rencana Kontrol & SPRI",
+      "deskripsi": "Pembuatan surat kontrol dan SPRI lewat VClaim.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 45
+    },
+    {
+      "kode": "daftar_ringkas",
+      "modul": "pendaftaran",
+      "nama": "Pendaftaran Ringkas",
+      "deskripsi": "Pasien baru cukup nama, identitas, tgl lahir, jenis kelamin, HP & alamat; poli/DPJP/jadwal tunggal terisi otomatis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 46
+    },
+    {
+      "kode": "mcu_paket",
+      "modul": "mcu",
+      "nama": "Paket MCU",
+      "deskripsi": "Gabungan tindakan, laboratorium, radiologi & EKG dengan satu harga paket.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 47
+    },
+    {
+      "kode": "mcu_pendaftaran",
+      "modul": "mcu",
+      "nama": "Pendaftaran MCU Perorangan & Korporasi",
+      "deskripsi": "Daftar peserta perorangan atau rombongan perusahaan sekaligus, termasuk impor daftar peserta.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 48
+    },
+    {
+      "kode": "mcu_stasiun",
+      "modul": "mcu",
+      "nama": "Alur Stasiun Pemeriksaan",
+      "deskripsi": "Anamnesis, fisik, visus, gigi, lab, radiologi & EKG per stasiun dengan progres tiap peserta.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 49
+    },
+    {
+      "kode": "mcu_order_penunjang",
+      "modul": "mcu",
+      "nama": "Order Penunjang Otomatis",
+      "deskripsi": "Pemeriksaan lab/radiologi dalam paket langsung menjadi order penunjang.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 50
+    },
+    {
+      "kode": "mcu_kesimpulan",
+      "modul": "mcu",
+      "nama": "Kesimpulan & Sertifikat MCU",
+      "deskripsi": "Kesimpulan dokter (fit / fit dengan catatan / unfit), saran, cetak laporan & sertifikat MCU.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 51
+    },
+    {
+      "kode": "mcu_korporasi",
+      "modul": "mcu",
+      "nama": "Rekap & Tagihan Korporasi",
+      "deskripsi": "Invoice per perusahaan dan rekap hasil seluruh peserta.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 52
+    },
+    {
+      "kode": "mcu_pcare",
+      "modul": "mcu",
+      "nama": "MCU PCare (BPJS)",
+      "deskripsi": "Pelaporan MCU peserta BPJS ke PCare.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "modul_syarat": "bpjs_fktp",
+      "urutan": 53
+    }
+  ],
+  "bagian": [
+    {
+      "kode": "asm_alergi",
+      "fitur": "rme_asesmen",
+      "label": "Alergi",
+      "nama": "Alergi",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 1
+    },
+    {
+      "kode": "asm_anamnesis",
+      "fitur": "rme_asesmen",
+      "label": "Anamnesis",
+      "nama": "Anamnesis",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 2
+    },
+    {
+      "kode": "asm_triase",
+      "fitur": "rme_asesmen",
+      "label": "Triase",
+      "nama": "Triase (IGD)",
+      "wajib": false,
+      "modul_syarat": "igd",
+      "poli": [],
+      "urutan": 3
+    },
+    {
+      "kode": "asm_tanda_vital",
+      "fitur": "rme_asesmen",
+      "label": "Tanda Vital",
+      "nama": "Tanda Vital",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 4
+    },
+    {
+      "kode": "asm_antropometri",
+      "fitur": "rme_asesmen",
+      "label": "Antropometri",
+      "nama": "Antropometri (BB/TB)",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 5
+    },
+    {
+      "kode": "asm_nyeri",
+      "fitur": "rme_asesmen",
+      "label": "Asesmen Nyeri",
+      "nama": "Asesmen Nyeri",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 6
+    },
+    {
+      "kode": "asm_kesadaran",
+      "fitur": "rme_asesmen",
+      "label": "Kesadaran",
+      "nama": "Kesadaran (GCS)",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 7
+    },
+    {
+      "kode": "asm_fisik",
+      "fitur": "rme_asesmen",
+      "label": "Pemeriksaan Fisik",
+      "nama": "Pemeriksaan Fisik",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 8
+    },
+    {
+      "kode": "asm_gigi",
+      "fitur": "rme_asesmen",
+      "label": "Pemeriksaan Gigi",
+      "nama": "Pemeriksaan Gigi (odontogram)",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [
+        "gigi"
+      ],
+      "urutan": 9
+    },
+    {
+      "kode": "asm_mata",
+      "fitur": "rme_asesmen",
+      "label": "Pemeriksaan Mata",
+      "nama": "Pemeriksaan Mata",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [
+        "mata"
+      ],
+      "urutan": 10
+    },
+    {
+      "kode": "asm_luka_bakar",
+      "fitur": "rme_asesmen",
+      "label": "Derajat Luka Bakar (RON)",
+      "nama": "Derajat Luka Bakar (RON)",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 11
+    },
+    {
+      "kode": "asm_hasil_penunjang",
+      "fitur": "rme_asesmen",
+      "label": "Catatan Hasil Penunjang",
+      "nama": "Catatan Hasil Penunjang",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 12
+    },
+    {
+      "kode": "asm_diagnosis",
+      "fitur": "rme_asesmen",
+      "label": "Diagnosis Dokter",
+      "nama": "Diagnosis Dokter (ICD-10)",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 13
+    },
+    {
+      "kode": "asm_askep",
+      "fitur": "rme_asesmen",
+      "label": "Asuhan Keperawatan",
+      "nama": "Asuhan Keperawatan",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 14
+    },
+    {
+      "kode": "asm_catatan_perawat",
+      "fitur": "rme_asesmen",
+      "label": "Catatan Perawat",
+      "nama": "Catatan Perawat",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 15
+    },
+    {
+      "kode": "asm_instruksi_medis",
+      "fitur": "rme_asesmen",
+      "label": "Instruksi Medis",
+      "nama": "Instruksi Medis",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 16
+    },
+    {
+      "kode": "asm_tindakan",
+      "fitur": "rme_asesmen",
+      "label": "Pemeriksaan dan Tindakan",
+      "nama": "Pemeriksaan dan Tindakan",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 17
+    },
+    {
+      "kode": "rsm_tanda_vital",
+      "fitur": "rme_resume",
+      "label": "Tanda Vital",
+      "nama": "Tanda Vital Saat Masuk",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 18
+    },
+    {
+      "kode": "rsm_ringkasan",
+      "fitur": "rme_resume",
+      "label": "Ringkasan Riwayat Penyakit",
+      "nama": "Ringkasan Riwayat Penyakit",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 19
+    },
+    {
+      "kode": "rsm_edukasi",
+      "fitur": "rme_resume",
+      "label": "Edukasi",
+      "nama": "Edukasi",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 20
+    },
+    {
+      "kode": "rsm_keadaan_pulang",
+      "fitur": "rme_resume",
+      "label": "Keadaan Waktu Pulang",
+      "nama": "Keadaan Waktu Pulang",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 21
+    },
+    {
+      "kode": "rsm_status_pulang",
+      "fitur": "rme_resume",
+      "label": "Status Pulang",
+      "nama": "Status Pulang",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 22
+    },
+    {
+      "kode": "rsm_fisik",
+      "fitur": "rme_resume",
+      "label": "Pemeriksaan Fisik",
+      "nama": "Pemeriksaan Fisik",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 23
+    },
+    {
+      "kode": "rsm_diagnosis",
+      "fitur": "rme_resume",
+      "label": "Diagnosis",
+      "nama": "Diagnosis",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 24
+    },
+    {
+      "kode": "rsm_tindakan",
+      "fitur": "rme_resume",
+      "label": "Tindakan",
+      "nama": "Tindakan",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 25
+    },
+    {
+      "kode": "rsm_obat",
+      "fitur": "rme_resume",
+      "label": "Obat",
+      "nama": "Obat",
+      "wajib": true,
+      "modul_syarat": null,
+      "poli": [],
+      "urutan": 26
+    },
+    {
+      "kode": "srt_resep_kacamata",
+      "fitur": "rme_cetak_surat",
+      "label": "Surat Resep Kacamata",
+      "nama": "Surat Resep Kacamata",
+      "wajib": false,
+      "modul_syarat": null,
+      "poli": [
+        "mata"
+      ],
+      "urutan": 27
+    }
+  ],
+  "preset": {
+    "segmen_modul": {
+      "praktik_mandiri": [
+        "dashboard",
+        "pendaftaran",
+        "rawat_jalan",
+        "pembayaran",
+        "datamaster",
+        "laporan",
+        "satusehat",
+        "farmasi",
+        "bpjs_fktp"
+      ],
+      "klinik_pratama": [
+        "dashboard",
+        "pendaftaran",
+        "rawat_jalan",
+        "pembayaran",
+        "datamaster",
+        "laporan",
+        "satusehat",
+        "antrian",
+        "farmasi",
+        "inventory",
+        "laboratorium",
+        "bpjs_fktp",
+        "mcu"
+      ],
+      "klinik_utama": [
+        "dashboard",
+        "pendaftaran",
+        "rawat_jalan",
+        "pembayaran",
+        "datamaster",
+        "laporan",
+        "satusehat",
+        "antrian",
+        "farmasi",
+        "inventory",
+        "laboratorium",
+        "radiologi",
+        "fisioterapi",
+        "rawat_inap",
+        "bpjs_fkrtl",
+        "mcu"
+      ],
+      "puskesmas": [
+        "dashboard",
+        "pendaftaran",
+        "rawat_jalan",
+        "pembayaran",
+        "datamaster",
+        "laporan",
+        "satusehat",
+        "antrian",
+        "farmasi",
+        "inventory",
+        "laboratorium",
+        "bpjs_fktp",
+        "program_puskesmas"
+      ],
+      "rs_d": [
+        "dashboard",
+        "pendaftaran",
+        "rawat_jalan",
+        "pembayaran",
+        "datamaster",
+        "laporan",
+        "satusehat",
+        "antrian",
+        "farmasi",
+        "inventory",
+        "laboratorium",
+        "radiologi",
+        "rawat_inap",
+        "igd",
+        "bpjs_fkrtl",
+        "mcu"
+      ],
+      "rs_c": [
+        "dashboard",
+        "pendaftaran",
+        "rawat_jalan",
+        "pembayaran",
+        "datamaster",
+        "laporan",
+        "satusehat",
+        "antrian",
+        "farmasi",
+        "inventory",
+        "laboratorium",
+        "radiologi",
+        "rawat_inap",
+        "igd",
+        "bpjs_fkrtl",
+        "fisioterapi",
+        "kamar_operasi",
+        "gizi",
+        "koding_rm",
+        "mcu",
+        "patologi_anatomi"
+      ],
+      "rs_b": [
+        "dashboard",
+        "pendaftaran",
+        "rawat_jalan",
+        "pembayaran",
+        "datamaster",
+        "laporan",
+        "satusehat",
+        "antrian",
+        "farmasi",
+        "inventory",
+        "laboratorium",
+        "radiologi",
+        "rawat_inap",
+        "igd",
+        "bpjs_fkrtl",
+        "fisioterapi",
+        "kamar_operasi",
+        "gizi",
+        "koding_rm",
+        "icu",
+        "cssd",
+        "bank_darah",
+        "akuntansi",
+        "mcu",
+        "patologi_anatomi",
+        "mikrobiologi"
+      ],
+      "rs_a": [
+        "dashboard",
+        "pendaftaran",
+        "rawat_jalan",
+        "pembayaran",
+        "datamaster",
+        "laporan",
+        "satusehat",
+        "antrian",
+        "farmasi",
+        "inventory",
+        "laboratorium",
+        "radiologi",
+        "rawat_inap",
+        "igd",
+        "bpjs_fkrtl",
+        "fisioterapi",
+        "kamar_operasi",
+        "gizi",
+        "koding_rm",
+        "icu",
+        "cssd",
+        "bank_darah",
+        "utd",
+        "akuntansi",
+        "mcu",
+        "patologi_anatomi",
+        "mikrobiologi"
+      ]
+    },
+    "fitur_mati": {
+      "praktik_mandiri": [
+        "rme_alkes",
+        "rme_unggah_berkas",
+        "rme_inform_consent",
+        "lab_bridging_lis",
+        "lab_expertise",
+        "farmasi_ruangan",
+        "farmasi_penjualan_bebas",
+        "farmasi_laporan_lanjutan",
+        "bayar_shift_kasir",
+        "bayar_aps_otc",
+        "dm_referensi_kode",
+        "daftar_general_consent",
+        "farmasi_retur",
+        "inv_pengadaan_po",
+        "inv_retur_supplier"
+      ],
+      "klinik_pratama": [
+        "lab_bridging_lis",
+        "lab_expertise",
+        "farmasi_ruangan",
+        "rme_soap_ringkas",
+        "daftar_ringkas"
+      ],
+      "klinik_utama": [
+        "rme_soap_ringkas",
+        "daftar_ringkas"
+      ],
+      "puskesmas": [
+        "bayar_diskon_voucher",
+        "lab_expertise",
+        "inv_pengadaan_po",
+        "inv_retur_supplier",
+        "rme_soap_ringkas",
+        "daftar_ringkas"
+      ],
+      "rs_d": [
+        "rme_soap_ringkas",
+        "daftar_ringkas"
+      ],
+      "rs_c": [
+        "rme_soap_ringkas",
+        "daftar_ringkas"
+      ],
+      "rs_b": [
+        "rme_soap_ringkas",
+        "daftar_ringkas"
+      ],
+      "rs_a": [
+        "rme_soap_ringkas",
+        "daftar_ringkas"
+      ]
+    },
+    "bagian_mati": {
+      "praktik_mandiri": [
+        "asm_nyeri",
+        "asm_kesadaran",
+        "asm_luka_bakar",
+        "asm_hasil_penunjang",
+        "asm_askep",
+        "asm_catatan_perawat",
+        "asm_instruksi_medis",
+        "rsm_keadaan_pulang"
+      ],
+      "klinik_pratama": [
+        "asm_luka_bakar",
+        "asm_instruksi_medis"
+      ],
+      "klinik_utama": [],
+      "puskesmas": [
+        "asm_luka_bakar",
+        "asm_instruksi_medis"
+      ],
+      "rs_d": [],
+      "rs_c": [],
+      "rs_b": [],
+      "rs_a": []
+    }
+  }
+}

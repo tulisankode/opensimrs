@@ -1,0 +1,10 @@
+tests
+fix.json
+redis.conf
+.env.example
+babel.config.json
+package-lock.json
+.env*
+.flaskenv*
+!.env.project
+!.env.vault

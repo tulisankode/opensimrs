@@ -1,0 +1,20 @@
+{
+  "name": "opensimrs-satusehat",
+  "version": "1.0.0",
+  "description": "OpenSIMRS — Integrasi SATUSEHAT Kemenkes",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.12.0",
+    "pg": "^8.13.1"
+  }
+}

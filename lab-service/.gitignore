@@ -1,0 +1,9 @@
+*.env
+node_modules
+.idea
+public.key
+.npmrc
+/node_modules
+*.key
+package-lock.json
+src/uploads/*

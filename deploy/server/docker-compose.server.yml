@@ -1,0 +1,242 @@
+# Override untuk server (produksi/staging) OpenSIMRS. Dipakai oleh deploy/server/deploy.sh:
+#   docker compose -p opensimrs -f docker-compose.yml -f deploy/server/docker-compose.server.yml ...
+# - Port & APPLICATION_MODULE tiap layanan eksplisit (env_file .env root berlaku untuk semua layanan;
+#   auth & laporan memakai APPLICATION_MODULE sebagai base path).
+# - Alamat antar-layanan memakai nama container, bukan localhost.
+# - Postgres/Mongo/Redis tidak dibuka ke host.
+# - Gateway nginx :8080 → semua API dalam satu domain (contoh https://api.simrs.contoh.id).
+# - MongoDB dipin 7.0: 8.x/9.x menolak start di kernel VM Docker Desktop ≥ 6.19 (SERVER-121912).
+# - Skema dikelola migrasi (npm run db:migrate), bukan sequelize sync.
+# - Batas memori per container dapat disesuaikan dengan kapasitas server.
+x-internal-env: &internal-env
+  DB_HOST: db
+  DB_PORT: "5432"
+  MONGO_DB_HOST: mongodb
+  MONGO_DB_PORT: "27017"
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  SYNC_DB: "false"
+  DATAMASTER_SERVICE_URL: http://datamaster-service:8096
+  ADMISI_API_URL: http://admisi-service:8081/api/v3/admisi
+  INVENTORY_URL: http://inventory-service:8086/api/v3
+  REKAM_MEDIS_URL: http://rekamedis-service:8093/api/v3
+  BASE_URL_API_ADMISI: http://admisi-service:8081/api/v3/admisi
+  BASE_URL_API_ANTRIAN: http://antrian-service:8082/api/v3/antrian
+  BASE_URL_API_FARMASI: http://farmasi-service:8084/api/v3/farmasi
+  BASE_URL_API_PEMBAYARAN: http://payment-service:8089/api/v3/payment/internal
+  FARMASI_API_URL: http://farmasi-service:8084/api/v3/farmasi
+  PATIENT_SERVICE_URL: http://admisi-service:8081
+  SETTING_SERVICE_URL: http://setting-service:8094
+  VITE_BASE_ANTRIAN: http://antrian-service:8082/api/v3/antrian
+
+services:
+  frontend-service:
+    mem_limit: 768m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: frontend
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "5520"
+      APP_PORT: "5520"
+      PORT: "5520"
+      ALLOWED_HOSTS: ${FRONTEND_ALLOWED_HOSTS:-localhost}
+  admisi-services:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: admisi
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8081"
+      APP_PORT: "8081"
+      PORT: "8081"
+  antrian-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: antrian
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8082"
+      APP_PORT: "8082"
+      PORT: "8082"
+  auth-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: auth
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8083"
+      APP_PORT: "8083"
+      PORT: "8083"
+  farmasi-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: farmasi
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8084"
+      APP_PORT: "8084"
+      PORT: "8084"
+  igd-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: igd
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8085"
+      APP_PORT: "8085"
+      PORT: "8085"
+  inventory-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: inventory
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8086"
+      APP_PORT: "8086"
+      PORT: "8086"
+  lab-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: lab
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8087"
+      APP_PORT: "8087"
+      PORT: "8087"
+  laporan-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: laporan
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8088"
+      APP_PORT: "8088"
+      PORT: "8088"
+  payment-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: payment
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8089"
+      APP_PORT: "8089"
+      PORT: "8089"
+  rawat-inap-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: rawat-inap
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8091"
+      APP_PORT: "8091"
+      PORT: "8091"
+  rawat-jalan-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: rawat-jalan
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8092"
+      APP_PORT: "8092"
+      PORT: "8092"
+  rekamedis-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: rekamedis
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8093"
+      APP_PORT: "8093"
+      PORT: "8093"
+  satusehat-service:
+    mem_limit: 192m
+    ports: !reset []
+    environment:
+      <<: *internal-env
+      APPLICATION_HOST: 0.0.0.0
+      APPLICATION_PORT: "8097"
+      PORT: "8097"
+      # bawaan: sandbox Kemenkes; ubah lewat .env server bila sudah produksi
+      SATUSEHAT_MODE: ${SATUSEHAT_MODE:-nyata}
+      SATUSEHAT_LINGKUNGAN: ${SATUSEHAT_LINGKUNGAN:-sandbox}
+  bpjs-service:
+    mem_limit: 192m
+    ports: !reset []
+    environment:
+      <<: *internal-env
+      APPLICATION_HOST: 0.0.0.0
+      APPLICATION_PORT: "8098"
+      PORT: "8098"
+      # bawaan: lingkungan development BPJS; ubah lewat .env server bila sudah produksi
+      BPJS_MODE: ${BPJS_MODE:-nyata}
+      BPJS_LINGKUNGAN: ${BPJS_LINGKUNGAN:-development}
+  penunjang-service:
+    mem_limit: 192m
+    ports: !reset []
+    environment:
+      <<: *internal-env
+      APPLICATION_HOST: 0.0.0.0
+      APPLICATION_PORT: "8099"
+      PORT: "8099"
+  setting-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: setting
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8094"
+      APP_PORT: "8094"
+      PORT: "8094"
+  stok-farmasi-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: stok-farmasi
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8095"
+      APP_PORT: "8095"
+      PORT: "8095"
+  datamaster-service:
+    mem_limit: 384m
+    environment:
+      <<: *internal-env
+      APPLICATION_MODULE: datamaster
+      APPLICATION_HOST: 0.0.0.0
+      APP_HOST: 0.0.0.0
+      APPLICATION_PORT: "8096"
+      APP_PORT: "8096"
+      PORT: "8096"
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: opensimrs-gateway
+    restart: always
+    mem_limit: 64m
+    ports: ["8080:80"]
+    volumes:
+      - ./deploy/server/gateway.nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [opensimrs]
+  db:
+    mem_limit: 1g
+    ports: !reset []
+  mongodb:
+    image: mongo:7.0
+    mem_limit: 512m
+    ports: !reset []
+  redis:
+    mem_limit: 128m
+    ports: !reset []

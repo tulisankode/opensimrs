@@ -1,0 +1,370 @@
+#!/usr/bin/env bash
+# =====================================================================================
+#  OpenSIMRS — instalasi lokal TANPA Docker (macOS dengan Homebrew, Ubuntu/Debian dengan apt)
+#
+#  Yang dilakukan (aman dijalankan berulang):
+#    1. Cek dependensi & versi: git, openssl, Node.js ≥ 20 (disarankan 22), PostgreSQL ≥ 15,
+#       Redis ≥ 6, MongoDB ≥ 6 + mongosh. Yang kurang ditawarkan untuk dipasang.
+#    2. Menyalakan PostgreSQL, Redis, MongoDB.
+#    3. Membuat role & database PostgreSQL "opensimrs" + memuat schema.sql (sekali saja).
+#    4. Membuat akun MongoDB "opensimrs".
+#    5. Membuat .env root, .env tiap layanan, dan frontend-service/.env (TIDAK menimpa yang sudah ada).
+#    6. npm run install:all → npm run db:migrate → data demo (opsional).
+#
+#  Pemakaian:
+#    ./install.sh                 instalasi lengkap (interaktif)
+#    ./install.sh --cek           hanya cek dependensi, tidak mengubah apa pun
+#    ./install.sh --ya            jawab "ya" untuk semua pertanyaan
+#    ./install.sh --tanpa-demo    lewati data demo (db:demo:seed)
+#    ./install.sh --jalankan      langsung "npm run dev" setelah selesai
+#
+#  Hanya untuk development lokal. Untuk server/production lihat docs/INSTALLATION_GUIDE.md & docs/LINGKUNGAN.md.
+# =====================================================================================
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+
+HANYA_CEK=0; SEMUA_YA=0; TANPA_DEMO=0; JALANKAN=0
+for arg in "$@"; do
+  case "$arg" in
+    --cek) HANYA_CEK=1 ;;
+    --ya|-y) SEMUA_YA=1 ;;
+    --tanpa-demo) TANPA_DEMO=1 ;;
+    --jalankan) JALANKAN=1 ;;
+    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+    *) echo "Opsi tidak dikenal: $arg (lihat ./install.sh --help)"; exit 1 ;;
+  esac
+done
+
+DB_NAMA="opensimrs"; DB_USER="opensimrs"; MONGO_USER="opensimrs"
+LAYANAN="admisi:8081 antrian:8082 auth:8083 farmasi:8084 igd:8085 inventory:8086 lab:8087 laporan:8088 payment:8089 rawat-inap:8091 rawat-jalan:8092 rekamedis:8093 setting:8094 stok-farmasi:8095 datamaster:8096 satusehat:8097 bpjs:8098 penunjang:8099"
+
+# ---------- tampilan ----------
+if [ -t 1 ]; then H=$'\033[32m'; K=$'\033[33m'; M=$'\033[31m'; T=$'\033[1m'; N=$'\033[0m'; else H=""; K=""; M=""; T=""; N=""; fi
+judul() { printf '\n%s==> %s%s\n' "$T" "$1" "$N"; }
+ok()    { printf '  %s✔%s %s\n' "$H" "$N" "$1"; }
+warn()  { printf '  %s!%s %s\n' "$K" "$N" "$1"; }
+gagal() { printf '  %s✘%s %s\n' "$M" "$N" "$1"; }
+mati()  { printf '\n%sGAGAL:%s %s\n' "$M" "$N" "$1" >&2; exit 1; }
+tanya() { # tanya "pertanyaan" → 0 bila ya
+  [ "$SEMUA_YA" = 1 ] && return 0
+  local j; printf '  %s? %s [y/N] ' "$K" "$1$N"; read -r j </dev/tty || j=""
+  case "$j" in y|Y|ya|Ya|YA) return 0 ;; *) return 1 ;; esac
+}
+ada() { command -v "$1" >/dev/null 2>&1; }
+mayor() { echo "$1" | grep -Eo '[0-9]+' | head -1; }
+
+# ---------- deteksi OS ----------
+OS="$(uname -s)"
+case "$OS" in
+  Darwin) PLATFORM=mac ;;
+  Linux)  if ada apt-get; then PLATFORM=apt; else PLATFORM=linux; fi ;;
+  *) mati "OS $OS belum didukung skrip ini. Ikuti docs/INSTALLATION_GUIDE.md bagian 9." ;;
+esac
+
+# Homebrew: postgresql@16 & node@22 bersifat keg-only → tambahkan ke PATH sesi ini
+if [ "$PLATFORM" = mac ] && ada brew; then
+  for f in postgresql@16 node@22; do
+    p="$(brew --prefix "$f" 2>/dev/null || true)"
+    [ -n "$p" ] && [ -d "$p/bin" ] && PATH="$p/bin:$PATH"
+  done
+  export PATH
+fi
+
+# ---------- 1. cek dependensi ----------
+judul "Cek dependensi ($PLATFORM)"
+KURANG=""
+
+cek() { # cek <nama> <perintah> <versi-minimal> <perintah-versi...>
+  local nama="$1" cmd="$2" min="$3"; shift 3
+  if ! ada "$cmd"; then gagal "$nama belum terpasang"; KURANG="$KURANG $nama"; return; fi
+  local v; v="$("$@" 2>/dev/null | head -1 || true)"
+  local m; m="$(mayor "$v")"
+  if [ -n "$min" ] && [ -n "$m" ] && [ "$m" -lt "$min" ]; then
+    gagal "$nama versi $m terlalu lama (minimal $min): $v"; KURANG="$KURANG $nama"
+  else
+    ok "$nama: $v"
+  fi
+}
+cek git      git      ""  git --version
+cek openssl  openssl  ""  openssl version
+cek node     node     20  sh -c "node -v | tr -d v"
+cek npm      npm      ""  npm -v
+cek postgresql psql   15  sh -c "psql --version | grep -Eo '[0-9]+(\.[0-9]+)+'"
+cek redis    redis-server 6 sh -c "redis-server --version | grep -Eo 'v=[0-9.]+' | tr -d v="
+cek mongodb  mongod   6   sh -c "mongod --version | grep -Eo 'v[0-9]+(\.[0-9]+)+' | head -1 | tr -d v"
+cek mongosh  mongosh  ""  mongosh --version
+if ada node && [ "$(mayor "$(node -v)")" -lt 22 ] 2>/dev/null; then warn "Node.js 22 LTS disarankan (terpasang $(node -v))"; fi
+
+if [ -n "$KURANG" ]; then
+  echo
+  warn "Kurang/terlalu lama:$KURANG"
+  [ "$HANYA_CEK" = 1 ] && exit 1
+  case "$PLATFORM" in
+    mac)
+      ada brew || mati "Homebrew belum terpasang. Pasang dulu dari https://brew.sh lalu jalankan ulang."
+      PAKET=""
+      for d in $KURANG; do
+        case "$d" in
+          git) PAKET="$PAKET git" ;; openssl) PAKET="$PAKET openssl@3" ;;
+          node|npm) PAKET="$PAKET node@22" ;; postgresql) PAKET="$PAKET postgresql@16" ;;
+          redis) PAKET="$PAKET redis" ;; mongodb) PAKET="$PAKET mongodb/brew/mongodb-community@7.0" ;;
+          mongosh) PAKET="$PAKET mongosh" ;;
+        esac
+      done
+      PAKET="$(echo "$PAKET" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
+      tanya "Pasang dengan Homebrew:$PAKET?" || mati "Pasang dependensi di atas lalu jalankan ulang."
+      case "$PAKET" in *mongodb-community*) brew tap mongodb/brew ;; esac
+      # shellcheck disable=SC2086
+      brew install $PAKET
+      for f in postgresql@16 node@22; do p="$(brew --prefix "$f" 2>/dev/null || true)"; [ -d "$p/bin" ] && PATH="$p/bin:$PATH"; done
+      export PATH
+      warn "Agar psql/node@22 tersedia di terminal baru, tambahkan ke ~/.zshrc:"
+      echo "      export PATH=\"\$(brew --prefix postgresql@16)/bin:\$(brew --prefix node@22)/bin:\$PATH\""
+      ;;
+    apt)
+      PAKET=""; PERLU_MONGO=0; PERLU_NODE=0
+      for d in $KURANG; do
+        case "$d" in
+          git) PAKET="$PAKET git" ;; openssl) PAKET="$PAKET openssl" ;;
+          postgresql) PAKET="$PAKET postgresql postgresql-client" ;; redis) PAKET="$PAKET redis-server" ;;
+          node|npm) PERLU_NODE=1 ;; mongodb|mongosh) PERLU_MONGO=1 ;;
+        esac
+      done
+      if [ -n "$PAKET" ]; then
+        tanya "Pasang dengan apt:$PAKET?" || mati "Pasang dependensi di atas lalu jalankan ulang."
+        # shellcheck disable=SC2086
+        sudo apt-get update -qq && sudo apt-get install -y $PAKET
+      fi
+      if [ "$PERLU_NODE" = 1 ]; then
+        tanya "Pasang Node.js 22 dari NodeSource?" || mati "Pasang Node.js 22 lalu jalankan ulang."
+        curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt-get install -y nodejs
+      fi
+      [ "$PERLU_MONGO" = 1 ] && mati "MongoDB 7 + mongosh perlu repositori resmi MongoDB: https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/ — pasang lalu jalankan ulang."
+      ;;
+    *) mati "Pasang dependensi di atas secara manual (docs/INSTALLATION_GUIDE.md bagian 9) lalu jalankan ulang." ;;
+  esac
+  exec bash "$0" "$@"   # ulangi dari awal agar versi dicek ulang
+fi
+ok "Semua dependensi tersedia"
+[ "$HANYA_CEK" = 1 ] && exit 0
+
+# ---------- 2. nyalakan layanan ----------
+judul "Menyalakan PostgreSQL, Redis, MongoDB"
+case "$PLATFORM" in
+  mac)
+    for s in postgresql@16 redis mongodb-community@7.0; do
+      if brew list "$s" >/dev/null 2>&1; then brew services start "$s" >/dev/null 2>&1 || true; fi
+    done ;;
+  apt|linux)
+    for s in postgresql redis-server mongod; do sudo systemctl start "$s" 2>/dev/null || sudo service "$s" start 2>/dev/null || true; done ;;
+esac
+
+tunggu() { # tunggu "label" perintah...
+  local label="$1"; shift; local i
+  for i in $(seq 1 30); do "$@" >/dev/null 2>&1 && { ok "$label siap"; return 0; }; sleep 1; done
+  mati "$label belum merespons. Periksa log layanannya lalu jalankan ulang."
+}
+tunggu "PostgreSQL" pg_isready -h 127.0.0.1 -p 5432
+tunggu "Redis"      redis-cli -h 127.0.0.1 ping
+tunggu "MongoDB"    mongosh --quiet --host 127.0.0.1 --eval "db.runCommand({ping:1}).ok"
+
+# ---------- nilai rahasia: pakai ulang dari .env bila ada ----------
+ambil() { [ -f .env ] && grep -E "^$1=" .env | head -1 | cut -d= -f2- || true; }
+# .env root yang belum lengkap (mis. salinan .env.example) dicadangkan lalu dibuat ulang
+if [ -f .env ] && { [ -z "$(ambil DB_PASSWORD)" ] || [ -z "$(ambil MONGO_DB_PASSWORD)" ] || [ -z "$(ambil SECRET_KEY)" ]; }; then
+  CADANGAN=".env.bak.$(date +%Y%m%d%H%M%S)"
+  mv .env "$CADANGAN"
+  warn ".env root belum lengkap → dicadangkan ke $CADANGAN dan dibuat ulang"
+fi
+acak()  { openssl rand -hex "${1:-32}"; }
+DB_PASS="$(ambil DB_PASSWORD)";        [ -n "$DB_PASS" ]    || DB_PASS="$(acak 16)"
+MONGO_PASS="$(ambil MONGO_DB_PASSWORD)"; [ -n "$MONGO_PASS" ] || MONGO_PASS="$(acak 16)"
+SECRET="$(ambil SECRET_KEY)";          [ -n "$SECRET" ]     || SECRET="$(acak 32)"
+K1="$(ambil API_KEY_SECRET)";     [ -n "$K1" ] || K1="$(acak 32)"
+K2="$(ambil API_KEY_CHECK_NORM)"; [ -n "$K2" ] || K2="$(acak 32)"
+K3="$(ambil ADMISI_SECRET_KEY)";  [ -n "$K3" ] || K3="$(acak 32)"
+K4="$(ambil ANTRIAN_KEY_SECRET)"; [ -n "$K4" ] || K4="$(acak 32)"
+
+# ---------- 3. PostgreSQL ----------
+judul "PostgreSQL: role, database, skema"
+if [ "$PLATFORM" = mac ]; then pgadmin() { psql -X -q -d postgres "$@"; }; else pgadmin() { sudo -u postgres psql -X -q -d postgres "$@"; }; fi
+
+if [ "$(pgadmin -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" = 1 ]; then
+  # role sudah ada: samakan sandinya dengan .env (lingkungan lokal)
+  pgadmin -c "ALTER ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
+  ok "Role $DB_USER sudah ada (sandi disamakan dengan .env)"
+else
+  pgadmin -c "CREATE ROLE $DB_USER LOGIN PASSWORD '$DB_PASS';"
+  ok "Role $DB_USER dibuat"
+fi
+if [ "$(pgadmin -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAMA'")" = 1 ]; then
+  ok "Database $DB_NAMA sudah ada"
+else
+  pgadmin -c "CREATE DATABASE $DB_NAMA OWNER $DB_USER;"
+  ok "Database $DB_NAMA dibuat"
+fi
+export PGPASSWORD="$DB_PASS"
+if [ "$(psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" -tAc "SELECT to_regclass('public.kelurahan') IS NOT NULL")" = t ]; then
+  ok "schema.sql sudah dimuat sebelumnya (dilewati)"
+else
+  echo "  … memuat schema.sql (struktur + referensi nasional, 1–3 menit)"
+  psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" -v ON_ERROR_STOP=1 -q -f schema.sql >/dev/null
+  ok "schema.sql dimuat"
+fi
+unset PGPASSWORD
+
+# ---------- 4. MongoDB ----------
+judul "MongoDB: akun aplikasi"
+HASIL="$(mongosh --quiet --host 127.0.0.1 --eval "
+  const a = db.getSiblingDB('admin');
+  if (a.getUser('$MONGO_USER')) { a.updateUser('$MONGO_USER', { pwd: '$MONGO_PASS' }); print('diperbarui'); }
+  else { a.createUser({ user: '$MONGO_USER', pwd: '$MONGO_PASS', roles: [{ role: 'readWrite', db: '$DB_NAMA' }] }); print('dibuat'); }
+" 2>&1 || true)"
+case "$HASIL" in
+  *dibuat*|*diperbarui*) ok "Akun MongoDB $MONGO_USER $(echo "$HASIL" | tail -1)" ;;
+  *) gagal "Tidak bisa membuat akun MongoDB: $HASIL"
+     mati "MongoDB Anda tampaknya sudah memakai autentikasi. Buat akun '$MONGO_USER' (readWrite pada '$DB_NAMA', authSource admin) secara manual, isi MONGO_DB_PASSWORD di .env, lalu jalankan ulang." ;;
+esac
+
+# ---------- 5. berkas .env ----------
+judul "Berkas .env"
+TMP_ENV="$(mktemp)"; trap 'rm -f "$TMP_ENV"' EXIT
+cat > "$TMP_ENV" <<EOF
+DB_DIALECT=postgres
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_NAME=$DB_NAMA
+DB_USERNAME=$DB_USER
+DB_PASSWORD=$DB_PASS
+DB_POOL={"acquire": 30000, "max": 10, "min": 0, "idle": 10000}
+MONGO_INITDB_DATABASE=$DB_NAMA
+MONGO_DB_HOST=127.0.0.1
+MONGO_DB_PORT=27017
+MONGO_DB_NAME=$DB_NAMA
+MONGO_DB_AUTH_SOURCE=admin
+MONGO_DB_USERNAME=$MONGO_USER
+MONGO_DB_PASSWORD=$MONGO_PASS
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_DATABASE=0
+REDIS_USERNAME=
+REDIS_PASSWORD=
+SECRET_KEY=$SECRET
+API_BASE=api
+API_VERSION=v3
+APPLICATION_HOST=0.0.0.0
+APP_HOST=0.0.0.0
+SYNC_DB=false
+NODE_ENV=development
+APPLICATION_TIMEZONE=Asia/Jakarta
+API_KEY_SECRET=$K1
+API_KEY_CHECK_NORM=$K2
+ADMISI_SECRET_KEY=$K3
+ANTRIAN_KEY_SECRET=$K4
+API_KEY_ANTRIAN=$K4
+DATAMASTER_SERVICE_URL=http://localhost:8096
+ADMISI_API_URL=http://localhost:8081/api/v3/admisi
+INVENTORY_URL=http://localhost:8086/api/v3
+REKAM_MEDIS_URL=http://localhost:8093/api/v3
+FARMASI_API_URL=http://localhost:8084/api/v3/farmasi
+PATIENT_SERVICE_URL=http://localhost:8081
+SETTING_SERVICE_URL=http://localhost:8094
+BASE_URL_API_ADMISI=http://localhost:8081/api/v3/admisi
+BASE_URL_API_ANTRIAN=http://localhost:8082/api/v3/antrian
+BASE_URL_API_FARMASI=http://localhost:8084/api/v3/farmasi
+BASE_URL_API_PEMBAYARAN=http://localhost:8089/api/v3/payment/internal
+BASE_URL_API_LAB=http://localhost:8087/api/v3/lab
+VITE_BASE_ANTRIAN=http://localhost:8082/api/v3/antrian
+SATUSEHAT_MODE=mock
+SATUSEHAT_LINGKUNGAN=sandbox
+BPJS_MODE=mock
+BPJS_LINGKUNGAN=development
+LIS_MODE=nyata
+EOF
+
+tulis_env() { # tulis_env <berkas> [port] [modul]
+  local f="$1"
+  if [ -f "$f" ]; then warn "$f sudah ada (tidak ditimpa)"; return; fi
+  { cat "$TMP_ENV"
+    if [ -n "${2:-}" ]; then echo "APPLICATION_PORT=$2"; echo "APP_PORT=$2"; echo "PORT=$2"; echo "SERVER_PORT=$2"; echo "APPLICATION_MODULE=$3"; fi
+  } > "$f"
+  chmod 600 "$f"
+  ok "$f dibuat"
+}
+tulis_env .env
+for p in $LAYANAN; do n="${p%%:*}"; port="${p##*:}"; [ -d "$n-service" ] && tulis_env "$n-service/.env" "$port" "$n"; done
+
+# .env layanan lama yang tidak cocok dengan root → login/koneksi DB akan gagal
+for p in $LAYANAN; do
+  f="${p%%:*}-service/.env"; [ -f "$f" ] || continue
+  for v in DB_PASSWORD SECRET_KEY MONGO_DB_PASSWORD; do
+    if [ "$(grep -E "^$v=" "$f" | head -1 | cut -d= -f2-)" != "$(ambil "$v")" ]; then
+      warn "$f: $v berbeda dengan .env root. Samakan, atau hapus berkas itu lalu jalankan ulang skrip."
+      break
+    fi
+  done
+done
+
+if [ -f frontend-service/.env ]; then
+  warn "frontend-service/.env sudah ada (tidak ditimpa)"
+else
+  cat > frontend-service/.env <<'EOF'
+VITE_BASE_URL=http://localhost:8083
+VITE_BASE_AUTH=http://localhost:8083/api/v3/auth
+VITE_URL_SETTING=http://localhost:8094/api/v3/setting
+VITE_BASE_DATAMASTER=http://localhost:8096/api/v3/datamaster
+VITE_BASE_PEMBAYARAN=http://localhost:8089/api/v3/payment
+VITE_BASE_LABORATORIUM=http://localhost:8087/api/v3/lab
+VITE_BASE_ADMISI=http://localhost:8081/api/v3/admisi
+VITE_BASE_IGD=http://localhost:8085/api/v3/pelayanan/igd
+VITE_BASE_FARMASI=http://localhost:8084/api/v3/farmasi
+VITE_BASE_RAWAT_JALAN=http://localhost:8092/api/v3/rawat-jalan
+VITE_BASE_REKAM_MEDIS=http://localhost:8093/api/v3
+VITE_BASE_RAWAT_INAP=http://localhost:8091/api/v3/ranap
+VITE_BASE_INVENTORY=http://localhost:8086/api/v3/inventory
+VITE_BASE_DASHBOARD=http://localhost:8088/api/v3/laporan
+VITE_BASE_ANTRIAN=http://localhost:8082/api/v3/antrian
+VITE_BASE_STOK=http://localhost:8095/api/v3
+VITE_BASE_SATUSEHAT=http://localhost:8097/api/v3/satusehat
+VITE_BASE_BPJS=http://localhost:8098/api/v3/bpjs
+VITE_BASE_PENUNJANG=http://localhost:8099/api/v3/penunjang
+EOF
+  ok "frontend-service/.env dibuat"
+fi
+
+# ---------- 6. dependensi npm, migrasi, data demo ----------
+judul "Dependensi npm (10–20 menit pada instalasi pertama)"
+npm run install:all
+ok "Dependensi terpasang"
+
+judul "Migrasi database"
+npm run db:migrate
+ok "Migrasi selesai"
+
+if [ "$TANPA_DEMO" = 1 ]; then
+  warn "Data demo dilewati (--tanpa-demo)"
+else
+  judul "Data demo"
+  ADA_FASKES="$(PGPASSWORD="$DB_PASS" psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" -tAc "SELECT count(*) FROM faskes" 2>/dev/null || echo 0)"
+  if [ "${ADA_FASKES:-0}" != 0 ]; then
+    ok "Database sudah berisi $ADA_FASKES faskes (data demo dilewati; reset: npm run db:demo:reset -- --ya)"
+  elif tanya "Isi data demo (8 faskes fiktif + akun demo)?"; then
+    npm run db:demo:seed
+    npm run db:demo:master-penunjang
+  fi
+fi
+
+# ---------- selesai ----------
+judul "Selesai"
+cat <<EOF
+  Jalankan aplikasi:
+    npm run dev          # semua layanan + frontend
+    npm run dev:core     # ringan: auth, datamaster, admisi, frontend
+
+  Buka http://localhost:5520 — login demo: superadmin / Demo@2026
+  Kata sandi DB, Mongo, dan kunci aplikasi tersimpan di .env (jangan di-commit / dibagikan).
+EOF
+
+if [ "$JALANKAN" = 1 ]; then exec npm run dev; fi

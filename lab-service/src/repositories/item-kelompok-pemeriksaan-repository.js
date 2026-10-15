@@ -1,0 +1,100 @@
+import { ItemKelompokPemeriksaanModel, ItemPemeriksaanModel, KelompokPemeriksaanModel } from "@opensimrs/model-sdk/lab";
+import toEpochDate from "../helpers/date-helper.js";
+
+ItemKelompokPemeriksaanModel.belongsTo(KelompokPemeriksaanModel, {
+    foreignKey: "kelompok_pemeriksaan_uuid",
+    as: "kelompok_pemeriksaan",
+    constraints: false,
+  });
+  
+  ItemKelompokPemeriksaanModel.belongsTo(ItemPemeriksaanModel, {
+    foreignKey: "item_pemeriksaan_uuid",
+    as: "item_pemeriksaan",
+    constraints: false,
+  });
+  
+  KelompokPemeriksaanModel.hasMany(ItemKelompokPemeriksaanModel, {
+    foreignKey: "kelompok_pemeriksaan_uuid",
+    as: "item_kelompok_pemeriksaan",
+    constraints: false,
+  });
+  
+  ItemPemeriksaanModel.hasMany(ItemKelompokPemeriksaanModel, {
+    foreignKey: "item_pemeriksaan_uuid",
+    as: "item_kelompok_pemeriksaan",
+    constraints: false,
+  })
+
+export default class ItemKelompokPemeriksaanRepository {
+    static async update(uuid, data, transaction) {
+        return await ItemKelompokPemeriksaanModel.update(data, {
+            where: { uuid: uuid },
+        }, { transaction });
+    }
+
+    static async delete(uuid, transaction) {
+        return await ItemKelompokPemeriksaanModel.update(
+            { deleted_at: toEpochDate(new Date()) },
+            { where: { uuid: uuid } },
+            { transaction }
+        );
+    }
+
+    static async deleteByKelompokPemeriksaan(kelompok_pemeriksaan_uuid, transaction) {
+        return await ItemKelompokPemeriksaanModel.update(
+          { deleted_at: toEpochDate(new Date()) },
+          { where: { kelompok_pemeriksaan_uuid: kelompok_pemeriksaan_uuid } },
+            { transaction }
+        );
+      }
+
+    static async findByCode(code, faskes_uuid) {
+        return await ItemKelompokPemeriksaanModel.findOne({
+            where: {
+                code: code,
+                deleted_at: {
+                    [Op.is]: null,
+                },
+                faskes_uuid: faskes_uuid,
+            },
+            attributes: {
+                exclude: ["created_at", "updated_at", "deleted_at"],
+            },
+        });
+    }
+
+    static async bulkCreate(data, transaction) {
+        return await ItemKelompokPemeriksaanModel.bulkCreate(data, { transaction });
+    }
+
+    static async findByUuid(uuid) {
+        return await ItemKelompokPemeriksaanModel.findOne({
+            where: {
+                uuid: uuid,
+                deleted_at: { [Op.is]: null },
+            },
+            attributes: {
+                exclude: ["created_at", "updated_at", "deleted_at"],
+            }
+        });
+    }
+
+    static async findAll(req) {
+        const options = {
+            where: {
+                faskes_uuid: req.faskes_uuid,
+                name: {
+                    [Op.iLike]: `%${req.name || ""}%`,
+                },
+                deleted_at: {
+                    [Op.is]: null,
+                },
+            },
+            attributes: {
+                exclude: ["created_at", "updated_at", "deleted_at"],
+            },
+        };
+        return await ItemKelompokPemeriksaanModel.findAll(options);
+    }
+}
+

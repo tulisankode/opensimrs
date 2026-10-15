@@ -1,0 +1,801 @@
+import {Op, literal} from "sequelize";
+import Pagination from "../helper/pagination.js";
+import sequelizeInstance from "@opensimrs/model-sdk/instance";
+import {Context, Context as Ctx} from "../middlewares/context.js";
+import {CTX_AUTHOR} from "../constant/context-constant.js";
+import {
+    convertSnakeToCamel,
+    generateNoPelayanan,
+    generateNoReg,
+    hari,
+} from "../helper/utility.js";
+import PatientRepository from "./patient-repository.js";
+import moment from "moment";
+import NotfoundException from "../exception/notfound-exception.js";
+import BadRequestException from "../exception/bad-request-exception.js";
+import JadwalDokterRepository from "./jadwal-dokter-repository.js";
+import {LokasiModel, PegawaiModel, PractitionerModel} from "@opensimrs/model-sdk/datamaster";
+import {BirthDetailModel, InsuranceAccountModel, PatientModel} from "@opensimrs/model-sdk/admisi";
+import {AddressModel} from "@opensimrs/model-sdk/setting";
+import {JadwalDokterModel} from "@opensimrs/model-sdk/antrian";
+import {InsuranceAdmissionModel, LogPelayananModel, RawatJalanModel} from "@opensimrs/model-sdk/pelayanan";
+import InsuranceAdmissionRepository from "./insurance-admission-repository.js";
+import {eventEmitter} from "../helper/event.js";
+import {LOG_CANCLE_PELAYANAN_CHANNEL, LOG_PELAYANAN_CHANNEL} from "../constant/event-constant.js";
+import { generateNoAntrian } from "../configurations/axios-instance.js";
+import DuplicateException from "../exception/duplicate-exception.js";
+import AntrianCallRepository from "./antrian-call-repository.js";
+import rawatJalanFilter from "./filters/rawat-jalan-filter.js";
+import { rawatJalanInclude } from "./include/rawat-jalan-include.js";
+import dayjs from "dayjs";
+import redis from "../configurations/redis-instance.js";
+import { publishAppointmentCancel, publishAppointmentCheckin } from "../helper/redis-publisher.js";
+import InsuranceAdmissionService from "../services/insurance-admission-service.js";
+
+export default class RawatJalanRepository {
+    /**
+     * Get all rawat jalan
+     * @param args
+     * @returns {Promise<{pagination: {next_page: null, total_page: number, total_data: *, page: number, prev_page: null, page_size: number}, data: *}>}
+     */
+    static async getAll(args, faskesUuidMobile) {
+        let faskesUuid = faskesUuidMobile || Context.get(CTX_AUTHOR).faskesUuid;
+
+        const filter = rawatJalanFilter({
+            faskesUuid, 
+            args, 
+            options: {}
+        });
+
+        const options = {
+            include: rawatJalanInclude,
+            attributes: [
+                "uuid", "no_reg", "no_rm", "no_antrian_admisi", "no_antrian_poli", "no_antrian_farmasi", "kode_booking", "platform", "tanggal_daftar", "jadwal_periksa", "discharge_date", "tanggal_checkin", "payment_method", "status_rj", "rekam_medis_uuid", "no_pelayanan",
+                // Status bayar dari tagihan terbaru kunjungan ini (null = belum ada tagihan).
+                [literal(`(SELECT b.status FROM service_bill s JOIN bills b ON b.uuid = s.bill_uuid
+                    WHERE s.layanan_uuid = "RawatJalan"."uuid" AND s.deleted_at IS NULL AND b.deleted_at IS NULL
+                    ORDER BY b.created_at DESC LIMIT 1)`), "status_bayar"],
+                // Panggilan poli (untuk tombol Panggil di tabel): uuid antrian, status & waktu panggil terakhir.
+                [literal(`(SELECT a.uuid FROM antrian a WHERE a.rawat_jalan_uuid = "RawatJalan"."uuid"
+                    AND a.pelayanan = 'poli' AND a.deleted_at IS NULL ORDER BY a.created_at DESC LIMIT 1)`), "antrian_poli_uuid"],
+                [literal(`(SELECT a.status_panggilan FROM antrian a WHERE a.rawat_jalan_uuid = "RawatJalan"."uuid"
+                    AND a.pelayanan = 'poli' AND a.deleted_at IS NULL ORDER BY a.created_at DESC LIMIT 1)`), "status_panggilan"],
+                [literal(`(SELECT a.updated_at FROM antrian a WHERE a.rawat_jalan_uuid = "RawatJalan"."uuid"
+                    AND a.pelayanan = 'poli' AND a.deleted_at IS NULL AND a.status_panggilan > 0
+                    ORDER BY a.created_at DESC LIMIT 1)`), "waktu_panggilan"],
+            ],
+        };
+
+        const transform = {
+            practitioner: (row) => ({
+                uuid: undefined, // delete practitioner uuids
+                ...row.practitioner.pegawai.get(),
+            }),
+            polyclinic: (row) => ({
+                ...row.lokasi.get(),
+            }),
+            lokasi: (row) => undefined,
+            schedule: (row) => ({
+                ...row.jadwal_dokter.get(),
+            }),
+            jadwal_dokter: (row) => undefined,
+        };
+
+        if (args.all) {
+            const allData = await RawatJalanModel.findAll({
+                where: filter,
+                ...options
+            });
+
+            const dataTransform = await Pagination.transform(allData, transform);
+
+            return {
+                data: dataTransform
+            };
+        }
+
+        return await Pagination.init(RawatJalanModel, args, filter, options, transform);
+    }
+
+    static async getRawatJalanToday(faskesUuidMobile, args) {
+        let faskesUuid = faskesUuidMobile || Context.get(CTX_AUTHOR).faskesUuid;
+        let startOfDay, endOfDay;
+
+        if (args.jadwal_periksa) {
+            startOfDay = moment.unix(args.jadwal_periksa).startOf('day').unix();
+            endOfDay = moment.unix(args.jadwal_periksa).endOf('day').unix();
+        }else{
+            startOfDay = moment().startOf('day').unix();
+            endOfDay = moment().endOf('day').unix();
+        }
+
+        const count = await RawatJalanModel.count({
+            where: {
+                faskesUuid,
+                jadwalPeriksa: {
+                    [Op.gte]: startOfDay,
+                    [Op.lte]: endOfDay
+                },
+                noAntrianAdmisi: { [Op.ne]: null },
+            }
+        });
+
+        return { jumlah: count };
+    }
+
+    /**
+     * Get one rawat jalan
+     * @param uuid
+     * @returns {Promise<(*&{insurance, patient})|(*&{patient})>}
+     */
+    static async getOne(uuid) {
+        try {
+        const result = await RawatJalanModel.findOne({
+            where: { 
+                [Op.and]: [
+                    { uuid }, 
+                    { deletedAt: { [Op.is]: null } }
+                ]
+            },
+            include: rawatJalanInclude,
+            attributes: ["uuid", "no_rm", "faskes_uuid", "no_reg", "payment_method", "maternity", "note", "complaint", "practitioner_uuid", "jadwal_dokter_uuid", "lokasi_uuid", "no_pelayanan", "no_antrian_admisi", "no_antrian_poli", "kode_booking", "no_antrian_farmasi", "status_rj", "tanggal_daftar", "tanggal_checkin", "jadwal_periksa", "tanggal_periksa", "discharge_date", "platform", "rekam_medis_uuid",],
+            });
+
+            if (!result) throw new NotfoundException("Data tidak ditemukan");
+            if (result.dataValues.payment_method === 2) {
+                const insuranceData = await InsuranceAdmissionModel.findOne({
+                    where: { noReg: result.dataValues.no_reg },
+                    include: [
+                        {
+                            model: InsuranceAccountModel,
+                            as: "insurance",
+                            required: true,
+                            where: {
+                                deletedAt: { [Op.is]: null }
+                            },
+                            attributes: [
+                                "account_number",
+                                "code",
+                                "name",
+                                "class_entitle"
+                            ]
+                        }
+                    ],
+                    attributes: ["insurance_account_uuid"]
+                });
+
+                if (insuranceData) {
+                    result.dataValues.insurance = insuranceData.dataValues.insurance;
+                }
+
+                return {
+                    ...result.get(),
+                    patient: result.patient.get()
+                };
+            }
+
+            return {
+                ...result.get(),
+                patient: result.patient.get()
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    static async create(data) {
+
+        const create = await sequelizeInstance.transaction(async (t) => {
+            const { faskesUuid } = Ctx.get(CTX_AUTHOR);
+            const patient = await PatientRepository.registPatient(data.patient_data, t);
+            if (!patient) throw new Error("Failed to create patient");
+            data = convertSnakeToCamel(data);
+            
+            //* GET JADWAL DOKTER
+            const jadwalDokter = await JadwalDokterRepository.findJadwalDokterByUuid(data.jadwalDokterUuid);
+
+            if (jadwalDokter.day !== hari[dayjs().day()]) {
+                throw new BadRequestException("Hanya bisa memilih jadwal pada hari ini.");
+            }
+
+            const dataRJ = {
+                faskesUuid,
+                patientUuid: patient.uuid,
+                name: patient.name,
+                noRm: patient.noRm,
+                birthDetailUuid: patient.birthDetailUuid,
+                gender: patient.gender,
+                practitionerUuid: jadwalDokter.practitionerUuid,
+                maternity: data.maternity,
+                note: data.note,
+                lokasiUuid: jadwalDokter.lokasiUuid,
+                complaint: data.complaint,
+                platform: "ADMISI",
+                paymentMethod: data.paymentMethod === 'TUNAI' ? 1 : 2,
+                tanggalDaftar: moment().unix(),
+                tanggalCheckin: moment().unix(),
+                statusRj: 3,
+                jadwalDokterUuid: jadwalDokter.jadwal_dokter_uuid,
+                noReg: await generateNoReg(),
+                jadwalPeriksa: moment().startOf('day').unix(),
+            };
+
+            dataRJ.noPelayanan = await generateNoPelayanan("RJ", dataRJ.jadwalPeriksa);
+
+            //* GENERATE NO ANTRIAN
+            try {
+                const response = await generateNoAntrian.post("/", {
+                    jadwal_dokter_uuid: dataRJ.jadwalDokterUuid,
+                });
+
+                dataRJ.noAntrianPoli = response.data.payload.no_antrian_poli;
+                
+            } catch (error) {
+                console.error("Error membuat no antrian:", error);
+                if (error.response) {
+                    throw new DuplicateException(error.response.data.errors?.[0].message || "Kuota jadwal dokter sudah penuh");
+                }
+            }
+
+            const regist = await RawatJalanModel.create(dataRJ, { transaction: t });
+
+            //* Buat data Pemanggilan antrian
+            await AntrianCallRepository.createAntrianCall(data, patient, regist);
+
+            //* Create Akun penjamin (TUNAI / ASURANSI)
+            await InsuranceAdmissionService.createInsuranceAdmission({
+                paymentMethod: data.paymentMethod,
+                insuranceData: data.insurance, 
+                patientUuid: patient.uuid,
+                noReg: regist.noReg,
+                admissionType: 1
+            }, t);
+
+            eventEmitter.emit(LOG_PELAYANAN_CHANNEL, {
+                tgl_registrasi: regist.tanggalDaftar,
+                noreg: regist.noReg,
+                no_pelayanan: regist.noPelayanan,
+                jenis_kunjungan: 'RJ',
+                practitioner_uuid: regist.practitionerUuid,
+                patient_uuid: patient.uuid,
+                lokasi_uuid: regist.lokasiUuid,
+                payment_method: data.paymentMethod === 'TUNAI' ? 1 : 2,
+            });
+
+            return regist.dataValues.uuid;
+        });
+
+        return await this.getOne(create);
+    }
+
+
+    static async createApm(data) {
+        const create = await sequelizeInstance.transaction(async (t) => {
+            const {faskesUuid} = Ctx.get(CTX_AUTHOR);
+            const patient = await PatientRepository.registPatientApm(data.patient_data, t);
+            if (!patient) throw new Error("Failed to create patient");
+            data = convertSnakeToCamel(data);
+
+            //* GET JADWAL DOKTER DARI ANTRIAN
+            const jadwalDokter = await JadwalDokterRepository.findJadwalDokterByUuid(data.jadwalDokterUuid);
+
+            const dataRJ = {
+                faskesUuid,
+                patientUuid: patient.uuid,
+                name: patient.name,
+                noRm: patient.noRm,
+                birthDetailUuid: patient.birthDetailUuid,
+                gender: patient.gender,
+                practitionerUuid: jadwalDokter.practitionerUuid,
+                maternity: data.maternity,
+                note: data.note,
+                lokasiUuid: jadwalDokter.lokasiUuid,
+                complaint: data.complaint,
+                platform: "APM",
+                paymentMethod: data.paymentMethod === 'TUNAI' ? 1 : 2,
+                tanggalDaftar: moment().unix(),
+                tanggalCheckin: moment().unix(),
+                statusRj: 2,
+                jadwalDokterUuid: jadwalDokter.jadwal_dokter_uuid,
+                noReg: await generateNoReg(),
+                noAntrianAdmisi: data.noAntrianAdmisi,
+                noAntrianPoli: data.noAntrianPoli,
+                kodeBooking: data.kodeBooking,
+                jadwalPeriksa: moment().startOf('day').unix(),
+            };
+
+            dataRJ.noPelayanan = await generateNoPelayanan('RJ', dataRJ.jadwalPeriksa);
+
+            const regist = await RawatJalanModel.create(dataRJ, {transaction: t});
+
+            //* Buat Pemanggilan antrian
+            await AntrianCallRepository.createAntrianCall(data, patient, regist);
+
+            eventEmitter.emit(LOG_PELAYANAN_CHANNEL, {
+                tgl_registrasi: regist.tanggalDaftar,
+                noreg: regist.noReg,
+                no_pelayanan: regist.noPelayanan,
+                jenis_kunjungan: "RJ",
+                practitioner_uuid: regist.practitionerUuid,
+                patient_uuid: patient.uuid,
+                lokasi_uuid: regist.lokasiUuid,
+                payment_method: 1,
+            });
+            return regist.dataValues.uuid;
+        });
+
+        return await this.getOne(create);
+    }
+
+    static async createMobile(data, faskesUuid) {
+        const create = await sequelizeInstance.transaction(async (t) => {
+            const patient = await PatientRepository.registPatientMobile(data.patient_data, faskesUuid, t);
+            if (!patient) throw new Error("Failed to create patient");
+            data = convertSnakeToCamel(data);
+
+            const patients = await PatientModel.findAll({
+                where: {
+                    faskesUuid,
+                    noIdentity: data.patientData.no_identity,
+                    isNewBorn: { [Op.is]: false },
+                },
+                    attributes: ['uuid'],
+            });
+
+            console.log("existing patients:", patients); 
+
+            const patientUuids = patients.map(p => p.uuid);
+
+            const bookingExist = await RawatJalanModel.findOne({
+                where: {
+                    faskesUuid,
+                    patientUuid: { [Op.in]: patientUuids },
+                    statusRj: { [Op.ne]: 0 },
+                    jadwalDokterUuid: data.jadwalDokterUuid,
+                    jadwalPeriksa: data.jadwalPeriksa,
+                },
+                attributes: ["uuid", "jadwal_periksa"],
+            });
+
+            console.log("bookingExist:", bookingExist);
+
+            if (bookingExist && dayjs.unix(bookingExist.dataValues.jadwal_periksa).format("YYYY-MM-DD") == dayjs.unix(data.jadwalPeriksa).format("YYYY-MM-DD")) {
+                throw new DuplicateException("Jadwal periksa sudah terdaftar");
+            }
+
+            // throw new Error("debug");
+            
+            //* GET JADWAL DOKTER DARI ANTRIAN
+            const jadwalDokter = await JadwalDokterRepository.findJadwalDokterUuidMobile(faskesUuid, data.jadwalDokterUuid);
+
+            const dataRJ = {
+                faskesUuid,
+                patientUuid: patient.uuid,
+                name: patient.name,
+                noRm: patient.noRm,
+                birthDetailUuid: patient.birthDetailUuid,
+                gender: patient.gender,
+                practitionerUuid: jadwalDokter.practitionerUuid,
+                maternity: data.maternity,
+                note: data.note,
+                lokasiUuid: jadwalDokter.lokasiUuid,
+                complaint: data.complaint,
+                platform: "MOBILE",
+                paymentMethod: 1,
+                tanggalDaftar: moment().unix(),
+                statusRj: 1,
+                jadwalDokterUuid: jadwalDokter.jadwal_dokter_uuid,
+                noReg: await generateNoReg(data.jadwalPeriksa, faskesUuid),
+                noAntrianAdmisi: data.noAntrianAdmisi,
+                noAntrianPoli: data.noAntrianPoli,
+                kodeBooking: data.kodeBooking,
+                jadwalPeriksa: data.jadwalPeriksa,
+            };
+
+            dataRJ.noPelayanan = await generateNoPelayanan("RJ", dataRJ.jadwalPeriksa, faskesUuid);
+
+            const regist = await RawatJalanModel.create(dataRJ, {transaction: t});
+
+            //* Buat Pemanggilan antrian
+            await AntrianCallRepository.createAntrianCallMobile(data, patient, regist, faskesUuid);
+
+            return regist.dataValues.uuid;
+        });
+
+        return this.getOne(create);
+    }
+
+    static async checkBookingRajal(data){
+        const { faskesUuid } = Ctx.get(CTX_AUTHOR);
+        const rawatJalan = await RawatJalanModel.findOne({
+            where: {
+                faskesUuid,
+                kodeBooking: data.kode_booking,
+                deletedAt: null,
+                statusRj: { [Op.ne]: 0 },
+                dischargeDate: null
+            },
+        });
+
+        if (!rawatJalan) throw new NotfoundException("Kode booking tidak ditemukan");
+
+        const patient = await PatientModel.findOne({
+            where: {
+                uuid: rawatJalan.dataValues.patientUuid,
+                deletedAt: null
+            },
+            include: [
+                    {
+                        model: AddressModel,
+                        required: false,
+                        as: "address",
+                        attributes: ["uuid", "full_address","prov", "city", "district", "rt", "rw", "village", "postal_code", "country"]
+                    },
+                    {
+                        model: BirthDetailModel,
+                        required: false,
+                        as: "birth_detail",
+                        attributes: ["uuid", "birth_place", "birth_date", "age_year", "age_month", "age_day"]
+                    },
+            ],
+            attributes: [
+                    "uuid", "no_rm", "title", "name", "identity", "no_identity", "gender", "phone", "religion", "language",
+                    "mother_name", "maritial_status", "status",
+                ],
+        });
+
+        return this.update(rawatJalan.dataValues.uuid, { patient_data: patient, ...rawatJalan.dataValues });
+    }
+
+    static async getBookingRajal(data){
+        const { faskesUuid } = Ctx.get(CTX_AUTHOR);
+        const rawatJalan = await RawatJalanModel.findOne({
+            where: {
+                faskesUuid,
+                kodeBooking: data.kode_booking,
+                deletedAt: null,    
+                statusRj: { [Op.ne]: 0 },
+                dischargeDate: null
+            },
+            include: [
+                {
+                    model: PatientModel,
+                    as: "patient",
+                    required: false,
+                    attributes: [ "uuid", "no_rm", "title", "name", "identity", "no_identity", "gender", "phone", "religion", "language", "mother_name", "maritial_status", "status",],
+                    include: [
+                    {
+                        model: AddressModel,
+                        required: false,
+                        as: "address",
+                        attributes: ["uuid", "full_address","prov", "city", "district", "rt", "rw", "village", "postal_code", "country"]
+                    },
+                    {
+                        model: BirthDetailModel,
+                        required: false,
+                        as: "birth_detail",
+                        attributes: ["uuid", "birth_place", "birth_date", "age_year", "age_month", "age_day"]
+                    }, 
+                    ]
+                },
+                {
+                    model: PractitionerModel,
+                    as: "practitioner",
+                    required: true,
+                    where: {deletedAt: {[Op.is]: null}},
+                    attributes: ["uuid"],
+                    include: [
+                        {
+                            model: PegawaiModel,
+                            as: "pegawai",
+                            required: true,
+                            where: {deletedAt: {[Op.is]: null}},
+                            attributes: ["first_title", "last_title", ["name", "nama"], "nik"]
+                        }
+                    ]
+                },
+                {
+                    model: LokasiModel,
+                    as: "lokasi",
+                    required: true,
+                    where: {deletedAt: {[Op.is]: null}},
+                    attributes: [
+                        "uuid", "name", "code"
+                    ]
+                },
+                {
+                    model: JadwalDokterModel,
+                    as: "jadwal_dokter",
+                    required: true,
+                    where: {deletedAt: {[Op.is]: null}},
+                    attributes: ["uuid","start_time", "end_time",],
+                }
+            ],
+            attributes: ["uuid", "no_reg", "no_rm", "no_antrian_admisi", "no_antrian_poli", "no_antrian_farmasi", "kode_booking", "platform", "tanggal_daftar", "jadwal_periksa", "tanggal_checkin", "payment_method", "status_rj", "rekam_medis_uuid", "no_pelayanan"]
+        });
+
+        return rawatJalan;
+    }
+
+    static async update(uuid, data) {
+        const update = await sequelizeInstance.transaction(async (t) => {
+            const { faskesUuid } = Ctx.get(CTX_AUTHOR);
+            data = convertSnakeToCamel(data);
+            const existingRegist = await RawatJalanModel.findOne({
+                where: {
+                uuid: uuid,
+                faskesUuid: faskesUuid,
+                deletedAt: null,
+                },
+                transaction: t,
+            });
+            if (!existingRegist) throw new NotfoundException("ID tidak ditemukan");
+
+            //* GET JADWAL DOKTER DARI ANTRIAN
+            const jadwalDokter = await JadwalDokterRepository.findJadwalDokterByUuid(data.jadwalDokterUuid);
+
+            data.patientData.patient_uuid = existingRegist.dataValues.patientUuid;
+            const patient = await PatientRepository.registPatient(data.patientData, t);
+            if (!patient) throw new Error("Gagal membuat pasien");
+
+            const dataRJ = {
+                patientUuid: patient.uuid,
+                name: patient.name,
+                noRm: patient.noRm,
+                birthDetailUuid: patient.birthDetailUuid,
+                gender: patient.gender,
+                practitionerUuid: jadwalDokter.practitionerUuid,
+                maternity: data.maternity,
+                note: data.note,
+                lokasiUuid: jadwalDokter.lokasiUuid,
+                complaint: data.complaint,
+                platform: data.platform,
+                noAntrianAdmisi: data.noAntrianAdmisi,
+                noAntrianPoli: data.noAntrianPoli,
+                noAntrianFarmasi: data.noAntrianFarmasi,
+                kodeBooking: data.kodeBooking,
+                paymentMethod: data.paymentMethod === "TUNAI" ? 1 : 2,
+            };
+
+            const { statusRj, lokasiUuid, practitionerUuid, jadwalDokterUuid } = existingRegist;
+
+            if (statusRj === 0) throw new BadRequestException("Data sudah dibatalkan");
+            if (statusRj >= 4) throw new BadRequestException("Data telah diproses");
+
+            //* Jika status booking
+            if (statusRj === 1) {
+
+                const starOfDay = moment().startOf('day').unix();
+                const endOfDay = moment().endOf('day').unix();
+
+                const isToday = existingRegist.jadwalPeriksa >= starOfDay && existingRegist.jadwalPeriksa <= endOfDay;
+
+                if (existingRegist.platform === "MOBILE") {
+
+                    //* Cek apakah jadwal periksa sesuai dengan hari ini
+                    if (!isToday) {
+                        throw new BadRequestException("Check-in hanya dapat dilakukan sesuai dengan tanggal booking.");
+                    }
+
+                    //* Update Status Appointment Mobile
+                    await publishAppointmentCheckin({
+                        faskesUuid,
+                        kodeBooking: existingRegist.kodeBooking,
+                        noRm: patient.noRm,
+                    });
+
+                }
+            }
+
+            if (!existingRegist.tanggalCheckin) {
+                dataRJ.tanggalCheckin = moment().unix();
+            }
+
+            if (lokasiUuid && practitionerUuid && (lokasiUuid !== dataRJ.lokasiUuid || practitionerUuid !== dataRJ.practitionerUuid)) {
+                throw new BadRequestException("Tidak bisa mengubah poli atau dokter");
+            }
+
+            if (!data.noAntrianPoli) dataRJ.noAntrianPoli = data.no_antrian_poli;
+            if (!jadwalDokterUuid) dataRJ.jadwalDokterUuid = jadwalDokter.jadwal_dokter_uuid;
+
+            if (statusRj === 1 || statusRj === 2) dataRJ.statusRj = 3;
+            
+            const updatedRegist = await existingRegist.update(dataRJ, { transaction: t });
+
+            //* Create Akun penjamin (TUNAI / ASURANSI)
+            await InsuranceAdmissionService.createInsuranceAdmission({
+                paymentMethod: data.paymentMethod,
+                insuranceData: data.insurance, 
+                patientUuid: patient.uuid,
+                noReg: updatedRegist.noReg,
+                admissionType: 1
+            }, t);
+
+            eventEmitter.emit(LOG_PELAYANAN_CHANNEL, {
+                tgl_registrasi: updatedRegist.tanggalDaftar,
+                noreg: updatedRegist.noReg,
+                no_pelayanan: updatedRegist.noPelayanan,
+                practitioner_uuid: updatedRegist.practitionerUuid,
+                jenis_kunjungan: "RJ",
+                patient_uuid: patient.uuid,
+                lokasi_uuid: updatedRegist.lokasiUuid,
+                payment_method: data.paymentMethod === "TUNAI" ? 1 : 2,
+            });
+
+            return updatedRegist.dataValues.uuid;
+        });
+
+        return await this.getOne(update);
+    }
+
+    static async getPemeriksaanDokterMobile(uuid, args){
+
+        const filter = ({
+            faskesUuid: args.faskes_uuid,
+            practitionerUuid: uuid,
+            statusRj: { [Op.not]: 0 },
+        });
+
+        if (args.tanggal) {
+            const startOfDay = moment(args.tanggal).startOf('day').unix();
+            const endOfDay = moment(args.tanggal).endOf('day').unix();
+            filter.jadwalPeriksa = { [Op.between]: [startOfDay, endOfDay] };
+        }
+
+        if (args.antrian) filter.statusRj = { [Op.in]: [1,2,3] };
+
+        if (args.diperiksa) filter.statusRj = { [Op.in]: [4] };
+
+        if (args.selesai) filter.statusRj = { [Op.in]: [5] };
+
+        return await RawatJalanModel.findAll({
+            where: filter,
+            include: [
+                {
+                    model: PatientModel,
+                    as: "patient",
+                    required: true,
+                    attributes: [ "uuid", "name" ]
+                },
+                {
+                    model: LokasiModel,
+                    as: "lokasi",
+                    required: true,
+                    attributes: [ "uuid", "name" ]
+                },
+                {
+                    model: JadwalDokterModel,
+                    as: "jadwal_dokter",
+                    required: true,
+                    attributes: [ "uuid", "start_time", "end_time", "day" ]
+                },
+            ],
+            attributes: [ "uuid" , "practitioner_uuid" , "status_rj", "jadwal_periksa" ]
+        });
+    }
+
+    static async updateFarmasi(uuid, data) {
+        const user = Context.get(CTX_AUTHOR);
+        console.log("Updating farmasi:", data);
+
+        return await RawatJalanModel.update({
+            noAntrianFarmasi: data.no_antrian_farmasi
+        }, 
+        {
+            where: {
+                uuid,
+                faskesUuid: user.faskesUuid
+            }
+        });
+    }
+
+    /**
+     * Cancel visit
+     * @param data
+     * @returns {Promise<RawatJalanModel[]>}
+     */
+    static async cancelVisit(data) {
+        try {
+            const user = Context.get(CTX_AUTHOR);
+            data = convertSnakeToCamel(data);
+
+            return await sequelizeInstance.transaction(async (t) => {
+                const rawatJalan = await RawatJalanModel.findAll({
+                    where: {
+                        uuid: data.listUuid,
+                        faskesUuid: user.faskesUuid,
+                        statusRj: {[Op.not]: 0}
+                    },
+                    include: {
+                        model: PatientModel,
+                        as: 'patient',
+                        attributes: ['uuid', 'no_rm', 'name']
+                    },
+                    transaction: t
+                });
+
+                const isProcessed = rawatJalan.filter(rj => rj.statusRj >= 4);
+                if (isProcessed.length > 0) {
+                    throw new BadRequestException("Pembatalan tidak diizinkan, pasien sudah diperiksa");
+                }
+
+                if (rawatJalan.length !== data.listUuid.length) {
+                    throw new NotfoundException("Data tidak ditemukan");
+                }
+                
+                await RawatJalanModel.update(
+                    {statusRj: 0, alasanBatal: data.cancelReason, petugas: user.username, deletedAt: moment().unix()},
+                    {where: {uuid: data.listUuid, faskesUuid: user.faskesUuid}, transaction: t}
+                );
+
+                //* Update Status Appointment Mobile
+                try {
+                    for (const rj of rawatJalan) {
+                        let patient = rj.patient.dataValues;
+
+                        console.log("Rawat Jalan Platform:", patient);
+                        if (rj.platform === "MOBILE") {
+                            await publishAppointmentCancel({
+                                faskesUuid: user.faskesUuid,
+                                kodeBooking: rj.kodeBooking,
+                                noRm: patient.no_rm,
+                            });
+                        }
+                    }
+                }catch(error){
+                    console.error("Error membuat appointment:", error);
+                }
+
+                eventEmitter.emit(LOG_CANCLE_PELAYANAN_CHANNEL, {
+                    list_no_pelayanan: rawatJalan.map(rj => rj.noPelayanan),
+                    cancel_reason: data.cancelReason,
+                    cancel_by: user.username
+                });
+
+                return rawatJalan;
+            });
+        } catch (e) {
+            console.error(e);
+            throw e;
+        }
+    }
+
+    static async cancelVisitMobile(data, faskesUuid) {
+        try {
+            data = convertSnakeToCamel(data);
+
+            return await sequelizeInstance.transaction(async (t) => {
+
+                await RawatJalanModel.update(
+                    { statusRj: 0, alasanBatal: "Pembatalan melalui Mobile", petugas: "Batal Mobile", deletedAt: moment().unix() },
+                    {
+                    where: {
+                        kodeBooking: data.kodeBooking,
+                        faskesUuid
+                    },
+                    transaction: t
+                    }
+                );
+
+                const foundRawatJalan = await RawatJalanModel.findAll({
+                    where: {
+                        kodeBooking: data.kodeBooking,
+                        faskesUuid,
+                    }
+                });
+
+                eventEmitter.emit(LOG_CANCLE_PELAYANAN_CHANNEL, {
+                    list_no_pelayanan: foundRawatJalan.map((rj) => rj.noPelayanan),
+                    cancel_reason: "Pembatalan melalui Mobile",
+                    cancel_by: "Mobile",
+                });
+
+            return foundRawatJalan;
+
+            });
+        } catch (error) {
+            console.error(error);
+            throw error;
+        }
+    }
+}

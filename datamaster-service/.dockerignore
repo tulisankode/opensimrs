@@ -1,0 +1,8 @@
+tests
+.env
+README.md
+node_modules
+.env*
+.flaskenv*
+!.env.project
+!.env.vault

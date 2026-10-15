@@ -1,0 +1,2 @@
+### INFO
+Terjadi perubahan pada model sdk ini mengenai cara membuat instance sequelize, pada versi terbaru ini v1.0.62 ini developer memiliki kendali penuh dalam pembuatan instance sequelize dengan menggunakan fungsi `createSequelizeInstance`

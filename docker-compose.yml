@@ -1,0 +1,309 @@
+services:
+  frontend-service:
+    build:
+      context: ./frontend-service
+      dockerfile: Dockerfile
+    image: opensimrs/frontend:v1.0.0
+    container_name: opensimrs-frontend
+    ports: ["5520:5520"]
+    networks: [opensimrs]
+    restart: always
+    env_file:
+      - .env
+    
+  admisi-services:
+    depends_on: [db, redis, mongodb]
+    container_name: admisi-service
+    image: opensimrs/admisi-service:v1.0.0
+    build:
+      context: .
+      dockerfile: admisi-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8081:8081"]
+  
+  antrian-service:
+    depends_on: [db, redis, mongodb]
+    container_name: antrian-service
+    image: opensimrs/antrian-service:v1.0.0
+    build:
+      context: .
+      dockerfile: antrian-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8082:8082"]
+
+  auth-service:
+    depends_on: [db, redis, mongodb]
+    container_name: auth-service
+    image: opensimrs/auth-service:v1.0.0
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8083:8083"]
+    
+  farmasi-service:
+    depends_on: [db, redis, mongodb]
+    container_name: farmasi-service
+    image: opensimrs/farmasi-service:v1.0.0
+    build:
+      context: .
+      dockerfile: farmasi-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8084:8084"]
+  
+  igd-service:
+    depends_on: [db, redis, mongodb]
+    container_name: igd-service
+    image: opensimrs/igd-service:v1.0.0
+    build:
+      context: .
+      dockerfile: igd-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8085:8085"]
+
+  inventory-service:
+    depends_on: [db, redis, mongodb]
+    container_name: inventory-service
+    image: opensimrs/inventory-service:v1.0.0
+    build:
+      context: .
+      dockerfile: inventory-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8086:8086"]
+  
+  lab-service:
+    depends_on: [db, redis, mongodb]
+    container_name: lab-service
+    image: opensimrs/lab-service:v1.0.0
+    build:
+      context: .
+      dockerfile: lab-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8087:8087"]
+  
+  laporan-service:
+    depends_on: [db, redis, mongodb]
+    container_name: laporan-service
+    image: opensimrs/laporan-service:v1.0.0
+    build:
+      context: .
+      dockerfile: laporan-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8088:8088"]
+  
+  payment-service:
+    depends_on: [db, redis, mongodb]
+    container_name: payment-service
+    image: opensimrs/payment-service:v1.0.0
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8089:8089"]
+  
+  rawat-inap-service:
+    depends_on: [db, redis, mongodb]
+    container_name: rawat-inap-service
+    image: opensimrs/rawat-inap-service:v1.0.0
+    build:
+      context: .
+      dockerfile: rawat-inap-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8091:8091"]
+  
+  rawat-jalan-service:
+    depends_on: [db, redis, mongodb]
+    container_name: rawat-jalan-service
+    image: opensimrs/rawat-jalan-service:v1.0.0
+    build:
+      context: .
+      dockerfile: rawat-jalan-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8092:8092"]
+
+  rekamedis-service:
+    depends_on: [db, redis, mongodb]
+    container_name: rekamedis-service
+    image: opensimrs/rekamedis-service:v1.0.0
+    build:
+      context: .
+      dockerfile: rekamedis-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8093:8093"]
+
+  # Integrasi SATUSEHAT Kemenkes (lihat satusehat-service/.env.example)
+  satusehat-service:
+    depends_on: [db, mongodb]
+    container_name: satusehat-service
+    image: opensimrs/satusehat-service:v1.0.0
+    build:
+      context: ./satusehat-service
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8097:8097"]
+
+  # Integrasi BPJS Kesehatan: PCare FKTP (lihat bpjs-service/.env.example)
+  bpjs-service:
+    depends_on: [db, mongodb]
+    container_name: bpjs-service
+    image: opensimrs/bpjs-service:v1.0.0
+    build:
+      context: ./bpjs-service
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8098:8098"]
+
+  # Layanan penunjang: Fisioterapi, Radiologi, Medical Check Up (lihat penunjang-service/.env.example)
+  penunjang-service:
+    depends_on: [db]
+    container_name: penunjang-service
+    image: opensimrs/penunjang-service:v1.0.0
+    build:
+      context: ./penunjang-service
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8099:8099"]
+  
+  setting-service:
+    depends_on: [db, redis, mongodb]
+    container_name: setting-service
+    image: opensimrs/setting-service:v1.0.0
+    build:
+      context: .
+      dockerfile: setting-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8094:8094"]
+  
+  stok-farmasi-service:
+    depends_on: [db, redis, mongodb]
+    container_name: stok-farmasi-service
+    image: opensimrs/stok-farmasi-service:v1.0.0
+    build:
+      context: .
+      dockerfile: stok-farmasi-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8095:8095"]
+  datamaster-service:
+    depends_on: [db, redis, mongodb]
+    container_name: datamaster-service
+    image: opensimrs/datamaster-service:v1.0.0
+    build:
+      context: .
+      dockerfile: datamaster-service/Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8096:8096"]
+  db:
+    container_name: opensimrs-db
+    ports: ["5432:5432"]
+    image: postgres:16-alpine
+    volumes:
+      - type: volume
+        source: opensimrs-db
+        target: /var/lib/postgresql
+      # Skema dasar + data referensi nasional; dimuat sekali saat volume masih kosong.
+      - type: bind
+        source: ./schema.sql
+        target: /docker-entrypoint-initdb.d/schema.sql
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    networks: [opensimrs]
+  mongodb:
+    container_name: opensimrs-mongodb
+    image: mongo:latest
+    ports: ["27017:27017"]
+    volumes:
+      - type: volume
+        source: opensimrs-mongodb
+        target: /data/db
+      - type: bind
+        source: ./mongo-init.js
+        target: /docker-entrypoint-initdb.d/mongo-init.js
+    restart: always
+    networks: [opensimrs]
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_DB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_PASSWORD}
+      MONGO_DB_PASSWORD: ${MONGO_DB_PASSWORD}
+      MONGO_AUTH_SOURCE: ${MONGO_DB_AUTH_SOURCE}
+
+  redis:
+    container_name: opensimrs-redis
+    image: redis:7.0.11-alpine
+    ports: ["6379:6379"]
+    volumes:
+      - type: volume
+        source: opensimrs-redis
+        target: /data
+      - type: bind
+        source: ./redis.conf
+        target: /usr/local/etc/redis/redis.conf
+    restart: always
+    networks: [opensimrs]
+
+volumes:
+  opensimrs-db: {}
+  opensimrs-mongodb: {}
+  opensimrs-redis: {}
+networks:
+  opensimrs:
+    driver: bridge

@@ -1,0 +1,73 @@
+import { paginationHelper } from "./utility.js";
+
+export default class Pagination {
+    static async init(model, args, filter = {}, options = {}, transformMap = {}, distinct = false) {
+        const page = args.page || 1;
+        const limit = args.limit || 10;
+        const offset = (page - 1) * limit;
+
+        const query = await model.findAndCountAll({
+            limit,
+            offset,
+            where: filter,
+            distinct,
+            ...options
+        });
+
+        const data = await Pagination.transform(query.rows, transformMap);
+
+        return {
+            data,
+            pagination: paginationHelper(page, limit, query.count)
+        };
+    }
+
+    static async transform(data, transformMap) {
+        return Promise.all(data.map(async (row) => {
+            let transformedRow = { ...row.get() };
+
+            for (const [key, transformFn] of Object.entries(transformMap)) {
+                if (typeof transformFn === 'function') {
+                    if (key === 'remove') {
+                        transformFn.forEach(k => delete transformedRow[k]);
+                    } else {
+                        transformedRow[key] = await transformFn(transformedRow);
+                    }
+                }
+            }
+
+            return transformedRow;
+        }));
+    }
+
+
+
+    static async initWithGroup(model, args, filter = {}, options = {}, transformMap = {}, distinct = false) {
+        const page = args.page || 1;
+        const limit = args.limit || 10;
+        const offset = (page - 1) * limit;
+
+        const totalGroups = await model.findAll({
+            where: filter,
+            include: options.include,
+            attributes: options.attributes,
+            group: options.group,
+            raw: true
+        });
+        const totalCount = totalGroups.length;
+
+        const rows = await model.findAll({
+            limit,
+            offset,
+            where: filter,
+            ...options
+        });
+
+        const data = await Pagination.transform(rows, transformMap);
+
+        return {
+            data,
+            pagination: paginationHelper(page, limit, totalCount)
+        };
+    }
+}

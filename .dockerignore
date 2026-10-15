@@ -1,0 +1,13 @@
+# Konteks build layanan backend = root repo (agar packages/ ikut). frontend-service memakai konteksnya sendiri.
+.git
+.github
+**/node_modules
+**/.env
+**/.env.*
+!**/.env.example
+docs
+database
+deploy
+scripts
+frontend-service
+schema.sql

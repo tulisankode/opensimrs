@@ -1,0 +1,349 @@
+import {
+  CategoryPemeriksaanModel,
+  ItemKelompokPemeriksaanModel,
+  ItemPemeriksaanModel,
+  KelompokPemeriksaanModel,
+} from "@opensimrs/model-sdk/lab";
+import {
+  Icd9Model,
+  SnomedModel,
+  LoincModel,
+} from "@opensimrs/model-sdk/datamaster";
+import { Op, where } from "sequelize";
+import toEpochDate from "../helpers/date-helper.js";
+import pagination from "../helpers/pagination.js";
+import Utils from "../helpers/utils.js";
+
+KelompokPemeriksaanModel.belongsTo(CategoryPemeriksaanModel, {
+  foreignKey: "category_pemeriksaan_uuid",
+  as: "category_pemeriksaan",
+  constraints: false,
+});
+
+KelompokPemeriksaanModel.belongsTo(Icd9Model, {
+  foreignKey: "icd9_uuid",
+  as: "icd9",
+  constraints: false,
+});
+
+KelompokPemeriksaanModel.belongsTo(SnomedModel, {
+  foreignKey: "snomedct_uuid",
+  as: "snomed",
+  constraints: false,
+});
+
+KelompokPemeriksaanModel.belongsTo(LoincModel, {
+  foreignKey: "loinc_uuid",
+  as: "loinc",
+  constraints: false,
+});
+
+export default class KelompokPemeriksaanRepository {
+  static async create(data, transaction) {
+    return await KelompokPemeriksaanModel.create(data, { transaction });
+  }
+
+  static async update(uuid, data, transaction) {
+    return await KelompokPemeriksaanModel.update(
+      data,
+      {
+        where: { uuid: uuid },
+      },
+      { transaction }
+    );
+  }
+
+  static async findByCodeIn(code, faskes_uuid) {
+    console.log("code", code);
+    return await KelompokPemeriksaanModel.findAll({
+      where: {
+        code: {
+          [Op.in]: code,
+        },
+        faskes_uuid,
+        deleted_at: {
+          [Op.is]: null,
+        },
+      },
+    });
+  }
+
+  static async findByUuids(uuids) {
+    return await KelompokPemeriksaanModel.findAll({
+      where: {
+        uuid: {
+          [Op.in]: uuids,
+        },
+        deleted_at: {
+          [Op.is]: null,
+        },
+      },
+    });
+  }
+
+  static async delete(uuid, transaction) {
+    return await KelompokPemeriksaanModel.update(
+      { deleted_at: toEpochDate(new Date()) },
+      { where: { uuid: uuid } },
+      { transaction }
+    );
+  }
+
+  static async findByCode(code, faskes_uuid) {
+    return await KelompokPemeriksaanModel.findOne({
+      where: {
+        code: code,
+        deleted_at: {
+          [Op.is]: null,
+        },
+        faskes_uuid: faskes_uuid,
+      },
+      attributes: {
+        exclude: ["created_at", "updated_at", "deleted_at"],
+      },
+    });
+  }
+
+  static async findByCodeWithoutItself(uuid, req) {
+    return await KelompokPemeriksaanModel.findOne({
+      where: {
+        code: req.code,
+        faskes_uuid: req.faskes_uuid,
+        deleted_at: {
+          [Op.is]: null,
+        },
+        uuid: { [Op.not]: uuid }, // Kecuali record ini
+      },
+    });
+  }
+
+  static async findByUuid(uuid) {
+    return await KelompokPemeriksaanModel.findOne({
+      where: {
+        uuid: uuid,
+        deleted_at: { [Op.is]: null },
+      },
+      attributes: {
+        exclude: ["created_at", "updated_at", "deleted_at"],
+      },
+      include: [
+        {
+          model: ItemKelompokPemeriksaanModel,
+          as: "item_kelompok_pemeriksaan",
+          where: {
+            deleted_at: {
+              [Op.is]: null,
+            },
+          },
+          include: {
+            model: ItemPemeriksaanModel,
+            as: "item_pemeriksaan",
+            attributes: ["uuid", "name", "code"],
+          },
+        },
+        {
+          model: CategoryPemeriksaanModel,
+          as: "category_pemeriksaan",
+          attributes: ["uuid", "name", "code"],
+        },
+      ],
+      attributes: {
+        exclude: ["created_at", "updated_at", "deleted_at"],
+      },
+    });
+  }
+
+  static async findAll(req) {
+    // Validasi dan default value untuk pagination
+    const page = parseInt(req.page) || 1;
+    const limit = parseInt(req.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // 1. Pertama ambil hanya ID dengan pagination yang benar
+    const idsResult = await KelompokPemeriksaanModel.findAll({
+      where: {
+        faskes_uuid: req.faskes_uuid,
+        deleted_at: { [Op.is]: null },
+        ...(req.name && { name: { [Op.iLike]: `%${req.name}%` } }),
+      },
+      attributes: ["uuid"],
+      order: [["created_at", "DESC"]],
+      limit: limit,
+      offset: offset,
+    });
+
+    if (idsResult.length === 0) {
+      return {
+        data: [],
+        pagination: Utils.paginationHelper(page, limit, 0),
+      };
+    }
+
+    // 1. Hitung total records (tanpa include untuk performa)
+    const countQuery = await KelompokPemeriksaanModel.count({
+      where: {
+        faskes_uuid: req.faskes_uuid,
+        deleted_at: { [Op.is]: null },
+        ...(req.name && { name: { [Op.iLike]: `%${req.name}%` } }),
+      },
+    });
+
+    // 2. Query untuk data dengan include
+    const queryOptions = {
+      where: {
+        uuid: { [Op.in]: idsResult.map((item) => item.uuid) },
+        faskes_uuid: req.faskes_uuid,
+        deleted_at: { [Op.is]: null },
+        ...(req.name && { name: { [Op.iLike]: `%${req.name}%` } }),
+      },
+      include: [
+        {
+          model: ItemKelompokPemeriksaanModel,
+          as: "item_kelompok_pemeriksaan",
+          required: false,
+          where: { deleted_at: { [Op.is]: null } },
+          include: [
+            {
+              model: ItemPemeriksaanModel,
+              as: "item_pemeriksaan",
+              required: false,
+              attributes: ["uuid", "name", "code"],
+            },
+          ],
+        },
+        {
+          model: CategoryPemeriksaanModel,
+          as: "category_pemeriksaan",
+          required: false,
+          attributes: ["uuid", "name", "code"],
+        },
+        {
+          model: Icd9Model,
+          as: "icd9",
+          required: false,
+          where: { deleted_at: { [Op.is]: null } },
+          attributes: ["uuid", "name", "code"],
+        },
+        {
+          model: SnomedModel,
+          as: "snomed",
+          required: false,
+          where: { deleted_at: { [Op.is]: null } },
+          attributes: ["uuid", "name", "code"],
+        },
+        {
+          model: LoincModel,
+          as: "loinc",
+          required: false,
+          where: { deleted_at: { [Op.is]: null } },
+          attributes: ["uuid", "name", "code"],
+        },
+      ],
+      order: [["created_at", "DESC"]],
+      attributes: {
+        exclude: ["created_at", "updated_at", "deleted_at"],
+      },
+    };
+
+    const fullData = await KelompokPemeriksaanModel.findAll(queryOptions);
+
+    return {
+      data: fullData.map((item) => item.get({ plain: true })),
+      pagination: Utils.paginationHelper(page, limit, countQuery),
+    };
+  }
+
+  static async findAllActive(req) {
+    const options = {
+      where: {
+        faskes_uuid: req.faskes_uuid,
+        name: {
+          [Op.iLike]: `%${req.name || ""}%`,
+        },
+        status: {
+          [Op.is]: true,
+        },
+        deleted_at: {
+          [Op.is]: null,
+        },
+      },
+      include: [
+        {
+          model: ItemKelompokPemeriksaanModel,
+          as: "item_kelompok_pemeriksaan",
+          required: false,
+          where: {
+            deleted_at: { [Op.is]: null },
+          },
+          include: {
+            model: ItemPemeriksaanModel,
+            as: "item_pemeriksaan",
+            required: false,
+            attributes: ["uuid", "name", "code"],
+          },
+        },
+        {
+          model: CategoryPemeriksaanModel,
+          as: "category_pemeriksaan",
+          required: false,
+          attributes: ["uuid", "name", "code"],
+        },
+        {
+          model: Icd9Model,
+          as: "icd9",
+          required: false,
+          where: {
+            deleted_at: { [Op.is]: null },
+          },
+          attributes: ["uuid", "name", "code"],
+        },
+        {
+          model: SnomedModel,
+          as: "snomed",
+          required: false,
+          where: {
+            deleted_at: { [Op.is]: null },
+          },
+          attributes: ["uuid", "name", "code"],
+        },
+        {
+          model: LoincModel,
+          as: "loinc",
+          required: false,
+          where: {
+            deleted_at: { [Op.is]: null },
+          },
+          attributes: ["uuid", "name", "code"],
+        },
+      ],
+      order: [["created_at", "DESC"]],
+      attributes: {
+        exclude: ["created_at", "updated_at", "deleted_at"],
+      },
+    };
+
+    return await KelompokPemeriksaanModel.findAll(options);
+  }
+
+  static async bulkCreate(data, transaction) {
+    return await KelompokPemeriksaanModel.bulkCreate(
+      data,
+      { transaction },
+      { returning: true }
+    );
+  }
+
+  static async findByNameIn(name, faskes_uuid) {
+    return await KelompokPemeriksaanModel.findAll({
+      where: {
+        name: {
+          [Op.in]: name,
+        },
+        faskes_uuid,
+        deleted_at: {
+          [Op.is]: null,
+        },
+      },
+    });
+  }
+}

@@ -1,0 +1,30 @@
+<script setup lang="ts">
+const props = defineProps({
+  class: {
+    type: String,
+    default: "text-black",
+  },
+  size: {
+    type: Number,
+    default: 20,
+  },
+});
+</script>
+
+<template>
+  <svg
+    :width="size"
+    :height="size"
+    :viewBox="`0 0 20 20`"
+    fill="none"
+    :class="class"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+     class="fill-current"
+      fill-rule="evenodd"
+      d="M10 1.428a8.571 8.571 0 1 0 0 17.143A8.571 8.571 0 0 0 18.571 10 8.571 8.571 0 0 0 10 1.428ZM7 7.857a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm8.364 6.415A6.845 6.845 0 0 1 10 16.857a6.844 6.844 0 0 1-5.364-2.585c1.39-.997 3.285-1.7 5.364-1.7 2.079 0 3.975.703 5.364 1.7Z"
+      clip-rule="evenodd"
+    />
+  </svg>
+</template>

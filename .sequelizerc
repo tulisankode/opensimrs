@@ -1,0 +1,9 @@
+// Runner migrasi terpusat untuk database bersama OpenSIMRS (opensimrs).
+// Pemakaian: npm run db:migrate | db:migrate:status | db:migrate:undo
+const path = require("path");
+
+module.exports = {
+  config: path.resolve(__dirname, "database", "config.cjs"),
+  "migrations-path": path.resolve(__dirname, "database", "migrations"),
+  "seeders-path": path.resolve(__dirname, "database", "seeders"),
+};

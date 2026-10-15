@@ -1,0 +1,48 @@
+{
+  "name": "opensimrs-auth",
+  "version": "1.0.0",
+  "description": "OpenSIMRS — Autentikasi, pengguna & hak akses",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "dev": "nodemon ./src/app.js",
+    "start": "node ./src/app.js"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.[t|j]sx?$": "babel-jest"
+    }
+  },
+  "author": "https://github.com/alliano",
+  "license": "ISC",
+  "dependencies": {
+    "@opensimrs/authorization-sdk": "file:../packages/authorization-sdk",
+    "@opensimrs/model-sdk": "file:../packages/model-sdk",
+    "@opensimrs/permission-sdk": "file:../packages/permission-sdk",
+    "@redis/client": "^1.6.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "express-fileupload": "^1.5.1",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "pg": "^8.12.0",
+    "pg-hstore": "^2.3.4",
+    "redis": "^4.7.0",
+    "sequelize": "^6.37.3",
+    "supertest": "^7.0.0",
+    "uuidv7": "^1.0.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.25.0",
+    "@types/express-fileupload": "^1.5.1",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0",
+    "jest-extended": "^4.0.2",
+    "nodemon": "^3.1.4"
+  }
+}

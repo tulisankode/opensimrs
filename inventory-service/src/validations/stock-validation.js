@@ -1,0 +1,39 @@
+import { z } from "zod";
+
+export default class StockValidation {
+    static GET_STOCK = z.object({
+        faskes_uuid: z.string().uuid({ message: "faskes_uuid tidak valid" }),
+        lokasi_stok_uuid: z.string().uuid({ message: "lokasi_stok_uuid tidak valid" }).optional(),
+        jenis_stok_uuid: z.string().uuid({ message: "jenis_stok_uuid tidak valid" }).optional(),
+    });
+
+    static REDUCE_STOCK = z.object({
+        item_uuid: z.string().uuid(),
+        quantity: z.number().positive("Kuantitas harus lebih dari 0"),
+        lokasi_stok_uuid: z.string().uuid(),
+        jenis_stok_uuid: z.string().uuid(),
+        sumber_mutasi: z.string().min(1),
+        kode_referensi: z.string().min(1),
+        faskes_uuid: z.string().uuid(),
+        petugas: z.string().min(1, "Nama petugas wajib diisi"),
+        keterangan: z.object({ description: z.string() }).optional()
+    });
+
+    static INCREASE_STOCK = z.object({
+      faskes_uuid: z.string().uuid(),
+      sumber_mutasi: z.string().min(1, "Sumber mutasi wajib diisi"),
+      kode_referensi: z.string().min(1, "Kode referensi wajib diisi"),
+      petugas: z.string().min(1, "Nama petugas wajib diisi"),
+      items: z.array(z.object({
+        item_uuid: z.string().uuid("Item UUID tidak valid"),
+        lokasi_stok_uuid: z.string().uuid("Lokasi stok UUID tidak valid"),
+        jenis_stok_uuid: z.string().uuid("Jenis stok UUID tidak valid"),
+        quantity: z.number().int().positive("Kuantitas harus berupa angka positif"),
+        exp_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD")
+          .refine((dateStr) => {
+            return !isNaN(new Date(dateStr).getTime());
+          }, "Tanggal tidak valid"),
+        harga_satuan: z.number().positive("Harga satuan harus berupa angka positif"),
+      })).min(1, "Minimal harus ada satu item yang ditambahkan"),
+    });
+}

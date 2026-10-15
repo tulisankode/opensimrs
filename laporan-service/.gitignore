@@ -1,0 +1,6 @@
+.env
+.npmrc
+.sequelizerc
+
+node_modules
+

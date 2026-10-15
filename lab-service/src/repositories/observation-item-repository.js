@@ -1,0 +1,191 @@
+import { Op, fn, col } from "sequelize";
+
+import {
+  ItemPemeriksaanModel,
+  NilaiRujukanModel,
+  ObservationItemModel,
+  OrderLabModel,
+} from "@opensimrs/model-sdk/lab";
+import { status } from "../services/order-lab-service.js";
+import pagination from "../helpers/pagination.js";
+
+ObservationItemModel.belongsTo(ItemPemeriksaanModel, {
+  foreignKey: "item_pemeriksaan_uuid",
+  as: "item_pemeriksaan",
+  constraints: false,
+});
+
+ObservationItemModel.belongsTo(OrderLabModel, {
+  foreignKey: "order_lab_uuid",
+  as: "order_lab",
+  constraints: false,
+});
+
+ItemPemeriksaanModel.hasMany(NilaiRujukanModel, {
+  foreignKey: "item_pemeriksaan_uuid",
+  as: "nilai_rujukan", // Gunakan alias yang konsisten
+  constraints: false,
+});
+
+export default class ObservationItemRepository {
+  static async bulkCreate(data, transaction) {
+    return await ObservationItemModel.bulkCreate(data, { transaction });
+  }
+
+  static async findByUuids(uuids, faskes_uuid) {
+    return await ObservationItemModel.findAll({
+      where: {
+        uuid: {
+          [Op.in]: uuids,
+        },
+        faskes_uuid: faskes_uuid,
+        deleted_at: {
+          [Op.is]: null,
+        },
+      },
+      include: {
+        model: ItemPemeriksaanModel,
+        as: "item_pemeriksaan",
+        where: {
+          deleted_at: {
+            [Op.is]: null,
+          },
+        },
+      },
+    });
+  }
+
+  static async updateResult(uuid, faskes_uuid, data, transaction) {
+    return await ObservationItemModel.update(data, {
+      where: {
+        uuid: uuid,
+        faskes_uuid: faskes_uuid,
+      },
+      transaction,
+    });
+  }
+
+  static async findByOrderLabUuid(order_lab_uuid, faskes_uuid) {
+    return await ObservationItemModel.findAll({
+      where: {
+        order_lab_uuid: order_lab_uuid,
+        faskes_uuid: faskes_uuid,
+        deleted_at: {
+          [Op.is]: null,
+        },
+      },
+      include: {
+        model: ItemPemeriksaanModel,
+        as: "item_pemeriksaan",
+        where: {
+          deleted_at: {
+            [Op.is]: null,
+          },
+        },
+        // required: false,
+        // include: {
+        //   model: NilaiRujukanModel,
+        //   as: "nilai_rujukan",
+        //   where: {
+        //     deleted_at: {
+        //       [Op.is]: null,
+        //     },
+        //   },
+        // },
+        attributes: {
+          exclude: ["created_at", "updated_at", "deleted_at"],
+        },
+      },
+      raw: true,
+      nest: true,
+    });
+  }
+
+  static async findByOrderLabUuidAndStatusSudahPeriksa(
+    order_lab_uuid,
+    faskes_uuid
+  ) {
+    return await ObservationItemModel.findAll({
+      where: {
+        order_lab_uuid: order_lab_uuid,
+        faskes_uuid: faskes_uuid,
+        status_periksa: true,
+        deleted_at: {
+          [Op.is]: null,
+        },
+      },
+    });
+  }
+
+  static async findRekapPemeriksaan(req) {
+    const whereDate = {};
+
+    if (req.start_date || req.end_date) {
+      whereDate["$order_lab.tgl_order$"] = {};
+
+      if (req.start_date) {
+        whereDate["$order_lab.tgl_order$"][Op.gte] = req.start_date;
+      }
+
+      if (req.end_date) {
+        whereDate["$order_lab.tgl_order$"][Op.lte] = req.end_date;
+      }
+    }
+
+    let whereSearch = {};
+
+    if (req.search) {
+      whereSearch = {
+        [Op.or]: [
+          {
+            "$item_pemeriksaan.name$": {
+              [Op.iLike]: `%${req.search}%`,
+            },
+          },
+          {
+            "$kelompok_pemeriksaan.name$": {
+              [Op.iLike]: `%${req.search}%`,
+            },
+          },
+        ],
+      };
+    }
+
+    const wherePelayanan = {};
+
+    if (req.pelayanan) {
+      wherePelayanan.pelayanan = req.pelayanan;
+    }
+
+    const options = {
+      where: {
+        faskes_uuid: req.faskes_uuid,
+        ...whereDate,
+        ...whereSearch,
+        deleted_at: { [Op.is]: null },
+      },
+      include: [
+        {
+          model: ItemPemeriksaanModel,
+          as: "item_pemeriksaan",
+          where: { deleted_at: { [Op.is]: null } },
+          attributes: ["name"],
+        },
+        {
+          model: OrderLabModel,
+          as: "order_lab",
+          where: {
+            order_status: status.SELESAI,
+            deleted_at: { [Op.is]: null },
+          },
+          attributes: ["created_at"],
+        },
+      ],
+      attributes: {
+        exclude: ["created_at", "updated_at", "deleted_at"],
+      },
+    };
+
+    return await pagination(ObservationItemModel, req, options);
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "name": "@opensimrs/model-sdk",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Model Sequelize/Mongoose bersama untuk layanan OpenSIMRS",
+  "type": "module",
+  "main": "syncronize.js",
+  "exports": {
+    "./instance": {
+      "import": "./configurations/config-db.js"
+    },
+    "./builder": {
+      "import": "./configurations/sequelize-instance.js"
+    },
+    "./datamaster": {
+      "import": "./exports/datamaster-exports.js"
+    },
+    "./rekam-medis": {
+      "import": "./exports/rekam-medis-exports.js"
+    },
+    "./farmasi": {
+      "import": "./exports/farmasi-exports.js"
+    },
+    "./user-repository": {
+      "import": "./repositories/user-repository.js"
+    },
+    "./exceptions": {
+      "import": "./exports/exceptions/exceptions-export.js"
+    },
+    "./setting": {
+      "import": "./exports/setting-exports.js"
+    },
+    "./pelayanan": {
+      "import": "./exports/pelayanan-exports.js"
+    },
+    "./admisi": {
+      "import": "./exports/admisi-exports.js"
+    },
+    "./inventory": {
+      "import": "./exports/inventory-exports.js"
+    },
+    "./antrian": {
+      "import": "./exports/antrian-exports.js"
+    },
+    "./lab": {
+      "import": "./exports/lab-exports.js"
+    },
+    "./payment": {
+      "import": "./exports/payment-exports.js"
+    }
+  },
+  "scripts": {
+    "db:sync": "node ./syncronize.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "moment": "^2.30.1",
+    "mongoose": "^8.7.0",
+    "pg": "^8.12.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.3",
+    "uuidv7": "^1.0.2"
+  },
+  "keywords": [
+    "opensimrs",
+    "model-sdk"
+  ],
+  "license": "ISC",
+  "author": "https://github.com/alliano"
+}

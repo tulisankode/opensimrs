@@ -1,0 +1,74 @@
+import { DataTypes, Model } from "sequelize";
+import { uuidv7 } from "uuidv7";
+import sequelizeInstance from "../../configurations/config-db.js";
+
+// Surat atau General Consent
+export default class SuratModel extends Model {}
+SuratModel.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      unique: true,
+      allowNull: false,
+    },
+    uuid: {
+      type: DataTypes.STRING(255),
+      defaultValue: () => uuidv7(),
+      unique: true,
+      primaryKey: true,
+      allowNull: false,
+    },
+    faskes_uuid: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+    },
+    code: {
+      type: DataTypes.STRING(255),
+      unique: false,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+      },
+    },
+    name: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+      },
+    },
+    isi_surat: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    status: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+    },
+    createdAt: {
+      type: DataTypes.BIGINT,
+      defaultValue: Math.floor(Date.now() / 1000.0),
+    },
+    updatedAt: {
+      type: DataTypes.BIGINT,
+      defaultValue: Math.floor(Date.now() / 1000.0),
+    },
+    deletedAt: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+    },
+  },
+  {
+    tableName: "general_consent",
+    indexes: [{ fields: ["name"] }],
+    timestamps: false,
+    underscored: true,
+    sequelize: sequelizeInstance,
+    uniqueKeys: {
+      uniq_scores: {
+        fields: ["code", "faskes_uuid", "deleted_at"],
+      },
+    },
+  }
+);

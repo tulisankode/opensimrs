@@ -1,0 +1,16 @@
+node_modules
+private.key
+public.key
+.env
+package-lock.json
+docker-compose-dev.yml
+*.conf
+.idea
+.npmrc
+deploy.sh
+.env*
+.flaskenv*
+!.env.project
+!.env.vault
+.env.vault
+*.http
