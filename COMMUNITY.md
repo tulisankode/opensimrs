@@ -13,7 +13,7 @@ Kanal komunitas resmi **hanya tiga**. Kanal lain yang mengatasnamakan OpenSIMRS 
 | Kanal | Tujuan | Tautan |
 |---|---|---|
 | **Grup Telegram** | Pengumuman dan diskusi umum | [Gabung grup Telegram](https://t.me/+uW2ZQA1V7Dc3OTVl) |
-| **Server Discord** | Diskusi teknis per kanal: `#pengembangan`, `#implementasi`, `#qa`, `#produk`, `#bantuan-instalasi` | [Gabung server Discord](https://discord.gg/VNpKKgWw) |
+| **Server Discord** | Diskusi teknis per kanal: `#pengembangan`, `#implementasi`, `#qa`, `#produk`, `#bantuan-instalasi` | [Gabung server Discord](https://discord.gg/qAWhdzGJTW) |
 | **Grup WhatsApp** | Koordinasi cepat implementator/faskes dan pengumuman penting | [Gabung grup WhatsApp](https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t) |
 
 Pindai kode QR berikut dari ponsel untuk bergabung:

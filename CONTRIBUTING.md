@@ -16,7 +16,7 @@ Tenaga medis dan klinis (dokter, perawat, apoteker, analis, perekam medis) juga 
 | Tester/QA | [TESTER-QA.md](./docs/kontributor/TESTER-QA.md) |
 | Product development (analis kebutuhan, tenaga medis/klinis, desainer UX) | [PRODUCT-DEV.md](./docs/kontributor/PRODUCT-DEV.md) |
 
-Diskusi dan tanya jawab dilakukan di kanal komunitas: [Telegram](https://t.me/+uW2ZQA1V7Dc3OTVl), [Discord](https://discord.gg/VNpKKgWw), dan [WhatsApp](https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t) (aturan forum di [COMMUNITY.md](./COMMUNITY.md)); pelacakan pekerjaan teknis tetap lewat GitHub Issues dan Pull Request.
+Diskusi dan tanya jawab dilakukan di kanal komunitas: [Telegram](https://t.me/+uW2ZQA1V7Dc3OTVl), [Discord](https://discord.gg/qAWhdzGJTW), dan [WhatsApp](https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t) (aturan forum di [COMMUNITY.md](./COMMUNITY.md)); pelacakan pekerjaan teknis tetap lewat GitHub Issues dan Pull Request.
 
 Dengan berkontribusi, Anda setuju mengikuti [Kode Etik](./CODE_OF_CONDUCT.md) dan bahwa kontribusi Anda dirilis di bawah [lisensi proyek](./LICENSE).
 

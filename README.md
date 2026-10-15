@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://opensimrs.my.id"><img alt="Website OpenSIMRS.my.id" src="https://img.shields.io/badge/website-OpenSIMRS.my.id-0e7c86"/></a>
   <a href="https://t.me/+uW2ZQA1V7Dc3OTVl"><img alt="Telegram" src="https://img.shields.io/badge/Telegram-gabung-26A5E4?logo=telegram&logoColor=white"/></a>
-  <a href="https://discord.gg/VNpKKgWw"><img alt="Discord" src="https://img.shields.io/badge/Discord-gabung-5865F2?logo=discord&logoColor=white"/></a>
+  <a href="https://discord.gg/qAWhdzGJTW"><img alt="Discord" src="https://img.shields.io/badge/Discord-gabung-5865F2?logo=discord&logoColor=white"/></a>
   <a href="https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t"><img alt="WhatsApp" src="https://img.shields.io/badge/WhatsApp-gabung-25D366?logo=whatsapp&logoColor=white"/></a>
   <a href="./LICENSE"><img alt="Lisensi MIT" src="https://img.shields.io/badge/lisensi-MIT-blue"/></a>
 </p>
@@ -164,7 +164,7 @@ Baca [CONTRIBUTING.md](./CONTRIBUTING.md) dan [panduan peran Anda](./docs/kontri
 ## Komunitas & kontak
 
 - **Website resmi:** [OpenSIMRS.my.id](https://opensimrs.my.id)
-- **Kanal diskusi resmi:** [grup Telegram](https://t.me/+uW2ZQA1V7Dc3OTVl), [server Discord](https://discord.gg/VNpKKgWw), dan [grup WhatsApp](https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t). Aturan forum ada di [COMMUNITY.md](./COMMUNITY.md).
+- **Kanal diskusi resmi:** [grup Telegram](https://t.me/+uW2ZQA1V7Dc3OTVl), [server Discord](https://discord.gg/qAWhdzGJTW), dan [grup WhatsApp](https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t). Aturan forum ada di [COMMUNITY.md](./COMMUNITY.md).
 - **Pelacakan pekerjaan teknis:** GitHub Issues & Pull Request di repo ini.
 - **Email:** `dev@opensimrs.id` (umum, keamanan, kode etik).
 

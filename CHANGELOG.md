@@ -25,6 +25,9 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 
 ## [Belum dirilis]
 
+### Diperbaiki
+- Tautan Discord di dokumen kini mengarah ke server komunitas OpenSIMRS dengan undangan permanen. Tautan lama adalah undangan grup DM yang kedaluwarsa dalam 24 jam.
+
 ---
 
 ## [1.0.0-alpha.1] - 2026-10-15
