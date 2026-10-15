@@ -174,6 +174,8 @@ export default class MobilePasienService {
         const filter = {
             faskesUuid,
             deletedAt: { [Op.is]: null },
+            // pasien non-aktif tidak tampil di aplikasi mobile
+            status: { [Op.is]: true },
         };
 
         if (args.no_rm) filter.noRm = args.no_rm;

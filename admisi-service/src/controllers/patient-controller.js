@@ -34,6 +34,25 @@ export default class PatientController {
         }
     }
 
+    static async activate(req, res, next) {
+        try {
+            const result = await PatientService.activate(req.body);
+            return res.status(200).json(successResponse(`Berhasil mengaktifkan ${result.diaktifkan} pasien`, result));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async hapus(req, res, next) {
+        try {
+            const result = await PatientService.hapus(req.body);
+            const { berhasil, gagal } = result.ringkasan;
+            return res.status(200).json(successResponse(`${berhasil} pasien dihapus${gagal ? `, ${gagal} tidak dapat dihapus` : ""}`, result));
+        } catch (error) {
+            next(error);
+        }
+    }
+
     static async findByUuid(req, res, next) {
         try {
             const patient = await PatientService.findByUuid(req.params.uuid);

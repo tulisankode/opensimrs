@@ -65,7 +65,7 @@ rute.get(
       `SELECT p.uuid, p.no_rm, p.name, p.gender, p.no_identity AS nik, p.phone, bd.birth_date::text AS tanggal_lahir,
               DATE_PART('year', AGE(CURRENT_DATE, bd.birth_date))::int AS umur
          FROM patients p LEFT JOIN birth_details bd ON bd.uuid = p.birth_detail_uuid
-        WHERE p.faskes_uuid = $1 AND p.deleted_at IS NULL
+        WHERE p.faskes_uuid = $1 AND p.deleted_at IS NULL AND p.status IS NOT FALSE
           AND ($2 = '' OR p.name ILIKE '%' || $2 || '%' OR p.no_rm ILIKE '%' || $2 || '%' OR p.no_identity ILIKE '%' || $2 || '%')
         ORDER BY p.name LIMIT ${limit}`,
       [req.author.faskesUuid, cari],
@@ -93,7 +93,7 @@ rute.post(
     if (jenis === "KTP" && !/^\d{16}$/.test(nomor)) throw permintaanSalah("NIK (KTP) harus 16 digit angka");
     if (jenis === "PASPOR" && !/^[A-Z]\d{8}$/.test(nomor)) throw permintaanSalah("Nomor paspor harus 1 huruf diikuti 8 digit");
     const lama = await query(
-      `SELECT p.uuid, p.no_rm, p.name, p.gender, p.no_identity AS nik, p.phone, bd.birth_date::text AS tanggal_lahir,
+      `SELECT p.uuid, p.no_rm, p.name, p.gender, p.no_identity AS nik, p.phone, bd.birth_date::text AS tanggal_lahir, p.status,
               DATE_PART('year', AGE(CURRENT_DATE, bd.birth_date))::int AS umur
          FROM patients p LEFT JOIN birth_details bd ON bd.uuid = p.birth_detail_uuid
         WHERE p.faskes_uuid = $1 AND p.no_identity = $2 AND p.deleted_at IS NULL AND p.no_rm NOT LIKE 'XX%' ORDER BY p.created_at LIMIT 1`,
@@ -102,6 +102,8 @@ rute.post(
     const tgl = parseTanggal(b.tgl_lahir);
     if (lama[0]) {
       const p = lama[0];
+      if (p.status === false) throw permintaanSalah(`Pasien ${p.no_rm} (${p.name}) berstatus non-aktif — aktifkan dulu di Admisi › Data Pasien`);
+      delete p.status;
       const peringatan = [];
       if (p.name.trim().toLowerCase() !== nama.toLowerCase()) peringatan.push(`Nama di master: ${p.name}`);
       if (tgl && p.tanggal_lahir && String(p.tanggal_lahir).slice(0, 10) !== tgl) peringatan.push(`Tanggal lahir di master: ${String(p.tanggal_lahir).slice(0, 10)}`);

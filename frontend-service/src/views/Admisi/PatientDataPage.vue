@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MenuItem } from "primevue/menuitem";
-import { onMounted, ref, computed } from "vue";
+import { onMounted, ref, computed, watch } from "vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import CustomBreadCrumb from "@/components/Base/CustomBreadCrumb.vue";
 import CustomAccordion from "@/components/Base/CustomAccordion.vue";
@@ -164,10 +164,23 @@ const fetchHistoryData = async () => {
 };
 
 const search = ref("");
+// Data Pasien menampilkan semua status (pencarian pasien di modul lain hanya menampilkan pasien aktif).
+const statusFilter = ref("semua");
+const opsiStatus = [
+  { label: "Semua Status", value: "semua" },
+  { label: "Aktif", value: "aktif" },
+  { label: "Non-Aktif", value: "nonaktif" },
+];
 const resetFilter = () => {
   search.value = ""
+  statusFilter.value = "semua";
   searchData();
 };
+watch(statusFilter, () => {
+  properties.value.page = 1;
+  selectedPatient.value = [];
+  searchData();
+});
 const patientUuid = ref<string>("");
 
 const onSelectPatient = (patient: any) => {
@@ -181,6 +194,7 @@ const fetchData = async () => {
       page: properties.value.page,
       limit: properties.value.pageSize,
       q: search.value,
+      status: statusFilter.value,
     });
     if (response && response.payload) {
       properties.value.total = response.properties.totalData;
@@ -469,7 +483,8 @@ const removeFile = async (rowData: any) => {
 const nonaktifkanPasien = async () => {
   storeUtils.setLoading(true);
   try {
-    const listUuid = selectedPatient.value.map(pasien => pasien.uuid);
+    // hanya pasien yang masih aktif (yang sudah non-aktif dilewati)
+    const listUuid = selectedPatient.value.filter(pasien => pasien.status).map(pasien => pasien.uuid);
 
     const payload = {
       list_uuid: listUuid
@@ -488,6 +503,45 @@ const nonaktifkanPasien = async () => {
     storeUtils.setLoading(false);
   }
 };
+
+// ── Aktifkan & hapus massal ──
+const showConfirmAktifDialog = ref(false);
+const aktifkanPasien = async () => {
+  storeUtils.setLoading(true);
+  try {
+    await masterPasienStore.aktifkanPasienApi({ list_uuid: selectedPatient.value.map((pasien) => pasien.uuid) });
+    showConfirmAktifDialog.value = false;
+    selectedPatient.value = [];
+    await fetchData();
+  } catch (error) {
+    console.error("Gagal mengaktifkan pasien:", error);
+  } finally {
+    storeUtils.setLoading(false);
+  }
+};
+
+// Hapus hanya untuk pasien yang belum pernah bertransaksi; hasil per pasien ditampilkan di dialog.
+const showConfirmHapusDialog = ref(false);
+const hasilHapus = ref<any>(null);
+const bukaHapus = () => {
+  hasilHapus.value = null;
+  showConfirmHapusDialog.value = true;
+};
+const hapusPasien = async () => {
+  storeUtils.setLoading(true);
+  try {
+    const response = await masterPasienStore.hapusPasienApi({ list_uuid: selectedPatient.value.map((pasien) => pasien.uuid) });
+    hasilHapus.value = response?.payload ?? null;
+    selectedPatient.value = [];
+    await fetchData();
+  } catch (error) {
+    console.error("Gagal menghapus pasien:", error);
+  } finally {
+    storeUtils.setLoading(false);
+  }
+};
+const adaNonaktifDipilih = computed(() => selectedPatient.value.some((p) => !p.status));
+const adaAktifDipilih = computed(() => selectedPatient.value.some((p) => p.status));
 
 const patientIdentityForm = ref<InstanceType<
   typeof PatientIdentityForm
@@ -871,6 +925,15 @@ onMounted(() => {
             prependIcon="PhMagnifyingGlass"
             placeholder="Cari Nama / address / No. RM"
           />
+          <CustomSelect
+            v-model="statusFilter"
+            label="Status"
+            optionLabel="label"
+            optionValue="value"
+            :showFilter="false"
+            :options="opsiStatus"
+            class="min-w-[150px]"
+          />
           <CustomButton
             @click="searchData"
             icon="PhMagnifyingGlass"
@@ -1017,7 +1080,99 @@ onMounted(() => {
               @click="showConfirmNonaktifDialog = true"
               class="my-auto bg-danger-300"
               label="Non-Aktifkan"
+              :disabled="!adaAktifDipilih"
             />
+            <CustomButton
+              v-if="showDeletePasien"
+              @click="showConfirmAktifDialog = true"
+              class="my-auto ml-[10px]"
+              label="Aktifkan"
+              backgroundColor="bg-opensimrs-300"
+              :disabled="!adaNonaktifDipilih"
+              data-uji="aksi-aktifkan-pasien"
+            />
+            <CustomButton
+              v-if="showDeletePasien"
+              @click="bukaHapus"
+              class="my-auto ml-[10px]"
+              icon="PhTrash"
+              label="Hapus"
+              outlined
+              borderColor="border-danger-300"
+              textColor="text-danger-300"
+              :disabled="!selectedPatient.length"
+              data-uji="aksi-hapus-pasien"
+            />
+            <CustomDialog v-model:visible="showConfirmAktifDialog" width="600px">
+              <template #header>Aktifkan Pasien</template>
+              <template #body>
+                <div class="mt-5">
+                  <div class="mb-4">Aktifkan kembali data pasien No. RM berikut? Pasien akan kembali bisa dicari dan didaftarkan di semua modul.</div>
+                  <ul>
+                    <li v-for="pasien in selectedPatient.filter((p) => !p.status)" :key="pasien.uuid" class="ml-5 font-semibold list-disc">
+                      {{ pasien.noRm }} — {{ pasien.name }}
+                    </li>
+                  </ul>
+                </div>
+              </template>
+              <template #footer>
+                <div class="flex justify-end">
+                  <CustomButton
+                    @click="showConfirmAktifDialog = false"
+                    label="Tidak"
+                    outlined
+                    class="mr-[10px]"
+                    borderColor="border-grey-200"
+                    textColor="text-grey-300"
+                  />
+                  <CustomButton @click="aktifkanPasien" label="Iya, Aktifkan" backgroundColor="bg-opensimrs-300" />
+                </div>
+              </template>
+            </CustomDialog>
+            <CustomDialog v-model:visible="showConfirmHapusDialog" width="640px" :pt="{
+                header: { class: 'bg-danger-300 text-white' }
+              }">
+              <template #header>{{ hasilHapus ? "Hasil Hapus Pasien" : "Hapus Pasien" }}</template>
+              <template #body>
+                <div v-if="!hasilHapus" class="mt-5" data-uji="form-hapus-pasien">
+                  <div class="mb-2">Hapus data pasien No. RM berikut?</div>
+                  <div class="mb-4 text-xs text-grey-300">
+                    Hanya pasien yang <b>belum pernah bertransaksi</b> yang dihapus (belum ada kunjungan, antrian, order penunjang,
+                    resep, MCU, maupun tagihan). Pasien yang sudah bertransaksi tidak dihapus — gunakan Non-Aktifkan.
+                    Data yang dihapus tidak tampil lagi di aplikasi; No. RM-nya tidak dipakai ulang.
+                  </div>
+                  <ul>
+                    <li v-for="pasien in selectedPatient" :key="pasien.uuid" class="ml-5 font-semibold list-disc">
+                      {{ pasien.noRm }} — {{ pasien.name }}
+                    </li>
+                  </ul>
+                </div>
+                <div v-else class="flex flex-col gap-3 mt-5 text-sm" data-uji="hasil-hapus-pasien">
+                  <div class="flex flex-wrap gap-2 text-xs">
+                    <span class="px-2 py-1 rounded bg-[#D1FADF] text-[#027A48]">{{ hasilHapus.ringkasan.berhasil }} dihapus</span>
+                    <span v-if="hasilHapus.ringkasan.gagal" class="px-2 py-1 rounded bg-[#FDE2E1] text-[#B42318]">
+                      {{ hasilHapus.ringkasan.gagal }} tidak dapat dihapus
+                    </span>
+                  </div>
+                  <ul v-if="hasilHapus.gagal?.length" class="flex flex-col gap-1 overflow-auto text-xs max-h-60">
+                    <li v-for="g in hasilHapus.gagal" :key="g.uuid"><b>{{ g.noRm ?? "-" }}</b> {{ g.nama ?? "" }} — {{ g.alasan }}</li>
+                  </ul>
+                </div>
+              </template>
+              <template #footer>
+                <div class="flex justify-end">
+                  <CustomButton
+                    @click="showConfirmHapusDialog = false"
+                    :label="hasilHapus ? 'Tutup' : 'Tidak'"
+                    outlined
+                    class="mr-[10px]"
+                    borderColor="border-grey-200"
+                    textColor="text-grey-300"
+                  />
+                  <CustomButton v-if="!hasilHapus" @click="hapusPasien" label="Iya, Hapus" backgroundColor="bg-danger-300" data-uji="konfirmasi-hapus-pasien" />
+                </div>
+              </template>
+            </CustomDialog>
             <CustomDialog v-model:visible="showConfirmNonaktifDialog" width="600px" :pt="{
                 header: { class: 'bg-danger-300 text-white' }
               }">

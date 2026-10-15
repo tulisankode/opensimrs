@@ -31,7 +31,7 @@ rute.get(
     const rows = await query(
       `SELECT p.uuid, p.no_rm, p.name, p.gender, p.phone, to_char(bd.birth_date, 'YYYY-MM-DD') AS birth_date
          FROM patients p LEFT JOIN birth_details bd ON bd.uuid = p.birth_detail_uuid
-        WHERE p.faskes_uuid = $1 AND p.deleted_at IS NULL
+        WHERE p.faskes_uuid = $1 AND p.deleted_at IS NULL AND p.status IS NOT FALSE
           AND ($2 = '' OR p.name ILIKE $3 OR p.no_rm ILIKE $3 OR p.phone ILIKE $3)
         ORDER BY p.name LIMIT 20`,
       [req.author.faskesUuid, cari, `%${cari}%`],

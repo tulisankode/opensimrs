@@ -39,7 +39,7 @@ rute.get(
   tangani(async (req, res) => {
     const cari = String(req.query.cari ?? "").trim();
     const p = [req.author.faskesUuid];
-    let w = "p.faskes_uuid = $1 AND p.deleted_at IS NULL";
+    let w = "p.faskes_uuid = $1 AND p.deleted_at IS NULL AND p.status IS NOT FALSE"; // pasien non-aktif tidak bisa dipilih
     if (cari) {
       p.push(`%${cari}%`);
       w += ` AND (p.name ILIKE $2 OR p.no_rm ILIKE $2 OR p.no_identity ILIKE $2)`;
