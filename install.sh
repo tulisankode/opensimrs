@@ -172,11 +172,20 @@ tunggu "MongoDB"    mongosh --quiet --host 127.0.0.1 --eval "db.runCommand({ping
 
 # ---------- nilai rahasia: pakai ulang dari .env bila ada ----------
 ambil() { [ -f .env ] && grep -E "^$1=" .env | head -1 | cut -d= -f2- || true; }
-# .env root yang belum lengkap (mis. salinan .env.example) dicadangkan lalu dibuat ulang
-if [ -f .env ] && { [ -z "$(ambil DB_PASSWORD)" ] || [ -z "$(ambil MONGO_DB_PASSWORD)" ] || [ -z "$(ambil SECRET_KEY)" ]; }; then
-  CADANGAN=".env.bak.$(date +%Y%m%d%H%M%S)"
-  mv .env "$CADANGAN"
-  warn ".env root belum lengkap → dicadangkan ke $CADANGAN dan dibuat ulang"
+# .env root yang belum lengkap (mis. salinan .env.example) atau mengarah ke database lain (mis. database kerja
+# di kontainer Docker) dicadangkan lalu dibuat ulang: migrasi membaca .env root
+if [ -f .env ]; then
+  ALASAN=""
+  if [ -z "$(ambil DB_PASSWORD)" ] || [ -z "$(ambil MONGO_DB_PASSWORD)" ] || [ -z "$(ambil SECRET_KEY)" ]; then
+    ALASAN="belum lengkap"
+  elif [ "$(ambil DB_NAME)" != "$DB_NAMA" ] || [ "$(ambil DB_USERNAME)" != "$DB_USER" ] || [ "$(ambil DB_PORT)" != "5432" ]; then
+    ALASAN="mengarah ke database lain ($(ambil DB_USERNAME)@$(ambil DB_HOST):$(ambil DB_PORT)/$(ambil DB_NAME))"
+  fi
+  if [ -n "$ALASAN" ]; then
+    CADANGAN=".env.bak.$(date +%Y%m%d%H%M%S)"
+    mv .env "$CADANGAN"
+    warn ".env root $ALASAN → dicadangkan ke $CADANGAN dan dibuat ulang"
+  fi
 fi
 acak()  { openssl rand -hex "${1:-32}"; }
 DB_PASS="$(ambil DB_PASSWORD)";        [ -n "$DB_PASS" ]    || DB_PASS="$(acak 16)"
@@ -299,7 +308,7 @@ for p in $LAYANAN; do n="${p%%:*}"; port="${p##*:}"; [ -d "$n-service" ] && tuli
 # .env layanan lama yang tidak cocok dengan root → login/koneksi DB akan gagal
 for p in $LAYANAN; do
   f="${p%%:*}-service/.env"; [ -f "$f" ] || continue
-  for v in DB_PASSWORD SECRET_KEY MONGO_DB_PASSWORD; do
+  for v in DB_NAME DB_USERNAME DB_PORT DB_PASSWORD SECRET_KEY MONGO_DB_PASSWORD; do
     if [ "$(grep -E "^$v=" "$f" | head -1 | cut -d= -f2-)" != "$(ambil "$v")" ]; then
       warn "$f: $v berbeda dengan .env root. Samakan, atau hapus berkas itu lalu jalankan ulang skrip."
       break
@@ -336,6 +345,8 @@ fi
 
 # ---------- 6. dependensi npm, migrasi, data demo ----------
 judul "Dependensi npm (10–20 menit pada instalasi pertama)"
+# npm audit menghubungi registry untuk tiap layanan dan bisa menggantung di jaringan lambat; jalankan terpisah bila perlu
+export npm_config_audit=false npm_config_fund=false
 npm run install:all
 ok "Dependensi terpasang"
 

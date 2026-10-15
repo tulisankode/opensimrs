@@ -210,10 +210,18 @@ function Ambil($kunci) {
   $baris = Get-Content (Join-Path $ROOT ".env") | Where-Object { $_ -match "^$kunci=" } | Select-Object -First 1
   if ($baris) { return ($baris -replace "^$kunci=", "") } else { return "" }
 }
-if ((Test-Path .env) -and (-not (Ambil "DB_PASSWORD") -or -not (Ambil "MONGO_DB_PASSWORD") -or -not (Ambil "SECRET_KEY"))) {
-  $cad = ".env.bak." + (Get-Date -Format "yyyyMMddHHmmss")
-  Move-Item .env $cad -ErrorAction Stop
-  Warn ".env root belum lengkap -> dicadangkan ke $cad dan dibuat ulang"
+if (Test-Path .env) {
+  $alasan = $null
+  if (-not (Ambil "DB_PASSWORD") -or -not (Ambil "MONGO_DB_PASSWORD") -or -not (Ambil "SECRET_KEY")) { $alasan = "belum lengkap" }
+  # .env lama dari instalasi lain (mis. database kerja di kontainer Docker) jangan dipakai: migrasi membaca .env root
+  elseif ((Ambil "DB_NAME") -ne $DB_NAMA -or (Ambil "DB_USERNAME") -ne $DB_USER -or (Ambil "DB_PORT") -ne "$PG_PORT") {
+    $alasan = "mengarah ke database lain ($(Ambil 'DB_USERNAME')@$(Ambil 'DB_HOST'):$(Ambil 'DB_PORT')/$(Ambil 'DB_NAME'))"
+  }
+  if ($alasan) {
+    $cad = ".env.bak." + (Get-Date -Format "yyyyMMddHHmmss")
+    Move-Item .env $cad -ErrorAction Stop
+    Warn ".env root $alasan -> dicadangkan ke $cad dan dibuat ulang"
+  }
 }
 function AmbilAtauAcak($kunci, [int]$n) { $v = Ambil $kunci; if ($v) { return $v } else { return (Acak $n) } }
 $DB_PASS    = AmbilAtauAcak "DB_PASSWORD" 16
@@ -338,7 +346,7 @@ foreach ($n in $LAYANAN.Keys) { if (Test-Path "$n-service") { TulisEnv "$n-servi
 # .env layanan lama yang tidak cocok dengan root -> login/koneksi DB akan gagal
 foreach ($n in $LAYANAN.Keys) {
   $f = "$n-service\.env"; if (-not (Test-Path $f)) { continue }
-  foreach ($v in @("DB_PASSWORD", "SECRET_KEY", "MONGO_DB_PASSWORD")) {
+  foreach ($v in @("DB_NAME", "DB_USERNAME", "DB_PORT", "DB_PASSWORD", "SECRET_KEY", "MONGO_DB_PASSWORD")) {
     $baris = Get-Content $f | Where-Object { $_ -match "^$v=" } | Select-Object -First 1
     $nilai = ""; if ($baris) { $nilai = $baris -replace "^$v=", "" }
     if ($nilai -ne (Ambil $v)) { Warn "${f}: $v berbeda dengan .env root. Samakan, atau hapus berkas itu lalu jalankan ulang skrip."; break }
@@ -378,6 +386,8 @@ function JalankanNpm($argumen) {
   if ($LASTEXITCODE -ne 0) { Mati ("npm " + ($argumen -join " ") + " gagal (kode $LASTEXITCODE)") }
 }
 Judul "Dependensi npm (10-20 menit pada instalasi pertama)"
+# npm audit menghubungi registry untuk tiap layanan dan bisa menggantung di jaringan lambat; jalankan terpisah bila perlu
+$env:npm_config_audit = "false"; $env:npm_config_fund = "false"
 JalankanNpm @("run", "install:all"); Ok "Dependensi terpasang"
 
 Judul "Migrasi database"
