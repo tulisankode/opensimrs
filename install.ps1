@@ -22,6 +22,9 @@
 #    - Bila PostgreSQL dipasang oleh skrip ini, sandinya dibuat acak dan ditampilkan SEKALI di akhir.
 #    - Bila PostgreSQL sudah terpasang, skrip menanyakannya (atau isi variabel lingkungan PG_SUPERPASS).
 #
+#  Port PostgreSQL dibaca dari postgresql.conf layanan Windows-nya (bawaan 5432); bisa dipaksa lewat variabel
+#  lingkungan PG_PORT, mis. bila port 5432 dipakai kontainer Docker.
+#
 #  Hanya untuk development lokal. Untuk server/production lihat docs/INSTALLATION_GUIDE.md & docs/LINGKUNGAN.md.
 # =====================================================================================
 param(
@@ -91,6 +94,30 @@ function RedisPing {
     return ([System.Text.Encoding]::ASCII.GetString($buf, 0, $n) -like "+PONG*")
   } catch { return $false }
 }
+function RedisMayor {
+  # versi server Redis-kompatibel yang sedang berjalan (0 bila tidak terbaca)
+  try {
+    $c = New-Object System.Net.Sockets.TcpClient("127.0.0.1", 6379); $s = $c.GetStream(); $s.ReadTimeout = 2000
+    $w = [System.Text.Encoding]::ASCII.GetBytes("INFO server`r`n"); $s.Write($w, 0, $w.Length)
+    $buf = New-Object byte[] 4096; $n = $s.Read($buf, 0, 4096); $c.Close()
+    if ([System.Text.Encoding]::ASCII.GetString($buf, 0, $n) -match 'redis_version:(\d+)') { return [int]$Matches[1] }
+  } catch { }
+  return 0
+}
+function PortPg {
+  if ($env:PG_PORT) { return [int]$env:PG_PORT }
+  # ambil folder data dari perintah layanan (-D "...") lalu baca baris "port = ..." di postgresql.conf
+  $svc = Get-CimInstance Win32_Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "postgresql*" } |
+    Sort-Object { Mayor ($_.Name -replace '^\D+', '') } -Descending | Select-Object -First 1
+  if ($svc -and $svc.PathName -match '-D\s+"([^"]+)"') {
+    $conf = Join-Path $Matches[1] "postgresql.conf"
+    if (Test-Path $conf) {
+      $baris = Get-Content $conf | Where-Object { $_ -match '^\s*port\s*=\s*(\d+)' } | Select-Object -Last 1
+      if ($baris -and $baris -match '(\d+)') { return [int]$Matches[1] }
+    }
+  }
+  return 5432
+}
 function Tunggu($label, [scriptblock]$cek) {
   for ($i = 0; $i -lt 30; $i++) { if (& $cek) { Ok "$label siap"; return }; Start-Sleep -Seconds 1 }
   Mati "$label belum merespons. Periksa layanan Windows-nya (services.msc) lalu jalankan ulang."
@@ -114,7 +141,13 @@ CekVersi "npm"        "npm"     0  { npm -v }
 CekVersi "postgresql" "psql"    15 { ((psql --version) -replace '^.*\) ', '') }
 CekVersi "mongodb"    "mongod"  6  { ((mongod --version | Select-Object -First 1) -replace '^db version v', '') }
 CekVersi "mongosh"    "mongosh" 0  { mongosh --version }
-if ((Ada "memurai") -or (Ada "redis-server") -or (RedisPing)) { Ok "redis: layanan Redis-kompatibel tersedia" }
+# klien redis@4/ioredis@5 butuh server >= 5; port Redis lama untuk Windows (Microsoft, v3.0) tidak cukup
+$rv = 0
+if (RedisPing) { $rv = RedisMayor }
+elseif (Ada "redis-server") { $rv = Mayor ((redis-server --version | Out-String) -replace '^.*v=', '') }
+if (Ada "memurai") { Ok "redis: Memurai terpasang" }
+elseif ($rv -ge 5) { Ok "redis: server Redis-kompatibel versi $rv" }
+elseif ($rv -gt 0) { Gagal "redis versi $rv terlalu lama (minimal 5), perlu Memurai"; $kurang += "redis" }
 else { Gagal "redis (Memurai) belum terpasang"; $kurang += "redis" }
 if ((Ada "node") -and ((Mayor (node -v)) -lt 22)) { Warn "Node.js 22 LTS disarankan (terpasang $(node -v))" }
 
@@ -160,10 +193,14 @@ if ($Cek) { exit 0 }
 Judul "Menyalakan PostgreSQL, MongoDB, Memurai (Redis)"
 foreach ($pola in @("postgresql*", "MongoDB*", "Memurai*", "Redis*")) {
   Get-Service -Name $pola -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne "Running" } | ForEach-Object {
-    try { Start-Service $_.Name; Ok "Layanan $($_.Name) dinyalakan" } catch { Warn "Tidak bisa menyalakan $($_.Name) (butuh Administrator?)" }
+    $nama = $_.Name
+    if ($_.StartType -eq "Disabled") { Warn "Layanan $nama dinonaktifkan (Disabled), dilewati"; return }
+    try { Start-Service $nama -ErrorAction Stop; Ok "Layanan $nama dinyalakan" } catch { Warn "Tidak bisa menyalakan $nama (butuh Administrator?)" }
   }
 }
-Tunggu "PostgreSQL" { PortSiap 5432 }
+$PG_PORT = PortPg
+if ($PG_PORT -ne 5432) { Warn "PostgreSQL memakai port $PG_PORT (dari postgresql.conf / PG_PORT)" }
+Tunggu "PostgreSQL" { PortSiap $PG_PORT }
 Tunggu "Redis"      { RedisPing }
 Tunggu "MongoDB"    { PortSiap 27017 }
 
@@ -195,7 +232,7 @@ if (-not $superPass) {
 }
 function PgAdmin($sql) {
   $env:PGPASSWORD = $superPass
-  $hasil = & psql -X -q -h 127.0.0.1 -U postgres -d postgres -tAc $sql 2>&1
+  $hasil = & psql -X -q -h 127.0.0.1 -p $PG_PORT -U postgres -d postgres -tAc $sql 2>&1
   $kode = $LASTEXITCODE; Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
   if ($kode -ne 0) { Mati "Perintah PostgreSQL gagal (sandi superuser benar?): $hasil" }
   return (($hasil | Out-String).Trim())
@@ -209,11 +246,11 @@ if ((PgAdmin "SELECT 1 FROM pg_database WHERE datname='$DB_NAMA'") -eq "1") { Ok
 else { PgAdmin "CREATE DATABASE $DB_NAMA OWNER $DB_USER" | Out-Null; Ok "Database $DB_NAMA dibuat" }
 
 $env:PGPASSWORD = $DB_PASS
-$sudah = (& psql -X -h 127.0.0.1 -U $DB_USER -d $DB_NAMA -tAc "SELECT to_regclass('public.kelurahan') IS NOT NULL" | Out-String).Trim()
+$sudah = (& psql -X -h 127.0.0.1 -p $PG_PORT -U $DB_USER -d $DB_NAMA -tAc "SELECT to_regclass('public.kelurahan') IS NOT NULL" | Out-String).Trim()
 if ($sudah -eq "t") { Ok "schema.sql sudah dimuat sebelumnya (dilewati)" }
 else {
   Write-Host "  ... memuat schema.sql (struktur + referensi nasional, 1-3 menit)"
-  & psql -X -q -h 127.0.0.1 -U $DB_USER -d $DB_NAMA -v ON_ERROR_STOP=1 -f schema.sql | Out-Null
+  & psql -X -q -h 127.0.0.1 -p $PG_PORT -U $DB_USER -d $DB_NAMA -v ON_ERROR_STOP=1 -f schema.sql | Out-Null
   if ($LASTEXITCODE -ne 0) { Mati "Gagal memuat schema.sql" }
   Ok "schema.sql dimuat"
 }
@@ -238,7 +275,7 @@ Judul "Berkas .env"
 $umum = @"
 DB_DIALECT=postgres
 DB_HOST=127.0.0.1
-DB_PORT=5432
+DB_PORT=$PG_PORT
 DB_NAME=$DB_NAMA
 DB_USERNAME=$DB_USER
 DB_PASSWORD=$DB_PASS
@@ -350,7 +387,7 @@ if ($TanpaDemo) { Warn "Data demo dilewati (-TanpaDemo)" }
 else {
   Judul "Data demo"
   $env:PGPASSWORD = $DB_PASS
-  $jml = (& psql -X -h 127.0.0.1 -U $DB_USER -d $DB_NAMA -tAc "SELECT count(*) FROM faskes" 2>$null | Out-String).Trim()
+  $jml = (& psql -X -h 127.0.0.1 -p $PG_PORT -U $DB_USER -d $DB_NAMA -tAc "SELECT count(*) FROM faskes" 2>$null | Out-String).Trim()
   Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
   if ($jml -and $jml -ne "0") { Ok "Database sudah berisi $jml faskes (data demo dilewati; reset: npm run db:demo:reset -- --ya)" }
   elseif (Tanya "Isi data demo (8 faskes fiktif + akun demo)?") {

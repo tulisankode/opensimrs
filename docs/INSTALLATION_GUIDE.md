@@ -672,12 +672,14 @@ Buat blok serupa untuk domain frontend ke port 5520. Pastikan `FRONTEND_ALLOWED_
 
 > **Cara cepat (macOS & Ubuntu/Debian): `./install.sh`.** Skrip ini memeriksa dependensi beserta versinya (Node.js, PostgreSQL, Redis, MongoDB, mongosh, dll.), menawarkan pemasangan yang kurang lewat Homebrew/apt, menyalakan layanan, membuat role/database/akun Mongo, memuat `schema.sql`, membuat semua `.env` dengan kunci acak (tidak menimpa yang sudah ada), lalu menjalankan `install:all`, migrasi, dan data demo. Opsi: `--cek` (hanya cek), `--ya` (tanpa tanya), `--tanpa-demo`, `--jalankan` (langsung `npm run dev`). Khusus development lokal. Langkah manual di bawah menjelaskan hal yang sama secara rinci.
 >
-> **Windows 10/11: `install.cmd`** (atau `powershell -ExecutionPolicy Bypass -File .install.ps1`). Skrip ini melakukan langkah yang sama dengan `install.sh`:
+> **Windows 10/11: `install.cmd`** (atau `powershell -ExecutionPolicy Bypass -File .\install.ps1`). Skrip ini melakukan langkah yang sama dengan `install.sh`:
 > - dependensi dipasang lewat **winget**: Node.js 22, PostgreSQL 16, MongoDB 7.0, mongosh, dan **Memurai Developer**, layanan Redis-kompatibel untuk Windows (edisi Developer gratis untuk development dan perlu dinyalakan ulang berkala);
 > - bila PostgreSQL dipasang oleh skrip, sandi superuser `postgres` dibuat acak dan ditampilkan sekali di akhir; bila sudah terpasang, skrip menanyakannya (atau isi variabel `PG_SUPERPASS`);
+> - port PostgreSQL dibaca dari `postgresql.conf` layanan Windows-nya; bila berbeda dari 5432 (mis. 5432 dipakai kontainer Docker), nilainya ikut ditulis ke `DB_PORT` di `.env`. Bisa dipaksa dengan variabel `PG_PORT`;
+> - Redis di bawah versi 5, termasuk port Redis lama untuk Windows (v3.0), dianggap terlalu lama dan diganti Memurai;
 > - opsi: `-Cek`, `-Ya`, `-TanpaDemo`, `-Jalankan`. Pemasangan layanan butuh PowerShell **sebagai Administrator**.
 
-Cara ini setara dengan cara Docker: semua komponen dipasang langsung di sistem operasi. Contoh perintah untuk **Ubuntu/Debian**; di **Windows**, pakai installer resmi masing-masing perangkat lunak (PostgreSQL, MongoDB Community Server, Node.js) dan, untuk Redis, paket Redis di WSL atau port Redis untuk Windows. Ganti semua `<...>` dengan nilai Anda sendiri; jangan memakai contoh sandi di server sungguhan.
+Cara ini setara dengan cara Docker: semua komponen dipasang langsung di sistem operasi. Contoh perintah untuk **Ubuntu/Debian**; di **Windows**, pakai installer resmi masing-masing perangkat lunak (PostgreSQL, MongoDB Community Server, Node.js) dan, untuk Redis, Memurai Developer atau paket Redis di WSL (port Redis lama untuk Windows v3.0 terlalu lama; minimal Redis 5). Ganti semua `<...>` dengan nilai Anda sendiri; jangan memakai contoh sandi di server sungguhan.
 
 ### 9.1 Pasang perangkat lunak
 
