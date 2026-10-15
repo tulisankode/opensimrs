@@ -4,7 +4,7 @@ import { apiPenunjangDelete, apiPenunjangGet, apiPenunjangPost, apiPenunjangPut 
 import { getStoredPermissions, hasPermission } from "@/utils/permissions";
 
 // Izin aksi modul MCU (Setting › Hak Akses › MCU). Tanpa daftar izin = super admin → boleh; backend menegakkan izin
-// yang sama (403). Submodul: "Peserta" (CREATE/IMPOR/UPDATE/KIRIM LIS/BATAL/KESIMPULAN/CETAK), "Pemeriksaan" (INPUT HASIL),
+// yang sama (403). Submodul: "Peserta" (CREATE/IMPOR/UPDATE/KIRIM LIS/BATAL/HAPUS/KESIMPULAN/CETAK), "Pemeriksaan" (INPUT HASIL),
 // "Datamaster" (fitur Paket MCU / Perusahaan: CREATE/UPDATE/DELETE), "Tagihan Korporasi" (CREATE/UPDATE/PEMBAYARAN/CETAK),
 // "Laporan MCU" (READ/CETAK LAPORAN).
 export const izinMcu = (submodul: string, aksi: string, fitur?: string) =>
@@ -129,6 +129,9 @@ export const batalPesertaMcu = (uuid: string, alasan: string) => apiPenunjangPos
 // Pembatalan massal: peserta terpilih (uuids) atau semua sesuai filter daftar (filter).
 export const batalMassalPesertaMcu = (data: { uuids?: string[]; filter?: Record<string, any>; alasan: string }) =>
   apiPenunjangPost(`/mcu/peserta/batal-massal`, data);
+// Hapus permanen (soft delete) peserta yang belum diproses, mis. salah impor.
+export const hapusMassalPesertaMcu = (data: { uuids?: string[]; filter?: Record<string, any>; alasan: string }) =>
+  apiPenunjangPost(`/mcu/peserta/hapus-massal`, data);
 export const buatOrderLabMcu = (uuid: string) => apiPenunjangPost(`/mcu/peserta/${uuid}/order-lab`, {});
 
 // Impor Excel rombongan korporasi

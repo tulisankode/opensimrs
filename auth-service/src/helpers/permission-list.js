@@ -825,7 +825,7 @@ export const radiologiPermission = {
 export const mcuPermission = {
   module: "MCU",
   subModules: [
-    { name: "Peserta", allows: ["READ", "CREATE", "IMPOR", "UPDATE", "KIRIM LIS", "BATAL", "KESIMPULAN", "CETAK"] },
+    { name: "Peserta", allows: ["READ", "CREATE", "IMPOR", "UPDATE", "KIRIM LIS", "BATAL", "HAPUS", "KESIMPULAN", "CETAK"] },
     { name: "Pemeriksaan", allows: ["READ", "INPUT HASIL"] },
     {
       name: "Datamaster",

@@ -402,27 +402,93 @@ rute.post(
   }),
 );
 
-// Pembatalan massal (mis. sebelum impor ulang file revisi HRD). Tiap peserta diproses dengan aturan & transaksi yang
-// sama seperti pembatalan satuan; peserta yang tidak bisa dibatalkan dilaporkan di `gagal` tanpa menggagalkan yang lain.
-const MAKS_BATAL_MASSAL = 500;
-rute.post(
-  "/batal-massal",
-  izinMcu("Peserta", "BATAL"),
+// ── Hapus permanen ─────────────────────────────────────────────────────────────
+// Untuk peserta yang BELUM diproses (mis. salah impor): status terdaftar/batal, tanpa isian stasiun, tanpa invoice,
+// tagihan perorangan belum dibayar, order lab tanpa hasil & belum pernah dikirim ke LIS, order radiologi belum
+// diperiksa. Peserta di-soft delete (deleted_at) sehingga hilang dari daftar & laporan; order lab/radiologi & tagihan
+// yang masih aktif ikut dibatalkan. Pasien di Admisi tidak dihapus. Peserta yang sudah diproses hanya bisa dibatalkan.
+const hapusPeserta = async (uuid, alasan, author) => {
+  const f = author.faskesUuid;
+  return transaksi(async (k) => {
+    const s = await satu(`SELECT * FROM mcu_peserta WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL FOR UPDATE`, [uuid, f], k);
+    if (!s) throw tidakDitemukan("Peserta MCU");
+    const sudahDiproses = (sebab) => konflik(`${sebab} — peserta sudah diproses, gunakan Batalkan`);
+    if (!["terdaftar", "batal"].includes(s.status)) throw sudahDiproses(`Peserta berstatus ${s.status}`);
+    if (s.invoice_uuid) throw sudahDiproses("Peserta sudah masuk invoice korporasi");
+    const isian = await satu(`SELECT COUNT(*)::int n FROM mcu_pemeriksaan WHERE peserta_uuid = $1 AND deleted_at IS NULL`, [s.uuid], k);
+    if (isian.n > 0) throw sudahDiproses("Pemeriksaan stasiun sudah diisi");
+
+    let labBatal = null;
+    if (s.lab_order_uuid) {
+      const lis = await satu(
+        `SELECT lis_no_lab FROM lab_lis_kirim WHERE order_lab_uuid = $1 AND status IN ('mengirim','terkirim','tidak_pasti') LIMIT 1`,
+        [s.lab_order_uuid],
+        k,
+      );
+      if (lis) throw sudahDiproses(`Order laboratorium sudah dikirim ke LIS${lis.lis_no_lab ? ` (No. Lab ${lis.lis_no_lab})` : ""}`);
+      const st = await statusOrderLab(s.lab_order_uuid, k);
+      if (st && (st.terisi > 0 || Number(st.order_status) === 3)) throw sudahDiproses(`Order laboratorium ${st.no_order} sudah berisi hasil`);
+      if (st && Number(st.order_status) !== 0) labBatal = st;
+    }
+    if (s.rad_order_uuid) {
+      const diperiksa = await satu(
+        `SELECT COUNT(*)::int n FROM rad_order_item WHERE order_uuid = $1 AND status <> 'menunggu' AND deleted_at IS NULL`,
+        [s.rad_order_uuid],
+        k,
+      );
+      if (diperiksa.n > 0) throw sudahDiproses("Order radiologi sudah diperiksa");
+    }
+    const tarikTagihan = s.cara_bayar === "perorangan" && s.status !== "batal";
+    if (tarikTagihan && (await statusBayarPeserta(s.uuid, k)).dibayar) throw sudahDiproses("Tagihan MCU sudah dibayar di Kasir");
+
+    const ket = `Peserta MCU ${s.no_mcu} dihapus: ${alasan}`;
+    if (s.rad_order_uuid) {
+      await query(
+        `UPDATE rad_order SET status = 'batal', alasan_batal = $1, updated_at = $2
+          WHERE uuid = $3 AND faskes_uuid = $4 AND status IN ('order','valid') AND deleted_at IS NULL`,
+        [ket, sekarang(), s.rad_order_uuid, f],
+        k,
+      );
+    }
+    await ubah("mcu_peserta", s.uuid, f, { status: "batal", alasan_batal: `Dihapus: ${alasan}`, deleted_at: sekarang() }, k);
+    let paket = null;
+    if (tarikTagihan) {
+      paket = (await satu(`SELECT nama, kode FROM mcu_paket WHERE uuid = $1`, [s.paket_uuid], k)) ?? { nama: "", kode: "" };
+      await tagihanPeserta(s, paket, author, true);
+    }
+    if (labBatal) {
+      try {
+        await batalOrderLab(labBatal.uuid, ket, author.token);
+      } catch (e) {
+        // Kembalikan tagihan yang sudah ditarik, lalu batalkan seluruh penghapusan (rollback).
+        if (paket) await tagihanPeserta(s, paket, author).catch(() => {});
+        throw e;
+      }
+    }
+    return { uuid: s.uuid, no_mcu: s.no_mcu, laboratorium: labBatal ? `Order laboratorium ${labBatal.no_order} dibatalkan` : null };
+  });
+};
+
+// ── Aksi massal: batal / hapus permanen ───────────────────────────────────────
+// Peserta terpilih (uuids) atau semua sesuai filter daftar (filter). Tiap peserta diproses dengan aturan & transaksi
+// aksi satuannya; yang tidak bisa diproses dilaporkan di `gagal` tanpa menggagalkan yang lain.
+const MAKS_MASSAL = 500;
+const aksiMassal = (proses, { kataKerja, lewatiBatal }) =>
   tangani(async (req, res) => {
     const f = req.author.faskesUuid;
     const b = req.body ?? {};
     wajib(b, ["alasan"]);
     const alasan = String(b.alasan).trim();
     if (!alasan) throw permintaanSalah("alasan tidak boleh kosong");
-    // Peserta terpilih (uuids) atau semua sesuai filter daftar (filter; peserta yang sudah batal dilewati).
     let uuids;
     if (Array.isArray(b.uuids)) uuids = [...new Set(b.uuids.map(String))];
     else if (b.filter && typeof b.filter === "object") {
       const { w, p } = filterPeserta(b.filter, f);
-      uuids = (await query(`SELECT s.uuid FROM ${DARI_LIS} WHERE ${w} AND s.status <> 'batal' LIMIT ${MAKS_BATAL_MASSAL + 1}`, p)).map((r) => r.uuid);
+      const syarat = lewatiBatal ? ` AND s.status <> 'batal'` : "";
+      uuids = (await query(`SELECT s.uuid FROM ${DARI_LIS} WHERE ${w}${syarat} LIMIT ${MAKS_MASSAL + 1}`, p)).map((r) => r.uuid);
     } else throw permintaanSalah("Pilih peserta (uuids) atau kirim filter daftar (filter)");
-    if (!uuids.length) throw permintaanSalah("Tidak ada peserta yang bisa dibatalkan");
-    if (uuids.length > MAKS_BATAL_MASSAL) throw permintaanSalah(`Maksimal ${MAKS_BATAL_MASSAL} peserta per pembatalan — persempit filter (tanggal/perusahaan)`);
+    if (!uuids.length) throw permintaanSalah(`Tidak ada peserta yang bisa ${kataKerja}`);
+    if (uuids.length > MAKS_MASSAL) throw permintaanSalah(`Maksimal ${MAKS_MASSAL} peserta sekali proses — persempit filter (tanggal/perusahaan)`);
 
     const dikenal = await query(
       `SELECT s.uuid, s.no_mcu, pt.name FROM mcu_peserta s JOIN patients pt ON pt.uuid = s.patient_uuid
@@ -438,7 +504,7 @@ rute.post(
         continue;
       }
       try {
-        berhasil.push({ ...(await batalkanPeserta(uuid, alasan, req.author)), nama: info.name });
+        berhasil.push({ ...(await proses(uuid, alasan, req.author)), nama: info.name });
       } catch (e) {
         gagal.push({ uuid, no_mcu: info.no_mcu, nama: info.name, alasan: e.message });
       }
@@ -446,9 +512,13 @@ rute.post(
     kirim(
       res,
       { ringkasan: { total: uuids.length, berhasil: berhasil.length, gagal: gagal.length }, berhasil, gagal },
-      `${berhasil.length} peserta MCU dibatalkan${gagal.length ? `, ${gagal.length} gagal` : ""}`,
+      `${berhasil.length} peserta MCU ${kataKerja}${gagal.length ? `, ${gagal.length} gagal` : ""}`,
     );
-  }),
-);
+  });
+
+// Pembatalan massal (mis. sebelum impor ulang file revisi HRD); peserta yang sudah batal dilewati pada mode filter.
+rute.post("/batal-massal", izinMcu("Peserta", "BATAL"), aksiMassal(batalkanPeserta, { kataKerja: "dibatalkan", lewatiBatal: true }));
+// Hapus permanen massal untuk peserta yang belum diproses (mis. salah impor).
+rute.post("/hapus-massal", izinMcu("Peserta", "HAPUS"), aksiMassal(hapusPeserta, { kataKerja: "dihapus", lewatiBatal: false }));
 
 export default rute;
