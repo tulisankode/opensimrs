@@ -580,7 +580,30 @@ Isi penting di `~/.opensimrs/.env`:
 - `PUBLIC_API_URL`: alamat API yang dibuka ke browser, mis. `https://api.simrs.contoh.id`. Bila kosong, memakai `http://SERVER_HOST:8080`.
 - `FRONTEND_ALLOWED_HOSTS`: domain aplikasi, dipisah koma, mis. `simrs.contoh.id`.
 
-Variabel lingkungan saat menjalankan skrip: `SERVER_HOST` (bawaan `localhost`; dipakai untuk alamat API bawaan dan pesan akhir), `OPENSIMRS_STATE_DIR`, `FORCE_BUILD=1` (build ulang semua image), `MIN_FREE_GB` (pengaman ruang disk, bawaan 8).
+Variabel lingkungan saat menjalankan skrip: `SERVER_HOST` (bawaan `localhost`; dipakai untuk alamat API bawaan dan pesan akhir), `OPENSIMRS_STATE_DIR`, `FORCE_BUILD=1` (build ulang semua image), `MIN_FREE_GB` (pengaman ruang disk, bawaan 8), `CONTAINER_CLI` (`docker` bawaan, atau `podman`).
+
+Port yang dibuka ke host: gateway `8080`, frontend `5520`, dan layanan `8081`–`8096` (dipakai cek kesehatan). Pastikan port tersebut belum dipakai aplikasi lain di server.
+
+#### Dengan Podman (mis. macOS tanpa Docker Desktop)
+
+`deploy.sh` bisa memakai Podman sebagai pengganti Docker. Override server memakai tag `!reset` (Compose v2.24+), jadi `podman compose` harus memakai **docker-compose v2** sebagai provider, bukan `podman-compose` (Python).
+
+```bash
+brew install podman docker-compose
+podman machine init --cpus 4 --memory 8192 --disk-size 60 opensimrs   # VM bawaan (2 CPU / 2 GB) terlalu kecil
+podman machine start opensimrs
+# Dockerfile & compose memakai nama image pendek (node:22-alpine, postgres:16-alpine, ...):
+# arahkan ke Docker Hub agar build non-interaktif tidak gagal "short-name resolution"
+podman machine ssh opensimrs 'mkdir -p ~/.config/containers && printf "unqualified-search-registries = [\"docker.io\"]\nshort-name-mode = \"permissive\"\n" > ~/.config/containers/registries.conf'
+podman compose version            # harus menyebut "Docker Compose version v2.x"
+CONTAINER_CLI=podman SERVER_HOST=simrs.contoh.id ./deploy/server/deploy.sh
+```
+
+Catatan Podman:
+- Mode *rootless* cukup karena semua port di atas 1024. Bila ingin memakai port < 1024, jalankan `podman machine set --rootful`.
+- Tidak perlu `podman-mac-helper`; `podman compose` memakai soket API Podman secara langsung. Hindari memasangnya bila server masih menjalankan aplikasi lain di Docker Desktop, karena helper mengambil alih soket Docker bawaan.
+- Disk VM Podman tumbuh sesuai isi; build pertama 16 image bisa memakan lebih dari 10 GB di disk host. Cache build dibersihkan dengan `podman image prune` (Podman tidak punya `builder prune`).
+- VM harus menyala agar layanan berjalan. Setelah server restart, jalankan `podman machine start opensimrs` (kontainer memakai `restart: unless-stopped` dan ikut menyala kembali).
 
 ### 8.4 Server secara manual
 
