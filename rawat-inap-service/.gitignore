@@ -2,7 +2,6 @@
 .idea
 .vscode
 
-.npmrc
 *.key
 
 /node_modules

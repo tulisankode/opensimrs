@@ -2,7 +2,6 @@
 .idea
 .vscode
 /node_modules
-.npmrc
 *.key
 *.pem
 **/src/seed

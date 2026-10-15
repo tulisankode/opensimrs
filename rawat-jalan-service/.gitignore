@@ -3,4 +3,3 @@
 .idea
 *.key
 package-lock.json
-.npmrc
