@@ -47,7 +47,13 @@ const hari = {
 const generateNoRM = async () => {
     const { faskesUuid } = Context.get(CTX_AUTHOR);
     let countPatient = await PatientModel.unscoped().count({ where: { faskesUuid, noRm: { [Op.notILike]: 'XX%' } } });
-    countPatient += 1;
+    // Nomor terbesar yang sudah terpakai (format 00-00-00), agar tidak bentrok bila ada data yang dihapus permanen.
+    const [[{ terbesar }]] = await PatientModel.sequelize.query(
+        `SELECT max(replace(no_rm, '-', '')::int) AS terbesar FROM patients
+          WHERE faskes_uuid = :faskesUuid AND no_rm ~ '^[0-9]{2}-[0-9]{2}-[0-9]{2}$'`,
+        { replacements: { faskesUuid } }
+    );
+    countPatient = Math.max(countPatient, Number(terbesar) || 0) + 1;
     const paddedNumber = countPatient.toString().padStart(6, '0');
     return `${paddedNumber.slice(0, 2)}-${paddedNumber.slice(2, 4)}-${paddedNumber.slice(4, 6)}`;
 };
