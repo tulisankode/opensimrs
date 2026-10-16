@@ -616,8 +616,7 @@ const isSuperAdmin = getUserRole() === "super admin";
       </Popover>
     </div>
     <div class="flex flex-shrink-0 gap-5 my-auto">
-      <TombolBantuan />
-      <div class="flex justify-between">
+      <div class="flex items-center justify-between">
         <svg
           @click="toggleCardPanggilan"
           class="relative w-8 aspect-square mr-4 cursor-pointer"
@@ -630,16 +629,8 @@ const isSuperAdmin = getUserRole() === "super admin";
             fill="white"
           />
         </svg>
-        <img
-          loading="lazy"
-          src="../../assets/icons/Bell Notification.svg"
-          class="relative w-8 aspect-square"
-        />
-        <img
-          src="../../assets/icons/notif.svg"
-          alt=""
-          class="absolute right-[92px] top-6 aspect-square"
-        />
+        <!-- Bantuan (Helpdesk AI) menggantikan ikon lonceng statis -->
+        <TombolBantuan />
       </div>
       <div class="flex items-center justify-center cursor-pointer">
         <div class="">
