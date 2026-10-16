@@ -173,6 +173,7 @@ Buka **SIMRS Studio › Aturan & Pengetahuan** (yang mengubah: superadmin).
     - membatalkan commit buatan agen (perubahannya tetap ada, belum di-commit).
 
     Pemeriksa kebijakan dan gerbang persetujuan tetap berlaku.
+  - Studio **tidak memakai** `~/.codex/config.toml` pribadi Anda (`--ignore-user-config`), sehingga model, plugin, memori, dan MCP pribadi tidak ikut ke agen Studio. Login tetap memakai akun yang sama. Pilihan model per tahap diambil dari daftar model akun Anda (`models_cache.json` milik Codex). Tanpa pilihan, Codex memakai model bawaan akun.
   - Biaya per tugas tidak tersedia dalam US$, karena langganan tidak melaporkannya; Studio hanya mencatat token.
   - Diskusi revisi coding dengan Codex selalu memulai sesi baru. Konteksnya diambil dari dokumen item.
 - **Konektor API** (Pengaturan & Agen › Tambah konektor). Dibayar per pemakaian API, bukan langganan. Kunci API disimpan terenkripsi. Konektor dipilih **per tahap** dan memakai model yang diatur di konektornya.

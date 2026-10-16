@@ -10,7 +10,7 @@ import { Galat } from "../respons.js";
 import { bacaSemua } from "../pengaturan.js";
 import { daftarkanPembatal, jalankanClaude, lepaskanPembatal } from "./claude.js";
 import { jalankanApi } from "./api.js";
-import { jalankanCodex } from "./codex.js";
+import { jalankanCodex, modelCodex } from "./codex.js";
 import { cocokModel } from "./model.js";
 
 // Lampiran permintaan disimpan di studio-service/data/lampiran/<item> (diabaikan git).
@@ -61,7 +61,12 @@ export const jalankanAgen = async ({ tugasUuid, prompt, mode, tahap, base = conf
   const batasBiaya = nilai.batas_biaya_tugas ? Number(nilai.batas_biaya_tugas) : null;
   // Sesi Codex (codex:<thread>) tidak bisa dilanjutkan Claude Code, dan sebaliknya; Codex selalu memulai sesi baru.
   const sesiClaude = resume && !String(resume).startsWith("codex:") ? resume : null;
-  if (konektor.penyedia === "codex") return jalankanCodex({ tugasUuid, prompt, mode, model, base });
+  if (konektor.penyedia === "codex") {
+    // Model yang tidak ada di daftar akun (mis. akun berganti) → bawaan akun, bukan galat dari OpenAI.
+    const tersedia = modelCodex();
+    const modelCodexDipakai = model && tersedia.length && !tersedia.some((m) => m.kode === model) ? "" : model;
+    return jalankanCodex({ tugasUuid, prompt, mode, model: modelCodexDipakai, base });
+  }
   if (konektor.penyedia === "claude_code") {
     const lampiran = item ? path.join(FOLDER_LAMPIRAN, item.uuid) : null;
     return jalankanClaude({

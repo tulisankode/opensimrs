@@ -128,6 +128,8 @@ onUnmounted(hentikanPantau);
 
 // ---------- Akun Codex (langganan ChatGPT, login kode perangkat) ----------
 const akunCodex = ref<any>(null);
+// Model yang tersedia untuk akun Codex yang login (dari cache daftar model Codex).
+const modelCodex = ref<Array<{ kode: string; nama: string; deskripsi: string }>>([]);
 const prosesCodex = ref(false);
 const loginCodex = ref<any>(null); // { url, kode }
 let pantauCodex: ReturnType<typeof setInterval> | undefined;
@@ -135,6 +137,7 @@ let pantauCodex: ReturnType<typeof setInterval> | undefined;
 const muatAkunCodex = async () => {
   const res = await apiStudioGet("/pengaturan/akun-codex", true);
   akunCodex.value = res?.payload?.akun ?? akunCodex.value;
+  modelCodex.value = res?.payload?.model ?? modelCodex.value;
   return res?.payload;
 };
 const hentikanPantauCodex = () => {
@@ -460,7 +463,11 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
                     <option v-for="m in MODEL_CLAUDE" :key="m.kode" :value="m.kode">{{ m.nama }}</option>
                     <option v-if="nilai.modelTahap[t.kode] && !MODEL_CLAUDE.some((m) => m.kode === nilai.modelTahap[t.kode])" :value="nilai.modelTahap[t.kode]">{{ nilai.modelTahap[t.kode] }}</option>
                   </select>
-                  <input v-else-if="agenTahap(t.kode).jenis === 'codex'" v-model="nilai.modelTahap[t.kode]" class="w-full rounded border border-grey-200 px-2 py-1 font-mono" placeholder="bawaan Codex (atau nama model OpenAI)" />
+                  <select v-else-if="agenTahap(t.kode).jenis === 'codex'" v-model="nilai.modelTahap[t.kode]" class="w-full rounded border border-grey-200 px-2 py-1">
+                    <option :value="undefined">Bawaan akun Codex</option>
+                    <option v-for="m in modelCodex" :key="m.kode" :value="m.kode" :title="m.deskripsi">{{ m.nama }}</option>
+                    <option v-if="nilai.modelTahap[t.kode] && !modelCodex.some((m) => m.kode === nilai.modelTahap[t.kode])" :value="nilai.modelTahap[t.kode]">{{ nilai.modelTahap[t.kode] }} (tidak tersedia)</option>
+                  </select>
                   <div v-else class="px-2 py-1 font-mono text-grey-400">{{ agenTahap(t.kode).model ?? "-" }} <span class="font-sans">(diatur di konektor)</span></div>
                 </td>
               </tr>
