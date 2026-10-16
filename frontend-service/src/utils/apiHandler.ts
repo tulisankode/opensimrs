@@ -18,6 +18,7 @@ import {
   baseInstanceSatuSehat,
   baseInstanceBpjs,
   baseInstancePenunjang,
+  baseInstanceProgramPuskesmas,
   baseInstanceStudio,
   baseInstanceMentah,
 } from "./Api";
@@ -1134,6 +1135,53 @@ const apiPenunjangPost = (url: string, data: object = {}, diam = false) => apiPe
 const apiPenunjangPut = (url: string, data: object = {}, diam = false) => apiPenunjangKirim("put", url, data, diam);
 const apiPenunjangDelete = (url: string) => apiPenunjangKirim("delete", url);
 
+// PROGRAM PUSKESMAS (program-puskesmas-service: KIA/KB, Imunisasi, MTBS/MTBM, Sasaran, UKM, Laporan Dinkes).
+// Path relatif terhadap VITE_BASE_PROGRAM_PUSKESMAS, mis. apiProgramPuskesmasGet("/kia/anc?page=1"). Tulis
+// (POST/PUT/DELETE) menampilkan toast sukses; galat ditampilkan errorApiHandler dan fungsi mengembalikan undefined.
+const apiProgramPuskesmasKirim = async (metode: "get" | "post" | "put" | "delete", url: string, data: object = {}, diam = false) => {
+  url = cekHost(import.meta.env.VITE_BASE_PROGRAM_PUSKESMAS, url);
+  try {
+    const response = metode === "get" || metode === "delete"
+      ? await baseInstanceProgramPuskesmas[metode](url)
+      : await baseInstanceProgramPuskesmas[metode](url, data);
+    if (metode !== "get" && !diam && response.data?.message) {
+      app.config.globalProperties.$toast.add({ severity: "success", summary: response.data.message, life: 3000 });
+    }
+    return response.data;
+  } catch (error) {
+    try {
+      errorApiHandler(error);
+    } catch {
+      /* sudah ditampilkan */
+    }
+    return undefined;
+  }
+};
+const apiProgramPuskesmasGet = (url: string) => apiProgramPuskesmasKirim("get", url);
+const apiProgramPuskesmasPost = (url: string, data: object = {}, diam = false) => apiProgramPuskesmasKirim("post", url, data, diam);
+const apiProgramPuskesmasPut = (url: string, data: object = {}, diam = false) => apiProgramPuskesmasKirim("put", url, data, diam);
+const apiProgramPuskesmasDelete = (url: string) => apiProgramPuskesmasKirim("delete", url);
+// Ekspor Excel (laporan Dinkes): respons berkas (blob), bukan {message, payload}.
+export const apiProgramPuskesmasDownload = async (url: string) => {
+  const dasar = import.meta.env.VITE_BASE_PROGRAM_PUSKESMAS;
+  const host = cekHost(dasar, url);
+  const fullUrl = /^https?:/.test(host) ? host : `${String(dasar).replace(/\/$/, "")}${url}`;
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    alert("Token tidak ditemukan, silakan login ulang");
+    return;
+  }
+  try {
+    return await axios.get(fullUrl, {
+      responseType: "blob",
+      headers: { Authorization: token, Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+    });
+  } catch (error) {
+    errorApiHandler(error);
+    return undefined;
+  }
+};
+
 // URL absolut layanan antrian untuk halaman tanpa login (layar TV mode kiosk); dipanggil dengan fetch
 // biasa agar tidak membawa token/toast galat milik instance axios.
 const urlPublikAntrian = (path: string) => {
@@ -1150,6 +1198,10 @@ export {
   apiPenunjangPost,
   apiPenunjangPut,
   apiPenunjangDelete,
+  apiProgramPuskesmasGet,
+  apiProgramPuskesmasPost,
+  apiProgramPuskesmasPut,
+  apiProgramPuskesmasDelete,
   urlPublikAntrian,
   apiBpjsGet,
   apiBpjsPost,

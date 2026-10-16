@@ -53,6 +53,16 @@ jobs:
       - name: Uji unit (setting-service, penyaring Helpdesk)
         working-directory: setting-service
         run: node --test test/*.test.mjs
+      - name: Uji unit (penunjang-service, CSSD)
+        working-directory: penunjang-service
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+      - name: Uji unit (program-puskesmas-service)
+        working-directory: program-puskesmas-service
+        run: |
+          npm install --no-audit --no-fund
+          npm test
       - name: Muat schema.sql + jalankan migrasi
         env:
           PGPASSWORD: opensimrs
