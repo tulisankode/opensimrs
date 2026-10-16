@@ -244,7 +244,19 @@ const siapkanKunci = async (baru = false) => {
 };
 const salin = (teks: string) => navigator.clipboard?.writeText(teks);
 
-const MODEL_SARAN = ["", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"];
+const MODEL_CLAUDE = [
+  { kode: "claude-opus-5-5", nama: "Opus 5.5 (terkuat)" },
+  { kode: "claude-sonnet-5-5", nama: "Sonnet 5.5 (seimbang)" },
+  { kode: "claude-haiku-5-5", nama: "Haiku 5.5 (cepat & hemat)" },
+];
+// Agen per tahap: jenis (claude_code | codex | api), model konektor API, dan peringatan bila agen belum siap.
+const agenTahap = (tahap: string) => {
+  const pilihan = nilai.value?.konektorTahap?.[tahap];
+  if (!pilihan) return { jenis: "claude_code", peringatan: akunClaude.value?.masuk === false ? "Akun Claude belum terhubung." : "" };
+  if (pilihan === "codex") return { jenis: "codex", peringatan: akunCodex.value && !akunCodex.value.masuk ? "Akun Codex belum terhubung." : "" };
+  const k = konektor.value.find((x) => x.uuid === pilihan);
+  return { jenis: "api", model: k?.model, peringatan: !k ? "Konektor tidak ditemukan." : !k.aktif ? "Konektor nonaktif." : "" };
+};
 const TAHAP_AGEN = [...TAHAP.map((t) => ({ kode: t.kode, nama: t.nama })), { kode: "ekstensi", nama: "Ekstensi" }];
 const FITUR = [
   { kode: "desain", nama: "Desain teknis", ket: "Bila mati, PRD langsung ke coding" },
@@ -408,19 +420,26 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
               <tr v-for="t in TAHAP_AGEN" :key="t.kode" class="border-t border-grey-100 text-grey-500">
                 <td class="p-2 font-semibold">{{ t.nama }}</td>
                 <td class="p-2">
-                  <select v-model="nilai.konektorTahap[t.kode]" class="w-full rounded border border-grey-200 px-2 py-1">
-                    <option :value="undefined">Claude Code (langganan)</option>
-                    <option value="codex">Codex (langganan ChatGPT)</option>
-                    <option v-for="k in konektor.filter((x) => x.aktif)" :key="k.uuid" :value="k.uuid">{{ k.nama }}</option>
+                  <select v-model="nilai.konektorTahap[t.kode]" class="w-full rounded border border-grey-200 px-2 py-1" @change="nilai.modelTahap[t.kode] = undefined">
+                    <option :value="undefined" :disabled="akunClaude?.masuk === false">Claude Code (langganan){{ akunClaude?.masuk === false ? " — belum terhubung" : "" }}</option>
+                    <option value="codex" :disabled="!akunCodex?.masuk">Codex (langganan ChatGPT){{ akunCodex?.masuk ? "" : " — belum terhubung" }}</option>
+                    <option v-for="k in konektor.filter((x) => x.aktif)" :key="k.uuid" :value="k.uuid">{{ k.nama }} ({{ k.model }})</option>
                   </select>
+                  <div v-if="agenTahap(t.kode).peringatan" class="mt-1 text-warning-400">{{ agenTahap(t.kode).peringatan }}</div>
                 </td>
                 <td class="p-2">
-                  <input v-model="nilai.modelTahap[t.kode]" list="saran-model" class="w-full rounded border border-grey-200 px-2 py-1 font-mono" placeholder="bawaan" />
+                  <!-- Model mengikuti agen: Claude Code → model Claude; Codex → model OpenAI; konektor API → model konektor itu. -->
+                  <select v-if="agenTahap(t.kode).jenis === 'claude_code'" v-model="nilai.modelTahap[t.kode]" class="w-full rounded border border-grey-200 px-2 py-1">
+                    <option :value="undefined">Bawaan langganan Claude</option>
+                    <option v-for="m in MODEL_CLAUDE" :key="m.kode" :value="m.kode">{{ m.nama }}</option>
+                    <option v-if="nilai.modelTahap[t.kode] && !MODEL_CLAUDE.some((m) => m.kode === nilai.modelTahap[t.kode])" :value="nilai.modelTahap[t.kode]">{{ nilai.modelTahap[t.kode] }}</option>
+                  </select>
+                  <input v-else-if="agenTahap(t.kode).jenis === 'codex'" v-model="nilai.modelTahap[t.kode]" class="w-full rounded border border-grey-200 px-2 py-1 font-mono" placeholder="bawaan Codex (atau nama model OpenAI)" />
+                  <div v-else class="px-2 py-1 font-mono text-grey-400">{{ agenTahap(t.kode).model ?? "-" }} <span class="font-sans">(diatur di konektor)</span></div>
                 </td>
               </tr>
             </tbody>
           </table>
-          <datalist id="saran-model"><option v-for="m in MODEL_SARAN.filter(Boolean)" :key="m" :value="m" /></datalist>
         </div>
 
         <div class="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">

@@ -15,6 +15,7 @@ import { ATURAN_PLATFORM } from "./agen/prompt.js";
 import { ambilKonektor } from "./agen/index.js";
 import * as akunClaude from "./agen/akun.js";
 import * as codex from "./agen/codex.js";
+import { cocokModel, pesanTidakCocok } from "./agen/model.js";
 import { pastikan, punyaAksesStudio, ringkasIzin } from "./izin.js";
 import { PERAN } from "./gerbang.js";
 import * as gitremote from "./gitremote.js";
@@ -438,6 +439,18 @@ rute.put("/pengaturan", tangani(async (req, res) => {
   const BOLEH = ["branch_dasar", "konektor_tahap", "model_tahap", "aturan_instalasi", "atribusi_commit", "cek_build_frontend", "fitur", "pemisahan_tugas", "mode_kerja",
     "direktori_worktree", "batas_biaya_tugas", "batas_biaya_item", "batas_biaya_bulan", "batas_kuota_persen", "batas_tugas_per_jam", "git_penyedia", "git_api_url", "git_repo", "git_token", "mode_rilis", "branch_lokal", "migrasi_otomatis",
     "aktivasi_otomatis", "aktivasi_faskes"];
+  // Model per tahap harus cocok dengan agennya. Tahap berkonektor API memakai model konektornya (model tahap dibuang).
+  if (body.konektor_tahap || body.model_tahap) {
+    const { nilai: lama } = await bacaSemua();
+    const konektorBaru = body.konektor_tahap ?? lama.konektor_tahap ?? {};
+    const modelBaru = { ...(body.model_tahap ?? lama.model_tahap ?? {}) };
+    for (const [tahap, model] of Object.entries(modelBaru)) {
+      const pilihan = konektorBaru[tahap];
+      if (!model || (pilihan && !["claude_code", "codex"].includes(pilihan))) delete modelBaru[tahap];
+      else if (!cocokModel(pilihan, model)) throw permintaanSalah(pesanTidakCocok(tahap, pilihan, model));
+    }
+    body.model_tahap = modelBaru;
+  }
   for (const [k, v] of Object.entries(body)) {
     if (!BOLEH.includes(k)) continue;
     let nilai = v;
