@@ -43,7 +43,7 @@ cp "$STATE_DIR/.env" .env
 set -a; source .env; set +a
 
 compose() { "$CLI" compose -p opensimrs -f docker-compose.yml -f deploy/server/docker-compose.server.yml "$@"; }
-APP_SERVICES=(admisi-services antrian-service auth-service farmasi-service igd-service inventory-service lab-service laporan-service payment-service rawat-inap-service rawat-jalan-service rekamedis-service setting-service stok-farmasi-service datamaster-service satusehat-service bpjs-service penunjang-service frontend-service)
+APP_SERVICES=(admisi-services antrian-service auth-service farmasi-service igd-service inventory-service lab-service laporan-service payment-service rawat-inap-service rawat-jalan-service rekamedis-service setting-service stok-farmasi-service datamaster-service satusehat-service bpjs-service penunjang-service program-puskesmas-service frontend-service)
 PORTS=(8081 8082 8083 8084 8085 8086 8087 8088 8089 8091 8092 8093 8094 8095 8096 5520 8080)
 
 # Semua API lewat gateway (satu domain), mis. PUBLIC_API_URL=https://api.simrs.contoh.id
@@ -70,6 +70,7 @@ VITE_BASE_STOK=$API/api/v3
 VITE_BASE_SATUSEHAT=$API/api/v3/satusehat
 VITE_BASE_BPJS=$API/api/v3/bpjs
 VITE_BASE_PENUNJANG=$API/api/v3/penunjang
+VITE_BASE_PROGRAM_PUSKESMAS=$API/api/v3/program-puskesmas
 VITE_BASE_STUDIO=$API/api/v3/studio
 ENV
 

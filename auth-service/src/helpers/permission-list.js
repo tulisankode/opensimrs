@@ -352,6 +352,19 @@ export const rawatInapPermission = {
   ],
 };
 
+export const icuPermission = {
+  module: "ICU",
+  subModules: [
+    { name: "Dasbor", allows: ["READ"] },
+    { name: "Perawatan", allows: ["READ"] },
+    { name: "Serah Terima", allows: ["READ", "KELOLA"] },
+    { name: "Flowsheet Observasi", allows: ["READ", "CREATE", "KOREKSI"] },
+    { name: "Balance Cairan", allows: ["READ", "CREATE"] },
+    { name: "Skor SOFA", allows: ["READ", "CREATE"] },
+    { name: "Laporan ICU", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
 export const igdPermission = {
   module: "IGD",
   subModules: [
@@ -839,6 +852,26 @@ export const mcuPermission = {
   ],
 };
 
+export const programPuskesmasPermission = {
+  module: "Program Puskesmas",
+  subModules: [
+    { name: "KIA", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "KB", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "Imunisasi", allows: ["READ", "CREATE", "UPDATE", "DELETE", "KIRIM SATUSEHAT"] },
+    { name: "MTBS/MTBM", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "Sasaran Program", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Kegiatan UKM", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    {
+      name: "Datamaster",
+      features: [
+        { name: "Jenis Vaksin & Jadwal", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+        { name: "Format Laporan Dinkes", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+      ],
+    },
+    { name: "Laporan Dinkes", allows: ["READ", "CETAK LAPORAN", "EKSPOR EXCEL"] },
+  ],
+};
+
 export const patologiAnatomiPermission = {
   module: "Patologi Anatomi",
   subModules: [
@@ -877,6 +910,19 @@ export const mikrobiologiPermission = {
         { name: "Antibiogram", allows: ["READ", "CETAK LAPORAN"] },
       ],
     },
+  ],
+};
+
+export const cssdPermission = {
+  module: "CSSD",
+  subModules: [
+    { name: "Master Set & Mesin", allows: ["READ", "CREATE", "UPDATE", "DELETE", "CETAK LABEL"] },
+    { name: "Penerimaan & Dekontaminasi", allows: ["READ", "CREATE"] },
+    { name: "Siklus Sterilisasi", allows: ["READ", "CREATE", "UPDATE", "INPUT HASIL", "BOWIE DICK"] },
+    { name: "Penyimpanan & Distribusi", allows: ["READ", "CREATE", "UPDATE", "KONFIRMASI", "UPDATE STATUS"] },
+    { name: "Pemakaian Pasien", allows: ["READ", "CREATE"] },
+    { name: "Recall", allows: ["READ", "TINDAK LANJUT"] },
+    { name: "Laporan CSSD", allows: ["READ", "CETAK LAPORAN"] },
   ],
 };
 
@@ -1308,14 +1354,17 @@ export function mapPermission(permissionList) {
     admisi: admisiPermission,
     "rawat jalan": rawatJalanPermission,
     "rawat inap": rawatInapPermission,
+    icu: icuPermission,
     igd: igdPermission,
     farmasi: farmasiPermission,
     laboratorium: laboraturiumPermission,
     fisioterapi: fisioTerapiPermission,
     radiologi: radiologiPermission,
     mcu: mcuPermission,
+    "program puskesmas": programPuskesmasPermission,
     "patologi anatomi": patologiAnatomiPermission,
     mikrobiologi: mikrobiologiPermission,
+    cssd: cssdPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,
     stok: stokPermission,

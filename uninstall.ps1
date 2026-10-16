@@ -2,7 +2,7 @@
 #  OpenSIMRS - hapus instalasi lokal di Windows (pasangan install.ps1)
 #
 #  Yang dihapus - HANYA milik OpenSIMRS:
-#    1. Proses OpenSIMRS yang masih berjalan (port 5520, 8081-8099) - dengan konfirmasi.
+#    1. Proses OpenSIMRS yang masih berjalan (port 5520, 8081-8100) - dengan konfirmasi.
 #    2. (Opsional, ditawarkan) cadangan pg_dump + mongodump ke %USERPROFILE%\opensimrs-cadangan-<waktu>\.
 #    3. PostgreSQL: database aplikasi (dihapus oleh role pemiliknya) & role aplikasi (opsional, butuh sandi superuser).
 #    4. MongoDB: database & akun aplikasi. Redis/Memurai: kunci sesi token-* (BUKAN FLUSHDB).
@@ -90,7 +90,7 @@ if (@("", "postgres") -contains $DB_USER) { Mati "DB_USERNAME '$DB_USER' bukan r
 if (@("", "admin", "local", "config") -contains $MONGO_DB) { Mati "Database MongoDB '$MONGO_DB' bukan database aplikasi OpenSIMRS" }
 if ("$DB_NAMA$DB_USER$MONGO_USER$MONGO_DB" -notmatch '^[A-Za-z0-9_]+$') { Mati "Nama database/akun di .env mengandung karakter tak terduga" }
 
-$PORT_APLIKASI = @(5520) + (8081..8099)
+$PORT_APLIKASI = @(5520) + (8081..8100)
 $wt = @()
 $daftar = (& git -c "safe.directory=*" worktree list --porcelain 2>$null) | Where-Object { $_ -like "worktree *" } | ForEach-Object { $_.Substring(9) }
 if ($daftar) { $wt = @($daftar | Select-Object -Skip 1 | Where-Object { (Resolve-Path $_ -ErrorAction SilentlyContinue).Path -ne $ROOT }) }

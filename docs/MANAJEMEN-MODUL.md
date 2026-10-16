@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 10 berstatus Segera), **54 fitur** (14 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 7 berstatus Segera), **61 fitur** (14 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -267,6 +267,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `laboratorium` | Laboratorium | Order, validasi, hasil, expertise, bridging LIS. | Tersedia | Laboratorium |
 | `fisioterapi` | Fisioterapi / Rehabilitasi Medik | Order terapi dari RME, penjadwalan & booking sesi, evaluasi terapi, bed/ruang terapi. | Tersedia | Fisioterapi |
 | `radiologi` | Radiologi | Order & hasil radiologi, bridging PACS. | Tersedia | Radiologi |
+| `cssd` | CSSD | Sterilisasi alat & pelacakan set instrumen: master set, penerimaan, dekontaminasi, load sterilisasi, penyimpanan & distribusi, pemakaian pasien, recall. | Tersedia | CSSD |
 | `patologi_anatomi` | Patologi Anatomi | Histopatologi, sitologi & potong beku: order, penerimaan jaringan, makroskopis, mikroskopis, diagnosis (ICD-O), arsip blok & slide. | Tersedia | Patologi Anatomi |
 | `mikrobiologi` | Mikrobiologi | Pewarnaan, kultur, identifikasi kuman & uji kepekaan antibiotik (S/I/R), laporan sementara & antibiogram. | Tersedia | Mikrobiologi |
 
@@ -281,17 +282,16 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 
 | Kode | Nama | Deskripsi | Status | Nama izin (menu) |
 |---|---|---|---|---|
-| `program_puskesmas` | Program Puskesmas | KIA/KB, imunisasi, MTBS, UKM, laporan LB1 & dinkes. | Segera | – |
+| `program_puskesmas` | Program Puskesmas | KIA/KB, imunisasi, MTBS, UKM, laporan LB1 & dinkes. | Tersedia | Program Puskesmas |
 
 #### Rumah Sakit
 
 | Kode | Nama | Deskripsi | Status | Nama izin (menu) |
 |---|---|---|---|---|
 | `kamar_operasi` | Kamar Operasi | Jadwal operasi, laporan operasi & anestesi. | Segera | – |
-| `icu` | ICU / Intensif | Pemantauan intensif & flowsheet. | Segera | – |
+| `icu` | ICU / Intensif | Pemantauan intensif & flowsheet. | Tersedia | ICU |
 | `gizi` | Gizi | Diet & distribusi makan pasien rawat inap. | Segera | – |
 | `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Segera | – |
-| `cssd` | CSSD | Sterilisasi alat. | Segera | – |
 | `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Segera | – |
 | `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Segera | – |
 | `akuntansi` | Akuntansi & Remunerasi | Jurnal, laporan keuangan, jasa pelayanan. | Segera | – |
@@ -319,12 +319,12 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | IGD (`igd`) | Tersedia | – | – | – | – | ✓ | ✓ | ✓ | ✓ |
 | BPJS FKTP (PCare) (`bpjs_fktp`) | Tersedia | ✓ | ✓ | – | ✓ | – | – | – | – |
 | BPJS FKRTL (VClaim/SEP) (`bpjs_fkrtl`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
-| Program Puskesmas (`program_puskesmas`) | Segera | – | – | – | ✓ | – | – | – | – |
+| Program Puskesmas (`program_puskesmas`) | Tersedia | – | – | – | ✓ | – | – | – | – |
 | Kamar Operasi (`kamar_operasi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
-| ICU / Intensif (`icu`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
+| ICU / Intensif (`icu`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | Gizi (`gizi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
 | Koding & Rekam Medis (`koding_rm`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
-| CSSD (`cssd`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
+| CSSD (`cssd`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | Bank Darah RS (BDRS) (`bank_darah`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
 | UTD / UPTD Produksi Darah (`utd`) | Segera | – | – | – | – | – | – | – | ✓ |
 | Akuntansi & Remunerasi (`akuntansi`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
@@ -429,6 +429,23 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
 | `vclaim_rencana_kontrol` | Rencana Kontrol & SPRI | Pembuatan surat kontrol dan SPRI lewat VClaim. | Segera | – | – | – |
+
+#### Program Puskesmas (`program_puskesmas`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `program_puskesmas_satusehat` | Kirim Imunisasi ke SATUSEHAT | Mengirim resource Immunization ke SATUSEHAT setiap pelayanan imunisasi tersimpan. Butuh konfigurasi integrasi SATUSEHAT faskes. | Tersedia | – | SATUSEHAT (`satusehat`) | – |
+
+#### ICU / Intensif (`icu`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `icu_dashboard` | Dasbor ICU | Ringkasan bed terisi di ruang intensif: diagnosis, hari rawat, status ventilator & peringatan nilai kritis. | Tersedia | Ya | – | – |
+| `icu_serah_terima` | Serah Terima ICU | Kriteria masuk/keluar & serah terima terstruktur, tertaut ke perpindahan bangsal (ri_perpindahan). | Tersedia | Ya | – | – |
+| `icu_flowsheet` | Flowsheet Observasi | Observasi per jam/interval: tanda vital, SpO2, GCS, nyeri, parameter ventilator & tren. | Tersedia | Ya | – | – |
+| `icu_balance_cairan` | Balance Cairan | Intake-output & balance otomatis per shift dan 24 jam. | Tersedia | – | – | – |
+| `icu_skor_sofa` | Skor SOFA | Skor keparahan SOFA saat masuk & harian, beserta riwayat penilaian. | Tersedia | – | – | – |
+| `icu_laporan` | Laporan ICU | BOR, ALOS, angka kematian & hari ventilator ruang intensif. | Tersedia | – | – | – |
 
 #### Bank Darah RS (BDRS) (`bank_darah`)
 
