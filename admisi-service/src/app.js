@@ -1,4 +1,5 @@
 import express from "express";
+import { Context } from "./middlewares/context.js";
 import errorMiddleware from "./middlewares/error-middleware.js";
 import 'dotenv/config';
 import morgan from 'morgan';
@@ -36,6 +37,8 @@ app.use(cors(corsConfig));
 // });
 // app.use(limiter);
 app.use(efp());
+// Konteks per permintaan (author/token) — harus sebelum rute.
+app.use(Context.middleware);
 app.use("/api/v3/admisi", routes);
 app.use(errorMiddleware);
 
