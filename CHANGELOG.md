@@ -71,6 +71,16 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 - Datamaster **Pegawai** dan **Praktisi**: tombol **Import** dan **Download** template Excel seperti halaman datamaster lain. Template berisi contoh fiktif, sheet *Keterangan*, dan kolom NIK berformat teks. Import praktisi (endpoint baru `POST /api/v3/datamaster/practitioner/import`) merujuk pegawai lewat NIK dan poli lewat nama di master Lokasi. Galat import dilaporkan per nomor baris Excel dan tidak ada data yang tersimpan bila masih ada galat.
 
 ### Diperbaiki
+- **Layar putih "Cannot access 'router' before initialization"** setelah berkas inti (router, `main.ts`) berubah saat `npm run dev` berjalan, misalnya ketika SIMRS Studio menerapkan modul baru. `apiHandler.ts` dan `utils/pdf/bukaPdf.ts` mengimpor `app` dari `main.ts`, sehingga terbentuk import melingkar main → router → halaman → apiHandler → main. Saat Vite memuat `main.ts` dengan cap waktu (`?t=`) berbeda, modul itu termuat dua kali. Instance aplikasi kini disimpan di `utils/aplikasi.ts`.
+- **Pengaman integritas lintas berkas** (`scripts/cek-integritas.mjs`), dijalankan di CI dan di cek otomatis SIMRS Studio. Pengaman ini menolak:
+  - rute ganda antara modul dan fitur di katalog, karena migrasi sinkron katalog gagal dan modul tetap "Segera";
+  - menu modul yang tersedia tetapi tidak ada di navbar (`templistMenu` Header.vue);
+  - modul tersedia yang masih tercantum di daftar menu "Segera";
+  - stempel waktu migrasi kembar;
+  - import `@/main`.
+
+  Pemeriksa kebijakan Studio juga langsung menandai import `@/main` di kode agen. Fisioterapi, Radiologi, MCU, Patologi Anatomi, dan Mikrobiologi dihapus dari daftar menu "Segera".
+- **SIMRS Studio › Aktifkan di aplikasi** kini menjalankan migrasi yang tertunda atau gagal lebih dulu. Contohnya penerapan saat aplikasi berada di branch lain. Sebelumnya modul baru hanya dilewati dengan pesan "belum ada di katalog database". Bila migrasi gagal, aktivasi dihentikan dengan pesan yang jelas.
 - **SIMRS Studio: repo utama tidak lagi berpindah branch saat agen coding masih bekerja di sana.** Sebelumnya hanya tombol jalankan agen coding yang dicegah. Tombol **Siapkan branch**, **Buka branch item**, **Kembali ke branch asal**, dan **Terapkan** tetap bisa memindahkan branch, sehingga kode agen tercatat di branch item lain dan panel *Perubahan berkas* item itu kosong. Kini keempatnya ditolak dengan pesan "Working tree sedang dipakai item STD-…".
   - Mode worktree: bila branch item masih terbuka di repo utama (sisa mode workspace) atau worktree lain, Studio menjelaskan cara mengatasinya, bukan lagi menampilkan galat mentah git `is already used by worktree`.
   - **Pindahkan aplikasi ke branch lokal** hanya dihalangi tugas agen yang bekerja di repo utama. Agen yang bekerja di worktree item tidak lagi menghalangi.

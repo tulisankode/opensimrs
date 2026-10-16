@@ -1,6 +1,7 @@
 import "./assets/css/main.css";
 
 import { createApp } from "vue";
+import { setAplikasi } from "./utils/aplikasi";
 import { createPinia } from "pinia";
 
 import App from "./App.vue";
@@ -66,6 +67,7 @@ import icons from "./components/icons";
 import Vue3Lottie from 'vue3-lottie'
 
 export const app = createApp(App);
+setAplikasi(app);
 
 app.use(createPinia());
 app.use(router);
