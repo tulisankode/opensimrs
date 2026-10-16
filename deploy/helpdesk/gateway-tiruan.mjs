@@ -20,6 +20,11 @@ const jawab = (pesan) => {
 };
 
 http.createServer((req, res) => {
+  // Seperti Gateway asli: semua endpoint /v1 wajib token.
+  if (req.url.startsWith("/v1/") && req.headers.authorization !== `Bearer ${TOKEN}`) {
+    res.writeHead(401, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: { message: "unauthorized" } }));
+  }
   if (req.method === "GET" && req.url === "/v1/models") {
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ object: "list", data: [{ id: "openclaw/helpdesk-opensimrs", object: "model" }] }));

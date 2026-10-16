@@ -43,7 +43,7 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
     - NIK, nomor kartu, HP, email, dan nomor RM disamarkan sebelum dikirim.
     - Konteks yang ikut dikirim: peran, segmen, modul aktif/nonaktif, halaman.
     - Ada batas laju per pengguna, dan log `bantuan_log` yang sudah disaring disimpan 90 hari.
-    - Token Gateway hanya di `.env` server (`HELPDESK_GATEWAY_URL`, `HELPDESK_GATEWAY_TOKEN`).
+    - Gateway diatur superadmin di **Setting › Konfigurasi Integrasi › Helpdesk AI (OpenClaw)**: URL, token (terenkripsi di tabel baru `helpdesk_konfigurasi`, migrasi `20261016140000-helpdesk_konfigurasi`), ID agen, batas laju/waktu, switch aktif, dan **Uji koneksi**. Endpoint `GET/PUT /bantuan/konfigurasi`, `POST /bantuan/konfigurasi/uji`. `.env` (`HELPDESK_GATEWAY_URL`, `HELPDESK_GATEWAY_TOKEN`) tetap berlaku sebagai cadangan.
   - Fitur katalog baru **Asisten Bantuan (Helpdesk AI)** (`helpdesk_ai`, modul Dashboard). Tombol **Bantuan** berikon headset di header (menggantikan ikon lonceng statis) membuka jendela chat ala chatbot dengan saran pertanyaan per halaman; bila Helpdesk belum aktif, jendela menjelaskan alasannya. Badge merah menghitung balasan yang masuk saat jendela tertutup, dan ikon berdenyut selama asisten masih menyusun jawaban. Ikon toa (panggilan antrian) di header hanya tampil bila modul Antrian aktif.
   - `deploy/helpdesk/`:
     - panduan pemasangan OpenClaw di VM (sandbox, workspace hanya-baca, kanal pesan dimatikan) dan instruksi agen `AGENTS.md`;

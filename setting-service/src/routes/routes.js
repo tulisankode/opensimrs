@@ -46,6 +46,9 @@ routes.put(`/${apiBase}/${apiVersion}/setting/modul/jenis-poli`, ModulController
 routes.get(`/${apiBase}/${apiVersion}/setting/bantuan/status`, BantuanController.status);
 routes.post(`/${apiBase}/${apiVersion}/setting/bantuan/chat`, BantuanController.chat);
 routes.get(`/${apiBase}/${apiVersion}/setting/bantuan/ringkasan`, BantuanController.ringkasan);
+routes.get(`/${apiBase}/${apiVersion}/setting/bantuan/konfigurasi`, BantuanController.ambilKonfigurasi);
+routes.put(`/${apiBase}/${apiVersion}/setting/bantuan/konfigurasi`, BantuanController.simpanKonfigurasi);
+routes.post(`/${apiBase}/${apiVersion}/setting/bantuan/konfigurasi/uji`, BantuanController.ujiKonfigurasi);
 
 // PRINTER
 routes.get(`/${apiBase}/${apiVersion}/setting/printer`, PrinterController.findByUuid);

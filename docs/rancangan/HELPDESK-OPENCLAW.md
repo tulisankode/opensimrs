@@ -92,7 +92,8 @@ Panduan pengguna adalah prasyarat (fase 0). Drafnya dibuat agen dari kode (menu,
 
 | Lapis | Pengaturan |
 |---|---|
-| `.env` setting-service | `HELPDESK_GATEWAY_URL`, `HELPDESK_GATEWAY_TOKEN`, `HELPDESK_AGEN=helpdesk-opensimrs` (kosong = Helpdesk mati) |
+| **Setting › Konfigurasi Integrasi › Helpdesk AI** (superadmin) | URL Gateway, token (terenkripsi di tabel `helpdesk_konfigurasi`), ID agen, batas per jam, batas waktu, switch aktif, dan **Uji koneksi** (`/v1/models`). Berlaku untuk seluruh instalasi tanpa menjalankan ulang layanan |
+| `.env` setting-service (cadangan) | `HELPDESK_GATEWAY_URL`, `HELPDESK_GATEWAY_TOKEN`, `HELPDESK_AGEN`. Hanya dipakai selama pengaturan di atas belum disimpan |
 | Katalog modul | Fitur baru `helpdesk_ai` (Setting), dinyalakan per faskes oleh superadmin |
 | Izin | Semua peran yang login boleh bertanya; ringkasan log hanya untuk superadmin |
 
