@@ -1,6 +1,7 @@
 import express from "express";
 import { tangani, kirim } from "../../umum/respons.js";
 import { wajibFiturPaLis } from "./fitur.js";
+import { izinPa, wajibIzin } from "../../umum/izin.js";
 import {
   daftarKoneksi, simpanKoneksi, jadikanBawaan, buatUlangKunciMasuk, hapusKoneksi, ujiKoneksi,
   daftarPemetaanPemeriksaan, simpanPemetaanPemeriksaan, daftarPemetaanRef, simpanPemetaanRef, daftarPemetaanHasil, simpanPemetaanHasil,
@@ -12,39 +13,44 @@ import {
 const rute = express.Router();
 rute.use(wajibFiturPaLis());
 
-rute.get("/koneksi", tangani(async (req, res) => kirim(res, await daftarKoneksi(req.author.faskesUuid))));
-rute.post("/koneksi", tangani(async (req, res) => kirim(res, await simpanKoneksi(req.author.faskesUuid, null, req.body), "Koneksi LIS PA ditambahkan")));
-rute.put("/koneksi/:uuid", tangani(async (req, res) => kirim(res, await simpanKoneksi(req.author.faskesUuid, req.params.uuid, req.body), "Koneksi LIS PA disimpan")));
-rute.put("/koneksi/:uuid/bawaan", tangani(async (req, res) => {
+// Koneksi & mapping = konfigurasi integrasi (API key, kunci masuk): hak Setting › Konfigurasi Integrasi.
+// Kirim/tarik/riwayat mengikuti hak Patologi Anatomi seperti rute order & pemeriksaan PA lainnya.
+const bacaKonfigurasi = wajibIzin("Setting", "Konfigurasi Integrasi", "READ");
+const ubahKonfigurasi = wajibIzin("Setting", "Konfigurasi Integrasi", "UPDATE KONFIGURASI LAINNYA");
+
+rute.get("/koneksi", bacaKonfigurasi, tangani(async (req, res) => kirim(res, await daftarKoneksi(req.author.faskesUuid))));
+rute.post("/koneksi", ubahKonfigurasi, tangani(async (req, res) => kirim(res, await simpanKoneksi(req.author.faskesUuid, null, req.body), "Koneksi LIS PA ditambahkan")));
+rute.put("/koneksi/:uuid", ubahKonfigurasi, tangani(async (req, res) => kirim(res, await simpanKoneksi(req.author.faskesUuid, req.params.uuid, req.body), "Koneksi LIS PA disimpan")));
+rute.put("/koneksi/:uuid/bawaan", ubahKonfigurasi, tangani(async (req, res) => {
   await jadikanBawaan(req.author.faskesUuid, req.params.uuid);
   kirim(res, await daftarKoneksi(req.author.faskesUuid), "Koneksi bawaan diubah");
 }));
-rute.post("/koneksi/:uuid/kunci-masuk", tangani(async (req, res) => kirim(res, await buatUlangKunciMasuk(req.author.faskesUuid, req.params.uuid), "Kunci masuk baru dibuat")));
-rute.post("/koneksi/:uuid/uji", tangani(async (req, res) => kirim(res, await ujiKoneksi(req.author.faskesUuid, req.params.uuid))));
-rute.delete("/koneksi/:uuid", tangani(async (req, res) => kirim(res, await hapusKoneksi(req.author.faskesUuid, req.params.uuid), "Koneksi LIS PA dihapus")));
+rute.post("/koneksi/:uuid/kunci-masuk", ubahKonfigurasi, tangani(async (req, res) => kirim(res, await buatUlangKunciMasuk(req.author.faskesUuid, req.params.uuid), "Kunci masuk baru dibuat")));
+rute.post("/koneksi/:uuid/uji", ubahKonfigurasi, tangani(async (req, res) => kirim(res, await ujiKoneksi(req.author.faskesUuid, req.params.uuid))));
+rute.delete("/koneksi/:uuid", ubahKonfigurasi, tangani(async (req, res) => kirim(res, await hapusKoneksi(req.author.faskesUuid, req.params.uuid), "Koneksi LIS PA dihapus")));
 
-rute.get("/mapping/pemeriksaan", tangani(async (req, res) => kirim(res, await daftarPemetaanPemeriksaan(req.author.faskesUuid, req.query.koneksi_uuid))));
-rute.put("/mapping/pemeriksaan", tangani(async (req, res) => kirim(res, await simpanPemetaanPemeriksaan(req.author.faskesUuid, req.body?.koneksi_uuid, req.body?.items ?? []), "Pemetaan pemeriksaan disimpan")));
-rute.get("/mapping/ref", tangani(async (req, res) => kirim(res, await daftarPemetaanRef(req.author.faskesUuid, req.query.koneksi_uuid))));
-rute.put("/mapping/ref", tangani(async (req, res) => kirim(res, await simpanPemetaanRef(req.author.faskesUuid, req.body?.koneksi_uuid, req.body?.items ?? []), "Pemetaan unit, dokter & penjamin disimpan")));
-rute.get("/mapping/hasil", tangani(async (req, res) => kirim(res, await daftarPemetaanHasil(req.author.faskesUuid, req.query.koneksi_uuid))));
-rute.put("/mapping/hasil", tangani(async (req, res) => kirim(res, await simpanPemetaanHasil(req.author.faskesUuid, req.body?.koneksi_uuid, req.body?.items ?? []), "Pemetaan field hasil disimpan")));
+rute.get("/mapping/pemeriksaan", bacaKonfigurasi, tangani(async (req, res) => kirim(res, await daftarPemetaanPemeriksaan(req.author.faskesUuid, req.query.koneksi_uuid))));
+rute.put("/mapping/pemeriksaan", ubahKonfigurasi, tangani(async (req, res) => kirim(res, await simpanPemetaanPemeriksaan(req.author.faskesUuid, req.body?.koneksi_uuid, req.body?.items ?? []), "Pemetaan pemeriksaan disimpan")));
+rute.get("/mapping/ref", bacaKonfigurasi, tangani(async (req, res) => kirim(res, await daftarPemetaanRef(req.author.faskesUuid, req.query.koneksi_uuid))));
+rute.put("/mapping/ref", ubahKonfigurasi, tangani(async (req, res) => kirim(res, await simpanPemetaanRef(req.author.faskesUuid, req.body?.koneksi_uuid, req.body?.items ?? []), "Pemetaan unit, dokter & penjamin disimpan")));
+rute.get("/mapping/hasil", bacaKonfigurasi, tangani(async (req, res) => kirim(res, await daftarPemetaanHasil(req.author.faskesUuid, req.query.koneksi_uuid))));
+rute.put("/mapping/hasil", ubahKonfigurasi, tangani(async (req, res) => kirim(res, await simpanPemetaanHasil(req.author.faskesUuid, req.body?.koneksi_uuid, req.body?.items ?? []), "Pemetaan field hasil disimpan")));
 
-rute.get("/kirim", tangani(async (req, res) => {
+rute.get("/kirim", izinPa("Order PA", "READ"), tangani(async (req, res) => {
   const { data, pagination } = await daftarKirim(req.author.faskesUuid, req.query);
   res.json({ message: "Data berhasil ditampilkan", payload: data, pagination });
 }));
-rute.get("/kirim/:orderItemUuid", tangani(async (req, res) => kirim(res, await statusKirimKasus(req.author.faskesUuid, req.params.orderItemUuid))));
-rute.post("/kirim/:orderItemUuid", tangani(async (req, res) => {
+rute.get("/kirim/:orderItemUuid", izinPa("Order PA", "READ"), tangani(async (req, res) => kirim(res, await statusKirimKasus(req.author.faskesUuid, req.params.orderItemUuid))));
+rute.post("/kirim/:orderItemUuid", izinPa("Order PA", "VALIDASI"), tangani(async (req, res) => {
   const hasil = await kirimKasus(req.author.faskesUuid, req.params.orderItemUuid, { koneksiUuid: req.body?.koneksi_uuid, pengguna: req.author.username });
   res.status(hasil.status === "terkirim" ? 200 : 502).json({ message: hasil.pesan, payload: hasil });
 }));
-rute.post("/kirim/:orderItemUuid/cek-status", tangani(async (req, res) => kirim(res, await cekStatusKasus(req.author.faskesUuid, req.params.orderItemUuid))));
-rute.post("/tarik/:orderItemUuid", tangani(async (req, res) => {
+rute.post("/kirim/:orderItemUuid/cek-status", izinPa("Order PA", "READ"), tangani(async (req, res) => kirim(res, await cekStatusKasus(req.author.faskesUuid, req.params.orderItemUuid))));
+rute.post("/tarik/:orderItemUuid", izinPa("Pemeriksaan", "DIAGNOSIS"), tangani(async (req, res) => {
   const hasil = await tarikHasil(req.author.faskesUuid, req.params.orderItemUuid);
   kirim(res, hasil, `Hasil LIS PA: ${hasil.pesan}`);
 }));
-rute.get("/riwayat/:orderItemUuid", tangani(async (req, res) => kirim(res, await riwayatLaporan(req.params.orderItemUuid))));
+rute.get("/riwayat/:orderItemUuid", izinPa("Pemeriksaan", "READ"), tangani(async (req, res) => kirim(res, await riwayatLaporan(req.author.faskesUuid, req.params.orderItemUuid))));
 
 export const ruteLisPa = rute;
 

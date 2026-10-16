@@ -121,10 +121,17 @@ export const ujiKoneksi = async (faskesUuid, uuid) => {
   }
 };
 
+// Mapping disimpan per koneksi: koneksi wajib milik faskes pengguna agar mapping faskes lain tidak terbaca/terubah.
+const pastikanKoneksiFaskes = async (faskesUuid, koneksiUuid) => {
+  if (!koneksiUuid) throw permintaanSalah("koneksi_uuid wajib diisi");
+  const ada = await satu(`SELECT 1 FROM pa_lis_koneksi WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [koneksiUuid, faskesUuid]);
+  if (!ada) throw tidakDitemukan("Koneksi LIS PA");
+};
+
 // --- Mapping pemeriksaan PA → kode LIS PA, per koneksi ------------------------------------------------
 
 export const daftarPemetaanPemeriksaan = async (faskesUuid, koneksiUuid) => {
-  if (!koneksiUuid) throw permintaanSalah("koneksi_uuid wajib diisi");
+  await pastikanKoneksiFaskes(faskesUuid, koneksiUuid);
   return query(
     `SELECT m.uuid, m.kode, m.nama, m.jenis, m.kategori, pt.kode_lis, pt.nama_lis
        FROM pa_pemeriksaan m
@@ -135,7 +142,7 @@ export const daftarPemetaanPemeriksaan = async (faskesUuid, koneksiUuid) => {
 };
 
 export const simpanPemetaanPemeriksaan = async (faskesUuid, koneksiUuid, items = []) => {
-  if (!koneksiUuid) throw permintaanSalah("koneksi_uuid wajib diisi");
+  await pastikanKoneksiFaskes(faskesUuid, koneksiUuid);
   for (const it of items) {
     const kode = String(it?.kode_lis ?? "").trim().slice(0, 50);
     const nama = String(it?.nama_lis ?? "").trim().slice(0, 200) || null;
@@ -160,7 +167,7 @@ export const REF_TUNAI = "TUNAI";
 export const REF_ASURANSI = "ASURANSI";
 
 export const daftarPemetaanRef = async (faskesUuid, koneksiUuid) => {
-  if (!koneksiUuid) throw permintaanSalah("koneksi_uuid wajib diisi");
+  await pastikanKoneksiFaskes(faskesUuid, koneksiUuid);
   const peta = await query(`SELECT jenis, ref_uuid, kode_lis, nama_lis FROM pa_lis_peta_ref WHERE koneksi_uuid = $1`, [koneksiUuid]);
   const cari = (jenis, uuid) => peta.find((p) => p.jenis === jenis && p.ref_uuid === uuid);
   const unit = await query(
@@ -182,7 +189,7 @@ export const daftarPemetaanRef = async (faskesUuid, koneksiUuid) => {
 };
 
 export const simpanPemetaanRef = async (faskesUuid, koneksiUuid, items = []) => {
-  if (!koneksiUuid) throw permintaanSalah("koneksi_uuid wajib diisi");
+  await pastikanKoneksiFaskes(faskesUuid, koneksiUuid);
   for (const it of items) {
     const jenis = String(it?.jenis ?? "");
     const ref = String(it?.uuid ?? it?.ref_uuid ?? "");
@@ -205,12 +212,12 @@ export const simpanPemetaanRef = async (faskesUuid, koneksiUuid, items = []) => 
 // --- Mapping field hasil vendor → field laporan SIMRS, per koneksi ------------------------------------
 
 export const daftarPemetaanHasil = async (faskesUuid, koneksiUuid) => {
-  if (!koneksiUuid) throw permintaanSalah("koneksi_uuid wajib diisi");
+  await pastikanKoneksiFaskes(faskesUuid, koneksiUuid);
   return query(`SELECT field_simrs, field_lis FROM pa_lis_peta_hasil WHERE koneksi_uuid = $1 ORDER BY field_simrs`, [koneksiUuid]);
 };
 
 export const simpanPemetaanHasil = async (faskesUuid, koneksiUuid, items = []) => {
-  if (!koneksiUuid) throw permintaanSalah("koneksi_uuid wajib diisi");
+  await pastikanKoneksiFaskes(faskesUuid, koneksiUuid);
   for (const it of items) {
     const field = String(it?.field_simrs ?? "");
     const lintasan = String(it?.field_lis ?? "").trim().slice(0, 100);
@@ -574,4 +581,6 @@ const prosesHasil = async (koneksi, body, sumber) => {
   return { status, pesan: status === "sebagian" ? "Hasil sebagian disimpan" : "Hasil disimpan ke laporan PA", no_pa: noPa || item.no_pa };
 };
 
-export const riwayatLaporan = (orderItemUuid) => query(`SELECT * FROM pa_laporan_versi WHERE order_item_uuid = $1 ORDER BY versi DESC`, [orderItemUuid]);
+// Riwayat versi laporan hanya untuk faskes pengguna (laporan PA memuat diagnosis pasien).
+export const riwayatLaporan = (faskesUuid, orderItemUuid) =>
+  query(`SELECT * FROM pa_laporan_versi WHERE faskes_uuid = $1 AND order_item_uuid = $2 ORDER BY versi DESC`, [faskesUuid, orderItemUuid]);
