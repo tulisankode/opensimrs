@@ -9,14 +9,18 @@
 #    4. Membuat akun MongoDB "opensimrs".
 #    5. Membuat .env root, .env tiap layanan, dan frontend-service\.env (TIDAK menimpa yang sudah ada).
 #    6. npm run install:all -> npm run db:migrate -> data demo (opsional).
+#    7. Alat AI SIMRS Studio: Claude Code CLI & Codex CLI (npm global). OpenClaw (Helpdesk) hanya dengan -Helpdesk.
 #
 #  Pemakaian (dari folder repo):
 #    .\install.cmd                         (paling mudah; sama dengan perintah di bawah)
-#    powershell -ExecutionPolicy Bypass -File .\install.ps1 [-Cek] [-Ya] [-TanpaDemo] [-Jalankan]
+#    powershell -ExecutionPolicy Bypass -File .\install.ps1 [-Cek] [-Ya] [-TanpaDemo] [-Jalankan] [-TanpaAi] [-Helpdesk]
 #      -Cek        hanya cek dependensi, tidak mengubah apa pun
 #      -Ya         jawab "ya" untuk semua pertanyaan
 #      -TanpaDemo  lewati data demo
 #      -Jalankan   langsung "npm run dev" setelah selesai
+#      -TanpaAi    lewati pemasangan Claude Code CLI & Codex CLI
+#      -Helpdesk   pasang juga OpenClaw (Helpdesk) dengan installer resminya - untuk uji coba; produksi di VM terpisah
+#                  (deploy\helpdesk\README.md)
 #
 #  Sandi superuser PostgreSQL ("postgres"):
 #    - Bila PostgreSQL dipasang oleh skrip ini, sandinya dibuat acak dan ditampilkan SEKALI di akhir.
@@ -31,7 +35,9 @@ param(
   [switch]$Cek,
   [switch]$Ya,
   [switch]$TanpaDemo,
-  [switch]$Jalankan
+  [switch]$Jalankan,
+  [switch]$TanpaAi,
+  [switch]$Helpdesk
 )
 
 # "Continue": di PowerShell 5.1 keluaran stderr program native (mis. NOTICE psql) tidak boleh menghentikan skrip;
@@ -51,7 +57,15 @@ function Judul($t) { Write-Host ""; Write-Host "==> $t" -ForegroundColor White }
 function Ok($t)    { Write-Host "  [OK] $t" -ForegroundColor Green }
 function Warn($t)  { Write-Host "  [!]  $t" -ForegroundColor Yellow }
 function Gagal($t) { Write-Host "  [X]  $t" -ForegroundColor Red }
-function Mati($t)  { Write-Host ""; Write-Host "GAGAL: $t" -ForegroundColor Red; exit 1 }
+function Mati($t)  { Write-Progress -Id 0 -Activity "Instalasi OpenSIMRS" -Completed; Write-Host ""; Write-Host "GAGAL: $t" -ForegroundColor Red; exit 1 }
+# Bilah kemajuan (Write-Progress): langkah utama (Id 0) & butir per folder npm (Id 1).
+$JUMLAH_LANGKAH = 9 + [int][bool]$Helpdesk; $script:langkahKe = 0; $MULAI = Get-Date
+function Langkah($t) {
+  $script:langkahKe++
+  $p = [int](($script:langkahKe - 1) * 100 / $JUMLAH_LANGKAH)
+  Write-Progress -Id 0 -Activity "Instalasi OpenSIMRS" -Status "[$($script:langkahKe)/$JUMLAH_LANGKAH] $t" -PercentComplete $p
+  Judul "[$($script:langkahKe)/$JUMLAH_LANGKAH] $t"
+}
 function Tanya($t) {
   if ($Ya) { return $true }
   $j = Read-Host "  ? $t [y/N]"
@@ -127,7 +141,7 @@ function Admin { return ([Security.Principal.WindowsPrincipal][Security.Principa
 SegarkanPath
 
 # ---------- 1. cek dependensi ----------
-Judul "Cek dependensi (Windows)"
+Langkah "Cek dependensi (Windows)"
 $kurang = @()
 function CekVersi($nama, $cmd, [int]$min, [scriptblock]$ambilVersi) {
   if (-not (Ada $cmd)) { Gagal "$nama belum terpasang"; $script:kurang += $nama; return }
@@ -187,10 +201,21 @@ if ($kurang.Count -gt 0) {
   foreach ($c in @("node", "npm", "psql", "mongod", "mongosh")) { if (-not (Ada $c)) { Mati "$c masih belum ditemukan setelah instalasi. Tutup lalu buka lagi PowerShell, kemudian jalankan ulang skrip." } }
 }
 Ok "Semua dependensi tersedia"
+
+# Alat AI (tidak menghalangi instalasi; dipasang di langkah 7).
+function VersiAlat($cmd) {
+  if (-not (Ada $cmd)) { return $null }
+  $v = (& $cmd --version 2>$null | Out-String)
+  if ($v -match '(\d+(\.\d+)+)') { return $Matches[1] } else { return $null }
+}
+foreach ($a in @(@("claude", "Claude Code CLI (agen SIMRS Studio)"), @("codex", "Codex CLI (agen SIMRS Studio, opsional)"), @("openclaw", "OpenClaw (Helpdesk; produksi di VM terpisah)"))) {
+  $v = VersiAlat $a[0]
+  if ($v) { Ok "$($a[1]): $v" } else { Warn "$($a[1]) belum terpasang" }
+}
 if ($Cek) { exit 0 }
 
 # ---------- 2. nyalakan layanan ----------
-Judul "Menyalakan PostgreSQL, MongoDB, Memurai (Redis)"
+Langkah "Menyalakan PostgreSQL, MongoDB, Memurai (Redis)"
 foreach ($pola in @("postgresql*", "MongoDB*", "Memurai*", "Redis*")) {
   Get-Service -Name $pola -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne "Running" } | ForEach-Object {
     $nama = $_.Name
@@ -231,7 +256,7 @@ $K1 = AmbilAtauAcak "API_KEY_SECRET" 32; $K2 = AmbilAtauAcak "API_KEY_CHECK_NORM
 $K3 = AmbilAtauAcak "ADMISI_SECRET_KEY" 32; $K4 = AmbilAtauAcak "ANTRIAN_KEY_SECRET" 32
 
 # ---------- 3. PostgreSQL ----------
-Judul "PostgreSQL: role, database, skema"
+Langkah "PostgreSQL: role, database, skema"
 $superPass = $PG_SUPERPASS_BARU
 if (-not $superPass) { $superPass = $env:PG_SUPERPASS }
 if (-not $superPass) {
@@ -265,7 +290,7 @@ else {
 Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
 
 # ---------- 4. MongoDB ----------
-Judul "MongoDB: akun aplikasi"
+Langkah "MongoDB: akun aplikasi"
 $js = Join-Path $env:TEMP ("opensimrs-mongo-" + (Acak 4) + ".js")
 TulisUtf8 $js @"
 const a = db.getSiblingDB('admin');
@@ -279,7 +304,7 @@ else { Gagal "Tidak bisa membuat akun MongoDB: $hasil"
        Mati "MongoDB tampaknya sudah memakai autentikasi. Buat akun '$MONGO_USER' (readWrite pada '$DB_NAMA', authSource admin) secara manual, isi MONGO_DB_PASSWORD di .env, lalu jalankan ulang." }
 
 # ---------- 5. berkas .env ----------
-Judul "Berkas .env"
+Langkah "Berkas .env"
 $umum = @"
 DB_DIALECT=postgres
 DB_HOST=127.0.0.1
@@ -386,17 +411,27 @@ function JalankanNpm($argumen) {
   & npm.cmd @argumen
   if ($LASTEXITCODE -ne 0) { Mati ("npm " + ($argumen -join " ") + " gagal (kode $LASTEXITCODE)") }
 }
-Judul "Dependensi npm (10-20 menit pada instalasi pertama)"
+Langkah "Dependensi npm (10-20 menit pada instalasi pertama)"
 # npm audit menghubungi registry untuk tiap layanan dan bisa menggantung di jaringan lambat; jalankan terpisah bila perlu
 $env:npm_config_audit = "false"; $env:npm_config_fund = "false"
-JalankanNpm @("run", "install:all"); Ok "Dependensi terpasang"
+# Folder & urutan sama dengan "npm run install:all", satu per satu agar kemajuannya terlihat.
+$folderNpm = @(".") + @(& node -e "const s=require('./package.json').scripts['install:all'];for(const m of s.matchAll(/--prefix (\S+) install/g))console.log(m[1])")
+$i = 0
+foreach ($d in $folderNpm) {
+  $i++; $nama = if ($d -eq ".") { "root" } else { $d }
+  Write-Progress -Id 1 -ParentId 0 -Activity "npm install" -Status "$i/$($folderNpm.Count) $nama" -PercentComplete ([int]($i * 100 / $folderNpm.Count))
+  Write-Host "  [$i/$($folderNpm.Count)] npm install $nama"
+  JalankanNpm @("--prefix", $d, "install")
+}
+Write-Progress -Id 1 -Activity "npm install" -Completed
+Ok "Dependensi terpasang ($($folderNpm.Count) folder)"
 
-Judul "Migrasi database"
+Langkah "Migrasi database"
 JalankanNpm @("run", "db:migrate"); Ok "Migrasi selesai"
 
+Langkah "Data demo"
 if ($TanpaDemo) { Warn "Data demo dilewati (-TanpaDemo)" }
 else {
-  Judul "Data demo"
   $env:PGPASSWORD = $DB_PASS
   $jml = (& psql -X -h 127.0.0.1 -p $PG_PORT -U $DB_USER -d $DB_NAMA -tAc "SELECT count(*) FROM faskes" 2>$null | Out-String).Trim()
   Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
@@ -406,8 +441,36 @@ else {
   }
 }
 
+# ---------- 7. alat AI: agen SIMRS Studio (Claude Code, Codex) & Helpdesk (OpenClaw) ----------
+Langkah "Alat AI untuk SIMRS Studio"
+if ($TanpaAi) { Warn "Alat AI dilewati (-TanpaAi)" }
+else {
+  foreach ($a in @(@("claude", "@anthropic-ai/claude-code", "Claude Code CLI"), @("codex", "@openai/codex", "Codex CLI"))) {
+    if (Ada $a[0]) { Ok "$($a[2]) sudah terpasang ($(VersiAlat $a[0]))" }
+    elseif (Tanya "Pasang $($a[2]) ($($a[1])) untuk agen SIMRS Studio?") {
+      & npm.cmd install -g --no-audit --no-fund $a[1]
+      if ($LASTEXITCODE -eq 0) { Ok "$($a[2]) terpasang" } else { Warn "$($a[2]) gagal dipasang; pasang manual: npm install -g $($a[1])" }
+    }
+  }
+  SegarkanPath
+  Write-Host "    Login akun: SIMRS Studio > Pengaturan & Agen > Hubungkan akun Claude / Hubungkan akun ChatGPT"
+}
+if ($Helpdesk) {
+  Langkah "OpenClaw (Helpdesk)"
+  Warn "Untuk produksi, pasang OpenClaw di VM terpisah dari server SIMRS (deploy\helpdesk\README.md). Di mesin ini hanya untuk uji coba."
+  if (Ada "openclaw") { Ok "OpenClaw sudah terpasang ($(VersiAlat 'openclaw'))" }
+  elseif (Tanya "Pasang OpenClaw dengan installer resmi (openclaw.ai/install.ps1; menyiapkan Node 24.16+ sendiri)?") {
+    # Dijalankan di proses PowerShell terpisah agar installer tidak menghentikan skrip ini.
+    & powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://openclaw.ai/install.ps1 | iex"
+    if ($LASTEXITCODE -ne 0) { Warn "Pemasangan OpenClaw gagal; lihat https://docs.openclaw.ai/install" }
+    SegarkanPath
+  }
+  Write-Host "    Lanjutkan: deploy\helpdesk\README.md langkah 3-5 (agen terbatas, sinkron panduan, sambungkan setting-service)"
+}
+
 # ---------- selesai ----------
-Judul "Selesai"
+Write-Progress -Id 0 -Activity "Instalasi OpenSIMRS" -Completed
+Judul ("Selesai dalam " + [int]((Get-Date) - $MULAI).TotalMinutes + " menit")
 Write-Host "  Jalankan aplikasi:"
 Write-Host "    npm run dev          # semua layanan + frontend"
 Write-Host "    npm run dev:core     # ringan: auth, datamaster, admisi, frontend"

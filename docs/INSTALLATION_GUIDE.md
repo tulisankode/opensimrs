@@ -694,7 +694,7 @@ Buat blok serupa untuk domain frontend ke port 5520. Pastikan `FRONTEND_ALLOWED_
 
 ## 9. Menjalankan tanpa Docker (instal native)
 
-> **Cara cepat (macOS & Ubuntu/Debian): `./install.sh`.** Skrip ini memeriksa dependensi beserta versinya (Node.js, PostgreSQL, Redis, MongoDB, mongosh, dll.), menawarkan pemasangan yang kurang lewat Homebrew/apt, menyalakan layanan, membuat role/database/akun Mongo, memuat `schema.sql`, membuat semua `.env` dengan kunci acak (tidak menimpa yang sudah ada), lalu menjalankan `install:all`, migrasi, dan data demo. Opsi: `--cek` (hanya cek), `--ya` (tanpa tanya), `--tanpa-demo`, `--jalankan` (langsung `npm run dev`). Khusus development lokal. Langkah manual di bawah menjelaskan hal yang sama secara rinci.
+> **Cara cepat (macOS & Ubuntu/Debian): `./install.sh`.** Skrip ini memeriksa dependensi beserta versinya (Node.js, PostgreSQL, Redis, MongoDB, mongosh, dll.), menawarkan pemasangan yang kurang lewat Homebrew/apt, menyalakan layanan, membuat role/database/akun Mongo, memuat `schema.sql`, membuat semua `.env` dengan kunci acak (tidak menimpa yang sudah ada), lalu menjalankan `install:all`, migrasi, dan data demo. Opsi: `--cek` (hanya cek), `--ya` (tanpa tanya), `--tanpa-demo`, `--jalankan` (langsung `npm run dev`), `--tanpa-ai`, `--helpdesk`. Skrip juga menawarkan **alat AI SIMRS Studio** (Claude Code CLI dan Codex CLI, lewat `npm install -g`); lewati dengan `--tanpa-ai`. **OpenClaw** (Helpdesk) hanya dipasang dengan `--helpdesk`, lewat installer resminya yang menyiapkan Node 24.16+ sendiri. Opsi ini untuk uji coba; untuk produksi, OpenClaw dipasang di VM terpisah ([deploy/helpdesk/README.md](../deploy/helpdesk/README.md)). Khusus development lokal. Setiap langkah tampil dengan **bilah kemajuan** (`[3/9] ██████░░ 33%`, spinner dan waktu berjalan untuk langkah lama, bilah per folder saat `npm install`). Keluaran lengkap tersimpan di berkas log yang disebut di akhir; bila ada langkah gagal, 25 baris terakhir log ditampilkan. Langkah manual di bawah menjelaskan hal yang sama secara rinci.
 >
 > **macOS/Linux dengan Podman: `./install.sh --podman`.** PostgreSQL, MongoDB, dan Redis dijalankan di kontainer Podman (`podman compose`, file `docker-compose.yml`), sedangkan layanan dan frontend tetap berjalan langsung di mesin (`npm run dev`, cocok untuk development). Tidak perlu memasang PostgreSQL/MongoDB/Redis dari Homebrew/apt. Langkah di MacBook:
 >
@@ -719,9 +719,31 @@ Buat blok serupa untuk domain frontend ke port 5520. Pastikan `FRONTEND_ALLOWED_
 > - bila PostgreSQL dipasang oleh skrip, sandi superuser `postgres` dibuat acak dan ditampilkan sekali di akhir; bila sudah terpasang, skrip menanyakannya (atau isi variabel `PG_SUPERPASS`);
 > - port PostgreSQL dibaca dari `postgresql.conf` layanan Windows-nya; bila berbeda dari 5432 (mis. 5432 dipakai kontainer Docker), nilainya ikut ditulis ke `DB_PORT` di `.env`. Bisa dipaksa dengan variabel `PG_PORT`;
 > - Redis di bawah versi 5, termasuk port Redis lama untuk Windows (v3.0), dianggap terlalu lama dan diganti Memurai;
-> - opsi: `-Cek`, `-Ya`, `-TanpaDemo`, `-Jalankan`. Pemasangan layanan butuh PowerShell **sebagai Administrator**.
+> - opsi: `-Cek`, `-Ya`, `-TanpaDemo`, `-Jalankan`, `-TanpaAi` (lewati Claude Code CLI & Codex CLI), `-Helpdesk` (pasang juga OpenClaw untuk uji coba). Pemasangan layanan butuh PowerShell **sebagai Administrator**.
 
 Cara ini setara dengan cara Docker: semua komponen dipasang langsung di sistem operasi. Contoh perintah untuk **Ubuntu/Debian**; di **Windows**, pakai installer resmi masing-masing perangkat lunak (PostgreSQL, MongoDB Community Server, Node.js) dan, untuk Redis, Memurai Developer atau paket Redis di WSL (port Redis lama untuk Windows v3.0 terlalu lama; minimal Redis 5). Ganti semua `<...>` dengan nilai Anda sendiri; jangan memakai contoh sandi di server sungguhan.
+
+### Menghapus instalasi lokal: `./uninstall.sh` (Windows: `uninstall.cmd`)
+
+Pasangan installer ini menghapus **hanya jejak OpenSIMRS**, dengan bilah kemajuan yang sama:
+- PostgreSQL: database aplikasi (dihapus oleh role pemiliknya, tanpa superuser) dan role aplikasi (opsional, butuh superuser);
+- MongoDB: database dan akun aplikasi;
+- Redis: hanya kunci sesi `token-*`, bukan `FLUSHDB`;
+- mode Podman: kontainer dan volume OpenSIMRS;
+- berkas buatan instalasi di repo: `node_modules`, `.env`, `dist`, data SIMRS Studio, dan worktree Studio.
+
+PostgreSQL, MongoDB, Redis, Node.js, database atau akun lain, serta OpenClaw tidak disentuh.
+
+```bash
+./uninstall.sh --simulasi        # tampilkan apa yang akan dihapus, tanpa menghapus apa pun
+./uninstall.sh                   # rencana → cadangan pg_dump/mongodump (ditawarkan) → ketik "HAPUS OPENSIMRS"
+./uninstall.sh --hapus-folder    # hapus juga folder repo ini
+./uninstall.sh --alat-ai         # hapus juga Claude Code CLI & Codex CLI (npm global)
+#   opsi lain: --ya (tanpa tanya), --tanpa-cadangan, --podman
+#   Windows: uninstall.cmd -Simulasi | -Ya | -TanpaCadangan | -HapusFolder | -AlatAi   (role PostgreSQL: isi PG_SUPERPASS)
+```
+
+Cadangan disimpan di `~/opensimrs-cadangan-<waktu>/` (Windows: `%USERPROFILE%\opensimrs-cadangan-<waktu>\`). Cara memulihkannya ditampilkan di akhir proses.
 
 ### 9.1 Pasang perangkat lunak
 
