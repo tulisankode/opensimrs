@@ -7,9 +7,9 @@ import redisClient from "../configurations/redis-client-config.js";
 
 // Semua modul izin yang dikenal (kunci mapPermission). Sumber tunggal untuk editor Role di frontend.
 const SEMUA_MODUL = [
-  "Dashboard", "Antrian", "Admisi", "Rawat Jalan", "Rawat Inap", "IGD", "Farmasi", "STOK", "Inventory",
-  "Laboratorium", "Patologi Anatomi", "Mikrobiologi", "Radiologi", "Fisioterapi", "MCU", "Training",
-  "Pembayaran", "Datamaster", "Laporan", "Setting", "Profile", "SIMRS Studio",
+  "Dashboard", "Antrian", "Admisi", "Rawat Jalan", "Rawat Inap", "ICU", "IGD", "Farmasi", "STOK", "Inventory",
+  "Laboratorium", "Patologi Anatomi", "Mikrobiologi", "Radiologi", "Fisioterapi", "MCU", "CSSD", "Training",
+  "Program Puskesmas", "Pembayaran", "Datamaster", "Laporan", "Setting", "Profile", "SIMRS Studio",
 ];
 
 // Modul yang tidak pernah ditambahkan otomatis oleh sinkron Manajemen Modul (diberikan manual per peran oleh superadmin).

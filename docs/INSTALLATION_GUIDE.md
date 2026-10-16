@@ -76,7 +76,7 @@ Membangun semua image Docker sekaligus membutuhkan ruang disk besar (±10 GB lap
 
 ## 3. Gambaran sistem & port
 
-OpenSIMRS terdiri dari satu frontend (Vue 3) dan 18 layanan backend (Node.js + Express) dalam satu repo (**monorepo**, tanpa git submodule). Semua layanan memakai **satu database PostgreSQL bersama**, MongoDB untuk isi rekam medis, dan Redis untuk cache token/izin. Tiga paket SDK bersama (`@opensimrs/model-sdk`, `@opensimrs/authorization-sdk`, `@opensimrs/permission-sdk`) ada di folder `packages/`.
+OpenSIMRS terdiri dari satu frontend (Vue 3) dan 19 layanan backend (Node.js + Express) dalam satu repo (**monorepo**, tanpa git submodule). Semua layanan memakai **satu database PostgreSQL bersama**, MongoDB untuk isi rekam medis, dan Redis untuk cache token/izin. Tiga paket SDK bersama (`@opensimrs/model-sdk`, `@opensimrs/authorization-sdk`, `@opensimrs/permission-sdk`) ada di folder `packages/`.
 
 | Port | Layanan | Folder | Awalan API |
 |---|---|---|---|
@@ -98,13 +98,15 @@ OpenSIMRS terdiri dari satu frontend (Vue 3) dan 18 layanan backend (Node.js + E
 | 8096 | Datamaster | `datamaster-service` | `/api/v3/datamaster` |
 | 8097 | Integrasi SATUSEHAT | `satusehat-service` | `/api/v3/satusehat` |
 | 8098 | Integrasi BPJS (PCare & VClaim) | `bpjs-service` | `/api/v3/bpjs` |
-| 8099 | Penunjang (Fisioterapi, Radiologi, MCU, Patologi Anatomi + bridging LIS PA, Mikrobiologi) | `penunjang-service` | `/api/v3/penunjang`, `/adam-pa-lis` (titik masuk hasil dari sistem PA) |
+| 8099 | Penunjang (Fisioterapi, Radiologi + bridging PACS/RIS, MCU, Patologi Anatomi + bridging LIS PA, Mikrobiologi, CSSD) | `penunjang-service` | `/api/v3/penunjang`, `/adam-pacs` & `/adam-pa-lis` (titik masuk hasil dari PACS/RIS & sistem PA) |
+| 8100 | Program Puskesmas (KIA/KB, imunisasi, MTBS, sasaran, UKM, laporan dinkes) | `program-puskesmas-service` | `/api/v3/program-puskesmas` |
 | 8090 | SIMRS Studio — mode pengembang berbasis AI (opsional; dijalankan langsung di mesin pengembang yang sudah login Claude Code, aktif bila `STUDIO_PENGEMBANG=aktif`) | `studio-service` | `/api/v3/studio` |
 | 5432 | PostgreSQL | – | – |
 | 27017 | MongoDB | – | – |
 | 6379 | Redis | – | – |
 | 8080 | Gateway nginx (deploy server, [bagian 8.3](#83-server-dengan-deploysh)) | `deploy/server/gateway.nginx.conf` | semua `/api/v3/*` |
 | 2312 | LIS tiruan untuk pengujian (opsional) | `scripts/lis-tiruan.mjs` | – |
+| 2412 | PACS/RIS tiruan untuk pengujian (opsional) | `scripts/pacs-tiruan.mjs` | – |
 | 2313 | Sistem PA tiruan untuk pengujian (opsional) | `scripts/lis-pa-tiruan.mjs` | – |
 
 Port 8090 memang tidak dipakai.
@@ -247,7 +249,7 @@ npm run db:demo:master-penunjang       # opsional: lengkapi datamaster lab/radio
 npm run dev
 ```
 
-`npm run dev` menjalankan **semua** 18 layanan backend (termasuk penunjang, SATUSEHAT, dan BPJS) beserta frontend dalam satu terminal.
+`npm run dev` menjalankan **semua** 19 layanan backend (termasuk penunjang, Program Puskesmas, SATUSEHAT, dan BPJS) beserta frontend dalam satu terminal.
 
 Pilihan lain:
 
@@ -366,7 +368,7 @@ Lalu salin ke setiap layanan dan tambahkan port-nya.
 ```bash
 for pasangan in admisi:8081 antrian:8082 auth:8083 farmasi:8084 igd:8085 inventory:8086 lab:8087 \
   laporan:8088 payment:8089 rawat-inap:8091 rawat-jalan:8092 rekamedis:8093 setting:8094 \
-  stok-farmasi:8095 datamaster:8096 satusehat:8097 bpjs:8098 penunjang:8099 studio:8090; do
+  stok-farmasi:8095 datamaster:8096 satusehat:8097 bpjs:8098 penunjang:8099 studio:8090 program-puskesmas:8100; do
   nama=${pasangan%%:*}; port=${pasangan##*:}
   { cat .env.layanan
     echo "APPLICATION_PORT=$port"; echo "APP_PORT=$port"; echo "PORT=$port"; echo "SERVER_PORT=$port"
@@ -380,7 +382,7 @@ done
 ```powershell
 $layanan = @{ admisi=8081; antrian=8082; auth=8083; farmasi=8084; igd=8085; inventory=8086; lab=8087;
   laporan=8088; payment=8089; 'rawat-inap'=8091; 'rawat-jalan'=8092; rekamedis=8093; setting=8094;
-  'stok-farmasi'=8095; datamaster=8096; satusehat=8097; bpjs=8098; penunjang=8099; studio=8090 }
+  'stok-farmasi'=8095; datamaster=8096; satusehat=8097; bpjs=8098; penunjang=8099; studio=8090; 'program-puskesmas'=8100 }
 foreach ($n in $layanan.Keys) {
   $p = $layanan[$n]
   $isi = (Get-Content .env.layanan -Raw) + "APPLICATION_PORT=$p`nAPP_PORT=$p`nPORT=$p`nSERVER_PORT=$p`nAPPLICATION_MODULE=$n`n"
@@ -421,6 +423,7 @@ VITE_BASE_STOK=http://localhost:8095/api/v3
 VITE_BASE_SATUSEHAT=http://localhost:8097/api/v3/satusehat
 VITE_BASE_BPJS=http://localhost:8098/api/v3/bpjs
 VITE_BASE_PENUNJANG=http://localhost:8099/api/v3/penunjang
+VITE_BASE_PROGRAM_PUSKESMAS=http://localhost:8100/api/v3/program-puskesmas
 ```
 
 - Nilai `VITE_*` **dibakar saat build**. Setelah mengubahnya, mulai ulang frontend atau build ulang image.
@@ -525,6 +528,7 @@ Semua diisi di **Setting › Konfigurasi Integrasi** per faskes.
 | **BPJS PCare** (FKTP: praktik, klinik pratama, puskesmas) | Kredensial PCare dari BPJS Kesehatan | Modul `bpjs_fktp`. Pendaftaran & kunjungan dikirim otomatis berkala. Uji dulu dengan `BPJS_LINGKUNGAN=development`. |
 | **BPJS VClaim** (FKRTL: klinik utama, RS) | Kredensial VClaim | Modul `bpjs_fkrtl`: cek peserta, rujukan, SEP. |
 | **LIS** (Laboratory Information System) | URL & API key LIS (format adamLIS) | Nyalakan fitur **Bridging LIS** bila belum aktif di segmen Anda, isi koneksi (URL registrasi, URL ambil hasil, API key, kode RS, kode lab, mode kirim), lalu petakan kode di **Laboratorium › Mapping LIS** (tindakan, unit/dokter/penjamin, item hasil). Gagal kirim ke LIS = validasi order dibatalkan. Uji dulu dengan LIS tiruan: `node scripts/lis-tiruan.mjs` (lihat [README LIS tiruan](../scripts/README-lis-tiruan.md)). |
+| **PACS/RIS** (Radiologi) | URL & API key PACS/RIS | Nyalakan fitur **Bridging PACS/RIS** (`rad_bridging_pacs`) bila belum aktif di segmen Anda, isi koneksi di **Setting › Konfigurasi Integrasi › Konfigurasi PACS** (URL kirim order, URL ambil hasil, URL viewer, API key, kode RS), lalu petakan kode di **Radiologi › Mapping PACS** (tindakan → kode prosedur & modalitas, unit/dokter/penjamin, ruang/alat → AE Title). Gagal kirim ke PACS = validasi order dibatalkan; tombol **Validasi Saja** tetap tersedia sebagai jalur darurat. Titik masuk hasil (push dari PACS, tanpa JWT): `http(s)://<host penunjang-service>/adam-pacs/bridging?key=<kunci masuk>`. Uji dulu dengan PACS tiruan: `node scripts/pacs-tiruan.mjs` (lihat [README PACS tiruan](../scripts/README-pacs-tiruan.md)). |
 | **LIS PA** (sistem informasi patologi anatomi) | URL & API key sistem PA (format adamLIS) | Nyalakan fitur **Bridging LIS Patologi Anatomi** bila belum aktif, isi koneksi di **Konfigurasi LIS PA** (URL registrasi, URL ambil hasil, API key, kode RS), lalu petakan kode di **Patologi Anatomi › Mapping LIS PA** (pemeriksaan, unit/dokter/penjamin, field hasil). Gagal kirim ke LIS PA = validasi order dibatalkan. Uji dulu dengan sistem PA tiruan: `node scripts/lis-pa-tiruan.mjs` (lihat [README sistem PA tiruan](../scripts/README-lis-pa-tiruan.md)). |
 
 Ubah `SATUSEHAT_MODE`/`BPJS_MODE` ke `nyata` dan lingkungan ke produksi (`SATUSEHAT_LINGKUNGAN=produksi`, `BPJS_LINGKUNGAN=production`) hanya di production dan setelah uji di sandbox lulus.

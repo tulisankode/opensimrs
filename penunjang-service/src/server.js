@@ -1,7 +1,8 @@
 import express from "express";
 import config from "./config.js";
 import rute from "./rute.js";
-import { ruteMasuk } from "./patologi/lis-pa/lis-pa-rute.js";
+import { ruteMasuk as ruteMasukLisPa } from "./patologi/lis-pa/lis-pa-rute.js";
+import { ruteMasuk as ruteMasukPacs } from "./pacs/pacs-rute.js";
 
 const app = express();
 
@@ -14,8 +15,9 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: "5mb" }));
-// Hasil dari sistem PA tujuan memakai kunci masuk per koneksi, bukan token login (Bridging LIS PA)
-app.use(ruteMasuk);
+// Hasil dari PACS/RIS dan sistem PA memakai kunci masuk per koneksi, bukan token login (dipasang sebelum wajibLogin di rute.js)
+app.use(ruteMasukPacs);
+app.use(ruteMasukLisPa);
 app.use(config.basePath, rute);
 
 app.listen(config.port, config.host, () => {

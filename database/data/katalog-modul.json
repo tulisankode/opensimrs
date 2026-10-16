@@ -379,10 +379,14 @@
       "nama": "Program Puskesmas",
       "kelompok": "Puskesmas",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "KIA/KB, imunisasi, MTBS, UKM, laporan LB1 & dinkes.",
-      "menu": [],
-      "rute": [],
+      "menu": [
+        "Program Puskesmas"
+      ],
+      "rute": [
+        "/program-puskesmas"
+      ],
       "urutan": 18
     },
     {
@@ -401,10 +405,14 @@
       "nama": "ICU / Intensif",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "Pemantauan intensif & flowsheet.",
-      "menu": [],
-      "rute": [],
+      "menu": [
+        "ICU"
+      ],
+      "rute": [
+        "/icu"
+      ],
       "urutan": 20
     },
     {
@@ -432,12 +440,16 @@
     {
       "kode": "cssd",
       "nama": "CSSD",
-      "kelompok": "Rumah Sakit",
+      "kelompok": "Penunjang",
       "inti": false,
-      "tersedia": false,
-      "deskripsi": "Sterilisasi alat.",
-      "menu": [],
-      "rute": [],
+      "tersedia": true,
+      "deskripsi": "Sterilisasi alat & pelacakan set instrumen: master set, penerimaan, dekontaminasi, load sterilisasi, penyimpanan & distribusi, pemakaian pasien, recall.",
+      "menu": [
+        "CSSD"
+      ],
+      "rute": [
+        "/cssd"
+      ],
       "urutan": 23
     },
     {
@@ -1117,6 +1129,87 @@
       "urutan": 54
     },
     {
+      "kode": "program_puskesmas_satusehat",
+      "modul": "program_puskesmas",
+      "nama": "Kirim Imunisasi ke SATUSEHAT",
+      "deskripsi": "Mengirim resource Immunization ke SATUSEHAT setiap pelayanan imunisasi tersimpan. Butuh konfigurasi integrasi SATUSEHAT faskes.",
+      "tersedia": true,
+      "wajib": false,
+      "modul_syarat": "satusehat",
+      "rute": [],
+      "urutan": 55
+    },
+    {
+      "kode": "icu_dashboard",
+      "modul": "icu",
+      "nama": "Dasbor ICU",
+      "deskripsi": "Ringkasan bed terisi di ruang intensif: diagnosis, hari rawat, status ventilator & peringatan nilai kritis.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/icu/dashboard"],
+      "urutan": 55
+    },
+    {
+      "kode": "icu_serah_terima",
+      "modul": "icu",
+      "nama": "Serah Terima ICU",
+      "deskripsi": "Kriteria masuk/keluar & serah terima terstruktur, tertaut ke perpindahan bangsal (ri_perpindahan).",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 56
+    },
+    {
+      "kode": "icu_flowsheet",
+      "modul": "icu",
+      "nama": "Flowsheet Observasi",
+      "deskripsi": "Observasi per jam/interval: tanda vital, SpO2, GCS, nyeri, parameter ventilator & tren.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 57
+    },
+    {
+      "kode": "icu_balance_cairan",
+      "modul": "icu",
+      "nama": "Balance Cairan",
+      "deskripsi": "Intake-output & balance otomatis per shift dan 24 jam.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 58
+    },
+    {
+      "kode": "icu_skor_sofa",
+      "modul": "icu",
+      "nama": "Skor SOFA",
+      "deskripsi": "Skor keparahan SOFA saat masuk & harian, beserta riwayat penilaian.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 59
+    },
+    {
+      "kode": "icu_laporan",
+      "modul": "icu",
+      "nama": "Laporan ICU",
+      "deskripsi": "BOR, ALOS, angka kematian & hari ventilator ruang intensif.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/icu/laporan"],
+      "urutan": 60
+    },
+    {
+      "kode": "rad_bridging_pacs",
+      "modul": "radiologi",
+      "nama": "Bridging PACS/RIS",
+      "deskripsi": "Kirim order ke PACS/RIS dan terima hasil, expertise, serta tautan citra.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 55
+    },
+    {
       "kode": "pa_bridging_lis",
       "modul": "patologi_anatomi",
       "nama": "Bridging LIS Patologi Anatomi",
@@ -1594,7 +1687,8 @@
       ],
       "klinik_utama": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ],
       "puskesmas": [
         "bayar_diskon_voucher",
@@ -1606,19 +1700,23 @@
       ],
       "rs_d": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ],
       "rs_c": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ],
       "rs_b": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ],
       "rs_a": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ]
     },
     "bagian_mati": {
