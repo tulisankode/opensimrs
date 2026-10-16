@@ -21,7 +21,7 @@ import {
   baseInstanceStudio,
   baseInstanceMentah,
 } from "./Api";
-import { app } from "@/main";
+import { app } from "@/utils/aplikasi";
 import { useAuthStore } from "@/stores/auth";
 import axios from "axios";
 

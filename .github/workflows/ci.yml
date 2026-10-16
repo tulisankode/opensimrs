@@ -68,6 +68,8 @@ jobs:
           npx sequelize-cli db:migrate   # idempoten: kedua kali tidak boleh mengubah apa pun
       - name: Dokumen katalog modul sinkron dengan katalog-modul.json
         run: node scripts/dokumen-katalog.mjs --cek
+      - name: Integritas lintas berkas (rute katalog, menu navbar, migrasi, import @/main)
+        run: node scripts/cek-integritas.mjs
 
   frontend:
     runs-on: ubuntu-latest
