@@ -13,6 +13,7 @@ import { batalkanProses, jalankanClaude, versiClaude } from "./agen/claude.js";
 import { jalankanApi } from "./agen/api.js";
 import { ATURAN_PLATFORM } from "./agen/prompt.js";
 import { ambilKonektor } from "./agen/index.js";
+import * as akunClaude from "./agen/akun.js";
 import { pastikan, punyaAksesStudio, ringkasIzin } from "./izin.js";
 import { PERAN } from "./gerbang.js";
 import * as gitremote from "./gitremote.js";
@@ -462,6 +463,35 @@ rute.put("/pengaturan", tangani(async (req, res) => {
   }
   await audit(req.author.username, "Mengubah pengaturan Studio", null, Object.keys(body).filter((k) => k !== "git_token"));
   kirim(res, untukTampilan((await bacaSemua()).nilai), "Pengaturan disimpan");
+}));
+
+// Akun Claude Code (langganan) agen Studio: login lewat peramban (OAuth claude.ai) tanpa membuka terminal.
+rute.get("/pengaturan/akun-claude", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  kirim(res, { akun: await akunClaude.statusAkun(), login: akunClaude.statusLogin() });
+}));
+rute.post("/pengaturan/akun-claude/login", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  const login = await akunClaude.mulaiLogin({ email: req.body?.email || undefined });
+  await audit(req.author.username, "Memulai login akun Claude Code");
+  kirim(res, login, "Buka halaman login Claude, lalu tempel kode yang ditampilkan");
+}));
+rute.post("/pengaturan/akun-claude/kode", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  const akun = await akunClaude.kirimKode(req.body?.kode);
+  await audit(req.author.username, "Menghubungkan akun Claude Code", null, { email: akun.email, paket: akun.paket });
+  kirim(res, akun, `Akun Claude terhubung${akun.email ? `: ${akun.email}` : ""}`);
+}));
+rute.post("/pengaturan/akun-claude/batal", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  akunClaude.batalLogin();
+  kirim(res, { berjalan: false }, "Login dibatalkan");
+}));
+rute.post("/pengaturan/akun-claude/keluar", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  const akun = await akunClaude.keluar();
+  await audit(req.author.username, "Memutus akun Claude Code");
+  kirim(res, akun, "Akun Claude diputus");
 }));
 
 rute.post("/pengaturan/kill-switch", tangani(async (req, res) => {

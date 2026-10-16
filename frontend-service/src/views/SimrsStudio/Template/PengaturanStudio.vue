@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Pengaturan SIMRS Studio (superadmin): fitur, kill switch, agen (Claude Code langganan + konektor API), konektor & model
 // per tahap, batas biaya/kuota/laju, integrasi Git, kunci penanda tangan ekstensi, aturan instalasi.
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import PageToolbar from "@/components/Base/PageToolbar.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import { apiStudioGet, apiStudioPost, apiStudioPut, apiEkstensi } from "@/utils/apiHandler";
@@ -25,6 +25,7 @@ const muat = async () => {
   peran.value = b?.payload?.peran ?? {};
   konektor.value = c?.payload ?? [];
   aplikasi.value = d?.payload ?? null;
+  muatAkunClaude();
   if (nilai.value) {
     nilai.value.konektorTahap ??= {};
     nilai.value.modelTahap ??= {};
@@ -46,6 +47,83 @@ const simpan = async () => {
   await muat();
   studio.muat();
 };
+
+// ---------- Akun Claude Code (login lewat peramban, tanpa terminal) ----------
+const akunClaude = ref<any>(null);
+const prosesAkun = ref(false);
+const dialogLoginClaude = ref(false);
+const urlLoginClaude = ref("");
+const kodeClaude = ref("");
+let pantauLogin: ReturnType<typeof setInterval> | undefined;
+
+const muatAkunClaude = async () => {
+  const res = await apiStudioGet("/pengaturan/akun-claude", true);
+  akunClaude.value = res?.payload?.akun ?? akunClaude.value;
+  return res?.payload;
+};
+const hentikanPantau = () => {
+  if (pantauLogin) clearInterval(pantauLogin);
+  pantauLogin = undefined;
+};
+const mulaiLoginClaude = async () => {
+  // Tab dibuka sebelum menunggu server agar tidak diblokir pemblokir pop-up, lalu diarahkan ke URL login.
+  const tab = window.open("about:blank", "_blank");
+  prosesAkun.value = true;
+  try {
+    const res = await apiStudioPost("/pengaturan/akun-claude/login", {}, true);
+    const url = res?.payload?.url;
+    if (!url) {
+      tab?.close();
+      return;
+    }
+    urlLoginClaude.value = url;
+    if (tab) tab.location.href = url;
+    kodeClaude.value = "";
+    dialogLoginClaude.value = true;
+    // Bila CLI menyelesaikan login tanpa kode (mis. callback lokal), dialog tertutup sendiri.
+    hentikanPantau();
+    pantauLogin = setInterval(async () => {
+      const p = await muatAkunClaude();
+      if (p?.login?.selesai) {
+        hentikanPantau();
+        if (p.login.ok) dialogLoginClaude.value = false;
+      }
+    }, 4000);
+  } finally {
+    prosesAkun.value = false;
+  }
+};
+const kirimKodeClaude = async () => {
+  if (!kodeClaude.value.trim()) return;
+  prosesAkun.value = true;
+  try {
+    const res = await apiStudioPost("/pengaturan/akun-claude/kode", { kode: kodeClaude.value.trim() });
+    if (res?.payload) {
+      akunClaude.value = res.payload;
+      hentikanPantau();
+      dialogLoginClaude.value = false;
+    }
+  } finally {
+    prosesAkun.value = false;
+  }
+};
+const tutupLoginClaude = async () => {
+  hentikanPantau();
+  kodeClaude.value = "";
+  const p = await muatAkunClaude();
+  if (p?.login?.berjalan) await apiStudioPost("/pengaturan/akun-claude/batal", {}, true);
+};
+const keluarClaude = async () => {
+  if (!window.confirm("Putuskan akun Claude? Agen Studio dan Claude Code di VS Code pada komputer ini perlu login lagi.")) return;
+  prosesAkun.value = true;
+  try {
+    const res = await apiStudioPost("/pengaturan/akun-claude/keluar", {});
+    if (res?.payload) akunClaude.value = res.payload;
+  } finally {
+    prosesAkun.value = false;
+  }
+};
+onUnmounted(hentikanPantau);
 
 // Repo utama (aplikasi yang dijalankan npm run dev) dipindah ke branch lokal agar hasil penerapan langsung terlihat.
 const pindahkanAplikasi = async () => {
@@ -181,7 +259,25 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
               </div>
               <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Uji" outlined icon="PhPulse" :disabled="!!menguji" @click="uji('claude_code')" />
             </div>
-            <div class="text-XS text-grey-400">Agen bawaan: <code>claude -p</code> di mesin ini dengan login yang sama seperti Claude Code di VS Code (Pro/Max lewat <code>/login</code>). Pemakaian dihitung ke kuota langganan.</div>
+            <div class="text-XS text-grey-400">Agen bawaan: <code>claude -p</code> di mesin ini dengan login yang sama seperti Claude Code di VS Code. Pemakaian dihitung ke kuota langganan.</div>
+            <!-- Akun Claude: login lewat peramban (claude.ai, bisa dengan akun Google) -->
+            <div class="flex flex-wrap items-center gap-2 rounded-lg bg-opensimrs-50 p-2 text-XS text-grey-500">
+              <PhUserCircle :size="20" :weight="akunClaude?.masuk ? 'fill' : 'regular'" :class="akunClaude?.masuk ? 'text-success-300' : 'text-grey-300'" aria-hidden="true" />
+              <span class="min-w-0 flex-1">
+                <template v-if="!akunClaude">Memeriksa akun…</template>
+                <template v-else-if="!akunClaude.terpasang">Claude Code CLI belum terpasang di mesin ini.</template>
+                <template v-else-if="akunClaude.masuk">
+                  Terhubung: <b>{{ akunClaude.email ?? "-" }}</b>
+                  <template v-if="akunClaude.paket"> · paket {{ akunClaude.paket }}</template>
+                  <template v-if="akunClaude.organisasi"> · {{ akunClaude.organisasi }}</template>
+                </template>
+                <template v-else>Belum ada akun Claude yang terhubung.</template>
+              </span>
+              <template v-if="akunClaude?.terpasang">
+                <CustomButton :label="akunClaude.masuk ? 'Ganti akun' : 'Hubungkan akun Claude'" icon="PhSignIn" :outlined="akunClaude.masuk" :text-color="akunClaude.masuk ? 'text-opensimrs-300' : ''" :border-color="akunClaude.masuk ? 'border-opensimrs-300' : ''" :disabled="prosesAkun" @click="mulaiLoginClaude" />
+                <CustomButton v-if="akunClaude.masuk" label="Putuskan" icon="PhSignOut" outlined text-color="text-danger-300" border-color="border-danger-300" :disabled="prosesAkun" @click="keluarClaude" />
+              </template>
+            </div>
             <div v-if="kuota" class="rounded-lg bg-grey-50 p-2 text-XS text-grey-500">
               <div class="flex justify-between"><span>Kuota {{ kuota.jenis }}</span><b>{{ kuota.persen ?? "-" }}% terpakai</b></div>
               <div class="mt-1 h-2 overflow-hidden rounded-full bg-white">
@@ -331,6 +427,23 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
       </template>
     </template>
   </Card>
+
+  <Dialog v-model:visible="dialogLoginClaude" modal header="Hubungkan akun Claude" :style="{ width: '32rem' }" @hide="tutupLoginClaude">
+    <div class="flex flex-col gap-3 text-SM text-grey-500">
+      <ol class="flex list-decimal flex-col gap-1 pl-5">
+        <li>Halaman login Claude terbuka di tab baru. Masuk dengan akun Claude Pro/Max Anda, misalnya lewat <b>Continue with Google</b>.</li>
+        <li>Setelah mengizinkan Claude Code, halaman menampilkan <b>kode</b>. Salin seluruh kode itu.</li>
+        <li>Tempel kodenya di bawah, lalu klik <b>Hubungkan</b>.</li>
+      </ol>
+      <a v-if="urlLoginClaude" :href="urlLoginClaude" target="_blank" rel="noopener" class="text-XS text-opensimrs-300 underline">Tab tidak terbuka? Buka halaman login Claude</a>
+      <input v-model="kodeClaude" class="rounded border border-grey-200 px-2 py-1.5 font-mono text-XS" placeholder="Tempel kode dari halaman Claude" @keyup.enter="kirimKodeClaude" />
+      <div class="text-XS text-grey-400">Akun ini juga dipakai Claude Code di VS Code pada komputer ini. Gunakan langganan pribadi Anda; satu langganan tidak untuk dipakai bersama.</div>
+    </div>
+    <template #footer>
+      <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Batal" outlined @click="dialogLoginClaude = false" />
+      <CustomButton label="Hubungkan" icon="PhSignIn" :disabled="!kodeClaude.trim() || prosesAkun" @click="kirimKodeClaude" />
+    </template>
+  </Dialog>
 
   <Dialog v-model:visible="dialogKonektor" modal header="Konektor agen" :style="{ width: '34rem' }">
     <div class="flex flex-col gap-2 text-SM text-grey-500">
