@@ -208,6 +208,20 @@ services:
     networks: [opensimrs]
     restart: always
     ports: ["8099:8099"]
+
+  # Program Puskesmas: KIA/KB, imunisasi, MTBS, sasaran, UKM, laporan dinkes (lihat program-puskesmas-service/.env.example)
+  program-puskesmas-service:
+    depends_on: [db, mongodb]
+    container_name: program-puskesmas-service
+    image: opensimrs/program-puskesmas-service:v1.0.0
+    build:
+      context: ./program-puskesmas-service
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8100:8100"]
   
   setting-service:
     depends_on: [db, redis, mongodb]
