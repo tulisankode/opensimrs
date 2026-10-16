@@ -14,6 +14,7 @@ import { jalankanApi } from "./agen/api.js";
 import { ATURAN_PLATFORM } from "./agen/prompt.js";
 import { ambilKonektor } from "./agen/index.js";
 import * as akunClaude from "./agen/akun.js";
+import * as codex from "./agen/codex.js";
 import { pastikan, punyaAksesStudio, ringkasIzin } from "./izin.js";
 import { PERAN } from "./gerbang.js";
 import * as gitremote from "./gitremote.js";
@@ -494,6 +495,29 @@ rute.post("/pengaturan/akun-claude/keluar", tangani(async (req, res) => {
   kirim(res, akun, "Akun Claude diputus");
 }));
 
+// Akun Codex (langganan ChatGPT): login kode perangkat di auth.openai.com/codex/device.
+rute.get("/pengaturan/akun-codex", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  kirim(res, { akun: await codex.statusAkunCodex(), login: codex.statusLoginCodex() });
+}));
+rute.post("/pengaturan/akun-codex/login", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  const login = await codex.mulaiLoginCodex();
+  await audit(req.author.username, "Memulai login akun Codex (ChatGPT)");
+  kirim(res, login, "Buka tautan login ChatGPT dan masukkan kodenya");
+}));
+rute.post("/pengaturan/akun-codex/batal", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  codex.batalLoginCodex();
+  kirim(res, { berjalan: false }, "Login dibatalkan");
+}));
+rute.post("/pengaturan/akun-codex/keluar", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  const akun = await codex.keluarCodex();
+  await audit(req.author.username, "Memutus akun Codex (ChatGPT)");
+  kirim(res, akun, "Akun Codex diputus");
+}));
+
 rute.post("/pengaturan/kill-switch", tangani(async (req, res) => {
   wajibSuperadmin(req);
   const aktif = Boolean(req.body?.aktif);
@@ -571,6 +595,8 @@ rute.post("/konektor/uji", tangani(async (req, res) => {
     let hasil;
     if (!req.body?.konektor || req.body.konektor === "claude_code") {
       ({ hasil } = await jalankanClaude({ tugasUuid: tugas.uuid, prompt, mode: "dokumen", model: req.body?.model || "", mcp: false }));
+    } else if (req.body.konektor === "codex") {
+      ({ hasil } = await codex.jalankanCodex({ tugasUuid: tugas.uuid, prompt, mode: "dokumen", model: req.body?.model || "", base: config.repoDir }));
     } else {
       const k = await ambilKonektor({ konektor_tahap: { uji: req.body.konektor } }, "uji");
       ({ hasil } = await jalankanApi({ tugasUuid: tugas.uuid, prompt, mode: "dokumen", konektor: k, model: req.body?.model || "", base: config.repoDir }));
@@ -625,14 +651,15 @@ crudTeks("studio_pengetahuan", "pengetahuan", []);
 
 rute.get("/sistem", tangani(async (req, res) => {
   await bolehBaca(req);
-  const [claude, branch, repo, kuota, biaya] = await Promise.all([
+  const [claude, codexCli, branch, repo, kuota, biaya] = await Promise.all([
     versiClaude(),
+    codex.versiCodex(),
     branchSekarang().catch((e) => `galat: ${e.message}`),
     urlRepo(),
     satu(`SELECT kuota, updated_at FROM studio_tugas WHERE kuota IS NOT NULL ORDER BY updated_at DESC LIMIT 1`),
     satu(`SELECT COALESCE(SUM(biaya_usd), 0) AS total, COUNT(*) AS jumlah FROM studio_tugas WHERE created_at >= $1`, [sekarang() - 30 * 86400]),
   ]);
-  kirim(res, { claude, repoDir: config.repoDir, repo, branch, lingkungan: config.lingkungan, kuota: kuota?.kuota ?? null, kuotaPada: kuota ? Number(kuota.updated_at) : null, biaya30Hari: biaya });
+  kirim(res, { claude, codex: codexCli, repoDir: config.repoDir, repo, branch, lingkungan: config.lingkungan, kuota: kuota?.kuota ?? null, kuotaPada: kuota ? Number(kuota.updated_at) : null, biaya30Hari: biaya });
 }));
 
 rute.get("/audit", tangani(async (req, res) => {
