@@ -50,7 +50,8 @@ rute.get(
     const p1 = [req.author.faskesUuid];
     const w1 = "faskes_uuid = $1 AND deleted_at IS NULL AND status = 'gagal'" + rentangWaktu(req, p1, "waktu_mulai");
     const p2 = [req.author.faskesUuid];
-    const w2 = "faskes_uuid = $1 AND hasil = 'gagal'" + rentangWaktu(req, p2, "EXTRACT(EPOCH FROM tanggal)::bigint");
+    // cssd_mesin juga punya faskes_uuid: kolom wajib berawalan alias tabel.
+    const w2 = "bd.faskes_uuid = $1 AND bd.hasil = 'gagal'" + rentangWaktu(req, p2, "EXTRACT(EPOCH FROM bd.tanggal)::bigint");
     const [load, bowieDick] = await Promise.all([
       query(`SELECT uuid, nomor_load, metode, hasil_indikator_kimia, hasil_indikator_biologi, waktu_mulai FROM cssd_load WHERE ${w1} ORDER BY waktu_mulai DESC`, p1),
       query(`SELECT bd.uuid, bd.tanggal, bd.catatan, m.nama_mesin FROM cssd_bowie_dick bd JOIN cssd_mesin m ON m.uuid = bd.mesin_uuid WHERE ${w2} ORDER BY bd.tanggal DESC`, p2),
