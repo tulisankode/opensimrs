@@ -76,7 +76,7 @@ Membangun semua image Docker sekaligus membutuhkan ruang disk besar (±10 GB lap
 
 ## 3. Gambaran sistem & port
 
-OpenSIMRS terdiri dari satu frontend (Vue 3) dan 18 layanan backend (Node.js + Express) dalam satu repo (**monorepo**, tanpa git submodule). Semua layanan memakai **satu database PostgreSQL bersama**, MongoDB untuk isi rekam medis, dan Redis untuk cache token/izin. Tiga paket SDK bersama (`@opensimrs/model-sdk`, `@opensimrs/authorization-sdk`, `@opensimrs/permission-sdk`) ada di folder `packages/`.
+OpenSIMRS terdiri dari satu frontend (Vue 3) dan 19 layanan backend (Node.js + Express) dalam satu repo (**monorepo**, tanpa git submodule). Semua layanan memakai **satu database PostgreSQL bersama**, MongoDB untuk isi rekam medis, dan Redis untuk cache token/izin. Tiga paket SDK bersama (`@opensimrs/model-sdk`, `@opensimrs/authorization-sdk`, `@opensimrs/permission-sdk`) ada di folder `packages/`.
 
 | Port | Layanan | Folder | Awalan API |
 |---|---|---|---|
@@ -98,7 +98,8 @@ OpenSIMRS terdiri dari satu frontend (Vue 3) dan 18 layanan backend (Node.js + E
 | 8096 | Datamaster | `datamaster-service` | `/api/v3/datamaster` |
 | 8097 | Integrasi SATUSEHAT | `satusehat-service` | `/api/v3/satusehat` |
 | 8098 | Integrasi BPJS (PCare & VClaim) | `bpjs-service` | `/api/v3/bpjs` |
-| 8099 | Penunjang (Fisioterapi, Radiologi, MCU, Patologi Anatomi, Mikrobiologi) | `penunjang-service` | `/api/v3/penunjang` |
+| 8099 | Penunjang (Fisioterapi, Radiologi, MCU, Patologi Anatomi, Mikrobiologi, CSSD) | `penunjang-service` | `/api/v3/penunjang` |
+| 8100 | Program Puskesmas (KIA/KB, imunisasi, MTBS, sasaran, UKM, laporan dinkes) | `program-puskesmas-service` | `/api/v3/program-puskesmas` |
 | 8090 | SIMRS Studio — mode pengembang berbasis AI (opsional; dijalankan langsung di mesin pengembang yang sudah login Claude Code, aktif bila `STUDIO_PENGEMBANG=aktif`) | `studio-service` | `/api/v3/studio` |
 | 5432 | PostgreSQL | – | – |
 | 27017 | MongoDB | – | – |
@@ -247,7 +248,7 @@ npm run db:demo:master-penunjang       # opsional: lengkapi datamaster lab/radio
 npm run dev
 ```
 
-`npm run dev` menjalankan **semua** 18 layanan backend (termasuk penunjang, SATUSEHAT, dan BPJS) beserta frontend dalam satu terminal.
+`npm run dev` menjalankan **semua** 19 layanan backend (termasuk penunjang, Program Puskesmas, SATUSEHAT, dan BPJS) beserta frontend dalam satu terminal.
 
 Pilihan lain:
 
@@ -366,7 +367,7 @@ Lalu salin ke setiap layanan dan tambahkan port-nya.
 ```bash
 for pasangan in admisi:8081 antrian:8082 auth:8083 farmasi:8084 igd:8085 inventory:8086 lab:8087 \
   laporan:8088 payment:8089 rawat-inap:8091 rawat-jalan:8092 rekamedis:8093 setting:8094 \
-  stok-farmasi:8095 datamaster:8096 satusehat:8097 bpjs:8098 penunjang:8099 studio:8090; do
+  stok-farmasi:8095 datamaster:8096 satusehat:8097 bpjs:8098 penunjang:8099 studio:8090 program-puskesmas:8100; do
   nama=${pasangan%%:*}; port=${pasangan##*:}
   { cat .env.layanan
     echo "APPLICATION_PORT=$port"; echo "APP_PORT=$port"; echo "PORT=$port"; echo "SERVER_PORT=$port"
@@ -380,7 +381,7 @@ done
 ```powershell
 $layanan = @{ admisi=8081; antrian=8082; auth=8083; farmasi=8084; igd=8085; inventory=8086; lab=8087;
   laporan=8088; payment=8089; 'rawat-inap'=8091; 'rawat-jalan'=8092; rekamedis=8093; setting=8094;
-  'stok-farmasi'=8095; datamaster=8096; satusehat=8097; bpjs=8098; penunjang=8099; studio=8090 }
+  'stok-farmasi'=8095; datamaster=8096; satusehat=8097; bpjs=8098; penunjang=8099; studio=8090; 'program-puskesmas'=8100 }
 foreach ($n in $layanan.Keys) {
   $p = $layanan[$n]
   $isi = (Get-Content .env.layanan -Raw) + "APPLICATION_PORT=$p`nAPP_PORT=$p`nPORT=$p`nSERVER_PORT=$p`nAPPLICATION_MODULE=$n`n"
@@ -421,6 +422,7 @@ VITE_BASE_STOK=http://localhost:8095/api/v3
 VITE_BASE_SATUSEHAT=http://localhost:8097/api/v3/satusehat
 VITE_BASE_BPJS=http://localhost:8098/api/v3/bpjs
 VITE_BASE_PENUNJANG=http://localhost:8099/api/v3/penunjang
+VITE_BASE_PROGRAM_PUSKESMAS=http://localhost:8100/api/v3/program-puskesmas
 ```
 
 - Nilai `VITE_*` **dibakar saat build**. Setelah mengubahnya, mulai ulang frontend atau build ulang image.

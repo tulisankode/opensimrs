@@ -34,7 +34,7 @@
 
 ## Overview
 
-OpenSIMRS adalah platform Sistem Informasi Klinik & Rumah Sakit berbasis microservices yang terdiri dari 18 layanan backend (dokumen ini mencakup 15 layanan inti; SATUSEHAT, BPJS, dan penunjang belum didokumentasikan di sini). Setiap layanan memiliki tanggung jawab spesifik dan berkomunikasi melalui REST API.
+OpenSIMRS adalah platform Sistem Informasi Klinik & Rumah Sakit berbasis microservices yang terdiri dari 19 layanan backend (dokumen ini mencakup 15 layanan inti; SATUSEHAT, BPJS, penunjang, dan Program Puskesmas belum didokumentasikan di sini). Setiap layanan memiliki tanggung jawab spesifik dan berkomunikasi melalui REST API.
 
 ### Technology Stack
 - **Backend**: Node.js/Express dengan TypeScript/JavaScript (ES Modules)
