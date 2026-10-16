@@ -82,7 +82,7 @@ HELPDESK_GATEWAY_TOKEN=<token dari langkah 3>
 Langkah berikutnya:
 1. Jalankan ulang setting-service, lalu uji dari server SIMRS: `HELPDESK_GATEWAY_URL=… HELPDESK_GATEWAY_TOKEN=… ./deploy/helpdesk/uji-gateway.sh`.
 2. Di OpenSIMRS, fitur **Asisten Bantuan (Helpdesk AI)** (modul Dashboard) aktif bawaan untuk semua segmen. Superadmin bisa mematikannya per faskes di **Setting › Manajemen Modul**.
-3. Tombol **?** muncul di header. Pertanyaan dan jawaban (sudah disaring) tersimpan 90 hari di tabel `bantuan_log`. Ringkasannya untuk superadmin tersedia di `GET /api/v3/setting/bantuan/ringkasan`.
+3. Tombol **Bantuan** (ikon headset, di tempat ikon lonceng) aktif di header, dengan titik hijau bila asisten siap. Pertanyaan dan jawaban (sudah disaring) tersimpan 90 hari di tabel `bantuan_log`. Ringkasannya untuk superadmin tersedia di `GET /api/v3/setting/bantuan/ringkasan`.
 
 ## 6. Pengembangan lokal tanpa VM
 

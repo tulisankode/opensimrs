@@ -80,14 +80,13 @@ Panduan pengguna adalah prasyarat (fase 0). Drafnya dibuat agen dari kode (menu,
 
 ## 5. Antarmuka di OpenSIMRS
 
-- **Tombol Bantuan** (ikon `?`) di header membuka panel chat di sisi kanan. Panel tetap terbuka saat berpindah halaman.
+- **Tombol Bantuan** (ikon headset) di header, menggantikan ikon lonceng statis, membuka jendela chat ala chatbot di kanan atas. Jendela tetap terbuka saat berpindah halaman. Bila Helpdesk belum aktif, tombol tetap tampil dan jendela menjelaskan alasannya.
 - Isi panel:
   - jawaban streaming;
   - saran pertanyaan sesuai halaman, misalnya di Order Lab: "cara membatalkan order";
   - tombol "Mulai percakapan baru";
   - penanda "Dijawab AI — periksa kembali".
 - Pesan pembuka mengingatkan pengguna untuk tidak menulis data pasien.
-- Bila Helpdesk belum diaktifkan, tombol tidak tampil.
 
 ## 6. Aktivasi dan konfigurasi
 
