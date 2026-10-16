@@ -111,6 +111,7 @@ Hal yang perlu diperhatikan:
 - **Branch lokal** sebaiknya diisi eksplisit, misalnya `rs-lokal`. Bila kosong, Studio memakai branch yang sedang aktif di repo.
 - **Aplikasi pengembang harus memakai branch lokal.** `npm run dev` menjalankan kode dari branch yang sedang aktif di repo utama. Bila repo utama masih di branch lain (misalnya `main`), hasil penerapan tidak terlihat. Studio menampilkan peringatan dan tombol **Pindahkan aplikasi ke `<branch lokal>`** di halaman item dan di Pengaturan.
 - Layanan dalam mode dev (nodemon) dan frontend (Vite) memuat ulang perubahan secara otomatis. Di server, jalankan ulang layanan yang berubah.
+- **Dependensi ikut dipasang.** Bila item mengubah `package.json`/`package-lock.json` suatu layanan, Studio menjalankan `npm install` di layanan itu. Bila item mengubah SDK lokal (`packages/*`), Studio menjalankan `npm run sdk:refresh`. Layanan nodemon yang terdampak lalu dimuat ulang. `studio-service` dan frontend tidak dimuat ulang otomatis: bila keduanya terdampak, pesan sistem meminta Anda menjalankannya ulang.
 
 #### Aktivasi otomatis setelah diterapkan
 
