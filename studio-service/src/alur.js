@@ -924,6 +924,69 @@ const gabung = async (cwd, args, judul) => {
   throw new Galat(409, `${judul} gagal karena konflik${bentrok.length ? ` pada: ${bentrok.join(", ")}` : `: ${r.galat}`}. Selesaikan manual di VS Code, atau minta agen merevisi item.`);
 };
 
+// Berkas masuk layanan yang dijalankan nodemon (scripts.dev "nodemon <berkas>", atau main).
+const berkasMasuk = (cwd, layanan) => {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(cwd, layanan, "package.json"), "utf8"));
+    const masuk = pkg.scripts?.dev?.match(/nodemon\s+(\S+)/)?.[1] ?? pkg.main;
+    return masuk && /nodemon/.test(pkg.scripts?.dev ?? "") ? path.join(cwd, layanan, masuk) : null;
+  } catch {
+    return null;
+  }
+};
+
+// Dependensi setelah penerapan (hanya di working tree aplikasi yang berjalan):
+// - package.json/lockfile root atau layanan berubah → npm install di folder itu;
+// - packages/* (SDK lokal) berubah → npm run sdk:refresh (SDK dipasang sebagai salinan).
+// nodemon tidak mengawasi node_modules, jadi layanan terdampak dimuat ulang dengan menyentuh berkas masuknya.
+export const pasangDependensi = async (cwd, berkas) => {
+  const paket = [...new Set(berkas.filter((p) => /^([^/]+\/)?package(-lock)?\.json$/.test(p)).map((p) => (p.includes("/") ? p.split("/")[0] : ".")))]
+    .filter((d) => d !== "packages" && fs.existsSync(path.join(cwd, d, "package.json")));
+  const sdk = berkas.some((p) => p.startsWith("packages/"));
+  if (!paket.length && !sdk) return [];
+  const hasil = [];
+  const dimuat = new Set(paket.filter((d) => d !== "."));
+  for (const d of paket) {
+    const r = await jalankanPerintah("npm", ["install", "--no-audit", "--no-fund"], { cwd: path.join(cwd, d) });
+    hasil.push({ langkah: `npm install di ${d === "." ? "root" : d}`, ok: r.ok, keluaran: r.keluaran });
+  }
+  if (sdk) {
+    const r = await jalankanPerintah("npm", ["run", "sdk:refresh"], { cwd });
+    hasil.push({ langkah: "npm run sdk:refresh", ok: r.ok, keluaran: r.keluaran });
+    for (const l of fs.readdirSync(cwd).filter((n) => n.endsWith("-service"))) {
+      try {
+        const deps = JSON.parse(fs.readFileSync(path.join(cwd, l, "package.json"), "utf8")).dependencies ?? {};
+        if (Object.keys(deps).some((n) => n.startsWith("@opensimrs/"))) dimuat.add(l);
+      } catch {
+        /* bukan layanan Node */
+      }
+    }
+  }
+  const muatUlang = [];
+  const manual = [];
+  const waktu = new Date();
+  for (const l of dimuat) {
+    const masuk = berkasMasuk(cwd, l);
+    if (masuk && fs.existsSync(masuk)) {
+      fs.utimesSync(masuk, waktu, waktu);
+      muatUlang.push(l);
+    } else manual.push(l);
+  }
+  hasil.push({ langkah: "muat ulang layanan", ok: true, muatUlang, manual });
+  return hasil;
+};
+
+const ringkasDependensi = (hasil) => {
+  if (!hasil.length) return "";
+  const langkah = hasil.filter((h) => h.langkah !== "muat ulang layanan");
+  const gagal = langkah.filter((h) => !h.ok);
+  const muat = hasil.find((h) => h.langkah === "muat ulang layanan");
+  return ` Dependensi: ${langkah.map((h) => `${h.langkah} ${h.ok ? "✔" : "GAGAL"}`).join(", ")}.` +
+    (gagal.length ? ` Jalankan manual: ${gagal.map((h) => h.langkah).join("; ")}\n${gagal.map((h) => h.keluaran.slice(-400)).join("\n")}` : "") +
+    (muat?.muatUlang.length ? ` Dimuat ulang: ${muat.muatUlang.join(", ")}.` : "") +
+    (muat?.manual.length ? ` Jalankan ulang manual: ${muat.manual.join(", ")}${muat.manual.includes("frontend-service") ? " (frontend: jalankan ulang npm run dev bila halaman galat)" : ""}.` : "");
+};
+
 const jalankanMigrasi = async (cwd, item, oleh) => {
   const r = await jalankanPerintah("npm", ["run", "db:migrate"], { cwd, timeoutMs: 10 * 60 * 1000 });
   await pesan(item, item.tahap, "sistem", r.ok ? "Migrasi database dijalankan (npm run db:migrate)." : `Migrasi database GAGAL — jalankan manual: npm run db:migrate\n${r.keluaran.slice(-500)}`, oleh);
@@ -990,8 +1053,15 @@ export const terapkanLokal = async (item, oleh, faskesUuid = null) => {
   let migrasi = null;
   let aktivasi = item.sha_batal ? null : item.aktivasi ?? null;
   let catatanAktivasi = "";
+  let catatanDependensi = "";
   const sha = await diBranchTarget(item, target, async (cwd, utama) => {
     const hasil = await gabung(cwd, ["merge", "--no-ff", "-m", `Terapkan SIMRS Studio ${nomor(item)}: ${item.judul}`, item.branch], "Penerapan");
+    const { keluaran: diubah } = await git(["diff", "--name-only", `${hasil}^1`, hasil], { cwd, izinkanGagal: true });
+    const berkasDiubah = diubah.split("\n").filter(Boolean);
+    if (utama) catatanDependensi = ringkasDependensi(await pasangDependensi(cwd, berkasDiubah));
+    else if (berkasDiubah.some((p) => p.startsWith("packages/") || /package(-lock)?\.json$/.test(p))) {
+      catatanDependensi = " Ada perubahan dependensi/SDK: jalankan npm install di layanan terkait dan npm run sdk:refresh setelah aplikasi memakai branch itu.";
+    }
     if (adaMigrasi && nilai.migrasi_otomatis) migrasi = utama ? await jalankanMigrasi(cwd, item, oleh) : false;
     if (nilai.aktivasi_otomatis && migrasi !== false) {
       if (config.lingkungan !== "development") {
@@ -1013,6 +1083,7 @@ export const terapkanLokal = async (item, oleh, faskesUuid = null) => {
     item, item.tahap, "sistem",
     `Diterapkan ke branch lokal ${target} (${sha.slice(0, 7)}).` +
       (adaMigrasi && migrasi === false && nilai.migrasi_otomatis ? " Ada migrasi baru: jalankan npm run db:migrate setelah aplikasi memakai branch itu." : "") +
+      catatanDependensi +
       catatanAktivasi +
       (aplikasi.sama
         ? " Aplikasi pengembang memakai branch ini: frontend & layanan (nodemon) memuat ulang otomatis."
