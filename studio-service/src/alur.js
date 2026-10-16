@@ -90,6 +90,20 @@ const pastikanBebasDataPribadi = (...teks) => {
 
 const pindahTahap = (item, tahap, tambahan = {}) => ubah("studio_item", item.uuid, { tahap, tahap_mulai: sekarang(), ...tambahan });
 
+// Kembali ke tahap sebelumnya (revisi mundur / buka kembali). tahap_mulai baru → persetujuan lama tahap itu tidak berlaku,
+// sehingga tahap ini dan tahap sesudahnya disetujui ulang. Branch & kode item tetap (dipakai agen saat coding diulang).
+const mundurKeTahap = async (item, keTahap, catatan, oleh, peran = null, keputusan = "mundur") => {
+  const kembali = await pindahTahap(item, keTahap, { tahap_sebelum: null });
+  await sisipkan("studio_persetujuan", { item_uuid: item.uuid, tahap: keTahap, keputusan, alasan: catatan, pengguna: oleh, peran });
+  await pesan(
+    kembali, keTahap, "sistem",
+    `${catatan}. Tahap ${NAMA_TAHAP[keTahap]} dan tahap sesudahnya perlu disetujui ulang.` +
+      (item.branch ? ` Kode di branch ${item.branch} tidak dihapus dan dipakai sebagai bahan saat coding diulang.` : ""),
+    oleh,
+  );
+  return kembali;
+};
+
 // ---------- Risiko ----------
 
 // Naikkan risiko (tidak pernah turun otomatis) & kunci batas bawah.
@@ -635,13 +649,18 @@ const pemeriksaanSetuju = async (item) => {
   }
 };
 
-export const putuskan = async (item, { keputusan, alasan, peran }, req) => {
+export const putuskan = async (item, { keputusan, alasan, peran, ke_tahap: keTahap }, req) => {
   const oleh = req.author.username;
   if (!["setuju", "revisi", "tolak"].includes(keputusan)) throw permintaanSalah("Keputusan harus setuju, revisi, atau tolak");
   pastikanAktif(item);
   if (keputusan !== "setuju" && !alasan?.trim()) throw permintaanSalah("Alasan wajib diisi untuk revisi atau tolak");
   if (await tugasBerjalan(item.uuid)) throw new Galat(409, "Tunggu tugas agen selesai sebelum memutuskan");
   const tahap = item.tahap;
+  // Revisi mundur: kembali ke tahap sebelumnya (mis. dari coding ke PRD). Hanya tahap yang sudah dilewati.
+  if (keTahap && keTahap !== tahap) {
+    if (keputusan !== "revisi") throw permintaanSalah("Kembali ke tahap sebelumnya hanya untuk revisi");
+    if (!TAHAP.includes(keTahap) || TAHAP.indexOf(keTahap) > TAHAP.indexOf(tahap)) throw permintaanSalah("Tahap tujuan revisi harus tahap sebelumnya");
+  }
   const gerbang = gerbangTahap(tahap, item.risiko);
   const { nilai } = await bacaSemua();
 
@@ -674,7 +693,8 @@ export const putuskan = async (item, { keputusan, alasan, peran }, req) => {
   await sisipkan("studio_persetujuan", { item_uuid: item.uuid, tahap, keputusan, alasan: alasan?.trim() || null, pengguna: oleh, peran: kode, artefak_uuid: artefak?.uuid ?? null });
   await audit(oleh, `${keputusan === "setuju" ? "Menyetujui" : keputusan === "revisi" ? "Meminta revisi" : "Menolak"} ${NAMA_TAHAP[tahap]} sebagai ${PERAN[kode].label}`, item.uuid, { alasan });
 
-  if (keputusan === "tolak") return ubah("studio_item", item.uuid, { tahap: "dibatalkan" });
+  // Tolak = batalkan item (bisa dibuka kembali superadmin; tahap terakhir disimpan di tahap_sebelum).
+  if (keputusan === "tolak") return ubah("studio_item", item.uuid, { tahap: "dibatalkan", tahap_sebelum: tahap });
 
   if (keputusan === "revisi") {
     await pesan(item, tahap, "pengguna", `Revisi (${PERAN[kode].label}): ${alasan.trim()}`, oleh);
@@ -686,6 +706,15 @@ export const putuskan = async (item, { keputusan, alasan, peran }, req) => {
       }
       await jalankanCoding(it, instruksi, oleh).catch((e) => pesan(it, "coding", "sistem", `Agen coding belum dijalankan: ${e.message}`));
     };
+    if (keTahap && keTahap !== tahap) {
+      const kembali = await mundurKeTahap(item, keTahap, `Dikembalikan dari ${NAMA_TAHAP[tahap]}: ${alasan.trim()}`, oleh, kode);
+      if (keTahap === "coding") await revisiKode(kembali, alasan.trim());
+      else {
+        await jalankanDokumen(kembali, keTahap, `Revisi dari tahap ${NAMA_TAHAP[tahap]}: ${alasan.trim()}`, oleh)
+          .catch((e) => pesan(kembali, keTahap, "sistem", `Agen belum dijalankan: ${e.message.replace(/\.$/, "")}. Klik "AI tulis ulang" atau sunting dokumen manual.`));
+      }
+      return ambilItem(item.uuid);
+    }
     if (tahap === "coding") await revisiKode(item, alasan.trim());
     else if (tahap === "qa") {
       const kembali = await pindahTahap(item, "coding");
@@ -752,8 +781,30 @@ export const lanjutkanItem = async (item, oleh) => {
 export const batalkanItem = async (item, alasan, oleh) => {
   if (await tugasBerjalan(item.uuid)) throw new Galat(409, "Hentikan tugas agen yang berjalan dulu");
   await audit(oleh, "Membatalkan item", item.uuid, { alasan });
-  if (item.worktree) await hapusWorktree(item);
-  return ubah("studio_item", item.uuid, { tahap: "dibatalkan" });
+  await sisipkan("studio_persetujuan", { item_uuid: item.uuid, tahap: item.tahap, keputusan: "batal", alasan: alasan?.trim() || null, pengguna: oleh });
+  // Worktree & branch dibiarkan agar item bisa dibuka kembali tanpa kehilangan kode yang belum di-commit.
+  return ubah("studio_item", item.uuid, { tahap: "dibatalkan", tahap_sebelum: item.tahap });
+};
+
+// Buka kembali item yang dibatalkan/ditolak ke tahap pilihan (bawaan: tahap saat dibatalkan). Superadmin, wajib alasan.
+// Bila tahapnya tahap dokumen dan agen diminta, agen menulis ulang dokumen tahap itu dengan alasan sebagai instruksi.
+export const bukaKembali = async (item, { ke_tahap: keTahap, alasan, jalankan_agen: jalankanAgenDokumen }, oleh) => {
+  if (item.tahap !== "dibatalkan") throw permintaanSalah("Hanya item yang dibatalkan yang bisa dibuka kembali");
+  if (!alasan?.trim()) throw permintaanSalah("Alasan wajib diisi");
+  // Item lama (sebelum tahap_sebelum dicatat): tahap keputusan terakhir.
+  const terakhir = item.tahap_sebelum
+    ?? (await satu(`SELECT tahap FROM studio_persetujuan WHERE item_uuid = $1 AND tahap = ANY($2) ORDER BY created_at DESC, id DESC LIMIT 1`, [item.uuid, TAHAP]))?.tahap
+    ?? "permintaan";
+  const ke = keTahap || terakhir;
+  if (!TAHAP.includes(ke)) throw permintaanSalah("Tahap tujuan tidak dikenal");
+  const { nilai } = await bacaSemua();
+  const kembali = await mundurKeTahap(item, ke, `Dibuka kembali ke ${NAMA_TAHAP[ke]}: ${alasan.trim()}`, oleh, null, "buka");
+  await audit(oleh, `Membuka kembali item ke ${NAMA_TAHAP[ke]}`, item.uuid, { alasan, dari: terakhir });
+  if (jalankanAgenDokumen && TAHAP_DOKUMEN.has(ke) && nilai.fitur?.[ke] !== false) {
+    await jalankanDokumen(kembali, ke, alasan.trim(), oleh)
+      .catch((e) => pesan(kembali, ke, "sistem", `Agen belum dijalankan: ${e.message.replace(/\.$/, "")}. Klik "AI tulis ulang" atau sunting dokumen manual.`));
+  }
+  return ambilItem(item.uuid);
 };
 
 // ---------- Rilis: commit, push/PR, status, revisi dari review ----------
