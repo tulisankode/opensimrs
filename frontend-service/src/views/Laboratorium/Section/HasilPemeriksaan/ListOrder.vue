@@ -6,11 +6,17 @@ import CustomDialog from "@/components/Base/CustomDialog.vue";
 import RiwayatOrderLab from "../RiwayatOrderLab.vue";
 import CustomInputNumber from "@/components/Base/CustomInputNumber.vue";
 import CustomTextfield from "@/components/Base/CustomTextfield.vue";
+import DialogTandaiRujukan from "./DialogTandaiRujukan.vue";
+import DialogUnggahBerkasRujukan from "./DialogUnggahBerkasRujukan.vue";
 import { computed, ref, type PropType } from "vue";
 import type { MenuItem } from "primevue/menuitem";
 import { useForm, ErrorMessage } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/yup";
 import * as yup from "yup";
+import { useRujukanLabStore } from "@/stores/Laboratorium/rujukanLab";
+import { utilsStore } from "@/stores/utils";
+import { cetakSuratPengantarRujukan } from "@/utils/pdf/pdfLaboratorium/cetakSuratPengantarRujukan";
+import { fiturAktif } from "@/stores/modulFaskes";
 
 
 const props = defineProps({
@@ -91,6 +97,60 @@ const onSubmit = async () => {
   }
 };
 
+const emit = defineEmits(["muat-ulang"]);
+const rujukanLabStore = useRujukanLabStore();
+const storeUtils = utilsStore();
+
+const STATUS_RUJUKAN_LABEL: Record<string, string> = {
+  belum_dikirim: "Belum Dikirim",
+  terkirim: "Terkirim",
+  hasil_diterima: "Hasil Diterima",
+};
+
+const dialogTandaiRujukanRef = ref<InstanceType<typeof DialogTandaiRujukan> | null>(null);
+const dialogUnggahBerkasRujukanRef = ref<InstanceType<typeof DialogUnggahBerkasRujukan> | null>(null);
+
+const adaItemDirujuk = computed(() =>
+  (props.openedPatientData?.hasilPemeriksaan ?? []).some((item: any) => item.dirujuk)
+);
+const labRujukanAktif = computed(() => fiturAktif("lab_rujukan"));
+
+const cetakPengantarRujukan = async () => {
+  await cetakSuratPengantarRujukan(props.openedPatientData.uuid);
+};
+
+const bukaDialogTandaiRujukan = (uuid: string) => {
+  dialogTandaiRujukanRef.value?.buka(uuid);
+};
+
+const bukaDialogUnggahBerkasRujukan = (uuid: string) => {
+  dialogUnggahBerkasRujukanRef.value?.buka(uuid);
+};
+
+const batalRujukan = async (uuid: string) => {
+  storeUtils.setLoading(true);
+  try {
+    const response = await rujukanLabStore.batalApi(uuid);
+    if (response) emit("muat-ulang");
+  } catch (error) {
+    console.error("Gagal membatalkan penandaan rujukan", error);
+  } finally {
+    storeUtils.setLoading(false);
+  }
+};
+
+const kirimRujukan = async (uuid: string) => {
+  storeUtils.setLoading(true);
+  try {
+    const response = await rujukanLabStore.kirimApi(uuid);
+    if (response) emit("muat-ulang");
+  } catch (error) {
+    console.error("Gagal menandai rujukan terkirim", error);
+  } finally {
+    storeUtils.setLoading(false);
+  }
+};
+
 defineExpose({
   onSubmit,
 });
@@ -103,7 +163,13 @@ defineExpose({
         <div class="flex">
           <p class="leading-10 text-bold text-heading">List Order Lab</p>
         </div>
-        <div class="mr-4">
+        <div class="flex gap-2 mr-4">
+          <CustomButton
+            v-if="adaItemDirujuk"
+            @click="cetakPengantarRujukan"
+            icon="PhPrinter"
+            label="Cetak Pengantar Rujukan"
+          ></CustomButton>
           <CustomButton
             @click="historyVisitDialog = true"
             icon="PhClockCounterClockwise"
@@ -284,6 +350,60 @@ defineExpose({
                 />
               </template>
             </Column>
+            <Column v-if="labRujukanAktif" field="rujukan" class="w-[16%]">
+              <template #header>
+                <div class="font-bold text-center">Rujukan</div>
+              </template>
+              <template #body="slotProps">
+                <div v-if="!slotProps.data.dirujuk" class="flex justify-center">
+                  <CustomButton
+                    label="Tandai Rujukan"
+                    background-color="bg-transparent"
+                    text-color="text-opensimrs-300"
+                    border-color="border border-opensimrs-300"
+                    :disabled="isOrderStatus"
+                    @click="bukaDialogTandaiRujukan(slotProps.data.uuid)"
+                  />
+                </div>
+                <div v-else class="flex flex-col items-center gap-1">
+                  <CustomChip
+                    :showCheckedIcon="false"
+                    :label="`Rujukan - ${slotProps.data.labRujukan?.name ?? '-'}`"
+                    customClass="h-5 pr-[6px] border-none"
+                  />
+                  <CustomChip
+                    :showCheckedIcon="false"
+                    :label="STATUS_RUJUKAN_LABEL[slotProps.data.statusRujukan] ?? slotProps.data.statusRujukan"
+                    :bgColor="slotProps.data.statusRujukan === 'hasil_diterima' ? 'bg-male-75' : 'bg-mediumGrey-300'"
+                    :textColor="slotProps.data.statusRujukan === 'hasil_diterima' ? 'text-male-300' : 'text-mediumGrey-500'"
+                    customClass="h-5 pr-[6px] border-none"
+                  />
+                  <div class="flex gap-1">
+                    <CustomButton
+                      v-if="slotProps.data.statusRujukan === 'belum_dikirim'"
+                      label="Batal"
+                      background-color="bg-transparent"
+                      text-color="text-danger-300"
+                      @click="batalRujukan(slotProps.data.uuid)"
+                    />
+                    <CustomButton
+                      v-if="slotProps.data.statusRujukan === 'belum_dikirim'"
+                      label="Kirim"
+                      background-color="bg-transparent"
+                      text-color="text-opensimrs-300"
+                      @click="kirimRujukan(slotProps.data.uuid)"
+                    />
+                    <CustomButton
+                      v-if="slotProps.data.statusRujukan !== 'belum_dikirim'"
+                      label="Unggah Berkas"
+                      background-color="bg-transparent"
+                      text-color="text-opensimrs-300"
+                      @click="bukaDialogUnggahBerkasRujukan(slotProps.data.uuid)"
+                    />
+                  </div>
+                </div>
+              </template>
+            </Column>
           </DataTable>
         </div>
       </div>
@@ -305,4 +425,7 @@ defineExpose({
   </CustomAccordion>
   <!-- Riwayat pemeriksaan lab pasien -->
   <RiwayatOrderLab v-model:visible="historyVisitDialog" :order="openedPatientData" />
+  <!-- Lab Rujukan: tandai item ke laboratorium luar & unggah berkas hasil -->
+  <DialogTandaiRujukan ref="dialogTandaiRujukanRef" @submitted="emit('muat-ulang')" />
+  <DialogUnggahBerkasRujukan ref="dialogUnggahBerkasRujukanRef" @submitted="emit('muat-ulang')" />
 </template>

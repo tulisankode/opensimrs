@@ -5,6 +5,7 @@ import InternalServerException from "../exception/internal-server-exception.js";
 import NotfoundException from "../exception/notfound-exception.js";
 import errorResponse from "../response/error-response.js";
 import pkg from "jsonwebtoken";
+import multer from "multer";
 const { TokenExpiredError } = pkg;
 
 const errorMiddleware = (error, request, response, nextFunction) => {
@@ -14,6 +15,10 @@ const errorMiddleware = (error, request, response, nextFunction) => {
       message: "Authorization gagal",
       errors: [{ type: "auth", message: error.message }],
     });
+  } else if (error instanceof multer.MulterError) {
+    return response
+      .status(400)
+      .json(errorResponse("Ukuran berkas melebihi batas yang diizinkan"));
   } else if (error instanceof NotfoundException) {
     return response.status(error.code).json(errorResponse(error.message));
   } else if (error instanceof BadRequestException) {

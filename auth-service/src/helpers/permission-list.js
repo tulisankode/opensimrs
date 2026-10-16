@@ -610,11 +610,11 @@ export const laboraturiumPermission = {
   subModules: [
     {
       name: "Order Lab",
-      allows: ["READ", "CREATE", "UPDATE PROFILE PASIEN", "UPDATE ORDER LAB", "BATAL ORDER", "REKAM MEDIS", "CETAK LABEL", "CETAK PENGANTAR", "VALIDASI ORDER", "RIWAYAT PEMERIKSAAN RM"],
+      allows: ["READ", "CREATE", "UPDATE PROFILE PASIEN", "UPDATE ORDER LAB", "BATAL ORDER", "REKAM MEDIS", "CETAK LABEL", "CETAK PENGANTAR", "VALIDASI ORDER", "RIWAYAT PEMERIKSAAN RM", "TANDAI RUJUKAN", "KIRIM RUJUKAN", "BATAL RUJUKAN"],
     },
     {
       name: "Hasil Pemeriksaan",
-      allows: ["READ", "DETAIL RM", "RIWAYAT", "RIWAYAT PEMERIKSAAN RM", "RIWAYAT PEMERIKSAAN LAB", "CETAK LABEL", "CETAK HASIL", "SIMPAN HASIL", "SELESAI"],
+      allows: ["READ", "DETAIL RM", "RIWAYAT", "RIWAYAT PEMERIKSAAN RM", "RIWAYAT PEMERIKSAAN LAB", "CETAK LABEL", "CETAK HASIL", "SIMPAN HASIL", "SELESAI", "UNGGAH BERKAS RUJUKAN"],
     },
     {
       name: "Expertise",
@@ -637,6 +637,10 @@ export const laboraturiumPermission = {
         },
         {
           name: "Spesimen",
+          allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
+        },
+        {
+          name: "Laboratorium Rujukan",
           allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT", "EXPORT"],
         },
         {

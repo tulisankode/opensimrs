@@ -13,3 +13,4 @@ export {default as NilaiRujukanModel} from "../models/lab/nilai-rujukan-model.js
 export {default as OrderLabModel} from "../models/lab/order-lab-model.js"
 export {default as OrderLabPemeriksaanModel} from "../models/lab/order-lab-pemeriksaan-model.js"
 export {default as ObservationItemModel} from "../models/lab/observation-item-model.js"
+export {default as LabRujukanModel} from "../models/lab/lab-rujukan-model.js"

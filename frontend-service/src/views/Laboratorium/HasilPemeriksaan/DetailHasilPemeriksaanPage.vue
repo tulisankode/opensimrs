@@ -224,6 +224,7 @@ watch(() => props.openedPatientData?.uuid, (u) => muatNoLab(u), { immediate: tru
         :pageType="pageType"
         :openedPatientData="openedPatientData"
         @back="dataBreadCrumb.pop()"
+        @muat-ulang="emit('muatUlang')"
       />
       <Catatan
         ref="listCatatanForm"

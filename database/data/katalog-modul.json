@@ -987,9 +987,9 @@
       "modul": "laboratorium",
       "nama": "Lab Rujukan",
       "deskripsi": "Pemeriksaan yang dirujuk ke laboratorium luar beserta input hasilnya.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/laboratorium/datamaster/laboratorium-rujukan"],
       "urutan": 42
     },
     {
