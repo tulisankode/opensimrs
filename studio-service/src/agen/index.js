@@ -11,6 +11,7 @@ import { bacaSemua } from "../pengaturan.js";
 import { daftarkanPembatal, jalankanClaude, lepaskanPembatal } from "./claude.js";
 import { jalankanApi } from "./api.js";
 import { jalankanCodex } from "./codex.js";
+import { cocokModel } from "./model.js";
 
 // Lampiran permintaan disimpan di studio-service/data/lampiran/<item> (diabaikan git).
 export const FOLDER_LAMPIRAN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "data", "lampiran");
@@ -54,7 +55,9 @@ export const periksaBatas = async (item, pengguna) => {
 export const jalankanAgen = async ({ tugasUuid, prompt, mode, tahap, base = config.repoDir, item = null, resume = null }) => {
   const { nilai } = await bacaSemua();
   const konektor = await ambilKonektor(nilai, tahap);
-  const model = nilai.model_tahap?.[tahap] || "";
+  // Data lama bisa berisi pasangan agen–model yang tidak cocok (mis. model Codex untuk Claude) → pakai bawaan agen.
+  const modelTahap = nilai.model_tahap?.[tahap] || "";
+  const model = cocokModel(nilai.konektor_tahap?.[tahap], modelTahap) ? modelTahap : "";
   const batasBiaya = nilai.batas_biaya_tugas ? Number(nilai.batas_biaya_tugas) : null;
   // Sesi Codex (codex:<thread>) tidak bisa dilanjutkan Claude Code, dan sebaliknya; Codex selalu memulai sesi baru.
   const sesiClaude = resume && !String(resume).startsWith("codex:") ? resume : null;
