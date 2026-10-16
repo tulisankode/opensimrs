@@ -125,6 +125,11 @@ const templistMenu = ref<ListMenu[]>([
     url: "/mcu",
   },
   {
+    title: "Program Puskesmas",
+    icon: "PhBabyCarriage",
+    url: "/program-puskesmas",
+  },
+  {
     title: "CSSD",
     icon: "PhSprayBottle",
     url: "/cssd",
@@ -381,14 +386,14 @@ const bukaSegera = (url: string) => {
 const NAMA_SEGERA: Record<string, string> = {
   fisioterapi: "Fisioterapi", radiologi: "Radiologi", kamar_operasi: "Kamar Operasi", gizi: "Gizi",
   koding_rm: "Koding RM", bank_darah: "Bank Darah", utd: "UTD", akuntansi: "Akuntansi",
-  program_puskesmas: "Program Puskesmas", training: "Training", mcu: "MCU",
+  training: "Training", mcu: "MCU",
   patologi_anatomi: "Patologi Anatomi", mikrobiologi: "Mikrobiologi",
 };
 const IKON_SEGERA: Record<string, string> = {
   fisioterapi: "FisioIcon", radiologi: "PhScan", kamar_operasi: "PhKnife", gizi: "PhBowlFood",
   koding_rm: "PhFileCode", bank_darah: "PhDrop", utd: "PhDropHalf", akuntansi: "PhCalculator",
   mcu: "PhClipboardText", patologi_anatomi: "PhMicroscope", mikrobiologi: "PhBug",
-  program_puskesmas: "PhUsersThree", training: "TrainingIcon",
+  training: "TrainingIcon",
 };
 
 onMounted(async () => {

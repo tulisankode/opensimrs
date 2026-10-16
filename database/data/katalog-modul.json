@@ -379,10 +379,14 @@
       "nama": "Program Puskesmas",
       "kelompok": "Puskesmas",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "KIA/KB, imunisasi, MTBS, UKM, laporan LB1 & dinkes.",
-      "menu": [],
-      "rute": [],
+      "menu": [
+        "Program Puskesmas"
+      ],
+      "rute": [
+        "/program-puskesmas"
+      ],
       "urutan": 18
     },
     {
@@ -1123,6 +1127,17 @@
       "wajib": false,
       "rute": [],
       "urutan": 54
+    },
+    {
+      "kode": "program_puskesmas_satusehat",
+      "modul": "program_puskesmas",
+      "nama": "Kirim Imunisasi ke SATUSEHAT",
+      "deskripsi": "Mengirim resource Immunization ke SATUSEHAT setiap pelayanan imunisasi tersimpan. Butuh konfigurasi integrasi SATUSEHAT faskes.",
+      "tersedia": true,
+      "wajib": false,
+      "modul_syarat": "satusehat",
+      "rute": [],
+      "urutan": 55
     },
     {
       "kode": "icu_dashboard",

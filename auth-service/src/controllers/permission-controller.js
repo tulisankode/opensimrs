@@ -9,7 +9,7 @@ import redisClient from "../configurations/redis-client-config.js";
 const SEMUA_MODUL = [
   "Dashboard", "Antrian", "Admisi", "Rawat Jalan", "Rawat Inap", "ICU", "IGD", "Farmasi", "STOK", "Inventory",
   "Laboratorium", "Patologi Anatomi", "Mikrobiologi", "Radiologi", "Fisioterapi", "MCU", "CSSD", "Training",
-  "Pembayaran", "Datamaster", "Laporan", "Setting", "Profile", "SIMRS Studio",
+  "Program Puskesmas", "Pembayaran", "Datamaster", "Laporan", "Setting", "Profile", "SIMRS Studio",
 ];
 
 // Modul yang tidak pernah ditambahkan otomatis oleh sinkron Manajemen Modul (diberikan manual per peran oleh superadmin).

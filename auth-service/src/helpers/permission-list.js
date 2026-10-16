@@ -856,6 +856,26 @@ export const mcuPermission = {
   ],
 };
 
+export const programPuskesmasPermission = {
+  module: "Program Puskesmas",
+  subModules: [
+    { name: "KIA", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "KB", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "Imunisasi", allows: ["READ", "CREATE", "UPDATE", "DELETE", "KIRIM SATUSEHAT"] },
+    { name: "MTBS/MTBM", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "Sasaran Program", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Kegiatan UKM", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    {
+      name: "Datamaster",
+      features: [
+        { name: "Jenis Vaksin & Jadwal", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+        { name: "Format Laporan Dinkes", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+      ],
+    },
+    { name: "Laporan Dinkes", allows: ["READ", "CETAK LAPORAN", "EKSPOR EXCEL"] },
+  ],
+};
+
 export const patologiAnatomiPermission = {
   module: "Patologi Anatomi",
   subModules: [
@@ -1345,6 +1365,7 @@ export function mapPermission(permissionList) {
     fisioterapi: fisioTerapiPermission,
     radiologi: radiologiPermission,
     mcu: mcuPermission,
+    "program puskesmas": programPuskesmasPermission,
     "patologi anatomi": patologiAnatomiPermission,
     mikrobiologi: mikrobiologiPermission,
     cssd: cssdPermission,
