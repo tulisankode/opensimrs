@@ -12,6 +12,8 @@ const route = useRoute();
 const status = ref<{ aktif: boolean; alasan?: string } | null>(null);
 const aktif = computed(() => Boolean(status.value?.aktif));
 const terbuka = ref(false);
+// Balasan yang selesai saat jendela tertutup → badge di tombol; dibuka = sudah dibaca.
+const belumDibaca = ref(0);
 const pesan = ref<Pesan[]>([]);
 const masukan = ref("");
 const menjawab = ref(false);
@@ -69,6 +71,7 @@ onMounted(muatStatus);
 
 const buka = () => {
   terbuka.value = !terbuka.value;
+  if (terbuka.value) belumDibaca.value = 0;
   // Status diperiksa ulang saat dibuka (mis. Helpdesk baru diaktifkan admin).
   if (terbuka.value && !aktif.value) muatStatus();
 };
@@ -120,6 +123,8 @@ const kirim = async (teks?: string) => {
   } finally {
     menjawab.value = false;
     pembatal = null;
+    // Jawaban selesai (atau gagal) saat jendela ditutup → tandai belum dibaca.
+    if (!terbuka.value && pesan.value[indeks]?.isi) belumDibaca.value++;
     gulirBawah();
   }
 };
@@ -133,9 +138,15 @@ const percakapanBaru = () => {
 
 <template>
   <button type="button" class="relative my-auto flex aspect-square w-8 items-center justify-center rounded-full text-white hover:bg-white/20"
-    :class="terbuka ? 'bg-white/25' : ''" title="Bantuan" aria-label="Buka Bantuan" :aria-expanded="terbuka" @click="buka">
-    <PhHeadset :size="30" weight="fill" aria-hidden="true" />
-    <span v-if="aktif" class="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-opensimrs-300 bg-success-300" aria-hidden="true" />
+    :class="terbuka ? 'bg-white/25' : ''" :title="belumDibaca ? `Bantuan · ${belumDibaca} balasan baru` : 'Bantuan'"
+    :aria-label="belumDibaca ? `Buka Bantuan, ${belumDibaca} balasan baru` : 'Buka Bantuan'" :aria-expanded="terbuka" @click="buka">
+    <!-- Asisten masih menyusun jawaban saat jendela tertutup -->
+    <span v-if="menjawab && !terbuka" class="absolute inset-0 animate-ping rounded-full bg-white/40" aria-hidden="true" />
+    <PhHeadset :size="30" weight="fill" class="relative" aria-hidden="true" />
+    <span v-if="belumDibaca" class="absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-opensimrs-300 bg-danger-300 px-1 text-[10px] font-bold leading-none text-white" aria-hidden="true">
+      {{ belumDibaca > 9 ? "9+" : belumDibaca }}
+    </span>
+    <span v-if="aktif" class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-opensimrs-300 bg-success-300" aria-hidden="true" />
   </button>
 
   <Teleport to="body">
