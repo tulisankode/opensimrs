@@ -211,6 +211,10 @@ import MasterOrganismePage from "@/views/Mikrobiologi/MasterOrganismePage.vue";
 import MasterAntibiotikPage from "@/views/Mikrobiologi/MasterAntibiotikPage.vue";
 import LaporanKunjunganMikroPage from "@/views/Mikrobiologi/LaporanKunjunganMikroPage.vue";
 import LaporanAntibiogramPage from "@/views/Mikrobiologi/LaporanAntibiogramPage.vue";
+import IcuView from "@/views/Icu/IcuView.vue";
+import DashboardIcuPage from "@/views/Icu/DashboardIcuPage.vue";
+import PerawatanIcuPage from "@/views/Icu/PerawatanIcuPage.vue";
+import LaporanIcuPage from "@/views/Icu/LaporanIcuPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
@@ -1650,6 +1654,13 @@ const router = createRouter({
       ["/mikrobiologi/datamaster/antibiotik", "mikrobiologi-datamaster-antibiotik", MasterAntibiotikPage],
       ["/mikrobiologi/laporan/kunjungan", "mikrobiologi-laporan-kunjungan", LaporanKunjunganMikroPage],
       ["/mikrobiologi/laporan/antibiogram", "mikrobiologi-laporan-antibiogram", LaporanAntibiogramPage],
+    ]),
+    // SECTION ICU / Intensif
+    { path: "/icu", name: "icu", redirect: "/icu/dashboard" },
+    ...halamanModul(IcuView, [
+      ["/icu/dashboard", "icu-dashboard", DashboardIcuPage],
+      ["/icu/perawatan", "icu-perawatan", PerawatanIcuPage],
+      ["/icu/laporan", "icu-laporan", LaporanIcuPage],
     ]),
     // !SECTION
 
