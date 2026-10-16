@@ -381,6 +381,17 @@ export const jalankanCoding = async (item, instruksi, oleh) => {
 
 // ---------- Perubahan & pemeriksa kebijakan ----------
 
+// Helper enkripsi rahasia yang sudah teruji: berkas kriptografi baru buatan agen harus salinan bakunya (kebijakan §4a).
+const BERKAS_KRIPTO_BAKU = ["lab-service/src/lis/rahasia.js", "setting-service/src/bantuan/rahasia.js"];
+const kriptoBaku = () =>
+  BERKAS_KRIPTO_BAKU.map((p) => {
+    try {
+      return fs.readFileSync(path.join(config.repoDir, p), "utf8");
+    } catch {
+      return null;
+    }
+  }).filter(Boolean);
+
 const migrasiTerakhir = async (dasar) => {
   const { keluaran } = await git(["ls-tree", "--name-only", dasar || "main", "database/migrations/"], { izinkanGagal: true });
   const stempel = keluaran.split("\n").map((p) => p.match(/(\d{14})-/)?.[1]).filter(Boolean).sort();
@@ -436,7 +447,7 @@ export const perubahanItem = async (item) => {
     }
   }
   const { nilai } = await bacaSemua();
-  const kebijakan = periksaKebijakan(berkas, { risiko: item.risiko, migrasiTerakhir: await migrasiTerakhir(await branchDasar(nilai, item)) });
+  const kebijakan = periksaKebijakan(berkas, { risiko: item.risiko, migrasiTerakhir: await migrasiTerakhir(await branchDasar(nilai, item)), kriptoBaku: kriptoBaku() });
   berkas = berkas.map((b) => ({ ...b, ...hitungBaris(b.patch), patch: b.patch.length > BATAS ? `${b.patch.slice(0, BATAS)}\n… (dipotong)` : b.patch }));
   return { branch: item.branch, worktree: item.worktree, commitSha: item.commit_sha, berkas, kebijakan };
 };

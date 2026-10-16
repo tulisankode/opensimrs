@@ -115,6 +115,18 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 - `install.ps1` dan `install.sh`: `.env` root lama yang mengarah ke database lain (nama, user, atau port berbeda, mis. database kerja di kontainer Docker) kini dicadangkan lalu dibuat ulang, sehingga `npm run db:migrate` tidak menyasar database yang salah. Pengecekan `.env` layanan juga membandingkan `DB_NAME`, `DB_USERNAME`, dan `DB_PORT`.
 - `install.ps1` dan `install.sh`: `npm audit` dimatikan selama `install:all` karena bisa menggantung di jaringan lambat (jalankan `npm audit` terpisah bila perlu).
 
+### Keamanan
+- **Bridging LIS (Laboratorium): hak akses per rute.** Sebelumnya rute `/api/v3/lab/lis/*` hanya mewajibkan login, sehingga pengguna mana pun di faskes dapat mengubah atau menghapus koneksi LIS (API key, kunci masuk), mengubah mapping, dan mengirim order. Kini aturannya sama dengan izin halaman di frontend:
+  - melihat koneksi: Setting › Konfigurasi Integrasi READ, Order Lab READ, atau Hasil Pemeriksaan READ;
+  - mengubah koneksi: Setting › Konfigurasi Integrasi › UPDATE KONFIGURASI LAINNYA;
+  - mapping: Laboratorium › Datamaster › Item Pemeriksaan atau Tarif Lab (READ/UPDATE);
+  - kirim: Order Lab › VALIDASI ORDER;
+  - tarik hasil: Hasil Pemeriksaan › SIMPAN HASIL;
+  - batch: sumber `lab` kini wajib VALIDASI ORDER; daftar/detail batch wajib MCU › Peserta READ atau Order Lab READ.
+
+  Pengguna lab yang sudah punya izin halaman terkait tidak terdampak.
+- **SIMRS Studio: kode kriptografi buatan agen.** Zona merah hanya mengenali nama berkas (`rahasia.js`), sehingga kode enkripsi dengan nama lain (mis. `kripto.js`) lolos. Pemeriksa kebijakan kini menandai setiap `createCipheriv`/`createDecipheriv` di kode agen. Berkas baru hanya lolos bila berupa salinan baku `lab-service/src/lis/rahasia.js` atau `setting-service/src/bantuan/rahasia.js`, dengan toleransi beda komentar dan nama variabel `*_KUNCI_RAHASIA`. Selain itu item wajib berisiko kritis, sehingga dikerjakan dan ditinjau programmer.
+
 ---
 
 ## [1.0.0-alpha.1] - 2026-10-15

@@ -235,7 +235,7 @@ Pengamannya:
 - Agen **tidak menyambung ke database** (kecuali membaca struktur skema tanpa data), **tidak membaca `.env`**, dan tidak bisa commit, push, berpindah branch, atau `npm install`.
 - **Zona merah** tidak bisa diubah agen: `.env*`, `studio-service/**`, SDK autentikasi/izin, `rahasia.js`, `.github/**`, `deploy/**`, `CLAUDE.md`, dan migrasi lama.
 - **Zona kuning** (layanan klinis/keuangan) menaikkan risiko menjadi tinggi sehingga reviewer klinis wajib menyetujui. Item berisiko kritis tidak dikodekan agen.
-- **Pemeriksa kebijakan** mengecek rahasia, IP privat, data pribadi, aturan migrasi, katalog, CHANGELOG, dan uji.
+- **Pemeriksa kebijakan** mengecek rahasia, IP privat, data pribadi, aturan migrasi, katalog, CHANGELOG, uji, import `@/main`, dan **kriptografi**. Kode enkripsi/dekripsi (`createCipheriv`/`createDecipheriv`) di berkas mana pun hanya lolos bila berupa salinan baku `lab-service/src/lis/rahasia.js` atau `setting-service/src/bantuan/rahasia.js`. Selain itu, tetapkan risiko kritis agar dikerjakan programmer.
 - Studio hanya men-commit **berkas yang diubah agen untuk item itu**. Semua tindakan tercatat di **Audit & Metrik**.
 
 ## 8. Kendala umum
