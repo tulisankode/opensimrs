@@ -246,6 +246,8 @@ Pengamannya:
 | "Claude Code CLI tidak ditemukan" / agen gagal login | Pasang Claude Code, lalu jalankan `claude auth login` di pengguna OS yang sama dengan layanan. Cek dengan `claude auth status --text`. Bila perlu, isi `STUDIO_CLAUDE_BIN` |
 | "Fitur Coding belum diaktifkan" | Pengaturan & Agen › Fitur Studio |
 | "Gagal berpindah ke branch …" (mode workspace) | Ada perubahan yang bentrok. Commit/stash dulu, atau pakai mode worktree |
+| "Working tree sedang dipakai item STD-…" | Mode workspace hanya punya satu working tree. Selama agen coding item itu bekerja, aksi yang memindahkan branch repo utama ditolak: jalankan coding, Siapkan branch, Buka branch item, Kembali ke branch asal, dan Terapkan. Tunggu tugasnya selesai, atau pakai mode worktree agar item dikerjakan paralel |
+| "Branch … masih terbuka di repo utama" (mode worktree) | Satu branch hanya boleh terbuka di satu folder. Biasanya branch itu sisa mode workspace. Pindahkan repo utama ke branch lain lewat **Pindahkan aplikasi ke …**, atau **Buka branch item** pada item yang kodenya masih ada di repo utama, lalu ulangi |
 | "Kuota langganan Claude sudah …%" | Tunggu reset, naikkan batas kuota, atau pilih model Haiku untuk tahap dokumen |
 | Perubahan kode `studio-service` belum berlaku | `npm run dev:studio` sengaja tidak memakai mode watch agar tugas agen yang panjang tidak terputus oleh restart. Jalankan ulang layanan secara manual |
 | Impor paket ditolak "tanda tangan tidak sah" | `EKSTENSI_KUNCI_PUBLIK` produksi tidak sama dengan kunci Studio, atau paket diubah |
