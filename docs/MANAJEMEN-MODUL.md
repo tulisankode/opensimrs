@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 10 berstatus Segera), **53 fitur** (14 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 10 berstatus Segera), **54 fitur** (14 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -336,6 +336,12 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 ### D. Fitur per modul
 
 Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfungsi bila modul tersebut aktif. **Dimatikan bawaan di**: segmen yang mematikan fitur ini lewat `preset.fitur_mati`; di segmen lain fitur ikut aktif bila modulnya aktif.
+
+#### Dashboard (`dashboard`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `helpdesk_ai` | Asisten Bantuan (Helpdesk AI) | Tombol Bantuan untuk bertanya cara memakai OpenSIMRS ke asisten AI. Hanya berlaku bila Gateway helpdesk dikonfigurasi di setting-service. | Tersedia | – | – | – |
 
 #### Pendaftaran Pasien (`pendaftaran`)
 

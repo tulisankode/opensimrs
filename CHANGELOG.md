@@ -38,6 +38,20 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
   - **Aktivasi:** menu hanya tampil bila `STUDIO_PENGEMBANG=aktif` (mati bawaan) dan superadmin menyalakan **Mode Pengembang** di Setting › System. Peran lain diberi modul izin baru **SIMRS Studio**, yang tidak ikut sinkron otomatis ke admin faskes. Coding/QA/rilis ditolak pada `LINGKUNGAN=production`.
   - **Migrasi baru:** `20261015100000-simrs_studio`, `20261015120000-simrs_studio_lanjutan`, `20261015120100-izin_simrs_studio_superadmin`, `20261016000000-simrs_studio_rilis_lokal`, `20261016010000-simrs_studio_server`, `20261016100000-simrs_studio_aktivasi`.
   - Panduan: [docs/SIMRS-STUDIO.md](./docs/SIMRS-STUDIO.md); rancangan: [docs/rancangan/STUDIO-PENGEMBANG.md](./docs/rancangan/STUDIO-PENGEMBANG.md).
+- **Helpdesk asisten pengguna (tombol Bantuan)**: petugas bertanya cara memakai OpenSIMRS dari dalam aplikasi. Pertanyaan diteruskan setting-service ke agen **OpenClaw** di VM terpisah lewat endpoint kompatibel OpenAI Gateway. Rancangan: [docs/rancangan/HELPDESK-OPENCLAW.md](./docs/rancangan/HELPDESK-OPENCLAW.md).
+  - setting-service: `GET /bantuan/status`, `POST /bantuan/chat` (jawaban streaming SSE), `GET /bantuan/ringkasan` (superadmin).
+    - NIK, nomor kartu, HP, email, dan nomor RM disamarkan sebelum dikirim.
+    - Konteks yang ikut dikirim: peran, segmen, modul aktif/nonaktif, halaman.
+    - Ada batas laju per pengguna, dan log `bantuan_log` yang sudah disaring disimpan 90 hari.
+    - Token Gateway hanya di `.env` server (`HELPDESK_GATEWAY_URL`, `HELPDESK_GATEWAY_TOKEN`).
+  - Fitur katalog baru **Asisten Bantuan (Helpdesk AI)** (`helpdesk_ai`, modul Dashboard). Tombol **?** di header membuka panel chat dengan saran pertanyaan per halaman.
+  - `deploy/helpdesk/`:
+    - panduan pemasangan OpenClaw di VM (sandbox, workspace hanya-baca, kanal pesan dimatikan) dan instruksi agen `AGENTS.md`;
+    - contoh konfigurasi, skrip sinkron panduan, dan skrip uji Gateway;
+    - Gateway tiruan untuk pengembangan lokal;
+    - perangkat evaluasi: pertanyaan cara pakai dari panduan + pertanyaan keamanan.
+  - **Panduan pengguna** per modul di `docs/panduan-pengguna/`, berupa draf dari kode yang wajib ditinjau petugas modul.
+  - **Migrasi baru:** `20261016120000-helpdesk_bantuan`.
 - **Ekstensi tanpa kode** (dirakit di SIMRS Studio, runtime di laporan-service sehingga berjalan juga di produksi): laporan (tabel, ekspor Excel, cetak PDF), template cetak (PDF berkop faskes), dan formulir tambahan per pasien/kunjungan.
   - Muncul di menu baru **Ekstensi** sesuai hak modul pengguna.
   - Pengaman kueri: hanya SELECT/WITH, wajib `:faskes_uuid` (faskes selalu dari token), tanpa tabel akun/sesi, kolom rahasia, maupun fungsi sistem. Kueri dijalankan dalam transaksi read-only dengan batas waktu 15 detik.
