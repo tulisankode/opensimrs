@@ -93,6 +93,10 @@ Studio dijalankan di **mesin pengembang atau staging**, bukan di server produksi
 Tips:
 - **Diskusi** di panel kanan menjadi instruksi bagi agen pada tahap aktif. **Sunting** menyimpan dokumen hasil suntingan Anda sebagai versi baru.
 - Setiap persetujuan hanya berlaku untuk dokumen terbaru. Jika dokumen direvisi, persetujuan perlu diberikan ulang.
+- **Setuju, Revisi, atau Tolak:**
+  - **Minta revisi** mengirim alasan Anda ke agen. Pilih **Kembali ke tahap** untuk mundur ke tahap yang sudah dilewati, misalnya dari Coding ke PRD bila PRD kurang lengkap. Tahap itu dan tahap sesudahnya perlu disetujui ulang. Kode di branch item tidak dihapus dan dipakai lagi saat coding diulang.
+  - **Tolak** membatalkan item. Branch dan berkas yang belum di-commit tidak dihapus. Superadmin bisa **Buka kembali** item itu ke tahap pilihan; alasannya bisa dipakai sebagai instruksi agen untuk menulis ulang dokumen tahap itu.
+  - Semua keputusan (setuju, revisi, tolak, dikembalikan, dibuka kembali, dibatalkan) beserta alasan, peran, dan waktunya tampil di panel **Riwayat keputusan** dan tercatat di **Audit**.
 - **Lampiran** (gambar, PDF, teks) harus disamarkan. Lampiran teks dipindai dari data pribadi.
 - **Prompt** di kepala halaman menampilkan prompt efektif tahap itu: aturan platform, instalasi, area, tahap, pengetahuan, dan konteks.
 - Setelah PR dibuat, **Perbarui status** memantau PR, CI, merge, dan tag rilis. **Revisi dari komentar review** mengirim komentar reviewer GitHub/Gitea ke agen coding.

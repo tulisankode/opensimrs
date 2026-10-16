@@ -96,13 +96,41 @@ const mintaAgen = () => jalankan(() => apiStudioPost(`/item/${item.value.uuid}/a
 
 const dialogKeputusan = ref<null | "revisi" | "tolak">(null);
 const alasan = ref("");
+// Revisi bisa mundur ke tahap yang sudah dilewati (mis. dari Coding ke PRD bila PRD kurang lengkap).
+const keTahap = ref("");
+const tahapBisaMundur = computed(() => TAHAP.slice(0, Math.max(TAHAP.findIndex((t) => t.kode === item.value?.tahap), 0) + 1).filter((t) => t.kode !== "rilis"));
+watch(dialogKeputusan, (d) => {
+  if (d) keTahap.value = item.value?.tahap ?? "";
+});
 const putuskan = (keputusan: "setuju" | "revisi" | "tolak", peran?: string) =>
   jalankan(async () => {
-    const res = await apiStudioPost(`/item/${item.value.uuid}/keputusan`, { keputusan, alasan: alasan.value, peran });
+    const mundur = keputusan === "revisi" && keTahap.value && keTahap.value !== item.value.tahap ? keTahap.value : undefined;
+    const res = await apiStudioPost(`/item/${item.value.uuid}/keputusan`, { keputusan, alasan: alasan.value, peran, keTahap: mundur });
     if (res) {
       dialogKeputusan.value = null;
       alasan.value = "";
-      if (keputusan === "setuju" && res.payload?.tahap && TAHAP.some((t) => t.kode === res.payload.tahap)) tahapDipilih.value = res.payload.tahap;
+      const ke = keputusan === "setuju" || mundur ? res.payload?.tahap : null;
+      if (ke && TAHAP.some((t) => t.kode === ke)) tahapDipilih.value = ke;
+    }
+  });
+
+const LABEL_KEPUTUSAN: Record<string, string> = {
+  setuju: "disetujui", revisi: "minta revisi", tolak: "ditolak (item dibatalkan)", batal: "dibatalkan", mundur: "dikembalikan ke tahap ini", buka: "dibuka kembali",
+};
+
+// Buka kembali item yang dibatalkan/ditolak (superadmin).
+const dialogBuka = ref(false);
+const buka = ref({ keTahap: "", alasan: "", jalankanAgen: true });
+const bukaDialogBuka = () => {
+  buka.value = { keTahap: item.value.tahapSebelum ?? "", alasan: "", jalankanAgen: true };
+  dialogBuka.value = true;
+};
+const bukaKembali = () =>
+  jalankan(async () => {
+    const res = await apiStudioPost(`/item/${item.value.uuid}/buka-kembali`, buka.value);
+    if (res) {
+      dialogBuka.value = false;
+      if (res.payload?.tahap && TAHAP.some((t) => t.kode === res.payload.tahap)) tahapDipilih.value = res.payload.tahap;
     }
   });
 
@@ -279,7 +307,13 @@ const WARNA_CI: Record<string, string> = { sukses: "bg-success-50 text-success-4
         </template>
       </div>
 
-      <div v-if="item.tahap === 'dibatalkan'" class="mb-2 rounded-lg bg-danger-50 p-2 text-XS text-danger-400">Item ini dibatalkan.</div>
+      <div v-if="item.tahap === 'dibatalkan'" class="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-danger-50 p-2 text-XS text-danger-400">
+        <span>
+          Item ini dibatalkan<template v-if="item.tahapSebelum"> di tahap <b>{{ NAMA_TAHAP[item.tahapSebelum] }}</b></template>.
+          Branch & kode tidak dihapus; lihat alasannya di <b>Riwayat keputusan</b>.
+        </span>
+        <CustomButton v-if="studio.status.superadmin" label="Buka kembali" icon="PhArrowUUpLeft" outlined text-color="text-opensimrs-300" border-color="border-opensimrs-300" :disabled="sibuk" @click="bukaDialogBuka" />
+      </div>
       <div v-if="item.tahap === 'ditunda'" class="mb-2 flex items-center justify-between gap-2 rounded-lg bg-warning-50 p-2 text-XS text-warning-400">
         <span>Item ditunda di tahap <b>{{ NAMA_TAHAP[item.tahapSebelum] }}</b>.</span>
         <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" v-if="studio.boleh('Permintaan', ['BATAL', 'TRIASE'])" label="Lanjutkan" icon="PhPlay" outlined :disabled="sibuk" @click="aksi('lanjutkan')" />
@@ -522,9 +556,11 @@ const WARNA_CI: Record<string, string> = { sukses: "bg-success-50 text-success-4
             <div v-for="p in data.persetujuan" :key="p.uuid" class="flex items-start gap-2 py-1 text-XS">
               <PhSealCheck v-if="p.keputusan === 'setuju'" :size="16" weight="fill" class="mt-[1px] shrink-0 text-success-300" aria-hidden="true" />
               <PhArrowCounterClockwise v-else-if="p.keputusan === 'revisi'" :size="16" class="mt-[1px] shrink-0 text-warning-300" aria-hidden="true" />
+              <PhArrowBendUpLeft v-else-if="p.keputusan === 'mundur'" :size="16" class="mt-[1px] shrink-0 text-warning-300" aria-hidden="true" />
+              <PhArrowUUpLeft v-else-if="p.keputusan === 'buka'" :size="16" class="mt-[1px] shrink-0 text-opensimrs-300" aria-hidden="true" />
               <PhXCircle v-else :size="16" weight="fill" class="mt-[1px] shrink-0 text-danger-300" aria-hidden="true" />
               <div>
-                <div class="font-semibold capitalize text-grey-500">{{ NAMA_TAHAP[p.tahap] }} — {{ p.keputusan }}<span v-if="p.peran" class="font-normal normal-case text-grey-400"> ({{ p.peran }})</span></div>
+                <div class="font-semibold text-grey-500">{{ NAMA_TAHAP[p.tahap] }} — {{ LABEL_KEPUTUSAN[p.keputusan] ?? p.keputusan }}<span v-if="p.peran" class="font-normal text-grey-400"> ({{ p.peran }})</span></div>
                 <div v-if="p.alasan" class="text-grey-400">{{ p.alasan }}</div>
                 <div class="text-grey-300">{{ p.pengguna }} · {{ formatWaktu(p.createdAt) }}</div>
               </div>
@@ -551,10 +587,23 @@ const WARNA_CI: Record<string, string> = { sukses: "bg-success-50 text-success-4
 
   <Dialog :visible="!!dialogKeputusan" modal :header="dialogKeputusan === 'revisi' ? 'Minta revisi' : 'Tolak / batalkan item'" :style="{ width: '30rem' }" @update:visible="dialogKeputusan = null">
     <div class="flex flex-col gap-2 text-SM text-grey-500">
-      <p v-if="dialogKeputusan === 'revisi'">
-        {{ item?.tahap === "qa" ? "Temuan QA dikirim ke agen coding; item kembali ke tahap Coding." : "Agen akan merevisi dokumen/kode tahap ini sesuai alasan Anda." }}
-      </p>
-      <p v-else>Item akan dibatalkan. Perubahan berkas yang belum di-commit tidak dihapus.</p>
+      <template v-if="dialogKeputusan === 'revisi'">
+        <label class="flex flex-col gap-1 text-XS">
+          <span class="font-semibold">Kembali ke tahap</span>
+          <select v-model="keTahap" class="rounded border border-grey-200 px-2 py-1.5 text-SM">
+            <option v-for="t in tahapBisaMundur" :key="t.kode" :value="t.kode">{{ t.nama }}{{ t.kode === item?.tahap ? " (tahap ini)" : "" }}</option>
+          </select>
+        </label>
+        <p v-if="keTahap && keTahap !== item?.tahap" class="text-XS text-warning-400">
+          Item kembali ke <b>{{ NAMA_TAHAP[keTahap] }}</b>; agen menulis ulang dokumen itu sesuai alasan Anda. Tahap itu dan tahap sesudahnya
+          perlu disetujui ulang. Kode yang sudah ada di branch item tidak dihapus dan dipakai lagi saat coding diulang.
+        </p>
+        <p v-else>{{ item?.tahap === "qa" ? "Temuan QA dikirim ke agen coding; item kembali ke tahap Coding." : "Agen akan merevisi dokumen/kode tahap ini sesuai alasan Anda." }}</p>
+      </template>
+      <div v-else class="rounded-lg bg-danger-50 p-2 text-XS text-danger-400">
+        <b>Tolak membatalkan item ini.</b> Bila hanya perlu perbaikan (mis. PRD kurang lengkap), gunakan <b>Minta revisi</b> dan pilih tahap tujuannya.
+        Item yang dibatalkan masih bisa dibuka kembali oleh superadmin; branch & berkas yang belum di-commit tidak dihapus.
+      </div>
       <textarea v-model="alasan" rows="4" class="rounded-lg border border-grey-200 px-2 py-1.5 text-SM" placeholder="Alasan / apa yang perlu diperbaiki" />
     </div>
     <template #footer>
@@ -564,6 +613,28 @@ const WARNA_CI: Record<string, string> = { sukses: "bg-success-50 text-success-4
         :disabled="!alasan.trim() || sibuk"
         @click="dialogKeputusan === 'tolak' && !data.gerbang.some((g: any) => g.bisa) ? aksi('batal', { alasan }).then(() => (dialogKeputusan = null)) : putuskan(dialogKeputusan!)"
       />
+    </template>
+  </Dialog>
+
+  <Dialog v-model:visible="dialogBuka" modal header="Buka kembali item" :style="{ width: '30rem' }">
+    <div class="flex flex-col gap-2 text-SM text-grey-500">
+      <label class="flex flex-col gap-1 text-XS">
+        <span class="font-semibold">Lanjutkan dari tahap</span>
+        <select v-model="buka.keTahap" class="rounded border border-grey-200 px-2 py-1.5 text-SM">
+          <option value="">{{ item?.tahapSebelum ? `${NAMA_TAHAP[item.tahapSebelum]} (tahap saat dibatalkan)` : "Tahap keputusan terakhir" }}</option>
+          <option v-for="t in TAHAP.filter((x) => x.kode !== 'rilis')" :key="t.kode" :value="t.kode">{{ t.nama }}</option>
+        </select>
+      </label>
+      <textarea v-model="buka.alasan" rows="3" class="rounded-lg border border-grey-200 px-2 py-1.5 text-SM" placeholder="Alasan dibuka kembali / apa yang perlu diperbaiki (dipakai sebagai instruksi agen)" />
+      <label class="flex items-start gap-2 text-XS">
+        <input v-model="buka.jalankanAgen" type="checkbox" class="mt-0.5" />
+        <span>Minta agen menulis ulang dokumen tahap itu sesuai alasan (hanya untuk tahap dokumen; tahap Coding dijalankan dari panel Coding).</span>
+      </label>
+      <div class="text-XS text-grey-400">Tahap tujuan dan tahap sesudahnya perlu disetujui ulang. Branch & kode item tetap.</div>
+    </div>
+    <template #footer>
+      <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Batal" outlined @click="dialogBuka = false" />
+      <CustomButton label="Buka kembali" icon="PhArrowUUpLeft" :disabled="!buka.alasan.trim() || sibuk" @click="bukaKembali" />
     </template>
   </Dialog>
 

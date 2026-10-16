@@ -268,6 +268,10 @@ rute.post("/item/:uuid/batal", tangani(async (req, res) => {
   await pastikan(req, "Permintaan", "BATAL");
   kirim(res, await alur.batalkanItem(await item(req), req.body?.alasan, req.author.username), "Item dibatalkan");
 }));
+rute.post("/item/:uuid/buka-kembali", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  kirim(res, await alur.bukaKembali(await item(req), req.body ?? {}, req.author.username), "Item dibuka kembali");
+}));
 
 // ---------- Tugas ----------
 
