@@ -175,7 +175,25 @@ Buka **SIMRS Studio › Aturan & Pengetahuan** (yang mengubah: superadmin).
     Pemeriksa kebijakan dan gerbang persetujuan tetap berlaku.
   - Biaya per tugas tidak tersedia dalam US$, karena langganan tidak melaporkannya; Studio hanya mencatat token.
   - Diskusi revisi coding dengan Codex selalu memulai sesi baru. Konteksnya diambil dari dokumen item.
-- **Konektor API** (Pengaturan & Agen): Anthropic API, OpenAI API, atau **model lokal** yang kompatibel OpenAI (Ollama, vLLM, LM Studio), untuk faskes yang tidak boleh mengirim data keluar. Pilih konektor dan model **per tahap**. Kunci API disimpan terenkripsi.
+- **Konektor API** (Pengaturan & Agen › Tambah konektor). Dibayar per pemakaian API, bukan langganan. Kunci API disimpan terenkripsi. Konektor dipilih **per tahap** dan memakai model yang diatur di konektornya.
+  - Pilih **Penyedia siap pakai** agar endpoint dan contoh model terisi otomatis, beserta tautan untuk membuat kunci API:
+
+    | Penyedia | Endpoint |
+    |---|---|
+    | Anthropic (Claude) | bawaan |
+    | OpenAI (GPT) | bawaan |
+    | DeepSeek | `https://api.deepseek.com/v1` |
+    | Qwen (Alibaba Model Studio) | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` |
+    | Grok (xAI) | `https://api.x.ai/v1` |
+    | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` |
+    | Mistral | `https://api.mistral.ai/v1` |
+    | OpenRouter (banyak model) | `https://openrouter.ai/api/v1` |
+    | Groq | `https://api.groq.com/openai/v1` |
+    | Ollama (model lokal, tanpa kunci) | `http://localhost:11434/v1` |
+
+  - Penyedia lain yang kompatibel OpenAI (vLLM, LM Studio, dan lainnya) bisa diisi manual. Model lokal cocok untuk faskes yang tidak boleh mengirim data keluar.
+  - Nama model di preset hanya contoh dan bisa berubah; cek nama terbaru di situs penyedia.
+  - Kemampuan memakai alat (membaca/menyunting berkas) berbeda tiap model. Klik **Uji** dan coba di tahap dokumen dulu sebelum dipakai untuk Coding.
 - **Agen eksternal lewat MCP** (mis. OpenClaw, Claude Desktop): daftarkan server MCP OpenSIMRS:
   ```json
   { "mcpServers": { "opensimrs": { "command": "node", "args": ["<repo>/studio-service/src/mcp.js"] } } }
