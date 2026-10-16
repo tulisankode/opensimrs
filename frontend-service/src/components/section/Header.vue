@@ -162,6 +162,8 @@ const showDialog = () => {
 };
 
 const isCardPanggilanVisible = ref(false);
+// Ikon toa (panggilan antrian) hanya untuk faskes dengan modul Antrian aktif (Setting › Manajemen Modul).
+const antrianAktif = computed(() => modulStore.aktif("antrian"));
 
 const toggleCardPanggilan = () => {
   isCardPanggilanVisible.value = !isCardPanggilanVisible.value;
@@ -618,6 +620,7 @@ const isSuperAdmin = getUserRole() === "super admin";
     <div class="flex flex-shrink-0 gap-5 my-auto">
       <div class="flex items-center justify-between">
         <svg
+          v-if="antrianAktif"
           @click="toggleCardPanggilan"
           class="relative w-8 aspect-square mr-4 cursor-pointer"
           viewBox="0 0 27 24"
@@ -719,7 +722,7 @@ const isSuperAdmin = getUserRole() === "super admin";
       </div>
     </div>
      <Transition name="drawer">
-    <div v-show="isCardPanggilanVisible" class="fixed inset-0 z-50 flex justify-end">
+    <div v-show="isCardPanggilanVisible && antrianAktif" class="fixed inset-0 z-50 flex justify-end">
     <div
       @click="toggleCardPanggilan"
       class="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
