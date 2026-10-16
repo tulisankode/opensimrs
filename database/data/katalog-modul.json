@@ -445,10 +445,14 @@
       "nama": "Bank Darah RS (BDRS)",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi.",
-      "menu": [],
-      "rute": [],
+      "menu": [
+        "Bank Darah RS (BDRS)"
+      ],
+      "rute": [
+        "/bank-darah"
+      ],
       "urutan": 24
     },
     {
@@ -773,9 +777,11 @@
       "modul": "bank_darah",
       "nama": "Permintaan Darah",
       "deskripsi": "Permintaan darah dari ruangan/IGD/OK beserta golongan & jumlah kantong.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/bank-darah/permintaan"
+      ],
       "urutan": 22
     },
     {
@@ -783,9 +789,11 @@
       "modul": "bank_darah",
       "nama": "Uji Silang Serasi",
       "deskripsi": "Pemeriksaan golongan darah & crossmatch sebelum transfusi.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/bank-darah/crossmatch"
+      ],
       "urutan": 23
     },
     {
@@ -793,9 +801,13 @@
       "modul": "bank_darah",
       "nama": "Stok & Serah Terima Darah",
       "deskripsi": "Penerimaan dari UTD, penyimpanan, kedaluwarsa, serah terima & pemantauan reaksi transfusi.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/bank-darah/stok",
+        "/bank-darah/serah-terima",
+        "/bank-darah/transfusi"
+      ],
       "urutan": 24
     },
     {
