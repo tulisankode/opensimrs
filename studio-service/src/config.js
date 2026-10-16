@@ -16,6 +16,8 @@ export default {
   // Repo yang dikembangkan agen (bawaan: monorepo tempat layanan ini berada).
   repoDir: path.resolve(process.env.STUDIO_REPO_DIR || path.join(folderLayanan, "..")),
   claudeBin: process.env.STUDIO_CLAUDE_BIN || "claude",
+  // Codex CLI (OpenAI, langganan ChatGPT). Kosong = dicari dari paket npm global @openai/codex.
+  codexBin: process.env.STUDIO_CODEX_BIN || "",
   // Runtime ekstensi tanpa kode (validasi, pratinjau, pasang) ada di laporan-service.
   laporanUrl: (process.env.BASE_URL_API_LAPORAN || "http://localhost:8088/api/v3/laporan").replace(/\/$/, ""),
   pg: {

@@ -160,6 +160,21 @@ Buka **SIMRS Studio › Aturan & Pengetahuan** (yang mengubah: superadmin).
 
 ## 5. Agen selain Claude Code
 
+- **Codex (langganan ChatGPT Plus/Pro/Team)**, agen CLI dari OpenAI:
+  1. Pasang di mesin Studio: `npm install -g @openai/codex`. Bisa juga isi `STUDIO_CODEX_BIN` di `studio-service/.env`.
+  2. Di **Pengaturan & Agen › Codex**, klik **Hubungkan akun ChatGPT**. Studio menampilkan kode sekali pakai dan membuka `auth.openai.com/codex/device` di tab baru.
+  3. Masuk dengan akun ChatGPT, misalnya lewat *Continue with Google*, lalu masukkan kodenya. Dialog tertutup sendiri setelah berhasil.
+  4. Pilih **Codex (langganan ChatGPT)** di tabel konektor per tahap, misalnya hanya untuk tahap Coding.
+
+  Batasannya:
+  - Codex berjalan dengan sandbox-nya sendiri: tahap dokumen **hanya-baca**, coding hanya di folder kerja dan tanpa jaringan.
+  - Codex tidak punya daftar larangan per berkas seperti Claude Code. Karena itu, setelah tugas coding Studio otomatis:
+    - mengembalikan perubahan pada `.env*`, `studio-service/`, SDK izin, `rahasia.js`, `.github/`, `deploy/`, dan `CLAUDE.md`;
+    - membatalkan commit buatan agen (perubahannya tetap ada, belum di-commit).
+
+    Pemeriksa kebijakan dan gerbang persetujuan tetap berlaku.
+  - Biaya per tugas tidak tersedia dalam US$, karena langganan tidak melaporkannya; Studio hanya mencatat token.
+  - Diskusi revisi coding dengan Codex selalu memulai sesi baru. Konteksnya diambil dari dokumen item.
 - **Konektor API** (Pengaturan & Agen): Anthropic API, OpenAI API, atau **model lokal** yang kompatibel OpenAI (Ollama, vLLM, LM Studio), untuk faskes yang tidak boleh mengirim data keluar. Pilih konektor dan model **per tahap**. Kunci API disimpan terenkripsi.
 - **Agen eksternal lewat MCP** (mis. OpenClaw, Claude Desktop): daftarkan server MCP OpenSIMRS:
   ```json

@@ -1,4 +1,5 @@
-// Orkestrator agen: pilih konektor per tahap (Claude Code CLI langganan atau konektor API), periksa batas biaya/kuota/
+// Orkestrator agen: pilih konektor per tahap (Claude Code CLI langganan, Codex CLI langganan ChatGPT, atau konektor
+// API), periksa batas biaya/kuota/
 // laju, lalu jalankan. Semua adaptor mengembalikan { hasil, sessionId }.
 import fs from "fs";
 import path from "path";
@@ -9,6 +10,7 @@ import { Galat } from "../respons.js";
 import { bacaSemua } from "../pengaturan.js";
 import { daftarkanPembatal, jalankanClaude, lepaskanPembatal } from "./claude.js";
 import { jalankanApi } from "./api.js";
+import { jalankanCodex } from "./codex.js";
 
 // Lampiran permintaan disimpan di studio-service/data/lampiran/<item> (diabaikan git).
 export const FOLDER_LAMPIRAN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "data", "lampiran");
@@ -16,6 +18,7 @@ export const FOLDER_LAMPIRAN = path.join(path.dirname(fileURLToPath(import.meta.
 export const ambilKonektor = async (nilai, tahap) => {
   const pilihan = nilai.konektor_tahap?.[tahap] || "claude_code";
   if (pilihan === "claude_code") return { penyedia: "claude_code", nama: "Claude Code (langganan)" };
+  if (pilihan === "codex") return { penyedia: "codex", nama: "Codex (langganan ChatGPT)" };
   const k = await satu(`SELECT * FROM studio_konektor WHERE uuid = $1 AND deleted_at IS NULL AND aktif`, [pilihan]);
   if (!k) throw new Galat(400, `Konektor untuk tahap ${tahap} tidak ditemukan/nonaktif — atur ulang di Pengaturan & Agen`);
   return k;
@@ -53,6 +56,9 @@ export const jalankanAgen = async ({ tugasUuid, prompt, mode, tahap, base = conf
   const konektor = await ambilKonektor(nilai, tahap);
   const model = nilai.model_tahap?.[tahap] || "";
   const batasBiaya = nilai.batas_biaya_tugas ? Number(nilai.batas_biaya_tugas) : null;
+  // Sesi Codex (codex:<thread>) tidak bisa dilanjutkan Claude Code, dan sebaliknya; Codex selalu memulai sesi baru.
+  const sesiClaude = resume && !String(resume).startsWith("codex:") ? resume : null;
+  if (konektor.penyedia === "codex") return jalankanCodex({ tugasUuid, prompt, mode, model, base });
   if (konektor.penyedia === "claude_code") {
     const lampiran = item ? path.join(FOLDER_LAMPIRAN, item.uuid) : null;
     return jalankanClaude({
@@ -60,7 +66,7 @@ export const jalankanAgen = async ({ tugasUuid, prompt, mode, tahap, base = conf
       prompt,
       mode,
       model,
-      resume,
+      resume: sesiClaude,
       base,
       batasBiaya,
       folderTambahan: lampiran && fs.existsSync(lampiran) ? [lampiran] : [],

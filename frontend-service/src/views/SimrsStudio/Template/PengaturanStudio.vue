@@ -26,6 +26,7 @@ const muat = async () => {
   konektor.value = c?.payload ?? [];
   aplikasi.value = d?.payload ?? null;
   muatAkunClaude();
+  muatAkunCodex();
   if (nilai.value) {
     nilai.value.konektorTahap ??= {};
     nilai.value.modelTahap ??= {};
@@ -125,6 +126,59 @@ const keluarClaude = async () => {
 };
 onUnmounted(hentikanPantau);
 
+// ---------- Akun Codex (langganan ChatGPT, login kode perangkat) ----------
+const akunCodex = ref<any>(null);
+const prosesCodex = ref(false);
+const loginCodex = ref<any>(null); // { url, kode }
+let pantauCodex: ReturnType<typeof setInterval> | undefined;
+
+const muatAkunCodex = async () => {
+  const res = await apiStudioGet("/pengaturan/akun-codex", true);
+  akunCodex.value = res?.payload?.akun ?? akunCodex.value;
+  return res?.payload;
+};
+const hentikanPantauCodex = () => {
+  if (pantauCodex) clearInterval(pantauCodex);
+  pantauCodex = undefined;
+};
+const mulaiLoginCodex = async () => {
+  prosesCodex.value = true;
+  try {
+    const res = await apiStudioPost("/pengaturan/akun-codex/login", {}, true);
+    if (!res?.payload?.kode) return;
+    loginCodex.value = res.payload;
+    window.open(res.payload.url, "_blank", "noopener");
+    // CLI selesai sendiri setelah kode disetujui di halaman OpenAI.
+    hentikanPantauCodex();
+    pantauCodex = setInterval(async () => {
+      const p = await muatAkunCodex();
+      if (p?.login?.selesai || !p?.login?.berjalan) {
+        hentikanPantauCodex();
+        if (p?.akun?.masuk) loginCodex.value = null;
+      }
+    }, 4000);
+  } finally {
+    prosesCodex.value = false;
+  }
+};
+const tutupLoginCodex = async () => {
+  hentikanPantauCodex();
+  loginCodex.value = null;
+  const p = await muatAkunCodex();
+  if (p?.login?.berjalan) await apiStudioPost("/pengaturan/akun-codex/batal", {}, true);
+};
+const keluarCodex = async () => {
+  if (!window.confirm("Putuskan akun Codex? Agen Codex perlu dihubungkan lagi sebelum dipakai.")) return;
+  prosesCodex.value = true;
+  try {
+    const res = await apiStudioPost("/pengaturan/akun-codex/keluar", {});
+    if (res?.payload) akunCodex.value = res.payload;
+  } finally {
+    prosesCodex.value = false;
+  }
+};
+onUnmounted(hentikanPantauCodex);
+
 // Repo utama (aplikasi yang dijalankan npm run dev) dipindah ke branch lokal agar hasil penerapan langsung terlihat.
 const pindahkanAplikasi = async () => {
   menyimpan.value = true;
@@ -149,9 +203,11 @@ const killSwitch = async (aktif: boolean) => {
 // Uji koneksi agen
 const menguji = ref<string | null>(null);
 const hasilUji = ref<any>(null);
+const ujiTerakhir = ref<string | null>(null);
 const uji = async (k: string) => {
   menguji.value = k;
   hasilUji.value = (await apiStudioPost("/konektor/uji", { konektor: k }))?.payload ?? null;
+  ujiTerakhir.value = k;
   menguji.value = null;
 };
 
@@ -285,8 +341,40 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
               </div>
               <div v-if="kuota.reset" class="mt-1 text-grey-400">Direset {{ kuota.reset }}<template v-if="sistem?.kuotaPada"> · data per {{ formatWaktu(sistem.kuotaPada) }}</template></div>
             </div>
-            <div v-if="hasilUji" class="text-XS text-success-400">✔ {{ hasilUji.hasil }} ({{ hasilUji.tugas?.model }}, ≈ {{ formatUsd(hasilUji.tugas?.biayaUsd) }})</div>
+            <div v-if="hasilUji && ujiTerakhir === 'claude_code'" class="text-XS text-success-400">✔ {{ hasilUji.hasil }} ({{ hasilUji.tugas?.model }}, ≈ {{ formatUsd(hasilUji.tugas?.biayaUsd) }})</div>
             <div class="text-XS text-grey-400">Repo <code>{{ sistem?.repoDir }}</code> · branch <b>{{ sistem?.branch }}</b> · lingkungan <b>{{ sistem?.lingkungan }}</b></div>
+          </div>
+
+          <!-- Codex (langganan ChatGPT) -->
+          <div class="flex flex-col gap-2 rounded-lg border border-grey-200 p-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <PhTerminal :size="26" weight="duotone" class="text-opensimrs-300" aria-hidden="true" />
+                <div>
+                  <div class="text-normal font-semibold text-grey-500">Codex (langganan ChatGPT)</div>
+                  <div class="text-XS text-grey-400">{{ sistem?.codex?.terpasang ? sistem.codex.versi : sistem?.codex ? "Belum terpasang: npm i -g @openai/codex" : "memuat…" }}</div>
+                </div>
+              </div>
+              <CustomButton v-if="akunCodex?.masuk" text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Uji" outlined icon="PhPulse" :disabled="!!menguji" @click="uji('codex')" />
+            </div>
+            <div class="text-XS text-grey-400">
+              Agen alternatif dari OpenAI: <code>codex exec</code> di mesin ini dengan sandbox (tahap dokumen hanya-baca; coding hanya folder kerja, tanpa jaringan).
+              Pilih per tahap di tabel di bawah. Perubahan agen pada zona terlarang (<code>.env</code>, <code>studio-service/</code>, SDK izin, <code>.github/</code>, <code>deploy/</code>) dikembalikan otomatis.
+            </div>
+            <div class="flex flex-wrap items-center gap-2 rounded-lg bg-opensimrs-50 p-2 text-XS text-grey-500">
+              <PhUserCircle :size="20" :weight="akunCodex?.masuk ? 'fill' : 'regular'" :class="akunCodex?.masuk ? 'text-success-300' : 'text-grey-300'" aria-hidden="true" />
+              <span class="min-w-0 flex-1">
+                <template v-if="!akunCodex">Memeriksa akun…</template>
+                <template v-else-if="!akunCodex.terpasang">Codex CLI belum terpasang di mesin ini.</template>
+                <template v-else-if="akunCodex.masuk">Terhubung{{ akunCodex.metode === "chatgpt" ? " dengan akun ChatGPT" : akunCodex.metode === "api_key" ? " dengan kunci API OpenAI" : "" }}.</template>
+                <template v-else>Belum ada akun ChatGPT yang terhubung.</template>
+              </span>
+              <template v-if="akunCodex?.terpasang">
+                <CustomButton :label="akunCodex.masuk ? 'Ganti akun' : 'Hubungkan akun ChatGPT'" icon="PhSignIn" :outlined="akunCodex.masuk" :text-color="akunCodex.masuk ? 'text-opensimrs-300' : ''" :border-color="akunCodex.masuk ? 'border-opensimrs-300' : ''" :disabled="prosesCodex" @click="mulaiLoginCodex" />
+                <CustomButton v-if="akunCodex.masuk" label="Putuskan" icon="PhSignOut" outlined text-color="text-danger-300" border-color="border-danger-300" :disabled="prosesCodex" @click="keluarCodex" />
+              </template>
+            </div>
+            <div v-if="hasilUji && ujiTerakhir === 'codex'" class="text-XS text-success-400">✔ {{ hasilUji.hasil }} ({{ hasilUji.tugas?.model }})</div>
           </div>
         </div>
 
@@ -322,6 +410,7 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
                 <td class="p-2">
                   <select v-model="nilai.konektorTahap[t.kode]" class="w-full rounded border border-grey-200 px-2 py-1">
                     <option :value="undefined">Claude Code (langganan)</option>
+                    <option value="codex">Codex (langganan ChatGPT)</option>
                     <option v-for="k in konektor.filter((x) => x.aktif)" :key="k.uuid" :value="k.uuid">{{ k.nama }}</option>
                   </select>
                 </td>
@@ -442,6 +531,24 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
     <template #footer>
       <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Batal" outlined @click="dialogLoginClaude = false" />
       <CustomButton label="Hubungkan" icon="PhSignIn" :disabled="!kodeClaude.trim() || prosesAkun" @click="kirimKodeClaude" />
+    </template>
+  </Dialog>
+
+  <Dialog :visible="!!loginCodex" modal header="Hubungkan akun ChatGPT (Codex)" :style="{ width: '30rem' }" @update:visible="(v: boolean) => !v && tutupLoginCodex()">
+    <div v-if="loginCodex" class="flex flex-col gap-3 text-SM text-grey-500">
+      <ol class="flex list-decimal flex-col gap-1 pl-5">
+        <li>Buka <a :href="loginCodex.url" target="_blank" rel="noopener" class="text-opensimrs-300 underline">{{ loginCodex.url }}</a> (sudah dibuka di tab baru).</li>
+        <li>Masuk dengan akun ChatGPT Anda, misalnya lewat <b>Continue with Google</b>.</li>
+        <li>Masukkan kode sekali pakai ini (berlaku 15 menit):</li>
+      </ol>
+      <div class="select-all rounded-lg bg-opensimrs-50 py-3 text-center font-mono text-2xl font-bold tracking-widest text-opensimrs-300">{{ loginCodex.kode }}</div>
+      <div class="flex items-center gap-2 text-XS text-grey-400">
+        <PhCircleNotch :size="14" class="animate-spin" aria-hidden="true" /> Menunggu persetujuan… dialog tertutup sendiri setelah berhasil.
+      </div>
+      <div class="text-XS text-grey-400">Gunakan langganan ChatGPT pribadi Anda; satu langganan tidak untuk dipakai bersama.</div>
+    </div>
+    <template #footer>
+      <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Batal" outlined @click="tutupLoginCodex" />
     </template>
   </Dialog>
 
