@@ -21,6 +21,7 @@ import { adaEkstensi, muatEkstensi, EVENT_EKSTENSI } from "@/stores/ekstensi";
 import { usePermissionStore } from "@/stores/datamaster/permission";
 import { logoFaskes } from "@/utils/tema";
 import Popover from "primevue/popover";
+import TombolBantuan from "./TombolBantuan.vue";
 import {
   canShowModuleInProduction,
   getStoredPermissions,
@@ -615,6 +616,7 @@ const isSuperAdmin = getUserRole() === "super admin";
       </Popover>
     </div>
     <div class="flex flex-shrink-0 gap-5 my-auto">
+      <TombolBantuan />
       <div class="flex justify-between">
         <svg
           @click="toggleCardPanggilan"

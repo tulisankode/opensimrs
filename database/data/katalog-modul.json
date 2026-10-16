@@ -1105,6 +1105,16 @@
       "rute": [],
       "modul_syarat": "bpjs_fktp",
       "urutan": 53
+    },
+    {
+      "kode": "helpdesk_ai",
+      "modul": "dashboard",
+      "nama": "Asisten Bantuan (Helpdesk AI)",
+      "deskripsi": "Tombol Bantuan untuk bertanya cara memakai OpenSIMRS ke asisten AI. Hanya berlaku bila Gateway helpdesk dikonfigurasi di setting-service.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 54
     }
   ],
   "bagian": [

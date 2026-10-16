@@ -50,6 +50,9 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm test
+      - name: Uji unit (setting-service, penyaring Helpdesk)
+        working-directory: setting-service
+        run: node --test test/*.test.mjs
       - name: Muat schema.sql + jalankan migrasi
         env:
           PGPASSWORD: opensimrs
