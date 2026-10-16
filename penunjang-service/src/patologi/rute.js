@@ -8,6 +8,7 @@ import order from "./order.js";
 import kasus from "./kasus.js";
 import arsip from "./arsip.js";
 import laporan from "./laporan.js";
+import { ruteLisPa } from "./lis-pa/lis-pa-rute.js";
 
 // Patologi Anatomi — /api/v3/penunjang/patologi/...
 //   /pemeriksaan            datamaster pemeriksaan PA (CRUD, ?jenis=&cari=; /pemeriksaan/jenis)
@@ -20,6 +21,8 @@ import laporan from "./laporan.js";
 //   /arsip                  arsip blok parafin & slide: lokasi rak, pinjam/kembali, riwayat
 //   /laporan/kunjungan      rekap kunjungan per jenis, pemeriksaan, pelayanan, hari, diagnosis, dokter, TAT (hari)
 //   /referensi/pasien|dokter|icd10   pencarian pasien (order APS), dokter pengirim, kode ICD-10
+//   /lis                    Bridging LIS PA: koneksi, mapping, kirim/kirim ulang, cek status, ambil hasil, riwayat laporan
+//                           (fitur pa_bridging_lis; titik masuk push hasil tanpa JWT dipasang di server.js)
 const rute = express.Router();
 
 rute.use("/pemeriksaan", pemeriksaan);
@@ -29,6 +32,7 @@ rute.use("/order", order);
 rute.use("/kasus", kasus);
 rute.use("/arsip", arsip);
 rute.use("/laporan", laporan);
+rute.use("/lis", ruteLisPa);
 
 rute.get(
   "/referensi/pasien",

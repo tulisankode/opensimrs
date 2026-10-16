@@ -98,13 +98,14 @@ OpenSIMRS terdiri dari satu frontend (Vue 3) dan 18 layanan backend (Node.js + E
 | 8096 | Datamaster | `datamaster-service` | `/api/v3/datamaster` |
 | 8097 | Integrasi SATUSEHAT | `satusehat-service` | `/api/v3/satusehat` |
 | 8098 | Integrasi BPJS (PCare & VClaim) | `bpjs-service` | `/api/v3/bpjs` |
-| 8099 | Penunjang (Fisioterapi, Radiologi, MCU, Patologi Anatomi, Mikrobiologi) | `penunjang-service` | `/api/v3/penunjang` |
+| 8099 | Penunjang (Fisioterapi, Radiologi, MCU, Patologi Anatomi + bridging LIS PA, Mikrobiologi) | `penunjang-service` | `/api/v3/penunjang`, `/adam-pa-lis` (titik masuk hasil dari sistem PA) |
 | 8090 | SIMRS Studio — mode pengembang berbasis AI (opsional; dijalankan langsung di mesin pengembang yang sudah login Claude Code, aktif bila `STUDIO_PENGEMBANG=aktif`) | `studio-service` | `/api/v3/studio` |
 | 5432 | PostgreSQL | – | – |
 | 27017 | MongoDB | – | – |
 | 6379 | Redis | – | – |
 | 8080 | Gateway nginx (deploy server, [bagian 8.3](#83-server-dengan-deploysh)) | `deploy/server/gateway.nginx.conf` | semua `/api/v3/*` |
 | 2312 | LIS tiruan untuk pengujian (opsional) | `scripts/lis-tiruan.mjs` | – |
+| 2313 | Sistem PA tiruan untuk pengujian (opsional) | `scripts/lis-pa-tiruan.mjs` | – |
 
 Port 8090 memang tidak dipakai.
 
@@ -524,6 +525,7 @@ Semua diisi di **Setting › Konfigurasi Integrasi** per faskes.
 | **BPJS PCare** (FKTP: praktik, klinik pratama, puskesmas) | Kredensial PCare dari BPJS Kesehatan | Modul `bpjs_fktp`. Pendaftaran & kunjungan dikirim otomatis berkala. Uji dulu dengan `BPJS_LINGKUNGAN=development`. |
 | **BPJS VClaim** (FKRTL: klinik utama, RS) | Kredensial VClaim | Modul `bpjs_fkrtl`: cek peserta, rujukan, SEP. |
 | **LIS** (Laboratory Information System) | URL & API key LIS (format adamLIS) | Nyalakan fitur **Bridging LIS** bila belum aktif di segmen Anda, isi koneksi (URL registrasi, URL ambil hasil, API key, kode RS, kode lab, mode kirim), lalu petakan kode di **Laboratorium › Mapping LIS** (tindakan, unit/dokter/penjamin, item hasil). Gagal kirim ke LIS = validasi order dibatalkan. Uji dulu dengan LIS tiruan: `node scripts/lis-tiruan.mjs` (lihat [README LIS tiruan](../scripts/README-lis-tiruan.md)). |
+| **LIS PA** (sistem informasi patologi anatomi) | URL & API key sistem PA (format adamLIS) | Nyalakan fitur **Bridging LIS Patologi Anatomi** bila belum aktif, isi koneksi di **Konfigurasi LIS PA** (URL registrasi, URL ambil hasil, API key, kode RS), lalu petakan kode di **Patologi Anatomi › Mapping LIS PA** (pemeriksaan, unit/dokter/penjamin, field hasil). Gagal kirim ke LIS PA = validasi order dibatalkan. Uji dulu dengan sistem PA tiruan: `node scripts/lis-pa-tiruan.mjs` (lihat [README sistem PA tiruan](../scripts/README-lis-pa-tiruan.md)). |
 
 Ubah `SATUSEHAT_MODE`/`BPJS_MODE` ke `nyata` dan lingkungan ke produksi (`SATUSEHAT_LINGKUNGAN=produksi`, `BPJS_LINGKUNGAN=production`) hanya di production dan setelah uji di sandbox lulus.
 

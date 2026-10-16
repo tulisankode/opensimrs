@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 10 berstatus Segera), **54 fitur** (13 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 10 berstatus Segera), **55 fitur** (13 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -460,6 +460,12 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `mcu_kesimpulan` | Kesimpulan & Sertifikat MCU | Kesimpulan dokter (fit / fit dengan catatan / unfit), saran, cetak laporan & sertifikat MCU. | Tersedia | – | – | – |
 | `mcu_korporasi` | Rekap & Tagihan Korporasi | Invoice per perusahaan dan rekap hasil seluruh peserta. | Tersedia | – | – | – |
 | `mcu_pcare` | MCU PCare (BPJS) | Pelaporan MCU peserta BPJS ke PCare. | Segera | – | BPJS FKTP (PCare) (`bpjs_fktp`) | – |
+
+#### Patologi Anatomi (`patologi_anatomi`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `pa_bridging_lis` | Bridging LIS Patologi Anatomi | Kirim order PA ke sistem patologi & terima diagnosis otomatis. | Tersedia | – | – | – |
 
 ### E. Bagian (unit terkecil)
 

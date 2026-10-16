@@ -203,6 +203,7 @@ import ArsipPaPage from "@/views/PatologiAnatomi/ArsipPaPage.vue";
 import MasterPemeriksaanPaPage from "@/views/PatologiAnatomi/MasterPemeriksaanPaPage.vue";
 import MasterTemplatePaPage from "@/views/PatologiAnatomi/MasterTemplatePaPage.vue";
 import LaporanKunjunganPaPage from "@/views/PatologiAnatomi/LaporanKunjunganPaPage.vue";
+import MappingLisPaPage from "@/views/PatologiAnatomi/MappingLisPaPage.vue";
 import MikrobiologiView from "@/views/Mikrobiologi/MikrobiologiView.vue";
 import OrderMikroPage from "@/views/Mikrobiologi/OrderMikroPage.vue";
 import PemeriksaanMikroPage from "@/views/Mikrobiologi/PemeriksaanMikroPage.vue";
@@ -1639,6 +1640,7 @@ const router = createRouter({
       ["/patologi-anatomi/datamaster/pemeriksaan", "patologi-anatomi-datamaster-pemeriksaan", MasterPemeriksaanPaPage],
       ["/patologi-anatomi/datamaster/template", "patologi-anatomi-datamaster-template", MasterTemplatePaPage],
       ["/patologi-anatomi/laporan/kunjungan", "patologi-anatomi-laporan-kunjungan", LaporanKunjunganPaPage],
+      ["/patologi-anatomi/mapping/lis", "patologi-anatomi-mapping-lis", MappingLisPaPage],
     ]),
     // SECTION Mikrobiologi
     { path: "/mikrobiologi", name: "mikrobiologi", redirect: "/mikrobiologi/order" },
