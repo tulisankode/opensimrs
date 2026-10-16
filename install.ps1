@@ -57,7 +57,15 @@ function Judul($t) { Write-Host ""; Write-Host "==> $t" -ForegroundColor White }
 function Ok($t)    { Write-Host "  [OK] $t" -ForegroundColor Green }
 function Warn($t)  { Write-Host "  [!]  $t" -ForegroundColor Yellow }
 function Gagal($t) { Write-Host "  [X]  $t" -ForegroundColor Red }
-function Mati($t)  { Write-Host ""; Write-Host "GAGAL: $t" -ForegroundColor Red; exit 1 }
+function Mati($t)  { Write-Progress -Id 0 -Activity "Instalasi OpenSIMRS" -Completed; Write-Host ""; Write-Host "GAGAL: $t" -ForegroundColor Red; exit 1 }
+# Bilah kemajuan (Write-Progress): langkah utama (Id 0) & butir per folder npm (Id 1).
+$JUMLAH_LANGKAH = 9 + [int][bool]$Helpdesk; $script:langkahKe = 0; $MULAI = Get-Date
+function Langkah($t) {
+  $script:langkahKe++
+  $p = [int](($script:langkahKe - 1) * 100 / $JUMLAH_LANGKAH)
+  Write-Progress -Id 0 -Activity "Instalasi OpenSIMRS" -Status "[$($script:langkahKe)/$JUMLAH_LANGKAH] $t" -PercentComplete $p
+  Judul "[$($script:langkahKe)/$JUMLAH_LANGKAH] $t"
+}
 function Tanya($t) {
   if ($Ya) { return $true }
   $j = Read-Host "  ? $t [y/N]"
@@ -133,7 +141,7 @@ function Admin { return ([Security.Principal.WindowsPrincipal][Security.Principa
 SegarkanPath
 
 # ---------- 1. cek dependensi ----------
-Judul "Cek dependensi (Windows)"
+Langkah "Cek dependensi (Windows)"
 $kurang = @()
 function CekVersi($nama, $cmd, [int]$min, [scriptblock]$ambilVersi) {
   if (-not (Ada $cmd)) { Gagal "$nama belum terpasang"; $script:kurang += $nama; return }
@@ -207,7 +215,7 @@ foreach ($a in @(@("claude", "Claude Code CLI (agen SIMRS Studio)"), @("codex", 
 if ($Cek) { exit 0 }
 
 # ---------- 2. nyalakan layanan ----------
-Judul "Menyalakan PostgreSQL, MongoDB, Memurai (Redis)"
+Langkah "Menyalakan PostgreSQL, MongoDB, Memurai (Redis)"
 foreach ($pola in @("postgresql*", "MongoDB*", "Memurai*", "Redis*")) {
   Get-Service -Name $pola -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne "Running" } | ForEach-Object {
     $nama = $_.Name
@@ -248,7 +256,7 @@ $K1 = AmbilAtauAcak "API_KEY_SECRET" 32; $K2 = AmbilAtauAcak "API_KEY_CHECK_NORM
 $K3 = AmbilAtauAcak "ADMISI_SECRET_KEY" 32; $K4 = AmbilAtauAcak "ANTRIAN_KEY_SECRET" 32
 
 # ---------- 3. PostgreSQL ----------
-Judul "PostgreSQL: role, database, skema"
+Langkah "PostgreSQL: role, database, skema"
 $superPass = $PG_SUPERPASS_BARU
 if (-not $superPass) { $superPass = $env:PG_SUPERPASS }
 if (-not $superPass) {
@@ -282,7 +290,7 @@ else {
 Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
 
 # ---------- 4. MongoDB ----------
-Judul "MongoDB: akun aplikasi"
+Langkah "MongoDB: akun aplikasi"
 $js = Join-Path $env:TEMP ("opensimrs-mongo-" + (Acak 4) + ".js")
 TulisUtf8 $js @"
 const a = db.getSiblingDB('admin');
@@ -296,7 +304,7 @@ else { Gagal "Tidak bisa membuat akun MongoDB: $hasil"
        Mati "MongoDB tampaknya sudah memakai autentikasi. Buat akun '$MONGO_USER' (readWrite pada '$DB_NAMA', authSource admin) secara manual, isi MONGO_DB_PASSWORD di .env, lalu jalankan ulang." }
 
 # ---------- 5. berkas .env ----------
-Judul "Berkas .env"
+Langkah "Berkas .env"
 $umum = @"
 DB_DIALECT=postgres
 DB_HOST=127.0.0.1
@@ -403,17 +411,27 @@ function JalankanNpm($argumen) {
   & npm.cmd @argumen
   if ($LASTEXITCODE -ne 0) { Mati ("npm " + ($argumen -join " ") + " gagal (kode $LASTEXITCODE)") }
 }
-Judul "Dependensi npm (10-20 menit pada instalasi pertama)"
+Langkah "Dependensi npm (10-20 menit pada instalasi pertama)"
 # npm audit menghubungi registry untuk tiap layanan dan bisa menggantung di jaringan lambat; jalankan terpisah bila perlu
 $env:npm_config_audit = "false"; $env:npm_config_fund = "false"
-JalankanNpm @("run", "install:all"); Ok "Dependensi terpasang"
+# Folder & urutan sama dengan "npm run install:all", satu per satu agar kemajuannya terlihat.
+$folderNpm = @(".") + @(& node -e "const s=require('./package.json').scripts['install:all'];for(const m of s.matchAll(/--prefix (\S+) install/g))console.log(m[1])")
+$i = 0
+foreach ($d in $folderNpm) {
+  $i++; $nama = if ($d -eq ".") { "root" } else { $d }
+  Write-Progress -Id 1 -ParentId 0 -Activity "npm install" -Status "$i/$($folderNpm.Count) $nama" -PercentComplete ([int]($i * 100 / $folderNpm.Count))
+  Write-Host "  [$i/$($folderNpm.Count)] npm install $nama"
+  JalankanNpm @("--prefix", $d, "install")
+}
+Write-Progress -Id 1 -Activity "npm install" -Completed
+Ok "Dependensi terpasang ($($folderNpm.Count) folder)"
 
-Judul "Migrasi database"
+Langkah "Migrasi database"
 JalankanNpm @("run", "db:migrate"); Ok "Migrasi selesai"
 
+Langkah "Data demo"
 if ($TanpaDemo) { Warn "Data demo dilewati (-TanpaDemo)" }
 else {
-  Judul "Data demo"
   $env:PGPASSWORD = $DB_PASS
   $jml = (& psql -X -h 127.0.0.1 -p $PG_PORT -U $DB_USER -d $DB_NAMA -tAc "SELECT count(*) FROM faskes" 2>$null | Out-String).Trim()
   Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
@@ -424,9 +442,9 @@ else {
 }
 
 # ---------- 7. alat AI: agen SIMRS Studio (Claude Code, Codex) & Helpdesk (OpenClaw) ----------
+Langkah "Alat AI untuk SIMRS Studio"
 if ($TanpaAi) { Warn "Alat AI dilewati (-TanpaAi)" }
 else {
-  Judul "Alat AI untuk SIMRS Studio"
   foreach ($a in @(@("claude", "@anthropic-ai/claude-code", "Claude Code CLI"), @("codex", "@openai/codex", "Codex CLI"))) {
     if (Ada $a[0]) { Ok "$($a[2]) sudah terpasang ($(VersiAlat $a[0]))" }
     elseif (Tanya "Pasang $($a[2]) ($($a[1])) untuk agen SIMRS Studio?") {
@@ -438,7 +456,7 @@ else {
   Write-Host "    Login akun: SIMRS Studio > Pengaturan & Agen > Hubungkan akun Claude / Hubungkan akun ChatGPT"
 }
 if ($Helpdesk) {
-  Judul "OpenClaw (Helpdesk)"
+  Langkah "OpenClaw (Helpdesk)"
   Warn "Untuk produksi, pasang OpenClaw di VM terpisah dari server SIMRS (deploy\helpdesk\README.md). Di mesin ini hanya untuk uji coba."
   if (Ada "openclaw") { Ok "OpenClaw sudah terpasang ($(VersiAlat 'openclaw'))" }
   elseif (Tanya "Pasang OpenClaw dengan installer resmi (openclaw.ai/install.ps1; menyiapkan Node 24.16+ sendiri)?") {
@@ -451,7 +469,8 @@ if ($Helpdesk) {
 }
 
 # ---------- selesai ----------
-Judul "Selesai"
+Write-Progress -Id 0 -Activity "Instalasi OpenSIMRS" -Completed
+Judul ("Selesai dalam " + [int]((Get-Date) - $MULAI).TotalMinutes + " menit")
 Write-Host "  Jalankan aplikasi:"
 Write-Host "    npm run dev          # semua layanan + frontend"
 Write-Host "    npm run dev:core     # ringan: auth, datamaster, admisi, frontend"

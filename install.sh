@@ -49,13 +49,13 @@ done
 DB_NAMA="opensimrs"; DB_USER="opensimrs"; MONGO_USER="opensimrs"
 LAYANAN="admisi:8081 antrian:8082 auth:8083 farmasi:8084 igd:8085 inventory:8086 lab:8087 laporan:8088 payment:8089 rawat-inap:8091 rawat-jalan:8092 rekamedis:8093 setting:8094 stok-farmasi:8095 datamaster:8096 satusehat:8097 bpjs:8098 penunjang:8099 studio:8090"
 
-# ---------- tampilan ----------
-if [ -t 1 ]; then H=$'\033[32m'; K=$'\033[33m'; M=$'\033[31m'; T=$'\033[1m'; N=$'\033[0m'; else H=""; K=""; M=""; T=""; N=""; fi
-judul() { printf '\n%s==> %s%s\n' "$T" "$1" "$N"; }
-ok()    { printf '  %s✔%s %s\n' "$H" "$N" "$1"; }
-warn()  { printf '  %s!%s %s\n' "$K" "$N" "$1"; }
-gagal() { printf '  %s✘%s %s\n' "$M" "$N" "$1"; }
-mati()  { printf '\n%sGAGAL:%s %s\n' "$M" "$N" "$1" >&2; exit 1; }
+# ---------- tampilan: bilah kemajuan, spinner, log (scripts/lib/tampilan.sh) ----------
+# shellcheck source=scripts/lib/tampilan.sh
+. "$ROOT/scripts/lib/tampilan.sh"
+mati()  { printf '\n%sGAGAL:%s %s\n' "$M" "$N" "$1" >&2; [ "$UI_LOG" != /dev/null ] && printf '  Log lengkap: %s\n' "$UI_LOG" >&2; exit 1; }
+# Langkah: cek, layanan DB, PostgreSQL, MongoDB, .env, npm, migrasi, demo, alat AI (Podman: layanan DB+PG+Mongo = 1 langkah)
+JUMLAH_LANGKAH=$(( PODMAN == 1 ? 7 : 9 )); [ "$HELPDESK" = 1 ] && JUMLAH_LANGKAH=$((JUMLAH_LANGKAH + 1))
+ui_mulai "$JUMLAH_LANGKAH" "${TMPDIR:-/tmp}/opensimrs-install-$(date +%Y%m%d-%H%M%S).log"
 tanya() { # tanya "pertanyaan" → 0 bila ya
   [ "$SEMUA_YA" = 1 ] && return 0
   local j; printf '  %s? %s [y/N] ' "$K" "$1$N"; read -r j </dev/tty || j=""
@@ -82,7 +82,7 @@ if [ "$PLATFORM" = mac ] && ada brew; then
 fi
 
 # ---------- 1. cek dependensi ----------
-judul "Cek dependensi ($PLATFORM)"
+ui_langkah "Cek dependensi ($PLATFORM)"
 KURANG=""
 
 cek() { # cek <nama> <perintah> <versi-minimal> <perintah-versi...>
@@ -285,7 +285,7 @@ psqlq() {
 }
 
 if [ "$PODMAN" = 1 ]; then
-  judul "PostgreSQL, Redis, MongoDB di Podman"
+  ui_langkah "PostgreSQL, Redis, MongoDB di Podman"
   # macOS: kontainer berjalan di VM (podman machine)
   if [ "$PLATFORM" = mac ] && ! podman info >/dev/null 2>&1; then
     MESIN="$(podman machine list --format '{{.Name}} {{.Default}}' 2>/dev/null | awk '$2=="true"{print $1}' | tr -d '*' | head -1)"
@@ -328,7 +328,7 @@ if [ "$PODMAN" = 1 ]; then
     && ok "schema.sql termuat" || mati "schema.sql belum termuat. Lihat log: podman logs opensimrs-db"
 else
 # ---------- 2. nyalakan layanan ----------
-judul "Menyalakan PostgreSQL, Redis, MongoDB"
+ui_langkah "Menyalakan PostgreSQL, Redis, MongoDB"
 case "$PLATFORM" in
   mac)
     for s in postgresql@16 redis mongodb-community@7.0; do
@@ -343,7 +343,7 @@ tunggu "Redis"      30 redis-cli -h 127.0.0.1 ping
 tunggu "MongoDB"    30 mongosh --quiet --host 127.0.0.1 --eval "db.runCommand({ping:1}).ok"
 
 # ---------- 3. PostgreSQL ----------
-judul "PostgreSQL: role, database, skema"
+ui_langkah "PostgreSQL: role, database, skema"
 if [ "$PLATFORM" = mac ]; then pgadmin() { psql -X -q -d postgres "$@"; }; else pgadmin() { sudo -u postgres psql -X -q -d postgres "$@"; }; fi
 
 if [ "$(pgadmin -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'")" = 1 ]; then
@@ -364,14 +364,13 @@ export PGPASSWORD="$DB_PASS"
 if [ "$(psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" -tAc "SELECT to_regclass('public.kelurahan') IS NOT NULL")" = t ]; then
   ok "schema.sql sudah dimuat sebelumnya (dilewati)"
 else
-  echo "  … memuat schema.sql (struktur + referensi nasional, 1–3 menit)"
-  psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" -v ON_ERROR_STOP=1 -q -f schema.sql >/dev/null
-  ok "schema.sql dimuat"
+  ui_jalankan "Memuat schema.sql (struktur + referensi nasional, 1–3 menit)" \
+    psql -X -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAMA" -v ON_ERROR_STOP=1 -q -f schema.sql || mati "schema.sql gagal dimuat"
 fi
 unset PGPASSWORD
 
 # ---------- 4. MongoDB ----------
-judul "MongoDB: akun aplikasi"
+ui_langkah "MongoDB: akun aplikasi"
 HASIL="$(mongosh --quiet --host 127.0.0.1 --eval "
   const a = db.getSiblingDB('admin');
   if (a.getUser('$MONGO_USER')) { a.updateUser('$MONGO_USER', { pwd: '$MONGO_PASS' }); print('diperbarui'); }
@@ -385,7 +384,7 @@ esac
 fi
 
 # ---------- 5. berkas .env ----------
-judul "Berkas .env"
+ui_langkah "Berkas .env"
 for p in $LAYANAN; do n="${p%%:*}"; port="${p##*:}"; [ -d "$n-service" ] && tulis_env "$n-service/.env" "$port" "$n"; done
 
 # .env layanan lama yang tidak cocok dengan root → login/koneksi DB akan gagal
@@ -428,39 +427,46 @@ EOF
 fi
 
 # ---------- 6. dependensi npm, migrasi, data demo ----------
-judul "Dependensi npm (10–20 menit pada instalasi pertama)"
+ui_langkah "Dependensi npm (10–20 menit pada instalasi pertama)"
 # npm audit menghubungi registry untuk tiap layanan dan bisa menggantung di jaringan lambat; jalankan terpisah bila perlu
 export npm_config_audit=false npm_config_fund=false
-npm run install:all
-ok "Dependensi terpasang"
+# Folder sama & urutan sama dengan "npm run install:all", satu per satu agar kemajuannya terlihat.
+# (tanpa mapfile: bash 3.2 bawaan macOS)
+FOLDER_NPM=()
+while IFS= read -r d; do FOLDER_NPM+=("$d"); done < <(node -e "const s=require('./package.json').scripts['install:all'];console.log('.');for(const m of s.matchAll(/--prefix (\S+) install/g))console.log(m[1])")
+for i in "${!FOLDER_NPM[@]}"; do
+  d="${FOLDER_NPM[$i]}"; ke=$((i + 1)); p=$((ke * 100 / ${#FOLDER_NPM[@]}))
+  ui_jalankan "$(_bilah $p 12) $ke/${#FOLDER_NPM[@]} npm install $([ "$d" = . ] && echo root || echo "$d")" npm --prefix "$d" install \
+    || mati "npm install di $d gagal"
+done
+ok "Dependensi terpasang (${#FOLDER_NPM[@]} folder)"
 
-judul "Migrasi database"
-npm run db:migrate
-ok "Migrasi selesai"
+ui_langkah "Migrasi database"
+ui_jalankan "npm run db:migrate" npm run db:migrate || mati "Migrasi gagal"
 
+ui_langkah "Data demo"
 if [ "$TANPA_DEMO" = 1 ]; then
   warn "Data demo dilewati (--tanpa-demo)"
 else
-  judul "Data demo"
   ADA_FASKES="$(psqlq -tAc "SELECT count(*) FROM faskes" 2>/dev/null || echo 0)"
   if [ "${ADA_FASKES:-0}" != 0 ]; then
     ok "Database sudah berisi $ADA_FASKES faskes (data demo dilewati; reset: npm run db:demo:reset -- --ya)"
   elif tanya "Isi data demo (8 faskes fiktif + akun demo)?"; then
-    npm run db:demo:seed
-    npm run db:demo:master-penunjang
+    ui_jalankan "Data demo: faskes & akun fiktif" npm run db:demo:seed || mati "Data demo gagal"
+    ui_jalankan "Data demo: master penunjang" npm run db:demo:master-penunjang || mati "Data demo penunjang gagal"
   fi
 fi
 
 # ---------- 7. alat AI: agen SIMRS Studio (Claude Code, Codex) & Helpdesk (OpenClaw) ----------
 npm_global() { # npm install -g; pakai sudo bila prefix global tidak bisa ditulis (mis. Node dari apt/NodeSource)
   local p; p="$(npm prefix -g)"
-  if [ -w "$p/lib" ] || { [ ! -d "$p/lib" ] && [ -w "$p" ]; }; then npm install -g --no-audit --no-fund "$@"
-  else sudo npm install -g --no-audit --no-fund "$@"; fi
+  if [ -w "$p/lib" ] || { [ ! -d "$p/lib" ] && [ -w "$p" ]; }; then ui_jalankan "npm install -g $*" npm install -g --no-audit --no-fund "$@"
+  else sudo npm install -g --no-audit --no-fund "$@"; fi   # sudo bisa meminta sandi: tanpa spinner
 }
+ui_langkah "Alat AI untuk SIMRS Studio"
 if [ "$TANPA_AI" = 1 ]; then
   warn "Alat AI dilewati (--tanpa-ai)"
 else
-  judul "Alat AI untuk SIMRS Studio"
   for a in "claude|@anthropic-ai/claude-code|Claude Code CLI" "codex|@openai/codex|Codex CLI"; do
     IFS='|' read -r b paket nama <<<"$a"
     if ada "$b"; then
@@ -472,7 +478,7 @@ else
   echo "    Login akun: SIMRS Studio › Pengaturan & Agen › Hubungkan akun Claude / Hubungkan akun ChatGPT"
 fi
 if [ "$HELPDESK" = 1 ]; then
-  judul "OpenClaw (Helpdesk)"
+  ui_langkah "OpenClaw (Helpdesk)"
   warn "Untuk produksi, pasang OpenClaw di VM terpisah dari server SIMRS (deploy/helpdesk/README.md). Di mesin ini hanya untuk uji coba."
   if ada openclaw; then
     ok "OpenClaw sudah terpasang ($(openclaw --version 2>/dev/null | head -1))"
@@ -483,7 +489,7 @@ if [ "$HELPDESK" = 1 ]; then
 fi
 
 # ---------- selesai ----------
-judul "Selesai"
+ui_selesai "Instalasi OpenSIMRS selesai — log: $UI_LOG"
 cat <<EOF
   Jalankan aplikasi:
     npm run dev          # semua layanan + frontend
