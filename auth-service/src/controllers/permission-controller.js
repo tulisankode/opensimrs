@@ -2,6 +2,8 @@ import sequelizeInstance from "@opensimrs/model-sdk/instance";
 import { QueryTypes } from "sequelize";
 import { mapPermission } from "../helpers/permission-list.js";
 import { isSuperadmin } from "@opensimrs/authorization-sdk/peran";
+import generateRedisKeyByJwtToken from "@opensimrs/authorization-sdk/generateKeyRedis";
+import redisClient from "../configurations/redis-client-config.js";
 
 // Semua modul izin yang dikenal (kunci mapPermission). Sumber tunggal untuk editor Role di frontend.
 const SEMUA_MODUL = [
@@ -92,6 +94,24 @@ export default class PermissionController {
         return { peran: jumlahPeran, pengguna: jumlahPengguna, permissions: baca(saya?.permissions) ?? [] };
       });
       res.status(200).json({ message: `Izin modul disinkronkan ke ${hasil.peran} peran admin`, payload: hasil });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // POST /permission/muat-ulang
+  // Izin sesi ini dibaca ulang dari database (mis. setelah modul baru diaktifkan Manajemen Modul / SIMRS Studio): cache
+  // izin token di Redis ditimpa tanpa mengubah masa berlakunya, sehingga menu & hak akses baru berlaku tanpa login ulang.
+  static async muatUlang(req, res, next) {
+    try {
+      const [saya] = await sequelizeInstance.query(
+        `SELECT permissions FROM users WHERE username = :n AND deleted_at IS NULL LIMIT 1`,
+        { replacements: { n: req.author?.username }, type: QueryTypes.SELECT }
+      );
+      const permissions = baca(saya?.permissions) ?? [];
+      const token = (req.get("Authorization") ?? "").substring(7);
+      await redisClient.set(`token-${generateRedisKeyByJwtToken(token)}`, JSON.stringify({ permissions }), { XX: true, KEEPTTL: true });
+      res.status(200).json({ message: "Izin sesi dimuat ulang", payload: { permissions } });
     } catch (error) {
       next(error);
     }

@@ -8,19 +8,49 @@ Rancangan lengkap dan status implementasi: [docs/rancangan/STUDIO-PENGEMBANG.md]
 
 Studio dijalankan di **mesin pengembang atau staging**, bukan di server produksi. Ekstensi yang sudah jadi tetap bisa dipasang di produksi, lihat bagian 6.
 
-1. Repo OpenSIMRS sudah berjalan dengan `npm run dev` (lihat [Petunjuk Instalasi](./INSTALLATION_GUIDE.md)).
-2. **Claude Code CLI** terpasang dan sudah login dengan langganan Anda:
+### Perangkat lunak
+
+| Kebutuhan | Versi / catatan |
+|---|---|
+| Sistem operasi | macOS, Linux (Ubuntu/Debian), atau Windows 10/11 |
+| Node.js | 22 LTS disarankan (minimal 20) |
+| Git | 2.30 ke atas. Wajib, karena Studio membuat branch, commit, worktree, dan merge sendiri. Di Windows pakai **Git for Windows** (sekaligus menyediakan `bash`, `ssh`, `ssh-keygen`) |
+| OpenSIMRS | Sudah terpasang dan berjalan dengan `npm run dev` beserta PostgreSQL, MongoDB, dan Redis (lihat [Petunjuk Instalasi](./INSTALLATION_GUIDE.md)) |
+| Claude Code CLI | Versi terbaru, login dengan langganan **Claude Pro/Max**. Atau pakai konektor API, lihat bagian 5 |
+| OpenSSH client | Hanya untuk fitur **Server & Deploy** (`ssh`, `ssh-keygen`). Sudah ada di macOS/Linux dan di Git for Windows |
+| Peramban | Chrome, Edge, atau Firefox versi terbaru |
+
+### Perangkat keras
+
+- RAM minimal 16 GB. Semua layanan, frontend, dan agen berjalan bersamaan.
+- Ruang disk kosong minimal 10 GB. Mode *worktree* membuat salinan repo per item (node_modules ditautkan, bukan disalin).
+- Koneksi internet stabil. Agen berkomunikasi dengan layanan AI selama tugas berjalan.
+
+### Akun dan akses
+
+- Akun **superadmin** OpenSIMRS, untuk menyalakan Mode Pengembang dan mengatur peran.
+- Langganan Claude Pro/Max **milik pribadi** pengguna yang menjalankan Studio. Sesuai ketentuan Anthropic, satu langganan tidak dipakai bersama banyak orang. Kalau dipakai satu tim, gunakan akun API (konektor) per tim.
+- Opsional: token GitHub/GitLab bila memakai mode rilis Pull Request, dan akses SSH ke server RS bila memakai Server & Deploy.
+
+### Langkah persiapan
+
+1. **Claude Code CLI** terpasang dan sudah login dengan langganan Anda:
    ```bash
    npm install -g @anthropic-ai/claude-code   # atau installer resmi Claude Code
-   claude                                      # lalu /login, pilih akun Claude Pro/Max
+   claude auth login                           # membuka peramban, pilih akun Claude Pro/Max
+   claude auth status --text                   # pastikan sudah masuk
    ```
-   Studio memakai login yang sama dengan Claude Code di VS Code, dan pemakaiannya dihitung ke kuota langganan itu. Agen lain juga bisa dipakai, lihat bagian 5.
-3. Isi `studio-service/.env` (dibuat installer, atau salin dari `.env.example`):
+   Login harus dilakukan **di pengguna OS yang sama** dengan yang menjalankan `npm run dev`. Studio memakai login yang sama dengan Claude Code di VS Code, dan pemakaiannya dihitung ke kuota langganan itu.
+2. Isi `studio-service/.env` (dibuat installer, atau salin dari `.env.example`):
    ```env
    STUDIO_PENGEMBANG=aktif
    LINGKUNGAN=development
    ```
-4. Jalankan `npm run db:migrate`, lalu `npm run dev` (sudah termasuk `studio-service` di port 8090).
+   Samakan `SECRET_KEY` dan pengaturan database dengan layanan lain.
+3. Pastikan working tree repo bersih (`git status`), lalu ambil `main` terbaru.
+4. Bila memakai mode rilis **lokal**, buat branch rilis lokal sekali saja, misalnya `git branch rs-lokal origin/main`. Isi namanya di Pengaturan Studio.
+5. Jalankan `npm run install:all`, `npm run sdk:refresh`, `npm run db:migrate`, lalu `npm run dev` (sudah termasuk `studio-service` di port 8090).
+6. Lanjutkan ke bagian 2 untuk mengaktifkan Studio dari aplikasi.
 
 ## 2. Mengaktifkan & memberi akses
 
@@ -79,7 +109,19 @@ Atur di **Pengaturan & Agen › Rilis**:
 
 Hal yang perlu diperhatikan:
 - **Branch lokal** sebaiknya diisi eksplisit, misalnya `rs-lokal`. Bila kosong, Studio memakai branch yang sedang aktif di repo.
-- Layanan dalam mode dev memuat ulang perubahan secara otomatis. Di server, jalankan ulang layanan yang berubah.
+- **Aplikasi pengembang harus memakai branch lokal.** `npm run dev` menjalankan kode dari branch yang sedang aktif di repo utama. Bila repo utama masih di branch lain (misalnya `main`), hasil penerapan tidak terlihat. Studio menampilkan peringatan dan tombol **Pindahkan aplikasi ke `<branch lokal>`** di halaman item dan di Pengaturan.
+- Layanan dalam mode dev (nodemon) dan frontend (Vite) memuat ulang perubahan secara otomatis. Di server, jalankan ulang layanan yang berubah.
+
+#### Aktivasi otomatis setelah diterapkan
+
+Bila **Nyalakan modul/fitur baru setelah diterapkan** dicentang (bawaan), Studio melakukan langkah berikut setelah penggabungan dan migrasi:
+
+1. Membandingkan `database/data/katalog-modul.json` sebelum dan sesudah item, lalu mencari modul/fitur yang baru menjadi *tersedia*.
+2. Menyalakannya untuk faskes yang sedang Anda pakai, atau semua faskes sesuai pengaturan, seperti di **Setting › Manajemen Modul**. Fitur hanya dinyalakan di faskes yang modul induknya aktif. Perubahan tercatat di riwayat Manajemen Modul.
+3. Memberi izin modul baru ke peran admin faskes dan super admin, beserta penggunanya. Izin peran lain tetap diatur di **Datamaster › Role**.
+4. Memuat ulang konfigurasi modul dan izin sesi Anda, sehingga menu baru langsung muncul tanpa login ulang. Pengguna lain mendapat menu baru saat login berikutnya.
+
+Aktivasi otomatis hanya berjalan bila `LINGKUNGAN=development`. Di staging, klik **Aktifkan di aplikasi** di tahap Rilis. **Batalkan penerapan** juga mengembalikan toggle dan izin yang dinyalakan Studio.
 - Bila server produksi berbeda dari mesin Studio, server produksi mengambil branch lokal itu, misalnya lewat Git internal RS (Gitea) atau salinan repo. Studio tetap tidak menulis langsung ke server produksi.
 - Untuk memperbarui OpenSIMRS dari upstream, gabungkan rilis baru ke branch lokal. Konflik bisa muncul pada berkas yang dikustomisasi, jadi selesaikan di VS Code. Kustomisasi lewat **ekstensi tanpa kode** tidak menimbulkan konflik seperti ini.
 
@@ -159,7 +201,7 @@ Pengamannya:
 | Gejala | Penyebab / solusi |
 |---|---|
 | Kartu Mode Pengembang: "studio-service belum berjalan" | Jalankan `npm run dev:studio` dan cek port 8090 |
-| "Claude Code CLI tidak ditemukan" / agen gagal login | Pasang Claude Code, lalu jalankan `claude` → `/login` di pengguna OS yang sama dengan layanan. Bila perlu, isi `STUDIO_CLAUDE_BIN` |
+| "Claude Code CLI tidak ditemukan" / agen gagal login | Pasang Claude Code, lalu jalankan `claude auth login` di pengguna OS yang sama dengan layanan. Cek dengan `claude auth status --text`. Bila perlu, isi `STUDIO_CLAUDE_BIN` |
 | "Fitur Coding belum diaktifkan" | Pengaturan & Agen › Fitur Studio |
 | "Gagal berpindah ke branch …" (mode workspace) | Ada perubahan yang bentrok. Commit/stash dulu, atau pakai mode worktree |
 | "Kuota langganan Claude sudah …%" | Tunggu reset, naikkan batas kuota, atau pilih model Haiku untuk tahap dokumen |

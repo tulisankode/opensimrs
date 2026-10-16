@@ -20,6 +20,11 @@ export const BAWAAN = {
   branch_lokal: "",
   // Jalankan npm run db:migrate setelah penerapan lokal bila ada migrasi baru.
   migrasi_otomatis: true,
+  // Setelah penerapan lokal: nyalakan modul/fitur yang baru tersedia di katalog & beri izin modul baru ke peran admin
+  // (seperti Setting › Manajemen Modul). Otomatis hanya bila LINGKUNGAN=development; di staging lewat tombol.
+  aktivasi_otomatis: true,
+  // "saya" = faskes yang sedang dipakai penerap; "semua" = semua faskes yang sudah diatur segmennya.
+  aktivasi_faskes: "saya",
   // Titik awal branch kerja item untuk mode "pr" (git switch -c <branch item> --no-track <branch_dasar>).
   // Pada mode "lokal"/"keduanya", item bercabang dari branch lokal agar kustomisasi saling menumpuk.
   branch_dasar: "origin/main",

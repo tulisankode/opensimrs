@@ -6,6 +6,7 @@ import PageToolbar from "@/components/Base/PageToolbar.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import { apiStudioGet, apiStudioPost, apiStudioPut, apiEkstensi } from "@/utils/apiHandler";
 import { useSimrsStudioStore } from "@/stores/simrsStudio";
+import { useModulFaskesStore } from "@/stores/modulFaskes";
 import { TAHAP, formatUsd, formatWaktu, ringkasKuota } from "../umum";
 
 const studio = useSimrsStudioStore();
@@ -15,12 +16,15 @@ const peran = ref<Record<string, any>>({});
 const konektor = ref<any[]>([]);
 const menyimpan = ref(false);
 
+const aplikasi = ref<any>(null);
+
 const muat = async () => {
-  const [a, b, c] = await Promise.all([apiStudioGet("/sistem"), apiStudioGet("/pengaturan"), apiStudioGet("/konektor", true)]);
+  const [a, b, c, d] = await Promise.all([apiStudioGet("/sistem"), apiStudioGet("/pengaturan"), apiStudioGet("/konektor", true), apiStudioGet("/aplikasi", true)]);
   sistem.value = a?.payload ?? null;
   nilai.value = b?.payload?.nilai ?? null;
   peran.value = b?.payload?.peran ?? {};
   konektor.value = c?.payload ?? [];
+  aplikasi.value = d?.payload ?? null;
   if (nilai.value) {
     nilai.value.konektorTahap ??= {};
     nilai.value.modelTahap ??= {};
@@ -41,6 +45,17 @@ const simpan = async () => {
   menyimpan.value = false;
   await muat();
   studio.muat();
+};
+
+// Repo utama (aplikasi yang dijalankan npm run dev) dipindah ke branch lokal agar hasil penerapan langsung terlihat.
+const pindahkanAplikasi = async () => {
+  menyimpan.value = true;
+  try {
+    if (await apiStudioPost("/aplikasi/pindah", {})) await useModulFaskesStore().segarkanSesi().catch(() => {});
+  } finally {
+    menyimpan.value = false;
+    await muat();
+  }
 };
 
 // Kill switch
@@ -248,6 +263,21 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
             <div v-if="nilai.modeRilis !== 'pr'" class="grid grid-cols-2 gap-2">
               <label class="flex flex-col gap-1 text-XS"><span class="font-semibold">Branch lokal aplikasi RS</span><input v-model="nilai.branchLokal" class="rounded border border-grey-200 bg-white px-2 py-1 font-mono" placeholder="kosong = branch yang sedang aktif" /></label>
               <label class="flex items-end gap-2 pb-1 text-XS"><input v-model="nilai.migrasiOtomatis" type="checkbox" /> Jalankan <code>db:migrate</code> setelah diterapkan</label>
+              <label class="col-span-2 flex items-start gap-2 text-XS">
+                <input v-model="nilai.aktivasiOtomatis" type="checkbox" class="mt-0.5" />
+                <span>Nyalakan modul/fitur baru setelah diterapkan, beri izin modul baru ke peran admin, lalu perbarui menu tanpa login ulang
+                  (otomatis hanya bila <code>LINGKUNGAN=development</code>; di staging lewat tombol <b>Aktifkan di aplikasi</b>).</span>
+              </label>
+              <label v-if="nilai.aktivasiOtomatis" class="flex flex-col gap-1 text-XS"><span class="font-semibold">Faskes yang dinyalakan</span>
+                <select v-model="nilai.aktivasiFaskes" class="rounded border border-grey-200 bg-white px-2 py-1"><option value="saya">Faskes yang sedang saya pakai</option><option value="semua">Semua faskes</option></select></label>
+            </div>
+            <div v-if="nilai.modeRilis !== 'pr' && aplikasi" class="flex flex-wrap items-center gap-2 rounded-lg bg-white p-2 text-XS" :class="aplikasi.sama ? 'text-grey-500' : 'text-warning-400'">
+              <span class="min-w-0 flex-1">
+                Aplikasi pengembang (<code>npm run dev</code>) memakai branch <b>{{ aplikasi.branch }}</b>.
+                <template v-if="aplikasi.sama">Hasil penerapan langsung terlihat di aplikasi ini.</template>
+                <template v-else>Branch lokal adalah <b>{{ aplikasi.branchLokal }}</b>, jadi hasil penerapan belum terlihat di aplikasi ini.</template>
+              </span>
+              <CustomButton v-if="!aplikasi.sama" :label="`Pindahkan ke ${aplikasi.branchLokal}`" icon="PhArrowsLeftRight" outlined text-color="text-opensimrs-300" border-color="border-opensimrs-300" :disabled="menyimpan" @click="pindahkanAplikasi" />
             </div>
             <div v-if="nilai.modeRilis !== 'lokal'" class="grid grid-cols-2 gap-2">
               <label class="flex flex-col gap-1 text-XS"><span class="font-semibold">Branch dasar PR</span><input v-model="nilai.branchDasar" class="rounded border border-grey-200 bg-white px-2 py-1 font-mono" placeholder="origin/main" /></label>
