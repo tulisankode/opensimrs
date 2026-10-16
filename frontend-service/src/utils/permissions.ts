@@ -242,6 +242,19 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/mikrobiologi/laporan/kunjungan", permission: read("Mikrobiologi", "Laporan Mikrobiologi", "Kunjungan") },
   { path: "/mikrobiologi/laporan/antibiogram", permission: read("Mikrobiologi", "Laporan Mikrobiologi", "Antibiogram") },
   { path: "/mikrobiologi", mode: "prefix", permission: read("Mikrobiologi", null, null, null) },
+
+  // CSSD — Sterilisasi Alat & Pelacakan Set Instrumen (penunjang-service)
+  { path: "/cssd/dashboard", permission: read("CSSD", "Penyimpanan & Distribusi") },
+  { path: "/cssd/penerimaan", permission: read("CSSD", "Penerimaan & Dekontaminasi") },
+  { path: "/cssd/pemrosesan", permission: read("CSSD", "Penerimaan & Dekontaminasi") },
+  { path: "/cssd/load", permission: read("CSSD", "Siklus Sterilisasi") },
+  { path: "/cssd/distribusi", permission: read("CSSD", "Penyimpanan & Distribusi") },
+  { path: "/cssd/recall", permission: read("CSSD", "Recall") },
+  { path: "/cssd/datamaster/master-set", permission: read("CSSD", "Master Set & Mesin") },
+  { path: "/cssd/datamaster/mesin", permission: read("CSSD", "Master Set & Mesin") },
+  { path: "/cssd/laporan", permission: read("CSSD", "Laporan CSSD") },
+  { path: "/cssd", mode: "prefix", permission: read("CSSD", null, null, null) },
+
   { path: "/training/daftar-kelas", featureStatus: "stub", permission: read("Training", "Daftar Kelas") },
   { path: "/training/booking-kelas", featureStatus: "stub", permission: read("Training", "Booking Kelas") },
   { path: "/training/datamaster/kelas", featureStatus: "stub", permission: read("Training", "Datamaster") },

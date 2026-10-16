@@ -120,6 +120,11 @@ const templistMenu = ref<ListMenu[]>([
     url: "/mcu",
   },
   {
+    title: "CSSD",
+    icon: "PhSprayBottle",
+    url: "/cssd",
+  },
+  {
     title: "Training",
     icon: "TrainingIcon",
     url: "/training",
@@ -297,7 +302,7 @@ const susunMenu = () => {
     .map((m) => ({ title: NAMA_SEGERA[m.kode] ?? m.nama, icon: IKON_SEGERA[m.kode] ?? "PhPuzzlePiece", url: `/segera/${m.kode}`, segera: true }))
     .filter((s) => !menu.some((x) => x.title === s.title));
 };
-const MODUL_PENUNJANG = ["Laboratorium", "Patologi Anatomi", "Mikrobiologi", "Radiologi", "Fisioterapi"];
+const MODUL_PENUNJANG = ["Laboratorium", "Patologi Anatomi", "Mikrobiologi", "Radiologi", "Fisioterapi", "CSSD"];
 const menuAktif = (m: ListMenu) =>
   m.anak ? m.anak.some((a) => checkActiveTab(a.url)) : checkActiveTab(m.url) || route.path === m.url;
 const popupGrup = ref();
@@ -370,13 +375,13 @@ const bukaSegera = (url: string) => {
 
 const NAMA_SEGERA: Record<string, string> = {
   fisioterapi: "Fisioterapi", radiologi: "Radiologi", kamar_operasi: "Kamar Operasi", icu: "ICU", gizi: "Gizi",
-  koding_rm: "Koding RM", cssd: "CSSD", bank_darah: "Bank Darah", utd: "UTD", akuntansi: "Akuntansi",
+  koding_rm: "Koding RM", bank_darah: "Bank Darah", utd: "UTD", akuntansi: "Akuntansi",
   program_puskesmas: "Program Puskesmas", training: "Training", mcu: "MCU",
   patologi_anatomi: "Patologi Anatomi", mikrobiologi: "Mikrobiologi",
 };
 const IKON_SEGERA: Record<string, string> = {
   fisioterapi: "FisioIcon", radiologi: "PhScan", kamar_operasi: "PhKnife", icu: "PhHeartbeat", gizi: "PhBowlFood",
-  koding_rm: "PhFileCode", cssd: "PhSprayBottle", bank_darah: "PhDrop", utd: "PhDropHalf", akuntansi: "PhCalculator",
+  koding_rm: "PhFileCode", bank_darah: "PhDrop", utd: "PhDropHalf", akuntansi: "PhCalculator",
   mcu: "PhClipboardText", patologi_anatomi: "PhMicroscope", mikrobiologi: "PhBug",
   program_puskesmas: "PhUsersThree", training: "TrainingIcon",
 };

@@ -884,6 +884,19 @@ export const mikrobiologiPermission = {
   ],
 };
 
+export const cssdPermission = {
+  module: "CSSD",
+  subModules: [
+    { name: "Master Set & Mesin", allows: ["READ", "CREATE", "UPDATE", "DELETE", "CETAK LABEL"] },
+    { name: "Penerimaan & Dekontaminasi", allows: ["READ", "CREATE"] },
+    { name: "Siklus Sterilisasi", allows: ["READ", "CREATE", "UPDATE", "INPUT HASIL", "BOWIE DICK"] },
+    { name: "Penyimpanan & Distribusi", allows: ["READ", "CREATE", "UPDATE", "KONFIRMASI", "UPDATE STATUS"] },
+    { name: "Pemakaian Pasien", allows: ["READ", "CREATE"] },
+    { name: "Recall", allows: ["READ", "TINDAK LANJUT"] },
+    { name: "Laporan CSSD", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
 export const trainingPermission = {
   module: "Training",
   subModules: [
@@ -1320,6 +1333,7 @@ export function mapPermission(permissionList) {
     mcu: mcuPermission,
     "patologi anatomi": patologiAnatomiPermission,
     mikrobiologi: mikrobiologiPermission,
+    cssd: cssdPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,
     stok: stokPermission,
