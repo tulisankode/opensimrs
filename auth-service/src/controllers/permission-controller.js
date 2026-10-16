@@ -1,13 +1,17 @@
 import sequelizeInstance from "@opensimrs/model-sdk/instance";
 import { QueryTypes } from "sequelize";
 import { mapPermission } from "../helpers/permission-list.js";
+import { isSuperadmin } from "@opensimrs/authorization-sdk/peran";
 
 // Semua modul izin yang dikenal (kunci mapPermission). Sumber tunggal untuk editor Role di frontend.
 const SEMUA_MODUL = [
   "Dashboard", "Antrian", "Admisi", "Rawat Jalan", "Rawat Inap", "IGD", "Farmasi", "STOK", "Inventory",
   "Laboratorium", "Patologi Anatomi", "Mikrobiologi", "Radiologi", "Fisioterapi", "MCU", "Training",
-  "Pembayaran", "Datamaster", "Laporan", "Setting", "Profile",
+  "Pembayaran", "Datamaster", "Laporan", "Setting", "Profile", "SIMRS Studio",
 ];
+
+// Modul yang tidak pernah ditambahkan otomatis oleh sinkron Manajemen Modul (diberikan manual per peran oleh superadmin).
+const TIDAK_DISINKRON = ["simrs studio"];
 
 const baca = (teks) => {
   try {
@@ -51,11 +55,13 @@ export default class PermissionController {
   static async sinkronModul(req, res, next) {
     try {
       const author = req.author ?? {};
-      if (String(author.role ?? "").trim().toLowerCase() !== "super admin") {
+      if (!isSuperadmin(author)) {
         return res.status(403).json({ message: "Hanya superadmin yang dapat menyinkronkan izin modul." });
       }
       const diminta = (Array.isArray(req.body?.modul) ? req.body.modul : []).map(String);
-      const tambahan = mapPermission(diminta.filter((m) => SEMUA_MODUL.some((x) => x.toLowerCase() === m.toLowerCase())));
+      const tambahan = mapPermission(
+        diminta.filter((m) => SEMUA_MODUL.some((x) => x.toLowerCase() === m.toLowerCase()) && !TIDAK_DISINKRON.includes(m.toLowerCase()))
+      );
       if (!tambahan.length) return res.status(200).json({ message: "Tidak ada modul untuk disinkronkan", payload: { peran: 0, pengguna: 0 } });
 
       const hasil = await sequelizeInstance.transaction(async (transaction) => {

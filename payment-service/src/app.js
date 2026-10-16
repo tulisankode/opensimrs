@@ -1,4 +1,5 @@
 import express from 'express';
+import { Context } from "./middlewares/context.js";
 import errorMiddleware from './middlewares/error-middleware.js';
 import 'dotenv/config';
 import morgan from 'morgan';
@@ -31,6 +32,8 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again after 5 minutes',
 });
 app.use(limiter);
+// Konteks per permintaan (author/token) — harus sebelum rute.
+app.use(Context.middleware);
 app.use(setContext);
 app.use('/api/v3/payment', router);
 app.use(errorMiddleware);

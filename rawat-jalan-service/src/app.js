@@ -1,4 +1,5 @@
 import express from "express";
+import { Context } from "./middlewares/context.js";
 import "dotenv/config";
 import cors from "cors";
 import routes from "./routes/routes.js";
@@ -31,6 +32,8 @@ app.use(
 // app.use(authorizationSdk([]));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Konteks per permintaan (author/token) — harus sebelum rute.
+app.use(Context.middleware);
 app.use(BASE_URL, routes);
 app.use(errorMiddleware);
 

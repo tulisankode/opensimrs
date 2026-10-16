@@ -753,7 +753,42 @@ baseInstancePenunjang.interceptors.response.use(
   (error) => Promise.reject(error)
 );
 
+// SIMRS Studio (studio-service): mode pengembang berbasis AI — request snake_case, respons camelCase.
+const baseInstanceStudio = axios.create({
+  headers: { common: { Accept: "application/json" } },
+  baseURL: import.meta.env.VITE_BASE_STUDIO || "http://localhost:8090/api/v3/studio",
+});
+baseInstanceStudio.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("access_token");
+    config.headers["Authorization"] = token ? `${token}` : "";
+    if (config.data) config.data = toSnakeCase(config.data);
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+baseInstanceStudio.interceptors.response.use(
+  (response: AxiosResponse) => {
+    if (response.data) response.data = toCamelCase(response.data);
+    return response;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Tanpa konversi kunci (snake/camel): untuk ekstensi tanpa kode, yang definisi & kolom hasil kuerinya harus utuh.
+const baseInstanceMentah = axios.create({ headers: { common: { Accept: "application/json" } } });
+baseInstanceMentah.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("access_token");
+    config.headers["Authorization"] = token ? `${token}` : "";
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export {
+  baseInstanceMentah,
+  baseInstanceStudio,
   baseInstancePenunjang,
   baseInstance,
   authInstance,

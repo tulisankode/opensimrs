@@ -40,6 +40,16 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm test
+      - name: Uji unit (studio-service)
+        working-directory: studio-service
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+      - name: Uji unit (laporan-service, validator ekstensi)
+        working-directory: laporan-service
+        run: |
+          npm install --no-audit --no-fund
+          npm test
       - name: Muat schema.sql + jalankan migrasi
         env:
           PGPASSWORD: opensimrs

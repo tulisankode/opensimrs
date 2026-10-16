@@ -380,7 +380,7 @@ async function seedFaskes(F, mapPermission, superRole) {
 
     // Superadmin global (role 'super admin' tanpa faskes) — faskes awal = praktik mandiri, berpindah lewat pilih faskes.
     const semuaModul = ['Antrian', 'Admisi', 'Rawat Jalan', 'Rawat Inap', 'IGD', 'Farmasi', 'Laboratorium', 'Pembayaran', 'STOK', 'Inventory',
-      'Fisioterapi', 'Radiologi', 'MCU', 'Patologi Anatomi', 'Mikrobiologi', 'Datamaster', 'Laporan', 'Setting', 'Profile', 'Dashboard'];
+      'Fisioterapi', 'Radiologi', 'MCU', 'Patologi Anatomi', 'Mikrobiologi', 'Datamaster', 'Laporan', 'Setting', 'Profile', 'Dashboard', 'SIMRS Studio'];
     const permSuper = JSON.stringify(mapPermission(semuaModul));
     const roleSuper = await ins('role', { faskes_uuid: null, code: 'SPR-ADM', name: 'super admin', permissions: permSuper, status: true, created_at: NOW, updated_at: NOW });
     await ins('users', { faskes_uuid: hasil[0][1].uuid, role_uuid: roleSuper, username: 'superadmin', email: 'superadmin@demo.opensimrs.local',

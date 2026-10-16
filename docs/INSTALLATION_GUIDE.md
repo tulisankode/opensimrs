@@ -99,6 +99,7 @@ OpenSIMRS terdiri dari satu frontend (Vue 3) dan 18 layanan backend (Node.js + E
 | 8097 | Integrasi SATUSEHAT | `satusehat-service` | `/api/v3/satusehat` |
 | 8098 | Integrasi BPJS (PCare & VClaim) | `bpjs-service` | `/api/v3/bpjs` |
 | 8099 | Penunjang (Fisioterapi, Radiologi, MCU, Patologi Anatomi, Mikrobiologi) | `penunjang-service` | `/api/v3/penunjang` |
+| 8090 | SIMRS Studio — mode pengembang berbasis AI (opsional; dijalankan langsung di mesin pengembang yang sudah login Claude Code, aktif bila `STUDIO_PENGEMBANG=aktif`) | `studio-service` | `/api/v3/studio` |
 | 5432 | PostgreSQL | – | – |
 | 27017 | MongoDB | – | – |
 | 6379 | Redis | – | – |
@@ -364,7 +365,7 @@ Lalu salin ke setiap layanan dan tambahkan port-nya.
 ```bash
 for pasangan in admisi:8081 antrian:8082 auth:8083 farmasi:8084 igd:8085 inventory:8086 lab:8087 \
   laporan:8088 payment:8089 rawat-inap:8091 rawat-jalan:8092 rekamedis:8093 setting:8094 \
-  stok-farmasi:8095 datamaster:8096 satusehat:8097 bpjs:8098 penunjang:8099; do
+  stok-farmasi:8095 datamaster:8096 satusehat:8097 bpjs:8098 penunjang:8099 studio:8090; do
   nama=${pasangan%%:*}; port=${pasangan##*:}
   { cat .env.layanan
     echo "APPLICATION_PORT=$port"; echo "APP_PORT=$port"; echo "PORT=$port"; echo "SERVER_PORT=$port"
@@ -378,7 +379,7 @@ done
 ```powershell
 $layanan = @{ admisi=8081; antrian=8082; auth=8083; farmasi=8084; igd=8085; inventory=8086; lab=8087;
   laporan=8088; payment=8089; 'rawat-inap'=8091; 'rawat-jalan'=8092; rekamedis=8093; setting=8094;
-  'stok-farmasi'=8095; datamaster=8096; satusehat=8097; bpjs=8098; penunjang=8099 }
+  'stok-farmasi'=8095; datamaster=8096; satusehat=8097; bpjs=8098; penunjang=8099; studio=8090 }
 foreach ($n in $layanan.Keys) {
   $p = $layanan[$n]
   $isi = (Get-Content .env.layanan -Raw) + "APPLICATION_PORT=$p`nAPP_PORT=$p`nPORT=$p`nSERVER_PORT=$p`nAPPLICATION_MODULE=$n`n"

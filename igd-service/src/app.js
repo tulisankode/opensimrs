@@ -1,4 +1,5 @@
 import express from "express";
+import { Context } from "./middlewares/context.js";
 import cors from "cors";
 import routes from "./routes/routes.js";
 import errorMiddleware from "./middlewares/error-middleware.js";
@@ -20,6 +21,8 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Konteks per permintaan (author/token) — harus sebelum rute.
+app.use(Context.middleware);
 app.use(BASE_URL, routes);
 app.use(errorMiddleware);
 app.listen(APPLICATION_PORT, APPLICATION_HOST, async () => {
