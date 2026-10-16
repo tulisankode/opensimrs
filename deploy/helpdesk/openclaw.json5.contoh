@@ -6,9 +6,13 @@
 {
   gateway: {
     port: 18789,
-    // Alamat privat/VPN VM — jangan 0.0.0.0 di mesin yang punya IP publik.
-    bind: "<alamat-privat-vm>",
-    auth: { token: "<openssl rand -hex 32>" },
+    // bind memakai NAMA MODE, bukan alamat: "loopback" (bawaan), "tailnet" (IPv4 Tailscale — disarankan bila
+    // server SIMRS & VM satu tailnet), "custom" + customBindHost (satu IPv4 privat VM), "lan" (0.0.0.0 — hindari
+    // di mesin ber-IP publik). Selain loopback wajib auth.
+    bind: "custom",
+    customBindHost: "<ipv4-privat-vm>",
+    // Token dibuat wizard onboard, atau buat sendiri (deploy/helpdesk/README.md › Membuat & mengganti token).
+    auth: { mode: "token", token: "<token 64 karakter heks>" },
     // Endpoint kompatibel OpenAI (mati bawaan) — satu-satunya pintu masuk dari setting-service.
     http: { endpoints: { chatCompletions: { enabled: true } } },
   },
