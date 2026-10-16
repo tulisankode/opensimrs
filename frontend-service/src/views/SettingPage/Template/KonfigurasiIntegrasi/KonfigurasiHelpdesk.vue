@@ -45,7 +45,31 @@ const bukaForm = () => {
     timeoutDetik: String(d.timeoutDetik ?? 120),
   };
   uji.value = null;
+  tokenBaru.value = "";
+  panduanToken.value = false;
   dialog.value = true;
+};
+
+// Token acak 32 byte (64 heks) dari generator kriptografis peramban; ditampilkan sekali bersama perintah untuk VM.
+const tokenBaru = ref("");
+const panduanToken = ref(false);
+const tersalin = ref("");
+const buatToken = () => {
+  const b = new Uint8Array(32);
+  crypto.getRandomValues(b);
+  tokenBaru.value = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  form.value.token = tokenBaru.value;
+  uji.value = null;
+};
+const perintahVm = () => `openclaw config set gateway.auth.mode token\nopenclaw config set gateway.auth.token "${tokenBaru.value}"`;
+const salin = async (teks: string, kunci: string) => {
+  try {
+    await navigator.clipboard.writeText(teks);
+    tersalin.value = kunci;
+    setTimeout(() => (tersalin.value = ""), 2000);
+  } catch {
+    tersalin.value = "";
+  }
 };
 
 const isiBody = () => ({
@@ -125,7 +149,33 @@ const formatWaktu = (detik: number | null) => (detik ? new Date(detik * 1000).to
       <CustomTextfield v-model="form.gatewayUrl" class="col-span-2" label="URL Gateway OpenClaw" placeholder="http://10.x.x.x:18789 (alamat privat/VPN, jangan dibuka ke internet)" />
       <CustomTextfield v-model="form.token" class="col-span-2" label="Token Gateway (gateway.auth.token)" type="password"
         :placeholder="data?.adaToken ? `${data.token} — kosongkan bila tidak diubah` : 'token dari konfigurasi OpenClaw'" />
-      <div class="col-span-2 -mt-2 text-xs text-grey-400">Token memberi akses operator penuh ke Gateway; disimpan terenkripsi di server dan tidak pernah ditampilkan utuh.</div>
+      <div class="col-span-2 -mt-2 flex flex-wrap items-center gap-2 text-xs text-grey-400">
+        <span class="flex-1">Token memberi akses operator penuh ke Gateway; disimpan terenkripsi di server dan tidak pernah ditampilkan utuh.</span>
+        <CustomButton label="Buat token acak" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="buatToken" />
+        <button type="button" class="text-opensimrs-300 underline" @click="panduanToken = !panduanToken">{{ panduanToken ? "Tutup panduan" : "Cara membuat token" }}</button>
+      </div>
+      <!-- Token baru: tampil sekali + perintah untuk dipasang di VM -->
+      <div v-if="tokenBaru" class="col-span-2 flex flex-col gap-2 rounded-md border border-[#FEC84B] bg-[#FFFAEB] p-3 text-xs text-[#93370D]">
+        <div class="font-semibold">Pasang token ini di VM OpenClaw sekarang, lalu Uji koneksi dan Simpan.</div>
+        <div class="flex items-center gap-2">
+          <code class="flex-1 select-all break-all rounded bg-white px-2 py-1 font-mono text-[11px] text-grey-500">{{ tokenBaru }}</code>
+          <CustomButton :label="tersalin === 'token' ? 'Tersalin' : 'Salin'" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="salin(tokenBaru, 'token')" />
+        </div>
+        <div>Jalankan di VM (sebagai pengguna yang menjalankan Gateway):</div>
+        <div class="flex items-start gap-2">
+          <pre class="flex-1 select-all overflow-x-auto whitespace-pre rounded bg-white px-2 py-1 font-mono text-[11px] text-grey-500">{{ perintahVm() }}</pre>
+          <CustomButton :label="tersalin === 'perintah' ? 'Tersalin' : 'Salin'" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="salin(perintahVm(), 'perintah')" />
+        </div>
+        <div>Gateway memuat ulang konfigurasi otomatis (bila perlu: <code>openclaw gateway restart</code>). Token lama langsung tidak berlaku. Setelah disimpan, token ini tidak bisa dilihat lagi dari OpenSIMRS — simpan juga di pengelola sandi tim IT.</div>
+      </div>
+      <!-- Panduan singkat (lengkapnya: deploy/helpdesk/README.md › Membuat & mengganti token Gateway) -->
+      <div v-if="panduanToken" class="col-span-2 flex flex-col gap-1 rounded-md bg-opensimrs-50 p-3 text-xs text-grey-500">
+        <div><b>A. Token dari wizard.</b> <code>openclaw onboard</code> membuat token otomatis. Lihat di VM: <code>openclaw config get gateway.auth.token</code>, lalu tempel di kolom Token di atas.</div>
+        <div><b>B. Token baru</b> (disarankan): klik <b>Buat token acak</b>, jalankan dua perintah yang muncul di VM, lalu <b>Uji koneksi</b> → <b>Simpan</b>. Di terminal: <code>openssl rand -hex 32</code>.</div>
+        <div><b>Periksa dari server SIMRS:</b> <code>curl -s -o /dev/null -w '%{http_code}' http://&lt;vm&gt;:18789/v1/models -H "Authorization: Bearer &lt;token&gt;"</code> → 200 = benar, 401 = salah.</div>
+        <div><b>Ganti token</b> bila pernah terlihat orang lain atau secara berkala: buat token baru, pasang di VM, lalu segera Simpan di sini.</div>
+        <div class="text-grey-400">Jangan kirim token lewat chat/email tanpa enkripsi, jangan taruh di repo atau tangkapan layar.</div>
+      </div>
       <CustomTextfield v-model="form.agen" label="ID agen" placeholder="helpdesk-opensimrs" />
       <div></div>
       <CustomTextfield v-model="form.batasPerJam" label="Batas pertanyaan per pengguna per jam" type="number" />

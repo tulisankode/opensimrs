@@ -67,7 +67,7 @@ Panduan pengguna adalah prasyarat (fase 0). Drafnya dibuat agen dari kode (menu,
    - alat `exec`, tulis berkas, peramban, `tools.elevated`, dan plugin yang tidak perlu ditolak lewat kebijakan alat per agen;
    - **kanal pesan langsung** (WhatsApp, Telegram, dan lainnya) tidak dinyalakan, sehingga satu-satunya pintu masuk adalah endpoint HTTP dari setting-service.
 4. **Jaringan:**
-   - Gateway `bind` ke alamat privat atau VPN (Tailscale/WireGuard) yang hanya bisa dijangkau server SIMRS;
+   - Gateway `bind` memakai mode `tailnet` (Tailscale) atau `custom` + `customBindHost` (IPv4 privat), sehingga hanya bisa dijangkau server SIMRS;
    - lalu lintas keluar VM dibatasi ke penyedia model saja;
    - token panjang acak (`openssl rand -hex 32`).
 5. **Batas laju:** misalnya 20 pertanyaan per pengguna per jam, dan panjang pertanyaan maksimal 2.000 karakter.
@@ -112,8 +112,8 @@ Garis besar konfigurasi (json5). **Nama kunci per agen wajib diverifikasi** terh
 ```json5
 {
   gateway: {
-    bind: "<alamat privat/VPN>",
-    auth: { token: "<openssl rand -hex 32>" },
+    bind: "custom", customBindHost: "<ipv4-privat-vm>",   // atau "tailnet"; nama mode, bukan alamat
+    auth: { mode: "token", token: "<openssl rand -hex 32>" },
     http: { endpoints: { chatCompletions: { enabled: true } } },
   },
   agents: {

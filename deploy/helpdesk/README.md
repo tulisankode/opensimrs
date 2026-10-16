@@ -45,8 +45,8 @@ Saat `onboard`:
 ## 3. Konfigurasi Gateway & agen terbatas
 
 1. Salin `openclaw.json5.contoh` ke berkas konfigurasi OpenClaw (lokasinya ditampilkan `openclaw gateway status`, atau lihat dokumentasi *Configuration*), lalu sesuaikan:
-   - `gateway.bind`: alamat privat atau VPN VM;
-   - `gateway.auth.token`: hasil `openssl rand -hex 32`. Simpan juga di `setting-service/.env` server SIMRS sebagai `HELPDESK_GATEWAY_TOKEN`.
+   - `gateway.bind`: **nama mode**, bukan alamat IP. Gunakan `tailnet` bila server SIMRS dan VM berada di satu Tailscale, atau `custom` dengan `gateway.customBindHost` berisi IPv4 privat VM. Hindari `lan` (0.0.0.0) di mesin yang punya IP publik;
+   - `gateway.auth`: `mode: "token"` dan token Gateway. Lihat [Membuat & mengganti token Gateway](#membuat--mengganti-token-gateway). Token yang sama nanti diisi di OpenSIMRS pada langkah 5.
 2. **Verifikasi nama kunci per agen** terhadap referensi konfigurasi versi yang dipasang. Dokumentasi OpenClaw menyebut `agents.entries.<id>`, dan nilai `sandbox.mode` juga perlu dicek. Lalu periksa hasilnya:
    ```bash
    openclaw sandbox explain --agent helpdesk-opensimrs   # sandbox aktif, workspace hanya-baca, exec/tulis/peramban ditolak
@@ -91,9 +91,61 @@ Langkah berikutnya:
 2. Di OpenSIMRS, fitur **Asisten Bantuan (Helpdesk AI)** (modul Dashboard) aktif bawaan untuk semua segmen. Superadmin bisa mematikannya per faskes di **Setting › Manajemen Modul**.
 3. Tombol **Bantuan** (ikon headset, di tempat ikon lonceng) aktif di header, dengan titik hijau bila asisten siap. Pertanyaan dan jawaban (sudah disaring) tersimpan 90 hari di tabel `bantuan_log`. Ringkasannya untuk superadmin tersedia di `GET /api/v3/setting/bantuan/ringkasan`.
 
+## Membuat & mengganti token Gateway
+
+Token Gateway adalah kunci bersama antara OpenSIMRS (setting-service) dan Gateway OpenClaw. **Pemegang token mendapat akses operator penuh ke Gateway**, jadi perlakukan seperti sandi root.
+
+**A. Token dari wizard (paling mudah).** Wizard `openclaw onboard` membuat token secara otomatis. Lihat nilainya di VM:
+
+```bash
+openclaw config get gateway.auth.token
+# atau lihat langsung: grep -A3 '"auth"' ~/.openclaw/openclaw.json
+```
+
+**B. Token buatan sendiri.** Disarankan, karena Anda mengontrol panjang dan waktu penggantiannya. Buat 32 byte acak, yaitu 64 karakter heks:
+
+```bash
+openssl rand -hex 32                                   # macOS/Linux
+```
+```powershell
+$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); -join ($b | ForEach-Object { '{0:x2}' -f $_ })   # Windows PowerShell
+```
+
+Cara termudah adalah tombol **Buat token acak** di OpenSIMRS (**Setting › Konfigurasi Integrasi › Helpdesk AI › Atur**). Token dibuat di peramban dengan generator acak kriptografis, lalu perintah untuk VM ditampilkan dan siap disalin.
+
+Pasang token di VM:
+
+```bash
+openclaw config set gateway.auth.mode token
+openclaw config set gateway.auth.token "<token>"
+# atau sunting ~/.openclaw/openclaw.json:  gateway: { auth: { mode: "token", token: "<token>" } }
+```
+
+Gateway memuat ulang perubahan berkas konfigurasi secara otomatis. Bila koneksi lama masih memakai token lama, jalankan `openclaw gateway restart`.
+
+**Periksa** dari server SIMRS. Hasil 200 berarti token benar, sedangkan 401 berarti salah:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' http://<vm>:18789/v1/models -H "Authorization: Bearer <token>"
+```
+
+Lalu tempel token yang sama di OpenSIMRS: **Setting › Konfigurasi Integrasi › Helpdesk AI › Atur › Token Gateway** → **Uji koneksi** → **Simpan**.
+
+**Mengganti (rotasi) token.** Lakukan bila token pernah terlihat orang lain, petugas IT berganti, atau secara berkala (misalnya tiap 6 bulan):
+1. Buat token baru (cara B).
+2. Pasang di VM dengan `openclaw config set gateway.auth.token`. Sejak saat itu token lama langsung ditolak.
+3. Segera tempel token baru di OpenSIMRS lalu klik **Simpan**. Di antara langkah 2 dan 3, tombol Bantuan akan menampilkan galat.
+
+**Jangan:**
+- mengirim token lewat chat atau email tanpa enkripsi;
+- menaruhnya di repo atau tangkapan layar;
+- memakai token yang sama untuk Gateway lain.
+
+OpenSIMRS menyimpannya terenkripsi dan hanya menampilkan 4 karakter terakhir. Untuk penyimpanan di VM yang lebih ketat, OpenClaw mendukung *SecretRef* untuk `gateway.auth.token` (lihat dokumentasi OpenClaw *Configuration › secrets*).
+
 ## 6. Pengembangan lokal tanpa VM
 
-Untuk mencoba OpenClaw sungguhan di mesin pengembang (bukan produksi), installer OpenSIMRS bisa memasangnya: `./install.sh --helpdesk` (Windows: `install.cmd -Helpdesk`). Setelah itu ikuti langkah 3–5 di atas dengan `gateway.bind` ke `127.0.0.1`.
+Untuk mencoba OpenClaw sungguhan di mesin pengembang (bukan produksi), installer OpenSIMRS bisa memasangnya: `./install.sh --helpdesk` (Windows: `install.cmd -Helpdesk`). Setelah itu ikuti langkah 3–5 di atas dengan `gateway.bind` dibiarkan `loopback` (bawaan), sehingga Gateway hanya bisa diakses dari mesin itu sendiri.
 
 Tanpa OpenClaw sama sekali, pakai Gateway tiruan:
 
