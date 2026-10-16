@@ -212,6 +212,18 @@ import MasterAntibiotikPage from "@/views/Mikrobiologi/MasterAntibiotikPage.vue"
 import LaporanKunjunganMikroPage from "@/views/Mikrobiologi/LaporanKunjunganMikroPage.vue";
 import LaporanAntibiogramPage from "@/views/Mikrobiologi/LaporanAntibiogramPage.vue";
 
+// NOTE CSSD — Sterilisasi Alat & Pelacakan Set Instrumen (penunjang-service)
+import CssdView from "@/views/Cssd/CssdView.vue";
+import DashboardCssdPage from "@/views/Cssd/DashboardCssdPage.vue";
+import PenerimaanCssdPage from "@/views/Cssd/PenerimaanCssdPage.vue";
+import PemrosesanCssdPage from "@/views/Cssd/PemrosesanCssdPage.vue";
+import LoadCssdPage from "@/views/Cssd/LoadCssdPage.vue";
+import DistribusiCssdPage from "@/views/Cssd/DistribusiCssdPage.vue";
+import RecallCssdPage from "@/views/Cssd/RecallCssdPage.vue";
+import MasterSetCssdPage from "@/views/Cssd/MasterSetCssdPage.vue";
+import MasterMesinCssdPage from "@/views/Cssd/MasterMesinCssdPage.vue";
+import LaporanCssdPage from "@/views/Cssd/LaporanCssdPage.vue";
+
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
   daftar.map(([path, name, page]) => ({ path, name, meta: { layout: SidebarLayout, page, requiresAuth: true }, component: view }));
@@ -1650,6 +1662,19 @@ const router = createRouter({
       ["/mikrobiologi/datamaster/antibiotik", "mikrobiologi-datamaster-antibiotik", MasterAntibiotikPage],
       ["/mikrobiologi/laporan/kunjungan", "mikrobiologi-laporan-kunjungan", LaporanKunjunganMikroPage],
       ["/mikrobiologi/laporan/antibiogram", "mikrobiologi-laporan-antibiogram", LaporanAntibiogramPage],
+    ]),
+    // SECTION CSSD
+    { path: "/cssd", name: "cssd", redirect: "/cssd/dashboard" },
+    ...halamanModul(CssdView, [
+      ["/cssd/dashboard", "cssd-dashboard", DashboardCssdPage],
+      ["/cssd/penerimaan", "cssd-penerimaan", PenerimaanCssdPage],
+      ["/cssd/pemrosesan", "cssd-pemrosesan", PemrosesanCssdPage],
+      ["/cssd/load", "cssd-load", LoadCssdPage],
+      ["/cssd/distribusi", "cssd-distribusi", DistribusiCssdPage],
+      ["/cssd/recall", "cssd-recall", RecallCssdPage],
+      ["/cssd/datamaster/master-set", "cssd-datamaster-master-set", MasterSetCssdPage],
+      ["/cssd/datamaster/mesin", "cssd-datamaster-mesin", MasterMesinCssdPage],
+      ["/cssd/laporan", "cssd-laporan", LaporanCssdPage],
     ]),
     // !SECTION
 
