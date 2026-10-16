@@ -212,10 +212,36 @@ const uji = async (k: string) => {
 };
 
 // Konektor API
+// Penyedia siap pakai: semuanya lewat API kompatibel OpenAI kecuali Anthropic & OpenAI. Model = contoh (nama terbaru
+// bisa berubah; cek situs penyedia).
+const PRESET_KONEKTOR = [
+  { kode: "anthropic", nama: "Anthropic API (Claude)", penyedia: "anthropic", endpoint: "", model: ["claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5"], kunci: "https://console.anthropic.com/settings/keys" },
+  { kode: "openai", nama: "OpenAI API (GPT)", penyedia: "openai", endpoint: "", model: [], kunci: "https://platform.openai.com/api-keys" },
+  { kode: "deepseek", nama: "DeepSeek", penyedia: "openai_kompatibel", endpoint: "https://api.deepseek.com/v1", model: ["deepseek-chat", "deepseek-reasoner"], kunci: "https://platform.deepseek.com/api_keys" },
+  { kode: "qwen", nama: "Qwen (Alibaba Model Studio)", penyedia: "openai_kompatibel", endpoint: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", model: ["qwen3-coder-plus", "qwen-plus", "qwen-max"], kunci: "https://modelstudio.console.alibabacloud.com/" },
+  { kode: "grok", nama: "Grok (xAI)", penyedia: "openai_kompatibel", endpoint: "https://api.x.ai/v1", model: ["grok-4", "grok-code-fast-1"], kunci: "https://console.x.ai/" },
+  { kode: "gemini", nama: "Google Gemini", penyedia: "openai_kompatibel", endpoint: "https://generativelanguage.googleapis.com/v1beta/openai", model: ["gemini-2.5-pro", "gemini-2.5-flash"], kunci: "https://aistudio.google.com/apikey" },
+  { kode: "mistral", nama: "Mistral", penyedia: "openai_kompatibel", endpoint: "https://api.mistral.ai/v1", model: ["mistral-large-latest", "codestral-latest"], kunci: "https://console.mistral.ai/api-keys" },
+  { kode: "openrouter", nama: "OpenRouter (banyak model)", penyedia: "openai_kompatibel", endpoint: "https://openrouter.ai/api/v1", model: ["deepseek/deepseek-chat", "qwen/qwen3-coder", "x-ai/grok-4"], kunci: "https://openrouter.ai/keys" },
+  { kode: "groq", nama: "Groq (inferensi cepat)", penyedia: "openai_kompatibel", endpoint: "https://api.groq.com/openai/v1", model: ["llama-3.3-70b-versatile", "qwen/qwen3-32b"], kunci: "https://console.groq.com/keys" },
+  { kode: "ollama", nama: "Ollama (model lokal di RS)", penyedia: "openai_kompatibel", endpoint: "http://localhost:11434/v1", model: ["qwen2.5-coder", "deepseek-coder-v2", "llama3.1"], kunci: "" },
+];
+const presetDipilih = ref("");
+const presetKonektor = computed(() => PRESET_KONEKTOR.find((p) => p.kode === presetDipilih.value) ?? null);
+const pakaiPreset = () => {
+  const p = presetKonektor.value;
+  if (!p) return;
+  Object.assign(formKonektor.value, { nama: p.nama, penyedia: p.penyedia, endpoint: p.endpoint, model: p.model[0] ?? "" });
+};
+// Nama penyedia untuk daftar konektor: dikenali dari endpoint preset.
+const namaPenyedia = (k: any) =>
+  (k.endpoint && PRESET_KONEKTOR.find((p) => p.endpoint && k.endpoint.replace(/\/$/, "") === p.endpoint)?.nama) || PENYEDIA[k.penyedia] || k.penyedia;
+
 const dialogKonektor = ref(false);
 const formKonektor = ref<any>({});
 const bukaKonektor = (k?: any) => {
   formKonektor.value = k ? { ...k, kunciApi: k.kunciApi ? "••••••••" : "" } : { nama: "", penyedia: "anthropic", endpoint: "", model: "", kunciApi: "", hargaMasuk: "", hargaKeluar: "", aktif: true };
+  presetDipilih.value = k ? (PRESET_KONEKTOR.find((p) => p.endpoint && k.endpoint?.replace(/\/$/, "") === p.endpoint)?.kode ?? "") : "";
   dialogKonektor.value = true;
 };
 const simpanKonektor = async () => {
@@ -396,12 +422,12 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
             <div class="font-semibold text-opensimrs-300">Konektor API (opsional)</div>
             <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Tambah konektor" icon="PhPlus" outlined @click="bukaKonektor()" />
           </div>
-          <div class="mb-2 text-XS text-grey-400">Anthropic API, OpenAI API, atau model lokal yang kompatibel OpenAI (Ollama, vLLM, LM Studio) untuk faskes yang tidak boleh mengirim data keluar. Agen eksternal (mis. OpenClaw) tersambung lewat server MCP OpenSIMRS — lihat panduan.</div>
+          <div class="mb-2 text-XS text-grey-400">Anthropic, OpenAI, DeepSeek, Qwen, Grok, Gemini, Mistral, OpenRouter, Groq (pilih di <b>Penyedia siap pakai</b>), atau model lokal yang kompatibel OpenAI (Ollama, vLLM, LM Studio) untuk faskes yang tidak boleh mengirim data keluar. Dibayar per pemakaian API. Agen eksternal (mis. OpenClaw) tersambung lewat server MCP OpenSIMRS — lihat panduan.</div>
           <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
             <div v-for="k in konektor" :key="k.uuid" class="flex items-center justify-between gap-2 rounded-lg bg-grey-50 p-2 text-XS">
               <div>
                 <div class="font-semibold text-grey-500">{{ k.nama }} <span v-if="!k.aktif" class="text-grey-300">(nonaktif)</span></div>
-                <div class="text-grey-400">{{ PENYEDIA[k.penyedia] }} · {{ k.model }}{{ k.endpoint ? ` · ${k.endpoint}` : "" }}</div>
+                <div class="text-grey-400">{{ namaPenyedia(k) }} · {{ k.model }}{{ k.endpoint ? ` · ${k.endpoint}` : "" }}</div>
               </div>
               <div class="flex gap-1">
                 <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Uji" outlined :disabled="!!menguji" @click="uji(k.uuid)" />
@@ -573,12 +599,23 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
 
   <Dialog v-model:visible="dialogKonektor" modal header="Konektor agen" :style="{ width: '34rem' }">
     <div class="flex flex-col gap-2 text-SM text-grey-500">
+      <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Penyedia siap pakai</span>
+        <select v-model="presetDipilih" class="rounded border border-grey-200 px-2 py-1.5" @change="pakaiPreset">
+          <option value="">— isi manual —</option>
+          <option v-for="p in PRESET_KONEKTOR" :key="p.kode" :value="p.kode">{{ p.nama }}</option>
+        </select></label>
+      <div v-if="presetKonektor" class="rounded bg-opensimrs-50 p-2 text-XS text-grey-500">
+        <template v-if="presetKonektor.kunci">Kunci API: <a :href="presetKonektor.kunci" target="_blank" rel="noopener" class="text-opensimrs-300 underline">{{ presetKonektor.kunci }}</a>. </template>
+        <template v-else>Tanpa kunci API; data tidak keluar dari jaringan RS. Pastikan Ollama berjalan dan modelnya sudah di-<code>pull</code>. </template>
+        Dibayar per pemakaian API (bukan langganan). Nama model bisa berubah; cek nama terbaru di situs penyedia. Kemampuan memakai alat (membaca/menyunting berkas) berbeda tiap model, jadi uji dulu sebelum dipakai untuk tahap Coding.
+      </div>
       <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Nama</span><input v-model="formKonektor.nama" class="rounded border border-grey-200 px-2 py-1.5" placeholder="Anthropic API kantor" /></label>
       <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Penyedia</span>
         <select v-model="formKonektor.penyedia" class="rounded border border-grey-200 px-2 py-1.5"><option v-for="(n, k) in PENYEDIA" :key="k" :value="k">{{ n }}</option></select></label>
       <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Endpoint {{ formKonektor.penyedia === "openai_kompatibel" ? "(wajib)" : "(opsional)" }}</span>
         <input v-model="formKonektor.endpoint" class="rounded border border-grey-200 px-2 py-1.5 font-mono text-XS" :placeholder="formKonektor.penyedia === 'openai_kompatibel' ? 'http://localhost:11434/v1' : 'bawaan penyedia'" /></label>
-      <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Model</span><input v-model="formKonektor.model" class="rounded border border-grey-200 px-2 py-1.5 font-mono text-XS" placeholder="claude-opus-5-5 / gpt-… / qwen2.5-coder" /></label>
+      <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Model</span><input v-model="formKonektor.model" list="saran-model-konektor" class="rounded border border-grey-200 px-2 py-1.5 font-mono text-XS" placeholder="claude-opus-5-5 / gpt-… / qwen2.5-coder" /></label>
+      <datalist id="saran-model-konektor"><option v-for="m in presetKonektor?.model ?? []" :key="m" :value="m" /></datalist>
       <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Kunci API (disimpan terenkripsi)</span><input v-model="formKonektor.kunciApi" type="password" class="rounded border border-grey-200 px-2 py-1.5 font-mono text-XS" placeholder="kosongkan untuk model lokal" /></label>
       <div class="grid grid-cols-2 gap-2">
         <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Harga masuk / 1 jt token (US$)</span><input v-model="formKonektor.hargaMasuk" type="number" min="0" step="0.01" class="rounded border border-grey-200 px-2 py-1.5" /></label>
