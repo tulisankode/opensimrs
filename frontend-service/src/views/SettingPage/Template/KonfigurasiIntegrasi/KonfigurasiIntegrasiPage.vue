@@ -17,6 +17,8 @@ import KonfigurasiLis from './KonfigurasiLis.vue';
 import PengirimanLis from './PengirimanLis.vue';
 import KonfigurasiPacs from './KonfigurasiPacs.vue';
 import PengirimanPacs from './PengirimanPacs.vue';
+import KonfigurasiLisPa from './KonfigurasiLisPa.vue';
+import PengirimanLisPa from './PengirimanLisPa.vue';
 import KonfigurasiHelpdesk from './KonfigurasiHelpdesk.vue';
 import { useSettingStore } from '@/stores/setting';
 import { utilsStore } from "@/stores/utils";
@@ -124,6 +126,11 @@ const handleKonfigurasiSatuSehat = (updatedKonfigurasiSatuSehat: any) => {
             <template v-if="fiturAktif('rad_bridging_pacs')">
                 <KonfigurasiPacs />
                 <PengirimanPacs />
+            </template>
+            <!-- LIS Patologi Anatomi: koneksi/endpoint & kredensial + riwayat pengiriman. Mapping kode ada di Patologi Anatomi › Mapping LIS -->
+            <template v-if="fiturAktif('pa_bridging_lis')">
+                <KonfigurasiLisPa />
+                <PengirimanLisPa />
             </template>
             <!-- Helpdesk AI: Gateway OpenClaw untuk tombol Bantuan (khusus superadmin; token terenkripsi) -->
             <KonfigurasiHelpdesk />
