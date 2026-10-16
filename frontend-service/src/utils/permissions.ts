@@ -242,6 +242,10 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/mikrobiologi/laporan/kunjungan", permission: read("Mikrobiologi", "Laporan Mikrobiologi", "Kunjungan") },
   { path: "/mikrobiologi/laporan/antibiogram", permission: read("Mikrobiologi", "Laporan Mikrobiologi", "Antibiogram") },
   { path: "/mikrobiologi", mode: "prefix", permission: read("Mikrobiologi", null, null, null) },
+  { path: "/icu/dashboard", permission: read("ICU", "Dasbor") },
+  { path: "/icu/perawatan", permission: read("ICU", "Perawatan") },
+  { path: "/icu/laporan", permission: read("ICU", "Laporan ICU") },
+  { path: "/icu", mode: "prefix", permission: read("ICU", null, null, null) },
 
   // CSSD — Sterilisasi Alat & Pelacakan Set Instrumen (penunjang-service)
   { path: "/cssd/dashboard", permission: read("CSSD", "Penyimpanan & Distribusi") },
