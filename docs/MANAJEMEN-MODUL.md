@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 10 berstatus Segera), **54 fitur** (13 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 9 berstatus Segera), **55 fitur** (13 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -281,7 +281,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 
 | Kode | Nama | Deskripsi | Status | Nama izin (menu) |
 |---|---|---|---|---|
-| `program_puskesmas` | Program Puskesmas | KIA/KB, imunisasi, MTBS, UKM, laporan LB1 & dinkes. | Segera | – |
+| `program_puskesmas` | Program Puskesmas | KIA/KB, imunisasi, MTBS, UKM, laporan LB1 & dinkes. | Tersedia | Program Puskesmas |
 
 #### Rumah Sakit
 
@@ -319,7 +319,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | IGD (`igd`) | Tersedia | – | – | – | – | ✓ | ✓ | ✓ | ✓ |
 | BPJS FKTP (PCare) (`bpjs_fktp`) | Tersedia | ✓ | ✓ | – | ✓ | – | – | – | – |
 | BPJS FKRTL (VClaim/SEP) (`bpjs_fkrtl`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
-| Program Puskesmas (`program_puskesmas`) | Segera | – | – | – | ✓ | – | – | – | – |
+| Program Puskesmas (`program_puskesmas`) | Tersedia | – | – | – | ✓ | – | – | – | – |
 | Kamar Operasi (`kamar_operasi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
 | ICU / Intensif (`icu`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
 | Gizi (`gizi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
@@ -429,6 +429,12 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
 | `vclaim_rencana_kontrol` | Rencana Kontrol & SPRI | Pembuatan surat kontrol dan SPRI lewat VClaim. | Segera | – | – | – |
+
+#### Program Puskesmas (`program_puskesmas`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `program_puskesmas_satusehat` | Kirim Imunisasi ke SATUSEHAT | Mengirim resource Immunization ke SATUSEHAT setiap pelayanan imunisasi tersimpan. Butuh konfigurasi integrasi SATUSEHAT faskes. | Tersedia | – | SATUSEHAT (`satusehat`) | – |
 
 #### Bank Darah RS (BDRS) (`bank_darah`)
 

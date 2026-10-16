@@ -120,6 +120,11 @@ const templistMenu = ref<ListMenu[]>([
     url: "/mcu",
   },
   {
+    title: "Program Puskesmas",
+    icon: "PhBabyCarriage",
+    url: "/program-puskesmas",
+  },
+  {
     title: "Training",
     icon: "TrainingIcon",
     url: "/training",
