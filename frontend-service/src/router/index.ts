@@ -222,6 +222,23 @@ import LaporanPagePkm from "@/views/ProgramPuskesmas/LaporanPage.vue";
 import DatamasterJenisVaksinPage from "@/views/ProgramPuskesmas/DatamasterJenisVaksinPage.vue";
 import DatamasterFormatLaporanPage from "@/views/ProgramPuskesmas/DatamasterFormatLaporanPage.vue";
 
+import IcuView from "@/views/Icu/IcuView.vue";
+import DashboardIcuPage from "@/views/Icu/DashboardIcuPage.vue";
+import PerawatanIcuPage from "@/views/Icu/PerawatanIcuPage.vue";
+import LaporanIcuPage from "@/views/Icu/LaporanIcuPage.vue";
+
+// NOTE CSSD — Sterilisasi Alat & Pelacakan Set Instrumen (penunjang-service)
+import CssdView from "@/views/Cssd/CssdView.vue";
+import DashboardCssdPage from "@/views/Cssd/DashboardCssdPage.vue";
+import PenerimaanCssdPage from "@/views/Cssd/PenerimaanCssdPage.vue";
+import PemrosesanCssdPage from "@/views/Cssd/PemrosesanCssdPage.vue";
+import LoadCssdPage from "@/views/Cssd/LoadCssdPage.vue";
+import DistribusiCssdPage from "@/views/Cssd/DistribusiCssdPage.vue";
+import RecallCssdPage from "@/views/Cssd/RecallCssdPage.vue";
+import MasterSetCssdPage from "@/views/Cssd/MasterSetCssdPage.vue";
+import MasterMesinCssdPage from "@/views/Cssd/MasterMesinCssdPage.vue";
+import LaporanCssdPage from "@/views/Cssd/LaporanCssdPage.vue";
+
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
   daftar.map(([path, name, page]) => ({ path, name, meta: { layout: SidebarLayout, page, requiresAuth: true }, component: view }));
@@ -1673,6 +1690,30 @@ const router = createRouter({
       ["/program-puskesmas/laporan", "program-puskesmas-laporan", LaporanPagePkm],
       ["/program-puskesmas/datamaster/jenis-vaksin", "program-puskesmas-datamaster-jenis-vaksin", DatamasterJenisVaksinPage],
       ["/program-puskesmas/datamaster/format-laporan", "program-puskesmas-datamaster-format-laporan", DatamasterFormatLaporanPage],
+    ]),
+    // !SECTION
+
+    // SECTION ICU / Intensif
+    { path: "/icu", name: "icu", redirect: "/icu/dashboard" },
+    ...halamanModul(IcuView, [
+      ["/icu/dashboard", "icu-dashboard", DashboardIcuPage],
+      ["/icu/perawatan", "icu-perawatan", PerawatanIcuPage],
+      ["/icu/laporan", "icu-laporan", LaporanIcuPage],
+    ]),
+    // !SECTION
+
+    // SECTION CSSD
+    { path: "/cssd", name: "cssd", redirect: "/cssd/dashboard" },
+    ...halamanModul(CssdView, [
+      ["/cssd/dashboard", "cssd-dashboard", DashboardCssdPage],
+      ["/cssd/penerimaan", "cssd-penerimaan", PenerimaanCssdPage],
+      ["/cssd/pemrosesan", "cssd-pemrosesan", PemrosesanCssdPage],
+      ["/cssd/load", "cssd-load", LoadCssdPage],
+      ["/cssd/distribusi", "cssd-distribusi", DistribusiCssdPage],
+      ["/cssd/recall", "cssd-recall", RecallCssdPage],
+      ["/cssd/datamaster/master-set", "cssd-datamaster-master-set", MasterSetCssdPage],
+      ["/cssd/datamaster/mesin", "cssd-datamaster-mesin", MasterMesinCssdPage],
+      ["/cssd/laporan", "cssd-laporan", LaporanCssdPage],
     ]),
     // !SECTION
 

@@ -2,6 +2,7 @@ import express from "express";
 import authorizationMiddleware from "../middlewares/authorization-middleware.js";
 import PerpindahanController from "../controllers/perpindahan-controller.js";
 import ReportController from "../controllers/report-controller.js";
+import icuRouter from "./icu-routes.js";
 
 const router = express.Router();
 
@@ -22,5 +23,8 @@ router.get('/transfer-bed/total-pending', PerpindahanController.GetTotalPending)
 router.get('/report/kunjungan', ReportController.getAllKunjungan);
 router.get('/report/batal-kunjungan', ReportController.getCancelKunjungan);
 router.get("/report/perpindahan", ReportController.getPerpindahanPasien);
+
+//* ICU / Intensif
+router.use('/icu', icuRouter);
 
 export default router;
