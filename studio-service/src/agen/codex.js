@@ -68,6 +68,20 @@ export const versiCodex = async () => {
   return { terpasang: true, versi: r.keluaran.trim().split("\n").filter((b) => !/^WARNING/.test(b)).pop() };
 };
 
+// Model yang tersedia untuk akun yang login, dari cache daftar model Codex (CODEX_HOME/models_cache.json, diperbarui CLI).
+export const modelCodex = () => {
+  const rumah = process.env.CODEX_HOME || path.join(os.homedir(), ".codex");
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(rumah, "models_cache.json"), "utf8"));
+    return (j.models ?? [])
+      .filter((m) => m.slug && (m.visibility ?? "list") === "list")
+      .sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
+      .map((m) => ({ kode: m.slug, nama: m.display_name ?? m.slug, deskripsi: m.description ?? "" }));
+  } catch {
+    return [];
+  }
+};
+
 // ---------- Akun (langganan ChatGPT) ----------
 
 export const statusAkunCodex = async () => {
@@ -143,8 +157,10 @@ export const keluarCodex = async () => {
 const logTugas = (tugasUuid, jenis, teks) =>
   query(`INSERT INTO studio_tugas_log (tugas_uuid, jenis, teks, waktu) VALUES ($1, $2, $3, $4)`, [tugasUuid, jenis, String(teks).slice(0, 8000), sekarang()]).catch(() => {});
 
+// --ignore-user-config: config.toml pribadi pengguna (model, plugin, memori, MCP) tidak ikut ke agen Studio; login tetap
+// dari CODEX_HOME. Tanpa -m, Codex memakai model bawaan akun.
 export const argumenCodex = ({ mode, model, base, berkasHasil }) => {
-  const args = ["exec", "--json", "--color", "never", "-C", base, "-s", mode === "coding" ? "workspace-write" : "read-only", "-c", 'approval_policy="never"', "-o", berkasHasil];
+  const args = ["exec", "--json", "--ignore-user-config", "--color", "never", "-C", base, "-s", mode === "coding" ? "workspace-write" : "read-only", "-c", 'approval_policy="never"', "-o", berkasHasil];
   if (model) args.push("-m", model);
   args.push("-"); // instruksi dari stdin
   return args;

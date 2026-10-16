@@ -42,7 +42,7 @@ test("argumenCodex: sandbox per mode & instruksi dari stdin", () => {
   assert.equal(dok.at(-1), "-");
   const cod = argumenCodex({ mode: "coding", model: "gpt-5-codex", base: "/repo", berkasHasil: "/tmp/h.txt" });
   assert.equal(cod[cod.indexOf("-s") + 1], "workspace-write");
-  assert.ok(cod.includes("--json") && cod.includes('approval_policy="never"') && cod.includes("gpt-5-codex"));
+  assert.ok(cod.includes("--json") && cod.includes("--ignore-user-config") && cod.includes('approval_policy="never"') && cod.includes("gpt-5-codex"));
 });
 
 test("terlarang: zona yang tidak boleh diubah agen", () => {
