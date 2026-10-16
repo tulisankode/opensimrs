@@ -1,0 +1,28 @@
+// Contoh konfigurasi OpenClaw untuk Helpdesk OpenSIMRS (lihat deploy/helpdesk/README.md).
+// PENTING: nama kunci per agen & nilai sandbox.mode WAJIB diverifikasi terhadap referensi konfigurasi versi yang
+// dipasang (dokumentasi menyebut agents.entries.<id>), lalu periksa dengan:
+//   openclaw sandbox explain --agent helpdesk-opensimrs
+// Jangan menyimpan berkas ini berisi token asli di repo.
+{
+  gateway: {
+    port: 18789,
+    // Alamat privat/VPN VM — jangan 0.0.0.0 di mesin yang punya IP publik.
+    bind: "<alamat-privat-vm>",
+    auth: { token: "<openssl rand -hex 32>" },
+    // Endpoint kompatibel OpenAI (mati bawaan) — satu-satunya pintu masuk dari setting-service.
+    http: { endpoints: { chatCompletions: { enabled: true } } },
+  },
+  agents: {
+    entries: {
+      "helpdesk-opensimrs": {
+        // Workspace berisi AGENTS.md, panduan-pengguna/, katalog-modul.json (diisi sinkron-panduan.sh).
+        // Semua sesi tersandbox, workspace hanya-baca. Contoh dokumentasi memakai mode "non-main"; helpdesk butuh
+        // semua sesi tersandbox — pastikan nilai yang benar untuk versi Anda.
+        sandbox: { mode: "all", scope: "session", workspaceAccess: "ro" },
+        // Tolak alat yang tidak perlu untuk menjawab dari panduan. Jangan isi tools.elevated.
+        tools: { deny: ["exec", "write", "edit", "browser"] },
+      },
+    },
+  },
+  // Kanal pesan langsung (WhatsApp/Telegram/…) sengaja tidak dikonfigurasi.
+}

@@ -4,6 +4,7 @@ import IntegrationController from "../controllers/integration-controller.js";
 import ProfileController from "../controllers/profile-controller.js";
 import PrinterController from "../controllers/printer-controller.js";
 import ModulController from "../controllers/modul-controller.js";
+import BantuanController from "../controllers/bantuan-controller.js";
 import authorizationMiddleware from "../middlewares/authorization-middleware.js";
 
 const apiBase = process.env.API_BASE || "api";
@@ -40,6 +41,11 @@ routes.get(`/${apiBase}/${apiVersion}/setting/modul`, ModulController.ambil);
 routes.put(`/${apiBase}/${apiVersion}/setting/modul`, ModulController.simpan);
 routes.get(`/${apiBase}/${apiVersion}/setting/modul/riwayat`, ModulController.riwayat);
 routes.put(`/${apiBase}/${apiVersion}/setting/modul/jenis-poli`, ModulController.simpanJenisPoli);
+
+// BANTUAN (Helpdesk asisten pengguna → OpenClaw Gateway; docs/rancangan/HELPDESK-OPENCLAW.md)
+routes.get(`/${apiBase}/${apiVersion}/setting/bantuan/status`, BantuanController.status);
+routes.post(`/${apiBase}/${apiVersion}/setting/bantuan/chat`, BantuanController.chat);
+routes.get(`/${apiBase}/${apiVersion}/setting/bantuan/ringkasan`, BantuanController.ringkasan);
 
 // PRINTER
 routes.get(`/${apiBase}/${apiVersion}/setting/printer`, PrinterController.findByUuid);
