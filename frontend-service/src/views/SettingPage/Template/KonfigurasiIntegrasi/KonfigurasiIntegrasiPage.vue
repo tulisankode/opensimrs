@@ -15,9 +15,12 @@ import KonfigurasiBpjsVclaim from './KonfigurasiBpjsVclaim.vue';
 import PemetaanVclaim from './PemetaanVclaim.vue';
 import KonfigurasiLis from './KonfigurasiLis.vue';
 import PengirimanLis from './PengirimanLis.vue';
+import KonfigurasiPacs from './KonfigurasiPacs.vue';
+import PengirimanPacs from './PengirimanPacs.vue';
 import KonfigurasiHelpdesk from './KonfigurasiHelpdesk.vue';
 import { useSettingStore } from '@/stores/setting';
 import { utilsStore } from "@/stores/utils";
+import { fiturAktif } from "@/stores/modulFaskes";
 
 const useUtilsStore = utilsStore();
 
@@ -117,6 +120,11 @@ const handleKonfigurasiSatuSehat = (updatedKonfigurasiSatuSehat: any) => {
             <!-- LIS laboratorium (adamLIS): koneksi/endpoint & kredensial + riwayat pengiriman. Mapping kode ada di Laboratorium › Mapping LIS -->
             <KonfigurasiLis />
             <PengirimanLis />
+            <!-- PACS/RIS radiologi: koneksi/endpoint & kredensial + riwayat pengiriman. Mapping kode ada di Radiologi › Mapping PACS -->
+            <template v-if="fiturAktif('rad_bridging_pacs')">
+                <KonfigurasiPacs />
+                <PengirimanPacs />
+            </template>
             <!-- Helpdesk AI: Gateway OpenClaw untuk tombol Bantuan (khusus superadmin; token terenkripsi) -->
             <KonfigurasiHelpdesk />
 

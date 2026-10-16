@@ -214,6 +214,10 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/radiologi/datamaster/ruang", permission: read("Radiologi", "Datamaster", "Ruang & Alat") },
   { path: "/radiologi/datamaster/template", permission: read("Radiologi", "Datamaster", "Template Expertise") },
   { path: "/radiologi/datamaster/petugas", permission: read("Radiologi", "Datamaster", "Petugas Radiologi") },
+  // Mapping PACS (Bridging PACS/RIS, fitur rad_bridging_pacs) memakai izin datamaster "Mapping PACS"
+  { path: "/radiologi/mapping/tindakan-pacs", permission: read("Radiologi", "Datamaster", "Mapping PACS") },
+  { path: "/radiologi/mapping/referensi-pacs", permission: read("Radiologi", "Datamaster", "Mapping PACS") },
+  { path: "/radiologi/mapping/ruang-pacs", permission: read("Radiologi", "Datamaster", "Mapping PACS") },
   { path: "/radiologi/laporan/kunjungan", permission: read("Radiologi", "Laporan Radiologi", "Kunjungan") },
   { path: "/radiologi", mode: "prefix", permission: read("Radiologi", null, null, null) },
 

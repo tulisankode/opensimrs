@@ -105,6 +105,7 @@ OpenSIMRS terdiri dari satu frontend (Vue 3) dan 18 layanan backend (Node.js + E
 | 6379 | Redis | – | – |
 | 8080 | Gateway nginx (deploy server, [bagian 8.3](#83-server-dengan-deploysh)) | `deploy/server/gateway.nginx.conf` | semua `/api/v3/*` |
 | 2312 | LIS tiruan untuk pengujian (opsional) | `scripts/lis-tiruan.mjs` | – |
+| 2412 | PACS/RIS tiruan untuk pengujian (opsional) | `scripts/pacs-tiruan.mjs` | – |
 
 Port 8090 memang tidak dipakai.
 
@@ -524,6 +525,7 @@ Semua diisi di **Setting › Konfigurasi Integrasi** per faskes.
 | **BPJS PCare** (FKTP: praktik, klinik pratama, puskesmas) | Kredensial PCare dari BPJS Kesehatan | Modul `bpjs_fktp`. Pendaftaran & kunjungan dikirim otomatis berkala. Uji dulu dengan `BPJS_LINGKUNGAN=development`. |
 | **BPJS VClaim** (FKRTL: klinik utama, RS) | Kredensial VClaim | Modul `bpjs_fkrtl`: cek peserta, rujukan, SEP. |
 | **LIS** (Laboratory Information System) | URL & API key LIS (format adamLIS) | Nyalakan fitur **Bridging LIS** bila belum aktif di segmen Anda, isi koneksi (URL registrasi, URL ambil hasil, API key, kode RS, kode lab, mode kirim), lalu petakan kode di **Laboratorium › Mapping LIS** (tindakan, unit/dokter/penjamin, item hasil). Gagal kirim ke LIS = validasi order dibatalkan. Uji dulu dengan LIS tiruan: `node scripts/lis-tiruan.mjs` (lihat [README LIS tiruan](../scripts/README-lis-tiruan.md)). |
+| **PACS/RIS** (Radiologi) | URL & API key PACS/RIS | Nyalakan fitur **Bridging PACS/RIS** (`rad_bridging_pacs`) bila belum aktif di segmen Anda, isi koneksi di **Setting › Konfigurasi Integrasi › Konfigurasi PACS** (URL kirim order, URL ambil hasil, URL viewer, API key, kode RS), lalu petakan kode di **Radiologi › Mapping PACS** (tindakan → kode prosedur & modalitas, unit/dokter/penjamin, ruang/alat → AE Title). Gagal kirim ke PACS = validasi order dibatalkan; tombol **Validasi Saja** tetap tersedia sebagai jalur darurat. Titik masuk hasil (push dari PACS, tanpa JWT): `http(s)://<host penunjang-service>/adam-pacs/bridging?key=<kunci masuk>`. Uji dulu dengan PACS tiruan: `node scripts/pacs-tiruan.mjs` (lihat [README PACS tiruan](../scripts/README-pacs-tiruan.md)). |
 
 Ubah `SATUSEHAT_MODE`/`BPJS_MODE` ke `nyata` dan lingkungan ke produksi (`SATUSEHAT_LINGKUNGAN=produksi`, `BPJS_LINGKUNGAN=production`) hanya di production dan setelah uji di sandbox lulus.
 
