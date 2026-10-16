@@ -694,7 +694,7 @@ Buat blok serupa untuk domain frontend ke port 5520. Pastikan `FRONTEND_ALLOWED_
 
 ## 9. Menjalankan tanpa Docker (instal native)
 
-> **Cara cepat (macOS & Ubuntu/Debian): `./install.sh`.** Skrip ini memeriksa dependensi beserta versinya (Node.js, PostgreSQL, Redis, MongoDB, mongosh, dll.), menawarkan pemasangan yang kurang lewat Homebrew/apt, menyalakan layanan, membuat role/database/akun Mongo, memuat `schema.sql`, membuat semua `.env` dengan kunci acak (tidak menimpa yang sudah ada), lalu menjalankan `install:all`, migrasi, dan data demo. Opsi: `--cek` (hanya cek), `--ya` (tanpa tanya), `--tanpa-demo`, `--jalankan` (langsung `npm run dev`). Khusus development lokal. Langkah manual di bawah menjelaskan hal yang sama secara rinci.
+> **Cara cepat (macOS & Ubuntu/Debian): `./install.sh`.** Skrip ini memeriksa dependensi beserta versinya (Node.js, PostgreSQL, Redis, MongoDB, mongosh, dll.), menawarkan pemasangan yang kurang lewat Homebrew/apt, menyalakan layanan, membuat role/database/akun Mongo, memuat `schema.sql`, membuat semua `.env` dengan kunci acak (tidak menimpa yang sudah ada), lalu menjalankan `install:all`, migrasi, dan data demo. Opsi: `--cek` (hanya cek), `--ya` (tanpa tanya), `--tanpa-demo`, `--jalankan` (langsung `npm run dev`), `--tanpa-ai`, `--helpdesk`. Skrip juga menawarkan **alat AI SIMRS Studio** (Claude Code CLI dan Codex CLI, lewat `npm install -g`); lewati dengan `--tanpa-ai`. **OpenClaw** (Helpdesk) hanya dipasang dengan `--helpdesk`, lewat installer resminya yang menyiapkan Node 24.16+ sendiri. Opsi ini untuk uji coba; untuk produksi, OpenClaw dipasang di VM terpisah ([deploy/helpdesk/README.md](../deploy/helpdesk/README.md)). Khusus development lokal. Langkah manual di bawah menjelaskan hal yang sama secara rinci.
 >
 > **macOS/Linux dengan Podman: `./install.sh --podman`.** PostgreSQL, MongoDB, dan Redis dijalankan di kontainer Podman (`podman compose`, file `docker-compose.yml`), sedangkan layanan dan frontend tetap berjalan langsung di mesin (`npm run dev`, cocok untuk development). Tidak perlu memasang PostgreSQL/MongoDB/Redis dari Homebrew/apt. Langkah di MacBook:
 >
@@ -719,7 +719,7 @@ Buat blok serupa untuk domain frontend ke port 5520. Pastikan `FRONTEND_ALLOWED_
 > - bila PostgreSQL dipasang oleh skrip, sandi superuser `postgres` dibuat acak dan ditampilkan sekali di akhir; bila sudah terpasang, skrip menanyakannya (atau isi variabel `PG_SUPERPASS`);
 > - port PostgreSQL dibaca dari `postgresql.conf` layanan Windows-nya; bila berbeda dari 5432 (mis. 5432 dipakai kontainer Docker), nilainya ikut ditulis ke `DB_PORT` di `.env`. Bisa dipaksa dengan variabel `PG_PORT`;
 > - Redis di bawah versi 5, termasuk port Redis lama untuk Windows (v3.0), dianggap terlalu lama dan diganti Memurai;
-> - opsi: `-Cek`, `-Ya`, `-TanpaDemo`, `-Jalankan`. Pemasangan layanan butuh PowerShell **sebagai Administrator**.
+> - opsi: `-Cek`, `-Ya`, `-TanpaDemo`, `-Jalankan`, `-TanpaAi` (lewati Claude Code CLI & Codex CLI), `-Helpdesk` (pasang juga OpenClaw untuk uji coba). Pemasangan layanan butuh PowerShell **sebagai Administrator**.
 
 Cara ini setara dengan cara Docker: semua komponen dipasang langsung di sistem operasi. Contoh perintah untuk **Ubuntu/Debian**; di **Windows**, pakai installer resmi masing-masing perangkat lunak (PostgreSQL, MongoDB Community Server, Node.js) dan, untuk Redis, Memurai Developer atau paket Redis di WSL (port Redis lama untuk Windows v3.0 terlalu lama; minimal Redis 5). Ganti semua `<...>` dengan nilai Anda sendiri; jangan memakai contoh sandi di server sungguhan.
 
