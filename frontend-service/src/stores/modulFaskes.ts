@@ -188,7 +188,12 @@ export const useModulFaskesStore = defineStore("modulFaskes", {
     async sinkronIzin(k: KonfigurasiModul) {
       const modul = [...new Set(k.katalog.filter((m) => k.modulAktif.includes(m.kode)).flatMap((m) => m.menu ?? []))];
       if (!modul.length) return;
-      const res: any = await apiAuthPost("/permission/sinkron-modul", { modul });
+      await apiAuthPost("/permission/sinkron-modul", { modul });
+      await this.muatUlangIzin();
+    },
+    // Izin sesi dibaca ulang dari server (localStorage + cache token di Redis) lalu menu disusun ulang, tanpa login ulang.
+    async muatUlangIzin() {
+      const res: any = await apiAuthPost("/permission/muat-ulang", {});
       const izin = res?.payload?.permissions;
       if (Array.isArray(izin) && izin.length) {
         try {
@@ -198,6 +203,11 @@ export const useModulFaskesStore = defineStore("modulFaskes", {
         }
         window.dispatchEvent(new CustomEvent("izin-berubah"));
       }
+    },
+    // Setelah modul/fitur berubah di luar halaman ini (mis. rilis SIMRS Studio): muat konfigurasi modul & izin terbaru.
+    async segarkanSesi() {
+      await this.muat();
+      await this.muatUlangIzin();
     },
     async simpanJenisPoli(lokasiUuid: string, jenisPoli: string) {
       const res: any = await apiSettingPut("modul/jenis-poli", { lokasi_uuid: lokasiUuid, jenis_poli: jenisPoli });

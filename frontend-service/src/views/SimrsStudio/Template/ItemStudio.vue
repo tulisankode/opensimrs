@@ -7,6 +7,7 @@ import PageToolbar from "@/components/Base/PageToolbar.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import { apiStudioGet, apiStudioPost, apiStudioPut } from "@/utils/apiHandler";
 import { useSimrsStudioStore } from "@/stores/simrsStudio";
+import { useModulFaskesStore } from "@/stores/modulFaskes";
 import Markdown from "../Komponen/Markdown.vue";
 import PanelTugas from "../Komponen/PanelTugas.vue";
 import PanelPerubahan from "../Komponen/PanelPerubahan.vue";
@@ -18,6 +19,7 @@ import { NAMA_JENIS, NAMA_TAHAP, TAHAP, WARNA_RISIKO, formatUsd, formatWaktu, no
 const route = useRoute();
 const router = useRouter();
 const studio = useSimrsStudioStore();
+const modulFaskes = useModulFaskesStore();
 
 const data = ref<any>(null);
 const tahapDipilih = ref<string>("permintaan");
@@ -128,7 +130,20 @@ const pesanCommit = ref("");
 watch(item, (i) => {
   if (i && !pesanCommit.value) pesanCommit.value = i.pesanCommit ?? "";
 });
-const aksi = (nama: string, body: object = {}) => jalankan(() => apiStudioPost(`/item/${item.value.uuid}/${nama}`, body));
+// Penerapan/aktivasi/pembatalan bisa menyalakan modul & izin baru → konfigurasi modul dan izin sesi dimuat ulang
+// agar menu langsung berubah tanpa login ulang.
+const segarkanSesi = () => modulFaskes.segarkanSesi().catch(() => {});
+const aksi = (nama: string, body: object = {}) =>
+  jalankan(async () => {
+    const res = await apiStudioPost(`/item/${item.value.uuid}/${nama}`, body);
+    if (res && ["terapkan", "aktifkan"].includes(nama)) await segarkanSesi();
+    return res;
+  });
+
+const pindahkanAplikasi = () =>
+  jalankan(async () => {
+    if (await apiStudioPost("/aplikasi/pindah", {})) await segarkanSesi();
+  });
 
 // Triase & risiko
 const dialogTriase = ref(false);
@@ -163,6 +178,7 @@ const batalTerapkan = () =>
     if (await apiStudioPost(`/item/${item.value.uuid}/batal-terapkan`, { alasan: alasanBatal.value })) {
       dialogBatalTerapkan.value = false;
       alasanBatal.value = "";
+      await segarkanSesi();
     }
   });
 
@@ -376,10 +392,27 @@ const WARNA_CI: Record<string, string> = { sukses: "bg-success-50 text-success-4
               <div v-else-if="item.shaBatal" class="text-warning-400">Penerapan sebelumnya dibatalkan (revert {{ item.shaBatal.slice(0, 7) }}).</div>
               <div v-else class="text-grey-400">
                 Belum diterapkan. <b>Terapkan ke lokal</b> menggabungkan branch item ke <b>{{ data.branchLokal }}</b> — aplikasi RS yang memakai branch itu
-                langsung memakai perubahan ini (tanpa push ke GitHub). Migrasi database baru dijalankan otomatis bila diaktifkan.
+                langsung memakai perubahan ini (tanpa push ke GitHub). Migrasi database baru dijalankan otomatis bila diaktifkan,
+                lalu modul/fitur baru dinyalakan dan menu diperbarui tanpa login ulang.
+              </div>
+              <div v-if="item.diterapkanPada && item.aktivasi" class="flex items-start gap-2 text-grey-500">
+                <PhToggleRight :size="16" weight="fill" class="mt-0.5 shrink-0 text-success-300" aria-hidden="true" />
+                <span>
+                  Dinyalakan: {{ [...(item.aktivasi.modul ?? []).map((m: any) => `modul ${m.nama}`), ...(item.aktivasi.fitur ?? []).map((f: any) => `fitur ${f.nama}`)].join(", ") || "-" }}
+                  <template v-if="(item.aktivasi.lewati ?? []).length"> · dilewati: {{ item.aktivasi.lewati.map((l: any) => `${l.kode} (${l.alasan})`).join("; ") }}</template>
+                </span>
+              </div>
+              <div v-if="data.aplikasi && !data.aplikasi.sama" class="flex flex-wrap items-center gap-2 rounded-lg border border-warning-200 bg-white p-2 text-warning-400">
+                <PhWarning :size="16" class="shrink-0" aria-hidden="true" />
+                <span class="min-w-0 flex-1">
+                  Aplikasi pengembang (<code>npm run dev</code>) sedang memakai branch <b>{{ data.aplikasi.branch }}</b>, bukan <b>{{ data.branchLokal }}</b>.
+                  Hasil penerapan baru terlihat di aplikasi ini setelah dipindahkan.
+                </span>
+                <CustomButton v-if="studio.status.superadmin" :label="`Pindahkan aplikasi ke ${data.branchLokal}`" icon="PhArrowsLeftRight" outlined text-color="text-opensimrs-300" border-color="border-opensimrs-300" :disabled="sibuk || !!tugasBerjalan" @click="pindahkanAplikasi" />
               </div>
               <div class="flex flex-wrap gap-2">
                 <CustomButton v-if="studio.boleh('Rilis', 'SIAPKAN')" :label="item.diterapkanPada ? 'Terapkan ulang (perbaikan terbaru)' : `Terapkan ke ${data.branchLokal}`" icon="PhArrowSquareIn" :outlined="!!item.diterapkanPada" :text-color="item.diterapkanPada ? 'text-opensimrs-300' : ''" :border-color="item.diterapkanPada ? 'border-opensimrs-300' : ''" :disabled="sibuk || !!(item.berkas ?? []).length" @click="aksi('terapkan')" />
+                <CustomButton v-if="item.diterapkanPada && studio.boleh('Rilis', 'SIAPKAN')" label="Aktifkan di aplikasi" icon="PhToggleRight" outlined text-color="text-opensimrs-300" border-color="border-opensimrs-300" :disabled="sibuk" @click="aksi('aktifkan')" />
                 <CustomButton v-if="item.diterapkanPada && studio.boleh('Rilis', 'DEPLOY')" label="Kirim ke server" icon="PhRocketLaunch" outlined text-color="text-opensimrs-300" border-color="border-opensimrs-300" @click="router.push('/studio/server')" />
                 <CustomButton v-if="item.diterapkanPada && studio.boleh('Rilis', 'SIAPKAN')" label="Batalkan penerapan" icon="PhArrowCounterClockwise" outlined text-color="text-danger-300" border-color="border-danger-300" :disabled="sibuk" @click="dialogBatalTerapkan = true" />
               </div>

@@ -34,6 +34,7 @@ privateRoute.get(`/user/export`, UserController.export);
 // izin: katalog modul (editor Role) & sinkron izin modul aktif ke peran admin (Manajemen Modul)
 privateRoute.get(`/permission/katalog`, PermissionController.katalog);
 privateRoute.post(`/permission/sinkron-modul`, PermissionController.sinkronModul);
+privateRoute.post(`/permission/muat-ulang`, PermissionController.muatUlang);
 
 
 privateRoute.get(`/health`, permissionSdk("Admisi", "Laporan Admisi", "Kunjungan", "READ"), (req, resp) => resp.status(200).json({status: "HEALTH"}))

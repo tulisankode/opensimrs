@@ -227,7 +227,11 @@ rute.post("/item/:uuid/push", tangani(async (req, res) => {
 }));
 rute.post("/item/:uuid/terapkan", tangani(async (req, res) => {
   await pastikan(req, "Rilis", "SIAPKAN");
-  kirim(res, await alur.terapkanLokal(await item(req), req.author.username), "Diterapkan ke branch lokal");
+  kirim(res, await alur.terapkanLokal(await item(req), req.author.username, req.author.faskesUuid), "Diterapkan ke branch lokal");
+}));
+rute.post("/item/:uuid/aktifkan", tangani(async (req, res) => {
+  await pastikan(req, "Rilis", "SIAPKAN");
+  kirim(res, await alur.aktifkanItem(await item(req), req.author.username, req.author.faskesUuid), "Modul/fitur diaktifkan");
 }));
 rute.post("/item/:uuid/batal-terapkan", tangani(async (req, res) => {
   await pastikan(req, "Rilis", "SIAPKAN");
@@ -407,6 +411,17 @@ rute.get("/deploy/bundle", tangani(async (req, res) => {
   });
 }));
 
+// ---------- Aplikasi pengembang (repo utama yang dijalankan npm run dev) ----------
+
+rute.get("/aplikasi", tangani(async (req, res) => {
+  await bolehBaca(req);
+  kirim(res, await alur.statusAplikasi());
+}));
+rute.post("/aplikasi/pindah", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  kirim(res, await alur.pindahkanAplikasi(req.author.username), "Aplikasi dipindahkan ke branch lokal");
+}));
+
 // ---------- Pengaturan (superadmin) ----------
 
 rute.get("/pengaturan", tangani(async (req, res) => {
@@ -419,13 +434,15 @@ rute.put("/pengaturan", tangani(async (req, res) => {
   wajibSuperadmin(req);
   const body = req.body ?? {};
   const BOLEH = ["branch_dasar", "konektor_tahap", "model_tahap", "aturan_instalasi", "atribusi_commit", "cek_build_frontend", "fitur", "pemisahan_tugas", "mode_kerja",
-    "direktori_worktree", "batas_biaya_tugas", "batas_biaya_item", "batas_biaya_bulan", "batas_kuota_persen", "batas_tugas_per_jam", "git_penyedia", "git_api_url", "git_repo", "git_token", "mode_rilis", "branch_lokal", "migrasi_otomatis"];
+    "direktori_worktree", "batas_biaya_tugas", "batas_biaya_item", "batas_biaya_bulan", "batas_kuota_persen", "batas_tugas_per_jam", "git_penyedia", "git_api_url", "git_repo", "git_token", "mode_rilis", "branch_lokal", "migrasi_otomatis",
+    "aktivasi_otomatis", "aktivasi_faskes"];
   for (const [k, v] of Object.entries(body)) {
     if (!BOLEH.includes(k)) continue;
     let nilai = v;
     if (k === "branch_dasar" && !/^[\w./-]+$/.test(String(v))) throw permintaanSalah("Nama branch dasar tidak valid");
     if (k === "mode_kerja" && !["workspace", "worktree"].includes(v)) throw permintaanSalah("Mode kerja harus workspace atau worktree");
     if (k === "mode_rilis" && !["lokal", "pr", "keduanya"].includes(v)) throw permintaanSalah("Mode rilis harus lokal, pr, atau keduanya");
+    if (k === "aktivasi_faskes" && !["saya", "semua"].includes(v)) throw permintaanSalah("Faskes aktivasi harus saya atau semua");
     if (k === "branch_lokal" && v && (!/^[\w./-]+$/.test(String(v)) || /\/STD-\d+/.test(String(v)))) throw permintaanSalah("Nama branch lokal tidak valid (tidak boleh branch item STD-…)");
     if (k === "direktori_worktree" && v) {
       if (!path.isAbsolute(String(v))) throw permintaanSalah("Folder worktree harus path lengkap, mis. C:\\simrs-studio");
