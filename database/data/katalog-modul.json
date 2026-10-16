@@ -407,9 +407,7 @@
         "ICU"
       ],
       "rute": [
-        "/icu/dashboard",
-        "/icu/perawatan",
-        "/icu/laporan"
+        "/icu"
       ],
       "urutan": 20
     },
