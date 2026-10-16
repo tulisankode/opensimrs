@@ -552,6 +552,14 @@ export const jalankanCek = async (item, oleh) => {
         langkah.push({ nama: `Uji ${l}`, lulus: r.ok });
       }
 
+      // Integritas lintas berkas (rute katalog ganda, menu navbar, migrasi kembar, import "@/main"): selalu, karena
+      // pelanggarannya baru terlihat setelah diterapkan (modul tetap "Segera", menu tidak muncul, layar putih).
+      if (fs.existsSync(path.join(base, "scripts", "cek-integritas.mjs"))) {
+        const r = await jalankanPerintah("node", ["scripts/cek-integritas.mjs"], { cwd: base, timeoutMs: 60000 });
+        await log(r.ok ? "hasil" : "galat", `${r.ok ? "✔" : "✘"} cek integritas\n${r.keluaran.slice(-1500)}`);
+        langkah.push({ nama: "Integritas lintas berkas", lulus: r.ok });
+      }
+
       if (ada.some((b) => b.path === "database/data/katalog-modul.json")) {
         const r = await jalankanPerintah("node", ["scripts/dokumen-katalog.mjs", "--cek"], { cwd: base, timeoutMs: 60000 });
         await log(r.ok ? "hasil" : "galat", `${r.ok ? "✔" : "✘"} dokumen katalog\n${r.keluaran.slice(-800)}`);
@@ -1172,6 +1180,11 @@ export const aktifkanItem = async (item, oleh, faskesUuid = null) => {
   if ((await branchSekarang().catch(() => null)) !== item.branch_lokal) {
     const { keluaran: daftar } = await git(["worktree", "list", "--porcelain"], { izinkanGagal: true });
     cwd = daftar.split(/\n\n+/).find((b) => b.includes(`branch refs/heads/${item.branch_lokal}`))?.match(/^worktree (.+)$/m)?.[1] ?? cwd;
+  }
+  // Migrasi yang tertunda (penerapan saat aplikasi di branch lain) atau gagal dijalankan dulu: tanpa migrasi katalog,
+  // modul baru masih "Segera" dan aktivasi hanya melewatinya. Migrasi wajib idempoten, jadi aman diulang.
+  if (nilai.migrasi_otomatis && !(await jalankanMigrasi(cwd, item, oleh))) {
+    throw new Galat(409, "Migrasi database gagal, jadi modul belum diaktifkan. Baca penyebabnya di diskusi item, perbaiki migrasi/katalognya, lalu klik Aktifkan lagi.");
   }
   const aktivasi = await aktifkan({ sha: item.sha_lokal, dari: awalItem(item), cwd, faskes: faskesAktivasi(nilai, faskesUuid), oleh, alasan: `SIMRS Studio ${nomor(item)}: ${item.judul}`, sebelumnya: item.aktivasi });
   await audit(oleh, "Mengaktifkan modul/fitur hasil penerapan", item.uuid, { modul: aktivasi?.modul.map((m) => m.kode), fitur: aktivasi?.fitur.map((f) => f.kode) });

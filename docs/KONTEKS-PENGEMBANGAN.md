@@ -44,7 +44,8 @@ OpenSIMRS adalah SIMRS berbasis microservice untuk fasilitas kesehatan Indonesia
 | `farmasi-service`, `stok-farmasi-service` | Resep, telaah & penyerahan obat, stok depo |
 | `inventory-service` | Gudang, pembelian ke supplier, distribusi ke depo, opname |
 | `lab-service` | Order, hasil & validasi lab (Patologi Klinik), tagihan lab, **bridging LIS** (kirim per order/bulk, tarik/terima hasil, mapping) |
-| `penunjang-service` | Fisioterapi, Radiologi, MCU, Patologi Anatomi, Mikrobiologi (port 8099, `/api/v3/penunjang`) |
+| `penunjang-service` | Fisioterapi, Radiologi, MCU, Patologi Anatomi, Mikrobiologi, CSSD (port 8099, `/api/v3/penunjang`) |
+| `program-puskesmas-service` | Program Puskesmas: KIA/KB, imunisasi, MTBS, sasaran, UKM, laporan LB1 & dinkes (port 8100, `/api/v3/program-puskesmas`) |
 | `payment-service` | Tagihan, kasir, shift, kuitansi |
 | `datamaster-service` | Faskes, lokasi, pegawai, praktisi, tarif, role, dan datamaster lain |
 | `setting-service` | Profil faskes, konfigurasi integrasi, cetak, **Manajemen Modul** |
@@ -74,7 +75,7 @@ Repo ini **monorepo**: semua `*-service` dan `frontend-service` adalah folder bi
 .
 ├── <nama>-service/              # kode per layanan (folder biasa)
 ├── frontend-service/            # frontend Vue 3
-├── bpjs-service/ satusehat-service/ penunjang-service/
+├── bpjs-service/ satusehat-service/ penunjang-service/ program-puskesmas-service/
 ├── packages/                    # SDK bersama: model-sdk, authorization-sdk, permission-sdk (@opensimrs/*)
 ├── scripts/
 │   ├── lis-tiruan.mjs           # LIS tiruan untuk uji bridging tanpa LIS asli (format adamLIS)

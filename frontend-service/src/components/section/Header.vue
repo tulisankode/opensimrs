@@ -384,15 +384,13 @@ const bukaSegera = (url: string) => {
 };
 
 const NAMA_SEGERA: Record<string, string> = {
-  fisioterapi: "Fisioterapi", radiologi: "Radiologi", kamar_operasi: "Kamar Operasi", gizi: "Gizi",
+  kamar_operasi: "Kamar Operasi", gizi: "Gizi",
   koding_rm: "Koding RM", bank_darah: "Bank Darah", utd: "UTD", akuntansi: "Akuntansi",
-  training: "Training", mcu: "MCU",
-  patologi_anatomi: "Patologi Anatomi", mikrobiologi: "Mikrobiologi",
+  training: "Training",
 };
 const IKON_SEGERA: Record<string, string> = {
-  fisioterapi: "FisioIcon", radiologi: "PhScan", kamar_operasi: "PhKnife", gizi: "PhBowlFood",
+  kamar_operasi: "PhKnife", gizi: "PhBowlFood",
   koding_rm: "PhFileCode", bank_darah: "PhDrop", utd: "PhDropHalf", akuntansi: "PhCalculator",
-  mcu: "PhClipboardText", patologi_anatomi: "PhMicroscope", mikrobiologi: "PhBug",
   training: "TrainingIcon",
 };
 
