@@ -11,6 +11,8 @@ import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/yup";
 import * as yup from "yup";
 import { utilsStore } from "@/stores/utils";
+import KartuModePengembang from "./KartuModePengembang.vue";
+import { isSuperadmin } from "@/stores/simrsStudio";
 
 const useUtilsStore = utilsStore();
 
@@ -315,6 +317,9 @@ onMounted(() => {
           <CustomButton label="Simpan" @click="onSubmitPPN" />
         </div>
       </GreenCard>
+
+      <!-- Mode Pengembang (SIMRS Studio): hanya superadmin -->
+      <KartuModePengembang v-if="isSuperadmin()" />
     </template>
   </Card>
 </template>

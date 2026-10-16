@@ -1,4 +1,5 @@
 import { QueryTypes } from "sequelize";
+import { isSuperadmin } from "@opensimrs/authorization-sdk/peran";
 import moment from "moment";
 import sequelizeInstance from "../configurations/sequelize-instance.js";
 import BadRequestException from "../errors/bad-request-exception.js";
@@ -14,7 +15,8 @@ class ForbiddenException extends BadRequestException {
   }
 }
 
-export const isSuperadmin = (author) => String(author?.role ?? "").trim().toLowerCase() === "super admin";
+// Definisi superadmin bersama (authorization-sdk) — diekspor ulang untuk pemakai lama.
+export { isSuperadmin };
 
 const pilih = (sql, replacements, transaction) => sequelizeInstance.query(sql, { replacements, type: QueryTypes.SELECT, transaction });
 

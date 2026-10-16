@@ -16,6 +16,8 @@ import { useAntrianCallStore } from "@/stores/antrian/antrianCall";
 import AnnouncementIcon from "../icons/AnnouncementIcon.vue";
 import { useRJStore } from "@/stores/rawatJalan/laporanrajal";
 import { useModulFaskesStore, modulSegera } from "@/stores/modulFaskes";
+import { studioAktif, EVENT_STUDIO, mungkinPunyaAkses, useSimrsStudioStore } from "@/stores/simrsStudio";
+import { adaEkstensi, muatEkstensi, EVENT_EKSTENSI } from "@/stores/ekstensi";
 import { usePermissionStore } from "@/stores/datamaster/permission";
 import { logoFaskes } from "@/utils/tema";
 import Popover from "primevue/popover";
@@ -282,6 +284,10 @@ const susunMenu = () => {
   } else {
     listMenu.value = menu;
   }
+  // SIMRS Studio: hanya bila Mode Pengembang diaktifkan superadmin (Setting › System).
+  // Ekstensi tanpa kode yang terpasang untuk pengguna ini (laporan/cetak/formulir dari SIMRS Studio).
+  if (adaEkstensi()) listMenu.value = [...listMenu.value, { title: "Ekstensi", icon: "PhPuzzlePiece", url: "/ekstensi" }];
+  if (studioAktif()) listMenu.value = [...listMenu.value, { title: "SIMRS Studio", icon: "PhFlask", url: "/studio" }];
   // Modul segmen yang masih dikembangkan: dikumpulkan di menu "Segera" (badge Soon) agar faskes tahu paketnya
   // lengkap tanpa mendesak menu modul aktif.
   menuSegera.value = modulSegera()
@@ -336,10 +342,16 @@ watch(listMenu, () => nextTick(hitungMenuTampil));
 const saatIzinBerubah = () => susunMenu();
 onMounted(() => {
   window.addEventListener("izin-berubah", saatIzinBerubah);
+  window.addEventListener(EVENT_STUDIO, saatIzinBerubah);
+  window.addEventListener(EVENT_EKSTENSI, saatIzinBerubah);
   // Katalog izin dari server untuk editor Role/User (memuat modul baru); gagal = tetap pakai daftar statis.
   usePermissionStore().muatKatalog().catch(() => {});
 });
-onUnmounted(() => window.removeEventListener("izin-berubah", saatIzinBerubah));
+onUnmounted(() => {
+  window.removeEventListener("izin-berubah", saatIzinBerubah);
+  window.removeEventListener(EVENT_STUDIO, saatIzinBerubah);
+  window.removeEventListener(EVENT_EKSTENSI, saatIzinBerubah);
+});
 onMounted(() => {
   pengamatLebar = new ResizeObserver(() => hitungMenuTampil());
   if (wadahMenu.value) pengamatLebar.observe(wadahMenu.value);
@@ -371,6 +383,9 @@ onMounted(async () => {
   loadFaskesFromLocalStorage();
   userData.value = JSON.parse(localStorage.getItem("user") ?? "");
   susunMenu();
+  // Status Mode Pengembang (SIMRS Studio) dari studio-service; perubahan memicu EVENT_STUDIO → susun ulang menu.
+  if (mungkinPunyaAkses()) useSimrsStudioStore().muat().catch(() => {});
+  muatEkstensi().catch(() => {});
   try {
     await modulStore.muat();
     susunMenu();

@@ -1285,6 +1285,23 @@ export const dashboardPermission = {
  * @param {Array<string>} permissionList
  * @returns {Array<Object>} permissions
  */
+// SIMRS Studio (mode pengembang berbasis AI, studio-service). Tidak pernah diberikan otomatis ke peran faskes:
+// superadmin memberikannya per peran (Pengusul, Product, Reviewer klinis, Programmer, QA, Maintainer rilis).
+export const simrsStudioPermission = {
+  module: "SIMRS Studio",
+  subModules: [
+    { name: "Permintaan", allows: ["READ", "CREATE", "UPDATE", "TRIASE", "SETUJUI USECASE", "BATAL"] },
+    { name: "PRD", allows: ["READ", "UPDATE", "SETUJUI", "TETAPKAN RISIKO"] },
+    { name: "Review Klinis", allows: ["READ", "SETUJUI"] },
+    { name: "Desain", allows: ["READ", "UPDATE", "SETUJUI"] },
+    { name: "Coding", allows: ["READ", "JALANKAN AGEN", "REVIEW", "BUKA PR"] },
+    { name: "QA", allows: ["READ", "UPDATE", "JALANKAN UJI", "LULUS"] },
+    { name: "Rilis", allows: ["READ", "SIAPKAN", "DEPLOY"] },
+    { name: "Ekstensi", allows: ["READ", "CREATE", "PASANG", "COPOT"] },
+    { name: "Audit", allows: ["READ", "EKSPOR"] },
+  ],
+};
+
 export function mapPermission(permissionList) {
   const permissions = [];
   const lowerCasePermissionList = permissionList.map((prms) => prms.toLowerCase());
@@ -1311,7 +1328,8 @@ export function mapPermission(permissionList) {
     dashboard: dashboardPermission,
     setting: settingPermission,
     profile: profilePermission,
-    laporan: laporanPermission
+    laporan: laporanPermission,
+    "simrs studio": simrsStudioPermission,
   };
 
   cleanedPermissionList.forEach((permission) => {

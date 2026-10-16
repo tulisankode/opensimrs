@@ -32,6 +32,7 @@ Berkas ini dibaca otomatis oleh Claude Code. Isinya aturan dan konteks proyek ya
   - id `uuidv7`;
   - waktu dalam epoch detik;
   - soft delete (`deleted_at`).
+- **SIMRS Studio** (`studio-service`, port 8090): mode pengembang berbasis AI yang menjalankan Claude Code CLI di mesin pengembang. Layanan ini aktif bila `STUDIO_PENGEMBANG=aktif` dan superadmin menyalakan Mode Pengembang di Setting › System. Agen tidak boleh mengubah `studio-service/**`. Lihat [docs/SIMRS-STUDIO.md](./docs/SIMRS-STUDIO.md).
 - **Manajemen Modul**: `database/data/katalog-modul.json` dimuat lewat migrasi `sinkronKatalog`. Menu yang tampil = modul aktif faskes ∩ izin user. Setelah mengubah katalog, jalankan `npm run docs:katalog`. Lihat [docs/MANAJEMEN-MODUL.md](./docs/MANAJEMEN-MODUL.md).
 - **Migrasi**:
   - nama berkas `database/migrations/YYYYMMDDHHMMSS-*.cjs` (UTC), harus berurutan paling akhir saat merge;
