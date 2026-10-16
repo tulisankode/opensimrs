@@ -448,6 +448,12 @@ rute.put("/pengaturan", tangani(async (req, res) => {
       const pilihan = konektorBaru[tahap];
       if (!model || (pilihan && !["claude_code", "codex"].includes(pilihan))) delete modelBaru[tahap];
       else if (!cocokModel(pilihan, model)) throw permintaanSalah(pesanTidakCocok(tahap, pilihan, model));
+      else if (pilihan === "codex") {
+        const tersedia = codex.modelCodex();
+        if (tersedia.length && !tersedia.some((m) => m.kode === model)) {
+          throw permintaanSalah(`Model "${model}" tidak tersedia untuk akun Codex ini (tahap ${tahap}). Pilihan: ${tersedia.map((m) => m.kode).join(", ")}`);
+        }
+      }
     }
     body.model_tahap = modelBaru;
   }
@@ -511,7 +517,7 @@ rute.post("/pengaturan/akun-claude/keluar", tangani(async (req, res) => {
 // Akun Codex (langganan ChatGPT): login kode perangkat di auth.openai.com/codex/device.
 rute.get("/pengaturan/akun-codex", tangani(async (req, res) => {
   wajibSuperadmin(req);
-  kirim(res, { akun: await codex.statusAkunCodex(), login: codex.statusLoginCodex() });
+  kirim(res, { akun: await codex.statusAkunCodex(), login: codex.statusLoginCodex(), model: codex.modelCodex() });
 }));
 rute.post("/pengaturan/akun-codex/login", tangani(async (req, res) => {
   wajibSuperadmin(req);
