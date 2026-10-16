@@ -1,6 +1,7 @@
 // Helpdesk asisten pengguna: pertanyaan cara pakai OpenSIMRS diteruskan ke agen OpenClaw lewat endpoint kompatibel
 // OpenAI di Gateway (POST /v1/chat/completions). Rancangan: docs/rancangan/HELPDESK-OPENCLAW.md.
-// Token Gateway memberi akses operator penuh → hanya disimpan di .env layanan ini, tidak pernah dikirim ke peramban.
+// Token Gateway memberi akses operator penuh → disimpan terenkripsi di server (Setting › Integrasi, atau .env), tidak
+// pernah dikirim ke peramban.
 import crypto from "crypto";
 import { QueryTypes } from "sequelize";
 import moment from "moment";
@@ -8,18 +9,68 @@ import sequelizeInstance from "../configurations/sequelize-instance.js";
 import BadRequestException from "../errors/bad-request-exception.js";
 import ModulService, { isSuperadmin } from "../services/modul-service.js";
 import { samarkanDataPribadi } from "./saring.js";
+import { dekripsi, enkripsi, samarkan } from "./rahasia.js";
 
 const FITUR = "helpdesk_ai";
 const RETENSI_DETIK = 90 * 86400;
 const PANJANG_MAKS = 2000;
+const AGEN_BAWAAN = "helpdesk-opensimrs";
 
-const konfigurasi = () => ({
-  url: (process.env.HELPDESK_GATEWAY_URL || "").replace(/\/$/, ""),
-  token: process.env.HELPDESK_GATEWAY_TOKEN || "",
-  agen: process.env.HELPDESK_AGEN || "helpdesk-opensimrs",
-  batasPerJam: Number(process.env.HELPDESK_BATAS_PER_JAM) || 20,
-  timeoutMs: (Number(process.env.HELPDESK_TIMEOUT_DETIK) || 120) * 1000,
-});
+// Konfigurasi Gateway: baris helpdesk_konfigurasi (Setting › Integrasi) bila ada, selain itu .env. Disimpan sebentar
+// di memori agar tidak membaca DB tiap pertanyaan; dikosongkan saat konfigurasi disimpan.
+let cacheKonfigurasi = null;
+const bacaBaris = async () => {
+  try {
+    const [baris] = await sequelizeInstance.query(`SELECT * FROM helpdesk_konfigurasi WHERE id = 1`, { type: QueryTypes.SELECT });
+    return baris ?? null;
+  } catch {
+    return null; // tabel belum ada (migrasi belum dijalankan) → .env
+  }
+};
+const konfigurasi = async () => {
+  if (cacheKonfigurasi && Date.now() - cacheKonfigurasi.waktu < 15_000) return cacheKonfigurasi.nilai;
+  const b = await bacaBaris();
+  const nilai = b
+    ? {
+        sumber: "pengaturan", aktif: Boolean(b.aktif), url: String(b.gateway_url || "").replace(/\/$/, ""), token: dekripsi(b.token) || "",
+        agen: b.agen || AGEN_BAWAAN, batasPerJam: Number(b.batas_per_jam) || 20, timeoutMs: (Number(b.timeout_detik) || 120) * 1000,
+      }
+    : {
+        sumber: "env", aktif: true, url: (process.env.HELPDESK_GATEWAY_URL || "").replace(/\/$/, ""), token: process.env.HELPDESK_GATEWAY_TOKEN || "",
+        agen: process.env.HELPDESK_AGEN || AGEN_BAWAAN, batasPerJam: Number(process.env.HELPDESK_BATAS_PER_JAM) || 20,
+        timeoutMs: (Number(process.env.HELPDESK_TIMEOUT_DETIK) || 120) * 1000,
+      };
+  cacheKonfigurasi = { waktu: Date.now(), nilai };
+  return nilai;
+};
+
+const wajibSuperadmin = (author, aksi) => {
+  if (isSuperadmin(author)) return;
+  const e = new BadRequestException(`Hanya superadmin yang dapat ${aksi}`);
+  e.status = 403;
+  throw e;
+};
+
+// Uji Gateway tanpa memakai kuota model: GET /v1/models (token benar & agen terdaftar).
+const ujiGateway = async ({ url, token, agen }) => {
+  const mulai = Date.now();
+  let res;
+  try {
+    res = await fetch(`${url}/v1/models`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15_000) });
+  } catch (e) {
+    return { ok: false, pesan: `Gateway tidak dapat dihubungi (${e.name === "TimeoutError" ? "waktu habis" : e.cause?.code ?? e.message})` };
+  }
+  const durasi = Date.now() - mulai;
+  if (res.status === 401 || res.status === 403) return { ok: false, durasi_ms: durasi, pesan: "Token Gateway ditolak" };
+  if (!res.ok) return { ok: false, durasi_ms: durasi, pesan: `Gateway membalas ${res.status}` };
+  const daftar = ((await res.json().catch(() => null))?.data ?? []).map((m) => m.id).filter(Boolean);
+  const target = `openclaw/${agen}`;
+  const ada = daftar.includes(target) || daftar.includes(`openclaw:${agen}`);
+  return {
+    ok: ada, durasi_ms: durasi, model: daftar,
+    pesan: ada ? `Tersambung; agen ${agen} tersedia (${durasi} ms)` : `Tersambung, tetapi agen "${agen}" tidak ada di Gateway (tersedia: ${daftar.join(", ") || "-"})`,
+  };
+};
 
 class TerlaluBanyak extends BadRequestException {
   constructor(message) {
@@ -66,8 +117,9 @@ const susunKonteks = (author, modul, halaman) => {
 
 export default class BantuanService {
   static async status(author) {
-    const k = konfigurasi();
-    if (!k.url || !k.token) return { aktif: false, alasan: "Helpdesk belum dikonfigurasi (HELPDESK_GATEWAY_URL/HELPDESK_GATEWAY_TOKEN)" };
+    const k = await konfigurasi();
+    if (!k.aktif) return { aktif: false, alasan: "Helpdesk dimatikan superadmin (Setting › Integrasi › Helpdesk AI)" };
+    if (!k.url || !k.token) return { aktif: false, alasan: "Helpdesk belum dikonfigurasi (Setting › Integrasi › Helpdesk AI)" };
     const modul = await ModulService.ambil(author);
     if (!modul.fitur_aktif.includes(FITUR)) return { aktif: false, alasan: "Fitur Asisten Bantuan tidak aktif untuk faskes ini (Setting › Manajemen Modul)" };
     return { aktif: true, batasPerJam: k.batasPerJam };
@@ -78,7 +130,7 @@ export default class BantuanService {
    * body: { pertanyaan, halaman, sesi } — sesi = id percakapan dari peramban ("Percakapan baru" mengganti nilainya).
    */
   static async tanya(author, body, kirim, signal) {
-    const k = konfigurasi();
+    const k = await konfigurasi();
     const status = await this.status(author);
     if (!status.aktif) throw new BadRequestException(status.alasan);
     const mentah = String(body?.pertanyaan ?? "").trim();
@@ -156,6 +208,68 @@ export default class BantuanService {
       ).catch(() => {});
       await sequelizeInstance.query(`DELETE FROM bantuan_log WHERE created_at < :batas`, { replacements: { batas: sekarang - RETENSI_DETIK } }).catch(() => {});
     }
+  }
+
+  // ---------- Konfigurasi Gateway (Setting › Integrasi, superadmin) ----------
+
+  // Token tidak pernah dikirim utuh: hanya 4 karakter terakhir. sumber: "pengaturan" | "env".
+  static async ambilKonfigurasi(author) {
+    wajibSuperadmin(author, "melihat konfigurasi Helpdesk");
+    const b = await bacaBaris();
+    const k = await konfigurasi();
+    return {
+      sumber: k.sumber,
+      aktif: k.aktif,
+      gateway_url: k.url,
+      token: samarkan(k.token),
+      ada_token: Boolean(k.token),
+      agen: k.agen,
+      batas_per_jam: k.batasPerJam,
+      timeout_detik: Math.round(k.timeoutMs / 1000),
+      diubah_oleh: b?.diubah_oleh ?? null,
+      updated_at: b ? Number(b.updated_at) : null,
+      env_tersedia: Boolean(process.env.HELPDESK_GATEWAY_URL && process.env.HELPDESK_GATEWAY_TOKEN),
+    };
+  }
+
+  // body: { aktif, gateway_url, token (kosong/"••" = tidak diubah), agen, batas_per_jam, timeout_detik }
+  static async simpanKonfigurasi(author, body = {}) {
+    wajibSuperadmin(author, "mengubah konfigurasi Helpdesk");
+    const lama = await bacaBaris();
+    const url = String(body.gateway_url ?? "").trim().replace(/\/$/, "");
+    if (url && !/^https?:\/\/[^\s/]+/i.test(url)) throw new BadRequestException("URL Gateway harus diawali http:// atau https://");
+    const agen = String(body.agen ?? AGEN_BAWAAN).trim() || AGEN_BAWAAN;
+    if (!/^[\w.-]{1,100}$/.test(agen)) throw new BadRequestException("Nama agen hanya boleh huruf, angka, titik, garis bawah, atau tanda hubung");
+    const batas = Number(body.batas_per_jam ?? 20);
+    const timeout = Number(body.timeout_detik ?? 120);
+    if (!Number.isInteger(batas) || batas < 1 || batas > 1000) throw new BadRequestException("Batas per jam harus 1–1000");
+    if (!Number.isInteger(timeout) || timeout < 10 || timeout > 600) throw new BadRequestException("Batas waktu jawaban harus 10–600 detik");
+    const tokenBaru = String(body.token ?? "");
+    const token = !tokenBaru || tokenBaru.startsWith("••") ? lama?.token ?? null : enkripsi(tokenBaru);
+    const aktif = body.aktif !== false;
+    if (aktif && (!url || !token)) throw new BadRequestException("URL Gateway dan token wajib diisi untuk mengaktifkan Helpdesk");
+    await sequelizeInstance.query(
+      `INSERT INTO helpdesk_konfigurasi (id, aktif, gateway_url, token, agen, batas_per_jam, timeout_detik, diubah_oleh, updated_at)
+       VALUES (1, :aktif, :url, :token, :agen, :batas, :timeout, :oleh, :t)
+       ON CONFLICT (id) DO UPDATE SET aktif = EXCLUDED.aktif, gateway_url = EXCLUDED.gateway_url, token = EXCLUDED.token, agen = EXCLUDED.agen,
+         batas_per_jam = EXCLUDED.batas_per_jam, timeout_detik = EXCLUDED.timeout_detik, diubah_oleh = EXCLUDED.diubah_oleh, updated_at = EXCLUDED.updated_at`,
+      { replacements: { aktif, url: url || null, token, agen, batas, timeout, oleh: author.username ?? null, t: moment().unix() } },
+    );
+    cacheKonfigurasi = null;
+    return this.ambilKonfigurasi(author);
+  }
+
+  // Uji koneksi: nilai dari formulir (belum disimpan) bila dikirim, selain itu konfigurasi tersimpan.
+  static async ujiKonfigurasi(author, body = {}) {
+    wajibSuperadmin(author, "menguji koneksi Helpdesk");
+    const k = await konfigurasi();
+    const tokenForm = String(body.token ?? "");
+    const url = String(body.gateway_url || k.url || "").trim().replace(/\/$/, "");
+    const token = tokenForm && !tokenForm.startsWith("••") ? tokenForm : k.token;
+    const agen = String(body.agen || k.agen || AGEN_BAWAAN).trim();
+    if (!url || !token) throw new BadRequestException("Isi URL Gateway dan token dulu");
+    if (!/^https?:\/\//i.test(url)) throw new BadRequestException("URL Gateway harus diawali http:// atau https://");
+    return ujiGateway({ url, token, agen });
   }
 
   // Ringkasan 30 hari untuk superadmin: jumlah, halaman tersering, pertanyaan gagal/tak terjawab terbaru.

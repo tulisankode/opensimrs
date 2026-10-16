@@ -15,6 +15,7 @@ import KonfigurasiBpjsVclaim from './KonfigurasiBpjsVclaim.vue';
 import PemetaanVclaim from './PemetaanVclaim.vue';
 import KonfigurasiLis from './KonfigurasiLis.vue';
 import PengirimanLis from './PengirimanLis.vue';
+import KonfigurasiHelpdesk from './KonfigurasiHelpdesk.vue';
 import { useSettingStore } from '@/stores/setting';
 import { utilsStore } from "@/stores/utils";
 
@@ -116,6 +117,8 @@ const handleKonfigurasiSatuSehat = (updatedKonfigurasiSatuSehat: any) => {
             <!-- LIS laboratorium (adamLIS): koneksi/endpoint & kredensial + riwayat pengiriman. Mapping kode ada di Laboratorium › Mapping LIS -->
             <KonfigurasiLis />
             <PengirimanLis />
+            <!-- Helpdesk AI: Gateway OpenClaw untuk tombol Bantuan (khusus superadmin; token terenkripsi) -->
+            <KonfigurasiHelpdesk />
 
             <!--  -->
             <template v-if="!isEditKonfigurasiLainnya">

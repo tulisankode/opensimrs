@@ -16,3 +16,15 @@ test("samarkanDataPribadi: data contoh fiktif & pertanyaan biasa tidak diubah", 
   assert.deepEqual(samarkanDataPribadi(masukan), { teks: masukan, disamarkan: 0 });
   assert.equal(samarkanDataPribadi("Bagaimana membatalkan order lab?").disamarkan, 0);
 });
+
+test("rahasia: token Gateway terenkripsi & bisa dibaca kembali; samaran hanya 4 karakter terakhir", async () => {
+  process.env.SECRET_KEY ??= "kunci-uji-saja";
+  const { enkripsi, dekripsi, samarkan } = await import("../src/bantuan/rahasia.js");
+  const sandi = enkripsi("token-gateway-rahasia-1234");
+  assert.match(sandi, /^enc:v1:/);
+  assert.ok(!sandi.includes("token-gateway"));
+  assert.equal(dekripsi(sandi), "token-gateway-rahasia-1234");
+  assert.equal(dekripsi("nilai-polos"), "nilai-polos");
+  assert.equal(samarkan("token-gateway-rahasia-1234"), "••••••••1234");
+  assert.equal(enkripsi(""), null);
+});
