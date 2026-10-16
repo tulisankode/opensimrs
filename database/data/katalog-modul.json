@@ -438,12 +438,16 @@
     {
       "kode": "cssd",
       "nama": "CSSD",
-      "kelompok": "Rumah Sakit",
+      "kelompok": "Penunjang",
       "inti": false,
-      "tersedia": false,
-      "deskripsi": "Sterilisasi alat.",
-      "menu": [],
-      "rute": [],
+      "tersedia": true,
+      "deskripsi": "Sterilisasi alat & pelacakan set instrumen: master set, penerimaan, dekontaminasi, load sterilisasi, penyimpanan & distribusi, pemakaian pasien, recall.",
+      "menu": [
+        "CSSD"
+      ],
+      "rute": [
+        "/cssd"
+      ],
       "urutan": 23
     },
     {
