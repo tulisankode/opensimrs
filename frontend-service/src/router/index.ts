@@ -185,6 +185,9 @@ import PenjadwalanRadiologiPage from "@/views/Radiologi/PenjadwalanRadiologiPage
 import MasterRuangRadiologiPage from "@/views/Radiologi/MasterRuangRadiologiPage.vue";
 import MasterTemplateRadiologiPage from "@/views/Radiologi/MasterTemplateRadiologiPage.vue";
 import MasterPetugasRadiologiPage from "@/views/Radiologi/MasterPetugasRadiologiPage.vue";
+import MappingTindakanPacsPage from "@/views/Radiologi/Mapping/MappingTindakanPacsPage.vue";
+import MappingRefPacsPage from "@/views/Radiologi/Mapping/MappingRefPacsPage.vue";
+import MappingRuangPacsPage from "@/views/Radiologi/Mapping/MappingRuangPacsPage.vue";
 
 // NOTE MEDICAL CHECK UP (penunjang-service)
 import McuView from "@/views/MCU/McuView.vue";
@@ -1641,6 +1644,9 @@ const router = createRouter({
       ["/radiologi/datamaster/ruang", "radiologi-datamaster-ruang", MasterRuangRadiologiPage],
       ["/radiologi/datamaster/template", "radiologi-datamaster-template", MasterTemplateRadiologiPage],
       ["/radiologi/datamaster/petugas", "radiologi-datamaster-petugas", MasterPetugasRadiologiPage],
+      ["/radiologi/mapping/tindakan-pacs", "radiologi-mapping-tindakan-pacs", MappingTindakanPacsPage],
+      ["/radiologi/mapping/referensi-pacs", "radiologi-mapping-referensi-pacs", MappingRefPacsPage],
+      ["/radiologi/mapping/ruang-pacs", "radiologi-mapping-ruang-pacs", MappingRuangPacsPage],
       ["/radiologi/laporan/kunjungan", "radiologi-laporan-kunjungan", LaporanKunjunganRadiologiPage],
     ]),
     // !SECTION

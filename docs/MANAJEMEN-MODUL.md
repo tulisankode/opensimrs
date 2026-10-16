@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 7 berstatus Segera), **61 fitur** (13 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 7 berstatus Segera), **62 fitur** (13 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -415,6 +415,12 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `lab_bridging_lis` | Bridging LIS (adamLIS) | Kirim order ke alat/LIS & terima hasil otomatis. | Tersedia | – | – | PM, KP |
 | `lab_expertise` | Expertise Dokter Lab | Interpretasi hasil oleh dokter spesialis patologi klinik. | Tersedia | – | – | PM, KP, PKM |
 | `lab_rujukan` | Lab Rujukan | Pemeriksaan yang dirujuk ke laboratorium luar beserta input hasilnya. | Tersedia | – | – | – |
+
+#### Radiologi (`radiologi`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `rad_bridging_pacs` | Bridging PACS/RIS | Kirim order ke PACS/RIS dan terima hasil, expertise, serta tautan citra. | Tersedia | – | – | KU, RS D, RS C, RS B, RS A |
 
 #### Rawat Inap (`rawat_inap`)
 
