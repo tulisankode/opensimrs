@@ -86,6 +86,10 @@ Langkah berikutnya:
 
 ## 6. Pengembangan lokal tanpa VM
 
+Untuk mencoba OpenClaw sungguhan di mesin pengembang (bukan produksi), installer OpenSIMRS bisa memasangnya: `./install.sh --helpdesk` (Windows: `install.cmd -Helpdesk`). Setelah itu ikuti langkah 3–5 di atas dengan `gateway.bind` ke `127.0.0.1`.
+
+Tanpa OpenClaw sama sekali, pakai Gateway tiruan:
+
 ```bash
 node deploy/helpdesk/gateway-tiruan.mjs     # port 18789, token "token-uji"
 # setting-service/.env: HELPDESK_GATEWAY_URL=http://localhost:18789  HELPDESK_GATEWAY_TOKEN=token-uji

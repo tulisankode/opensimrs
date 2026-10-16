@@ -9,14 +9,18 @@
 #    4. Membuat akun MongoDB "opensimrs".
 #    5. Membuat .env root, .env tiap layanan, dan frontend-service\.env (TIDAK menimpa yang sudah ada).
 #    6. npm run install:all -> npm run db:migrate -> data demo (opsional).
+#    7. Alat AI SIMRS Studio: Claude Code CLI & Codex CLI (npm global). OpenClaw (Helpdesk) hanya dengan -Helpdesk.
 #
 #  Pemakaian (dari folder repo):
 #    .\install.cmd                         (paling mudah; sama dengan perintah di bawah)
-#    powershell -ExecutionPolicy Bypass -File .\install.ps1 [-Cek] [-Ya] [-TanpaDemo] [-Jalankan]
+#    powershell -ExecutionPolicy Bypass -File .\install.ps1 [-Cek] [-Ya] [-TanpaDemo] [-Jalankan] [-TanpaAi] [-Helpdesk]
 #      -Cek        hanya cek dependensi, tidak mengubah apa pun
 #      -Ya         jawab "ya" untuk semua pertanyaan
 #      -TanpaDemo  lewati data demo
 #      -Jalankan   langsung "npm run dev" setelah selesai
+#      -TanpaAi    lewati pemasangan Claude Code CLI & Codex CLI
+#      -Helpdesk   pasang juga OpenClaw (Helpdesk) dengan installer resminya - untuk uji coba; produksi di VM terpisah
+#                  (deploy\helpdesk\README.md)
 #
 #  Sandi superuser PostgreSQL ("postgres"):
 #    - Bila PostgreSQL dipasang oleh skrip ini, sandinya dibuat acak dan ditampilkan SEKALI di akhir.
@@ -31,7 +35,9 @@ param(
   [switch]$Cek,
   [switch]$Ya,
   [switch]$TanpaDemo,
-  [switch]$Jalankan
+  [switch]$Jalankan,
+  [switch]$TanpaAi,
+  [switch]$Helpdesk
 )
 
 # "Continue": di PowerShell 5.1 keluaran stderr program native (mis. NOTICE psql) tidak boleh menghentikan skrip;
@@ -187,6 +193,17 @@ if ($kurang.Count -gt 0) {
   foreach ($c in @("node", "npm", "psql", "mongod", "mongosh")) { if (-not (Ada $c)) { Mati "$c masih belum ditemukan setelah instalasi. Tutup lalu buka lagi PowerShell, kemudian jalankan ulang skrip." } }
 }
 Ok "Semua dependensi tersedia"
+
+# Alat AI (tidak menghalangi instalasi; dipasang di langkah 7).
+function VersiAlat($cmd) {
+  if (-not (Ada $cmd)) { return $null }
+  $v = (& $cmd --version 2>$null | Out-String)
+  if ($v -match '(\d+(\.\d+)+)') { return $Matches[1] } else { return $null }
+}
+foreach ($a in @(@("claude", "Claude Code CLI (agen SIMRS Studio)"), @("codex", "Codex CLI (agen SIMRS Studio, opsional)"), @("openclaw", "OpenClaw (Helpdesk; produksi di VM terpisah)"))) {
+  $v = VersiAlat $a[0]
+  if ($v) { Ok "$($a[1]): $v" } else { Warn "$($a[1]) belum terpasang" }
+}
 if ($Cek) { exit 0 }
 
 # ---------- 2. nyalakan layanan ----------
@@ -404,6 +421,33 @@ else {
   elseif (Tanya "Isi data demo (8 faskes fiktif + akun demo)?") {
     JalankanNpm @("run", "db:demo:seed"); JalankanNpm @("run", "db:demo:master-penunjang")
   }
+}
+
+# ---------- 7. alat AI: agen SIMRS Studio (Claude Code, Codex) & Helpdesk (OpenClaw) ----------
+if ($TanpaAi) { Warn "Alat AI dilewati (-TanpaAi)" }
+else {
+  Judul "Alat AI untuk SIMRS Studio"
+  foreach ($a in @(@("claude", "@anthropic-ai/claude-code", "Claude Code CLI"), @("codex", "@openai/codex", "Codex CLI"))) {
+    if (Ada $a[0]) { Ok "$($a[2]) sudah terpasang ($(VersiAlat $a[0]))" }
+    elseif (Tanya "Pasang $($a[2]) ($($a[1])) untuk agen SIMRS Studio?") {
+      & npm.cmd install -g --no-audit --no-fund $a[1]
+      if ($LASTEXITCODE -eq 0) { Ok "$($a[2]) terpasang" } else { Warn "$($a[2]) gagal dipasang; pasang manual: npm install -g $($a[1])" }
+    }
+  }
+  SegarkanPath
+  Write-Host "    Login akun: SIMRS Studio > Pengaturan & Agen > Hubungkan akun Claude / Hubungkan akun ChatGPT"
+}
+if ($Helpdesk) {
+  Judul "OpenClaw (Helpdesk)"
+  Warn "Untuk produksi, pasang OpenClaw di VM terpisah dari server SIMRS (deploy\helpdesk\README.md). Di mesin ini hanya untuk uji coba."
+  if (Ada "openclaw") { Ok "OpenClaw sudah terpasang ($(VersiAlat 'openclaw'))" }
+  elseif (Tanya "Pasang OpenClaw dengan installer resmi (openclaw.ai/install.ps1; menyiapkan Node 24.16+ sendiri)?") {
+    # Dijalankan di proses PowerShell terpisah agar installer tidak menghentikan skrip ini.
+    & powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://openclaw.ai/install.ps1 | iex"
+    if ($LASTEXITCODE -ne 0) { Warn "Pemasangan OpenClaw gagal; lihat https://docs.openclaw.ai/install" }
+    SegarkanPath
+  }
+  Write-Host "    Lanjutkan: deploy\helpdesk\README.md langkah 3-5 (agen terbatas, sinkron panduan, sambungkan setting-service)"
 }
 
 # ---------- selesai ----------

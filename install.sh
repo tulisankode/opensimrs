@@ -10,6 +10,7 @@
 #    4. Membuat akun MongoDB "opensimrs".
 #    5. Membuat .env root, .env tiap layanan, dan frontend-service/.env (TIDAK menimpa yang sudah ada).
 #    6. npm run install:all → npm run db:migrate → data demo (opsional).
+#    7. Alat AI SIMRS Studio: Claude Code CLI & Codex CLI (npm global). OpenClaw (Helpdesk) hanya dengan --helpdesk.
 #
 #  Pemakaian:
 #    ./install.sh                 instalasi lengkap (interaktif)
@@ -19,6 +20,9 @@
 #    ./install.sh --jalankan      langsung "npm run dev" setelah selesai
 #    ./install.sh --podman        PostgreSQL, MongoDB, Redis dijalankan di kontainer Podman (podman compose);
 #                                 layanan & frontend tetap native. Tidak perlu PostgreSQL/MongoDB/Redis dari Homebrew/apt.
+#    ./install.sh --tanpa-ai      lewati pemasangan Claude Code CLI & Codex CLI
+#    ./install.sh --helpdesk      pasang juga OpenClaw (Helpdesk) dengan installer resminya — untuk uji coba; produksi di
+#                                 VM terpisah (deploy/helpdesk/README.md)
 #
 #  Hanya untuk development lokal. Untuk server/production lihat docs/INSTALLATION_GUIDE.md & docs/LINGKUNGAN.md.
 # =====================================================================================
@@ -27,7 +31,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-HANYA_CEK=0; SEMUA_YA=0; TANPA_DEMO=0; JALANKAN=0; PODMAN=0
+HANYA_CEK=0; SEMUA_YA=0; TANPA_DEMO=0; JALANKAN=0; PODMAN=0; TANPA_AI=0; HELPDESK=0
 for arg in "$@"; do
   case "$arg" in
     --cek) HANYA_CEK=1 ;;
@@ -35,7 +39,9 @@ for arg in "$@"; do
     --tanpa-demo) TANPA_DEMO=1 ;;
     --jalankan) JALANKAN=1 ;;
     --podman) PODMAN=1 ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    --tanpa-ai) TANPA_AI=1 ;;
+    --helpdesk) HELPDESK=1 ;;
+    -h|--help) sed -n '2,28p' "$0"; exit 0 ;;
     *) echo "Opsi tidak dikenal: $arg (lihat ./install.sh --help)"; exit 1 ;;
   esac
 done
@@ -165,6 +171,13 @@ if [ -n "$KURANG" ]; then
   exec bash "$0" "$@"   # ulangi dari awal agar versi dicek ulang
 fi
 ok "Semua dependensi tersedia"
+
+# Alat AI (tidak menghalangi instalasi; dipasang di langkah 7).
+versi_alat() { ada "$1" && "$1" --version 2>/dev/null | grep -Eo '[0-9]+(\.[0-9]+)+' | head -1; }
+for a in "claude|Claude Code CLI (agen SIMRS Studio)" "codex|Codex CLI (agen SIMRS Studio, opsional)" "openclaw|OpenClaw (Helpdesk; produksi di VM terpisah)"; do
+  b="${a%%|*}"; nama="${a#*|}"
+  if v="$(versi_alat "$b")" && [ -n "$v" ]; then ok "$nama: $v"; else warn "$nama belum terpasang"; fi
+done
 [ "$HANYA_CEK" = 1 ] && exit 0
 
 # ---------- nilai rahasia: pakai ulang dari .env bila ada ----------
@@ -436,6 +449,37 @@ else
     npm run db:demo:seed
     npm run db:demo:master-penunjang
   fi
+fi
+
+# ---------- 7. alat AI: agen SIMRS Studio (Claude Code, Codex) & Helpdesk (OpenClaw) ----------
+npm_global() { # npm install -g; pakai sudo bila prefix global tidak bisa ditulis (mis. Node dari apt/NodeSource)
+  local p; p="$(npm prefix -g)"
+  if [ -w "$p/lib" ] || { [ ! -d "$p/lib" ] && [ -w "$p" ]; }; then npm install -g --no-audit --no-fund "$@"
+  else sudo npm install -g --no-audit --no-fund "$@"; fi
+}
+if [ "$TANPA_AI" = 1 ]; then
+  warn "Alat AI dilewati (--tanpa-ai)"
+else
+  judul "Alat AI untuk SIMRS Studio"
+  for a in "claude|@anthropic-ai/claude-code|Claude Code CLI" "codex|@openai/codex|Codex CLI"; do
+    IFS='|' read -r b paket nama <<<"$a"
+    if ada "$b"; then
+      ok "$nama sudah terpasang ($("$b" --version 2>/dev/null | head -1))"
+    elif tanya "Pasang $nama ($paket) untuk agen SIMRS Studio?"; then
+      if npm_global "$paket"; then ok "$nama terpasang"; else warn "$nama gagal dipasang; pasang manual: npm install -g $paket"; fi
+    fi
+  done
+  echo "    Login akun: SIMRS Studio › Pengaturan & Agen › Hubungkan akun Claude / Hubungkan akun ChatGPT"
+fi
+if [ "$HELPDESK" = 1 ]; then
+  judul "OpenClaw (Helpdesk)"
+  warn "Untuk produksi, pasang OpenClaw di VM terpisah dari server SIMRS (deploy/helpdesk/README.md). Di mesin ini hanya untuk uji coba."
+  if ada openclaw; then
+    ok "OpenClaw sudah terpasang ($(openclaw --version 2>/dev/null | head -1))"
+  elif tanya "Pasang OpenClaw dengan installer resmi (openclaw.ai/install.sh; menyiapkan Node 24.16+ sendiri)?"; then
+    curl -fsSL https://openclaw.ai/install.sh | bash || warn "Pemasangan OpenClaw gagal; lihat https://docs.openclaw.ai/install"
+  fi
+  echo "    Lanjutkan: deploy/helpdesk/README.md langkah 3–5 (agen terbatas, sinkron panduan, sambungkan setting-service)"
 fi
 
 # ---------- selesai ----------

@@ -36,6 +36,7 @@ Studio dijalankan di **mesin pengembang atau staging**, bukan di server produksi
 
 1. **Claude Code CLI** terpasang dan sudah login dengan langganan Anda:
    ```bash
+   # sudah ditawarkan ./install.sh / install.cmd (lewati dengan --tanpa-ai / -TanpaAi); manual:
    npm install -g @anthropic-ai/claude-code   # atau installer resmi Claude Code
    claude auth login                           # membuka peramban, pilih akun Claude Pro/Max
    claude auth status --text                   # pastikan sudah masuk
@@ -165,7 +166,7 @@ Buka **SIMRS Studio › Aturan & Pengetahuan** (yang mengubah: superadmin).
 ## 5. Agen selain Claude Code
 
 - **Codex (langganan ChatGPT Plus/Pro/Team)**, agen CLI dari OpenAI:
-  1. Pasang di mesin Studio: `npm install -g @openai/codex`. Bisa juga isi `STUDIO_CODEX_BIN` di `studio-service/.env`.
+  1. Pasang di mesin Studio: `npm install -g @openai/codex` (sudah ditawarkan `./install.sh` / `install.cmd`). Bisa juga isi `STUDIO_CODEX_BIN` di `studio-service/.env`.
   2. Di **Pengaturan & Agen › Codex**, klik **Hubungkan akun ChatGPT**. Studio menampilkan kode sekali pakai dan membuka `auth.openai.com/codex/device` di tab baru.
   3. Masuk dengan akun ChatGPT, misalnya lewat *Continue with Google*, lalu masukkan kodenya. Dialog tertutup sendiri setelah berhasil.
   4. Pilih **Codex (langganan ChatGPT)** di tabel konektor per tahap, misalnya hanya untuk tahap Coding.
