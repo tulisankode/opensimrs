@@ -46,4 +46,29 @@ export default class BantuanController {
       nextFunction(error);
     }
   }
+
+  static async ambilKonfigurasi(request, response, nextFunction) {
+    try {
+      response.status(200).json(successResponse("Konfigurasi Helpdesk", await BantuanService.ambilKonfigurasi(request.author)));
+    } catch (error) {
+      nextFunction(error);
+    }
+  }
+
+  static async simpanKonfigurasi(request, response, nextFunction) {
+    try {
+      response.status(200).json(successResponse("Konfigurasi Helpdesk disimpan", await BantuanService.simpanKonfigurasi(request.author, request.body)));
+    } catch (error) {
+      nextFunction(error);
+    }
+  }
+
+  static async ujiKonfigurasi(request, response, nextFunction) {
+    try {
+      const hasil = await BantuanService.ujiKonfigurasi(request.author, request.body);
+      response.status(200).json(successResponse(hasil.pesan, hasil));
+    } catch (error) {
+      nextFunction(error);
+    }
+  }
 }

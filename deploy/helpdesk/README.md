@@ -70,7 +70,14 @@ Jalankan ulang setiap kali panduan pengguna diperbarui, misalnya setelah rilis. 
 
 ## 5. Hubungkan OpenSIMRS
 
-Di server SIMRS, `setting-service/.env`:
+Login sebagai **superadmin**, buka **Setting › Konfigurasi Integrasi › Helpdesk AI (OpenClaw) › Atur**, lalu:
+1. Isi **URL Gateway** (`http://<alamat-privat-vm>:18789`), **Token Gateway** (dari langkah 3), dan **ID agen** (`helpdesk-opensimrs`). Atur juga batas pertanyaan per jam dan batas waktu jawaban.
+2. Klik **Uji koneksi**. OpenSIMRS memeriksa token dan memastikan agen terdaftar lewat `/v1/models`, tanpa memakai kuota model.
+3. Klik **Simpan**. Perubahan langsung berlaku tanpa menjalankan ulang layanan.
+
+Token disimpan **terenkripsi** di database (`enc:v1`, kunci dari `HELPDESK_KUNCI_RAHASIA` atau `SECRET_KEY`) dan tidak pernah ditampilkan utuh. Switch **Helpdesk** di dialog itu mematikan tombol Bantuan untuk seluruh instalasi.
+
+Alternatif tanpa antarmuka, misalnya untuk otomasi deploy, adalah `setting-service/.env`. Nilai ini hanya dipakai selama pengaturan di halaman belum disimpan:
 
 ```env
 HELPDESK_GATEWAY_URL=http://<alamat-privat-vm>:18789
@@ -80,7 +87,7 @@ HELPDESK_GATEWAY_TOKEN=<token dari langkah 3>
 ```
 
 Langkah berikutnya:
-1. Jalankan ulang setting-service, lalu uji dari server SIMRS: `HELPDESK_GATEWAY_URL=… HELPDESK_GATEWAY_TOKEN=… ./deploy/helpdesk/uji-gateway.sh`.
+1. Untuk menguji langsung dari server SIMRS tanpa OpenSIMRS: `HELPDESK_GATEWAY_URL=… HELPDESK_GATEWAY_TOKEN=… ./deploy/helpdesk/uji-gateway.sh`.
 2. Di OpenSIMRS, fitur **Asisten Bantuan (Helpdesk AI)** (modul Dashboard) aktif bawaan untuk semua segmen. Superadmin bisa mematikannya per faskes di **Setting › Manajemen Modul**.
 3. Tombol **Bantuan** (ikon headset, di tempat ikon lonceng) aktif di header, dengan titik hijau bila asisten siap. Pertanyaan dan jawaban (sudah disaring) tersimpan 90 hari di tabel `bantuan_log`. Ringkasannya untuk superadmin tersedia di `GET /api/v3/setting/bantuan/ringkasan`.
 
