@@ -17,6 +17,7 @@ import { IZIN_KERJA_TAHAP, PERAN, gerbangTahap, statusGerbang } from "./gerbang.
 import { isSuperadmin } from "./auth.js";
 import { punya, pastikan } from "./izin.js";
 import * as gitremote from "./gitremote.js";
+import { aktifkan, nonaktifkan } from "./aktivasi.js";
 
 export const TAHAP = ["permintaan", "usecase", "prd", "desain", "coding", "qa", "rilis"];
 const TAHAP_DOKUMEN = new Set(["permintaan", "usecase", "prd", "desain", "qa", "rilis"]);
@@ -217,6 +218,7 @@ export const detailItem = async (uuid, req) => {
     modeKerja: item.worktree ? "worktree" : nilai.mode_kerja,
     modeRilis: nilai.mode_rilis ?? "lokal",
     branchLokal: await branchLokal(nilai, item),
+    aplikasi: await statusAplikasi(await branchLokal(nilai, item)).catch(() => null),
     estimasiCoding: item.tahap === "coding" ? await estimasiBiaya("coding", "coding") : null,
     branchSekarang: item.worktree ? item.branch : await branchSekarang().catch(() => null),
   };
@@ -928,7 +930,52 @@ const jalankanMigrasi = async (cwd, item, oleh) => {
   return r.ok;
 };
 
-export const terapkanLokal = async (item, oleh) => {
+// Faskes tujuan aktivasi: faskes yang sedang dipakai penerap (bawaan) atau semua faskes.
+const faskesAktivasi = (nilai, faskesUuid) => (nilai.aktivasi_faskes === "semua" ? "semua" : [faskesUuid].filter(Boolean));
+// Titik awal item: induk commit pertamanya (pembanding katalog sebelum item dikerjakan).
+const awalItem = (item) => (item.riwayat_commit?.[0]?.sha ? `${item.riwayat_commit[0].sha}^1` : null);
+
+const ringkasAktivasi = (a) => {
+  if (!a) return "";
+  const nama = [...a.modul.map((m) => `modul ${m.nama}`), ...a.fitur.map((f) => `fitur ${f.nama}`)].join(", ");
+  const dinyalakan = new Set(a.override.map((o) => o.faskes)).size;
+  const izin = a.izin.length;
+  const lewati = a.lewati.length ? ` Dilewati: ${a.lewati.map((l) => `${l.kode} (${l.alasan})`).join("; ")}.` : "";
+  return ` Aktivasi: ${nama || "-"} ${dinyalakan ? `dinyalakan di ${dinyalakan} faskes` : "sudah aktif bawaan segmen"}` +
+    `${izin ? `; izin modul diberikan ke ${izin} peran/pengguna` : ""}. Menu diperbarui tanpa login ulang.${lewati}`;
+};
+
+// Aplikasi pengembang = layanan yang dijalankan npm run dev dari repo utama; perubahan hanya terlihat bila repo utama
+// berada di branch lokal tujuan penerapan.
+export const statusAplikasi = async (target = null) => {
+  const { nilai } = await bacaSemua();
+  const tujuan = target ?? (await branchLokal(nilai));
+  const branch = await branchSekarang().catch(() => null);
+  return { branch, branchLokal: tujuan, sama: branch === tujuan, lingkungan: config.lingkungan };
+};
+
+// Pindahkan repo utama (aplikasi pengembang) ke branch lokal. Perubahan yang belum di-commit ikut terbawa bila tidak bentrok.
+export const pindahkanAplikasi = async (oleh) => {
+  pastikanBukanProduksi();
+  const s = await statusAplikasi();
+  if (s.sama) return s;
+  if (/\/STD-\d+/.test(s.branchLokal)) throw permintaanSalah("Branch lokal tidak boleh branch item");
+  if (!(await git(["rev-parse", "--verify", "--quiet", `refs/heads/${s.branchLokal}`], { izinkanGagal: true })).ok) throw permintaanSalah(`Branch lokal ${s.branchLokal} tidak ditemukan`);
+  if ((await query(`SELECT 1 FROM studio_tugas WHERE status IN ('antri', 'jalan') LIMIT 1`)).length) throw new Galat(409, "Masih ada tugas agen yang berjalan");
+  // Branch yang sedang terbuka di worktree lain tidak bisa dibuka di repo utama.
+  const { keluaran: daftar } = await git(["worktree", "list", "--porcelain"], { izinkanGagal: true });
+  const lain = daftar.split(/\n\n+/).slice(1).find((b) => b.includes(`branch refs/heads/${s.branchLokal}`))?.match(/^worktree (.+)$/m)?.[1];
+  if (lain) throw new Galat(409, `Branch ${s.branchLokal} sedang terbuka di worktree ${lain}. Tutup dulu worktree itu (git worktree remove "${lain}"), lalu ulangi.`);
+  try {
+    await git(["switch", s.branchLokal]);
+  } catch (e) {
+    throw new Galat(409, `Gagal berpindah ke branch ${s.branchLokal}: ${e.message.replace(/\.$/, "")}. Commit/stash perubahan yang bentrok dulu.`);
+  }
+  await audit(oleh, `Memindahkan aplikasi pengembang ke branch ${s.branchLokal}`, null, { dari: s.branch });
+  return statusAplikasi();
+};
+
+export const terapkanLokal = async (item, oleh, faskesUuid = null) => {
   pastikanBukanProduksi();
   if (!["rilis", "selesai"].includes(item.tahap)) throw permintaanSalah("Penerapan lokal dilakukan pada tahap rilis");
   if (!item.commit_sha) throw permintaanSalah("Commit perubahan dulu sebelum diterapkan");
@@ -941,20 +988,55 @@ export const terapkanLokal = async (item, oleh) => {
   if (!(await git(["rev-parse", "--verify", "--quiet", `refs/heads/${target}`], { izinkanGagal: true })).ok) throw permintaanSalah(`Branch lokal ${target} tidak ditemukan`);
   const adaMigrasi = (item.riwayat_commit ?? []).some((c) => (c.berkas ?? []).some((p) => p.startsWith("database/migrations/")));
   let migrasi = null;
+  let aktivasi = item.sha_batal ? null : item.aktivasi ?? null;
+  let catatanAktivasi = "";
   const sha = await diBranchTarget(item, target, async (cwd, utama) => {
     const hasil = await gabung(cwd, ["merge", "--no-ff", "-m", `Terapkan SIMRS Studio ${nomor(item)}: ${item.judul}`, item.branch], "Penerapan");
     if (adaMigrasi && nilai.migrasi_otomatis) migrasi = utama ? await jalankanMigrasi(cwd, item, oleh) : false;
+    if (nilai.aktivasi_otomatis && migrasi !== false) {
+      if (config.lingkungan !== "development") {
+        catatanAktivasi = " Modul/fitur baru belum dinyalakan (bukan lingkungan development): klik Aktifkan di aplikasi.";
+      } else {
+        try {
+          aktivasi = await aktifkan({ sha: hasil, dari: awalItem(item), cwd, faskes: faskesAktivasi(nilai, faskesUuid), oleh, alasan: `SIMRS Studio ${nomor(item)}: ${item.judul}`, sebelumnya: aktivasi });
+          catatanAktivasi = ringkasAktivasi(aktivasi);
+        } catch (e) {
+          catatanAktivasi = ` Aktivasi modul GAGAL (${e.message.replace(/\.$/, "")}): nyalakan manual di Setting › Manajemen Modul.`;
+        }
+      }
+    }
     return hasil;
   });
-  await audit(oleh, `Menerapkan ke branch lokal ${target}`, item.uuid, { sha });
+  const aplikasi = await statusAplikasi(target);
+  await audit(oleh, `Menerapkan ke branch lokal ${target}`, item.uuid, { sha, aktivasi: aktivasi ? { modul: aktivasi.modul.map((m) => m.kode), fitur: aktivasi.fitur.map((f) => f.kode) } : null });
   await pesan(
     item, item.tahap, "sistem",
     `Diterapkan ke branch lokal ${target} (${sha.slice(0, 7)}).` +
       (adaMigrasi && migrasi === false && nilai.migrasi_otomatis ? " Ada migrasi baru: jalankan npm run db:migrate setelah aplikasi memakai branch itu." : "") +
-      " Layanan dengan mode dev memuat ulang otomatis; di server, jalankan ulang layanan yang berubah.",
+      catatanAktivasi +
+      (aplikasi.sama
+        ? " Aplikasi pengembang memakai branch ini: frontend & layanan (nodemon) memuat ulang otomatis."
+        : ` Aplikasi pengembang masih di branch ${aplikasi.branch}: klik "Pindahkan aplikasi ke ${target}" agar perubahan terlihat.`),
     oleh,
   );
-  return ubah("studio_item", item.uuid, { branch_lokal: target, sha_lokal: sha, diterapkan_pada: sekarang(), sha_batal: null });
+  return ubah("studio_item", item.uuid, { branch_lokal: target, sha_lokal: sha, diterapkan_pada: sekarang(), sha_batal: null, aktivasi });
+};
+
+// Aktifkan manual (lingkungan staging, atau aktivasi otomatis dimatikan / gagal).
+export const aktifkanItem = async (item, oleh, faskesUuid = null) => {
+  pastikanBukanProduksi();
+  if (!item.sha_lokal || item.sha_batal) throw permintaanSalah("Item belum diterapkan ke lokal");
+  const { nilai } = await bacaSemua();
+  // Definisi izin dibaca dari working tree yang sedang berada di branch lokal (repo utama atau worktree lain).
+  let cwd = config.repoDir;
+  if ((await branchSekarang().catch(() => null)) !== item.branch_lokal) {
+    const { keluaran: daftar } = await git(["worktree", "list", "--porcelain"], { izinkanGagal: true });
+    cwd = daftar.split(/\n\n+/).find((b) => b.includes(`branch refs/heads/${item.branch_lokal}`))?.match(/^worktree (.+)$/m)?.[1] ?? cwd;
+  }
+  const aktivasi = await aktifkan({ sha: item.sha_lokal, dari: awalItem(item), cwd, faskes: faskesAktivasi(nilai, faskesUuid), oleh, alasan: `SIMRS Studio ${nomor(item)}: ${item.judul}`, sebelumnya: item.aktivasi });
+  await audit(oleh, "Mengaktifkan modul/fitur hasil penerapan", item.uuid, { modul: aktivasi?.modul.map((m) => m.kode), fitur: aktivasi?.fitur.map((f) => f.kode) });
+  await pesan(item, item.tahap, "sistem", aktivasi ? ringkasAktivasi(aktivasi).trim() : "Tidak ada modul/fitur baru di katalog untuk dinyalakan.", oleh);
+  return ubah("studio_item", item.uuid, { aktivasi });
 };
 
 export const batalkanPenerapan = async (item, alasan, oleh) => {
@@ -964,9 +1046,18 @@ export const batalkanPenerapan = async (item, alasan, oleh) => {
   const sha = await diBranchTarget(item, item.branch_lokal, (cwd) =>
     gabung(cwd, ["revert", "-m", "1", "--no-edit", item.sha_lokal], "Pembatalan penerapan"),
   );
+  let catatan = "";
+  if (item.aktivasi) {
+    try {
+      await nonaktifkan(item.aktivasi, { oleh, alasan: `Batal SIMRS Studio ${nomor(item)}: ${alasan}` });
+      catatan = " Modul/fitur dan izin yang dinyalakan saat penerapan dikembalikan.";
+    } catch (e) {
+      catatan = ` Aktivasi modul GAGAL dibalik (${e.message.replace(/\.$/, "")}): matikan manual di Setting › Manajemen Modul.`;
+    }
+  }
   await audit(oleh, `Membatalkan penerapan di ${item.branch_lokal}`, item.uuid, { alasan, sha });
-  await pesan(item, item.tahap, "sistem", `Penerapan dibatalkan (revert ${sha.slice(0, 7)} di ${item.branch_lokal}): ${alasan}. Migrasi database TIDAK dibalik otomatis.`, oleh);
-  return ubah("studio_item", item.uuid, { sha_batal: sha, diterapkan_pada: null });
+  await pesan(item, item.tahap, "sistem", `Penerapan dibatalkan (revert ${sha.slice(0, 7)} di ${item.branch_lokal}): ${alasan}. Migrasi database TIDAK dibalik otomatis.${catatan}`, oleh);
+  return ubah("studio_item", item.uuid, { sha_batal: sha, diterapkan_pada: null, aktivasi: null });
 };
 
 // Izin aksi kerja per tahap (diskusi, AI tulis ulang, sunting).
