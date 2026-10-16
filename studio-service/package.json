@@ -1,0 +1,18 @@
+{
+  "name": "opensimrs-studio",
+  "version": "1.0.0",
+  "description": "OpenSIMRS — SIMRS Studio: pengembangan berbasis AI (permintaan, use case, PRD, coding, QA, rilis)",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1"
+  }
+}

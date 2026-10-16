@@ -256,6 +256,19 @@ import TestComponentFahmi from "@/views/TestComponentFahmi.vue";
 import ForbiddenPage from "@/views/Error/ForbiddenPage.vue";
 import ManajemenModulPage from "@/views/SettingPage/Template/ManajemenModul/ManajemenModulPage.vue";
 import { ruteDiizinkanModul } from "@/stores/modulFaskes";
+import { studioAktif } from "@/stores/simrsStudio";
+import SimrsStudioView from "@/views/SimrsStudio/SimrsStudioView.vue";
+import BerandaStudio from "@/views/SimrsStudio/Template/BerandaStudio.vue";
+import PermintaanBaruStudio from "@/views/SimrsStudio/Template/PermintaanBaru.vue";
+import ItemStudio from "@/views/SimrsStudio/Template/ItemStudio.vue";
+import PengaturanStudio from "@/views/SimrsStudio/Template/PengaturanStudio.vue";
+import AuditStudio from "@/views/SimrsStudio/Template/AuditStudio.vue";
+import EkstensiStudio from "@/views/SimrsStudio/Template/EkstensiStudio.vue";
+import AturanStudio from "@/views/SimrsStudio/Template/AturanStudio.vue";
+import ServerDeploy from "@/views/SimrsStudio/Template/ServerDeploy.vue";
+import EkstensiView from "@/views/Ekstensi/EkstensiView.vue";
+import HalamanEkstensi from "@/views/Ekstensi/HalamanEkstensi.vue";
+import KelolaEkstensiPage from "@/views/SettingPage/Template/Ekstensi/KelolaEkstensiPage.vue";
 import {
   canAccessPermission,
   canShowStubFeatures,
@@ -422,6 +435,24 @@ const router = createRouter({
       meta: { layout: SidebarLayout, page: SystemPage, requiresAuth: true },
       component: SettingView,
     },
+    // !SECTION
+
+    // SECTION Router Ekstensi tanpa kode (dirakit di SIMRS Studio, dijalankan laporan-service; akses dicek backend per ekstensi)
+    { path: "/ekstensi", name: "ekstensi", meta: { layout: SidebarLayout, requiresAuth: true }, component: EkstensiView },
+    { path: "/ekstensi/:kode", name: "ekstensi-halaman", meta: { layout: SidebarLayout, page: HalamanEkstensi, requiresAuth: true }, component: EkstensiView },
+    { path: "/setting/ekstensi", name: "setting-ekstensi", meta: { layout: SidebarLayout, page: KelolaEkstensiPage, requiresAuth: true }, component: SettingView },
+    // !SECTION
+
+    // SECTION Router SIMRS Studio (mode pengembang; hanya bila diaktifkan superadmin di Setting › System)
+    { path: "/studio", name: "studio", redirect: "/studio/beranda" },
+    { path: "/studio/beranda", name: "studio-beranda", meta: { layout: SidebarLayout, page: BerandaStudio, requiresAuth: true, studio: true }, component: SimrsStudioView },
+    { path: "/studio/permintaan-baru", name: "studio-permintaan-baru", meta: { layout: SidebarLayout, page: PermintaanBaruStudio, requiresAuth: true, studio: true }, component: SimrsStudioView },
+    { path: "/studio/item/:uuid", name: "studio-item", meta: { layout: SidebarLayout, page: ItemStudio, requiresAuth: true, studio: true }, component: SimrsStudioView },
+    { path: "/studio/pengaturan", name: "studio-pengaturan", meta: { layout: SidebarLayout, page: PengaturanStudio, requiresAuth: true, studio: true }, component: SimrsStudioView },
+    { path: "/studio/audit", name: "studio-audit", meta: { layout: SidebarLayout, page: AuditStudio, requiresAuth: true, studio: true }, component: SimrsStudioView },
+    { path: "/studio/ekstensi", name: "studio-ekstensi", meta: { layout: SidebarLayout, page: EkstensiStudio, requiresAuth: true, studio: true }, component: SimrsStudioView },
+    { path: "/studio/aturan", name: "studio-aturan", meta: { layout: SidebarLayout, page: AturanStudio, requiresAuth: true, studio: true }, component: SimrsStudioView },
+    { path: "/studio/server", name: "studio-server", meta: { layout: SidebarLayout, page: ServerDeploy, requiresAuth: true, studio: true }, component: SimrsStudioView },
     // !SECTION
 
     // SECTION Router Datamaster
@@ -1928,6 +1959,9 @@ router.beforeEach((to, from, next) => {
         path: "/403",
         query: { redirect: to.fullPath },
       });
+    } else if (to.matched.some((record) => record.meta.studio) && !studioAktif()) {
+      // SIMRS Studio tertutup bila Mode Pengembang belum diaktifkan superadmin.
+      next({ path: "/403", query: { redirect: to.fullPath, modul: "SIMRS Studio" } });
     } else if (!ruteDiizinkanModul(to.path).boleh) {
       // Halaman milik modul yang tidak aktif untuk faskes ini (Setting › Manajemen Modul).
       next({

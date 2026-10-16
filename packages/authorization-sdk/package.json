@@ -1,6 +1,6 @@
 {
   "name": "@opensimrs/authorization-sdk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Middleware otorisasi JWT (HS256) + Redis untuk layanan OpenSIMRS",
   "type": "module",
@@ -17,6 +17,9 @@
     },
     "./sdkException": {
       "import": "./exceptions/authorization-sdk-exception.js"
+    },
+    "./peran": {
+      "import": "./utils/peran.js"
     }
   },
   "scripts": {},

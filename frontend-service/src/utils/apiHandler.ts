@@ -18,6 +18,8 @@ import {
   baseInstanceSatuSehat,
   baseInstanceBpjs,
   baseInstancePenunjang,
+  baseInstanceStudio,
+  baseInstanceMentah,
 } from "./Api";
 import { app } from "@/main";
 import { useAuthStore } from "@/stores/auth";
@@ -1051,6 +1053,58 @@ const apiBpjsPost = (url: string, data: object = {}) => apiBpjsKirim("post", url
 const apiBpjsPut = (url: string, data: object = {}) => apiBpjsKirim("put", url, data);
 const apiBpjsDelete = (url: string) => apiBpjsKirim("delete", url);
 
+
+
+// EKSTENSI tanpa kode — tanpa konversi kunci. layanan: "laporan" (runtime, VITE_BASE_DASHBOARD) atau "studio".
+// Galat ditampilkan errorApiHandler dan fungsi mengembalikan undefined (kecuali diam).
+const apiEkstensi = async (layanan: "laporan" | "studio", metode: "get" | "post" | "put" | "delete", url: string, data: object = {}, diam = false) => {
+  const dasar = layanan === "studio" ? import.meta.env.VITE_BASE_STUDIO || "http://localhost:8090/api/v3/studio" : import.meta.env.VITE_BASE_DASHBOARD;
+  const host = cekHost(dasar, url);
+  // cekHost mengembalikan path relatif di localhost (mengandalkan baseURL instance) — instance mentah tanpa baseURL.
+  const lengkap = /^https?:/.test(host) ? host : `${String(dasar).replace(/\/$/, "")}${url}`;
+  try {
+    const response = metode === "get" || metode === "delete" ? await baseInstanceMentah[metode](lengkap) : await baseInstanceMentah[metode](lengkap, data);
+    if (metode !== "get" && !diam && response.data?.message) {
+      app.config.globalProperties.$toast.add({ severity: "success", summary: response.data.message, life: 3000 });
+    }
+    return response.data;
+  } catch (error) {
+    if (diam) return undefined;
+    try {
+      errorApiHandler(error);
+    } catch {
+      /* sudah ditampilkan */
+    }
+    return undefined;
+  }
+};
+
+// SIMRS STUDIO (studio-service). Path relatif terhadap VITE_BASE_STUDIO, mis. apiStudioGet("/item").
+// Tulis menampilkan toast sukses (kecuali diam); galat ditampilkan errorApiHandler dan fungsi mengembalikan undefined.
+const apiStudioKirim = async (metode: "get" | "post" | "put" | "delete", url: string, data: object = {}, diam = false) => {
+  url = cekHost(import.meta.env.VITE_BASE_STUDIO || "http://localhost:8090/api/v3/studio", url);
+  try {
+    const response = metode === "get" || metode === "delete"
+      ? await baseInstanceStudio[metode](url)
+      : await baseInstanceStudio[metode](url, data);
+    if (metode !== "get" && !diam && response.data?.message) {
+      app.config.globalProperties.$toast.add({ severity: "success", summary: response.data.message, life: 3000 });
+    }
+    return response.data;
+  } catch (error) {
+    if (diam) return undefined;
+    try {
+      errorApiHandler(error);
+    } catch {
+      /* sudah ditampilkan */
+    }
+    return undefined;
+  }
+};
+const apiStudioGet = (url: string, diam = false) => apiStudioKirim("get", url, {}, diam);
+const apiStudioPost = (url: string, data: object = {}, diam = false) => apiStudioKirim("post", url, data, diam);
+const apiStudioPut = (url: string, data: object = {}, diam = false) => apiStudioKirim("put", url, data, diam);
+
 // PENUNJANG (penunjang-service: /fisioterapi, /radiologi, /mcu). Path relatif terhadap VITE_BASE_PENUNJANG,
 // mis. apiPenunjangGet("/radiologi/order?page=1"). Tulis (POST/PUT/DELETE) menampilkan toast sukses; galat
 // ditampilkan errorApiHandler dan fungsi mengembalikan undefined.
@@ -1089,6 +1143,10 @@ const urlPublikAntrian = (path: string) => {
 };
 export {
   apiPenunjangGet,
+  apiStudioGet,
+  apiEkstensi,
+  apiStudioPost,
+  apiStudioPut,
   apiPenunjangPost,
   apiPenunjangPut,
   apiPenunjangDelete,

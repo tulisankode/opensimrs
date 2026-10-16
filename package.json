@@ -9,7 +9,7 @@
     "url": "https://github.com/tulisankode/opensimrs.git"
   },
   "scripts": {
-    "dev": "concurrently -n AUTH,ADMISI,ANTRIAN,DATAMASTER,FARMASI,IGD,INVENTORY,LAB,LAPORAN,PAYMENT,RAWATINAP,RAWATJALAN,REKAMEDIS,SETTING,STOKFARMASI,PENUNJANG,SATUSEHAT,BPJS,FE \"npm run dev:auth\" \"npm run dev:admisi\" \"npm run dev:antrian\" \"npm run dev:datamaster\" \"npm run dev:farmasi\" \"npm run dev:igd\" \"npm run dev:inventory\" \"npm run dev:lab\" \"npm run dev:laporan\" \"npm run dev:payment\" \"npm run dev:rawat-inap\" \"npm run dev:rawat-jalan\" \"npm run dev:rekamedis\" \"npm run dev:setting\" \"npm run dev:stok-farmasi\" \"npm run dev:penunjang\" \"npm run dev:satusehat\" \"npm run dev:bpjs\" \"npm run dev:frontend\"",
+    "dev": "concurrently -n AUTH,ADMISI,ANTRIAN,DATAMASTER,FARMASI,IGD,INVENTORY,LAB,LAPORAN,PAYMENT,RAWATINAP,RAWATJALAN,REKAMEDIS,SETTING,STOKFARMASI,PENUNJANG,SATUSEHAT,BPJS,STUDIO,FE \"npm run dev:auth\" \"npm run dev:admisi\" \"npm run dev:antrian\" \"npm run dev:datamaster\" \"npm run dev:farmasi\" \"npm run dev:igd\" \"npm run dev:inventory\" \"npm run dev:lab\" \"npm run dev:laporan\" \"npm run dev:payment\" \"npm run dev:rawat-inap\" \"npm run dev:rawat-jalan\" \"npm run dev:rekamedis\" \"npm run dev:setting\" \"npm run dev:stok-farmasi\" \"npm run dev:penunjang\" \"npm run dev:satusehat\" \"npm run dev:bpjs\" \"npm run dev:studio\" \"npm run dev:frontend\"",
     "dev:auth": "npm --prefix auth-service run dev",
     "dev:admisi": "npm --prefix admisi-service run dev",
     "dev:antrian": "npm --prefix antrian-service run dev",
@@ -26,12 +26,13 @@
     "dev:setting": "npm --prefix setting-service run dev",
     "dev:stok-farmasi": "npm --prefix stok-farmasi-service run dev",
     "dev:penunjang": "npm --prefix penunjang-service run dev",
+    "dev:studio": "npm --prefix studio-service run dev",
     "dev:satusehat": "npm --prefix satusehat-service run dev",
     "dev:bpjs": "npm --prefix bpjs-service run dev",
     "dev:frontend": "npm --prefix frontend-service run dev",
     "dev:core": "concurrently -n AUTH,DATAMASTER,ADMISI,FE \"npm run dev:auth\" \"npm run dev:datamaster\" \"npm run dev:admisi\" \"npm run dev:frontend\"",
     "dev:local": "npm run infra:up && npm run dev:core",
-    "install:all": "npm install && npm --prefix auth-service install && npm --prefix admisi-service install && npm --prefix antrian-service install && npm --prefix datamaster-service install && npm --prefix farmasi-service install && npm --prefix igd-service install && npm --prefix inventory-service install && npm --prefix lab-service install && npm --prefix laporan-service install && npm --prefix payment-service install && npm --prefix rawat-inap-service install && npm --prefix rawat-jalan-service install && npm --prefix rekamedis-service install && npm --prefix setting-service install && npm --prefix stok-farmasi-service install && npm --prefix penunjang-service install && npm --prefix satusehat-service install && npm --prefix bpjs-service install && npm --prefix frontend-service install",
+    "install:all": "npm install && npm --prefix auth-service install && npm --prefix admisi-service install && npm --prefix antrian-service install && npm --prefix datamaster-service install && npm --prefix farmasi-service install && npm --prefix igd-service install && npm --prefix inventory-service install && npm --prefix lab-service install && npm --prefix laporan-service install && npm --prefix payment-service install && npm --prefix rawat-inap-service install && npm --prefix rawat-jalan-service install && npm --prefix rekamedis-service install && npm --prefix setting-service install && npm --prefix stok-farmasi-service install && npm --prefix penunjang-service install && npm --prefix studio-service install && npm --prefix satusehat-service install && npm --prefix bpjs-service install && npm --prefix frontend-service install",
     "sdk:refresh": "node scripts/refresh-sdk.mjs",
     "infra:up": "docker compose up -d db mongodb redis",
     "infra:down": "docker compose stop db mongodb redis",

@@ -70,6 +70,7 @@ VITE_BASE_STOK=$API/api/v3
 VITE_BASE_SATUSEHAT=$API/api/v3/satusehat
 VITE_BASE_BPJS=$API/api/v3/bpjs
 VITE_BASE_PENUNJANG=$API/api/v3/penunjang
+VITE_BASE_STUDIO=$API/api/v3/studio
 ENV
 
 echo "==> Simpan image saat ini sebagai :previous (untuk rollback)"
