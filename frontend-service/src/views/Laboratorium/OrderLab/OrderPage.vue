@@ -705,6 +705,15 @@ const totalTagihanLab = computed(() => {
                 />
                 <CustomChip v-if="slotProps.data.isMcu" :showCheckedIcon="false" label="MCU" bgColor="bg-warning-50" textColor="text-warning-300" borderColor="border-warning-300" customClass="h-5 pr-[5px] mr-[5px]" />
                 <CustomChip
+                  v-if="slotProps.data.observationItems?.some((i: any) => i.dirujuk)"
+                  :showCheckedIcon="false"
+                  :label="`Rujukan (${slotProps.data.observationItems.filter((i: any) => i.dirujuk).length})`"
+                  bgColor="bg-opensimrs-50"
+                  textColor="text-opensimrs-300"
+                  borderColor="border-opensimrs-300"
+                  customClass="h-5 pr-[5px] mr-[5px]"
+                />
+                <CustomChip
                   :showCheckedIcon="false"
                   :label="slotProps.data.lokasi?.name"
                   customClass="h-5 pr-[5px] mr-[5px]"

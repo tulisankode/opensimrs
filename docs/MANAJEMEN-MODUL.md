@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 10 berstatus Segera), **53 fitur** (14 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 10 berstatus Segera), **53 fitur** (13 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -408,7 +408,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `rme_penunjang` | Order Penunjang dari RME | Tab Penunjang di RME: order laboratorium (dan fisioterapi). | Tersedia | – | – | – |
 | `lab_bridging_lis` | Bridging LIS (adamLIS) | Kirim order ke alat/LIS & terima hasil otomatis. | Tersedia | – | – | PM, KP |
 | `lab_expertise` | Expertise Dokter Lab | Interpretasi hasil oleh dokter spesialis patologi klinik. | Tersedia | – | – | PM, KP, PKM |
-| `lab_rujukan` | Lab Rujukan | Pemeriksaan yang dirujuk ke laboratorium luar beserta input hasilnya. | Segera | – | – | – |
+| `lab_rujukan` | Lab Rujukan | Pemeriksaan yang dirujuk ke laboratorium luar beserta input hasilnya. | Tersedia | – | – | – |
 
 #### Rawat Inap (`rawat_inap`)
 
