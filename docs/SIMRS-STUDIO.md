@@ -40,6 +40,8 @@ Studio dijalankan di **mesin pengembang atau staging**, bukan di server produksi
    claude auth login                           # membuka peramban, pilih akun Claude Pro/Max
    claude auth status --text                   # pastikan sudah masuk
    ```
+   Login juga bisa dilakukan dari aplikasi tanpa terminal: **SIMRS Studio › Pengaturan & Agen › Claude Code › Hubungkan akun Claude**. Halaman login Claude terbuka di tab baru, dan Anda bisa masuk lewat *Continue with Google*. Setelah login, salin kode yang ditampilkan halaman Claude dan tempel di dialog Studio. Tombol **Putuskan** mengeluarkan akun.
+
    Login harus dilakukan **di pengguna OS yang sama** dengan yang menjalankan `npm run dev`. Studio memakai login yang sama dengan Claude Code di VS Code, dan pemakaiannya dihitung ke kuota langganan itu.
 2. Isi `studio-service/.env` (dibuat installer, atau salin dari `.env.example`):
    ```env
