@@ -214,6 +214,10 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/radiologi/datamaster/ruang", permission: read("Radiologi", "Datamaster", "Ruang & Alat") },
   { path: "/radiologi/datamaster/template", permission: read("Radiologi", "Datamaster", "Template Expertise") },
   { path: "/radiologi/datamaster/petugas", permission: read("Radiologi", "Datamaster", "Petugas Radiologi") },
+  // Mapping PACS (Bridging PACS/RIS, fitur rad_bridging_pacs) memakai izin datamaster "Mapping PACS"
+  { path: "/radiologi/mapping/tindakan-pacs", permission: read("Radiologi", "Datamaster", "Mapping PACS") },
+  { path: "/radiologi/mapping/referensi-pacs", permission: read("Radiologi", "Datamaster", "Mapping PACS") },
+  { path: "/radiologi/mapping/ruang-pacs", permission: read("Radiologi", "Datamaster", "Mapping PACS") },
   { path: "/radiologi/laporan/kunjungan", permission: read("Radiologi", "Laporan Radiologi", "Kunjungan") },
   { path: "/radiologi", mode: "prefix", permission: read("Radiologi", null, null, null) },
 
@@ -242,6 +246,23 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/mikrobiologi/laporan/kunjungan", permission: read("Mikrobiologi", "Laporan Mikrobiologi", "Kunjungan") },
   { path: "/mikrobiologi/laporan/antibiogram", permission: read("Mikrobiologi", "Laporan Mikrobiologi", "Antibiogram") },
   { path: "/mikrobiologi", mode: "prefix", permission: read("Mikrobiologi", null, null, null) },
+  { path: "/icu/dashboard", permission: read("ICU", "Dasbor") },
+  { path: "/icu/perawatan", permission: read("ICU", "Perawatan") },
+  { path: "/icu/laporan", permission: read("ICU", "Laporan ICU") },
+  { path: "/icu", mode: "prefix", permission: read("ICU", null, null, null) },
+
+  // CSSD — Sterilisasi Alat & Pelacakan Set Instrumen (penunjang-service)
+  { path: "/cssd/dashboard", permission: read("CSSD", "Penyimpanan & Distribusi") },
+  { path: "/cssd/penerimaan", permission: read("CSSD", "Penerimaan & Dekontaminasi") },
+  { path: "/cssd/pemrosesan", permission: read("CSSD", "Penerimaan & Dekontaminasi") },
+  { path: "/cssd/load", permission: read("CSSD", "Siklus Sterilisasi") },
+  { path: "/cssd/distribusi", permission: read("CSSD", "Penyimpanan & Distribusi") },
+  { path: "/cssd/recall", permission: read("CSSD", "Recall") },
+  { path: "/cssd/datamaster/master-set", permission: read("CSSD", "Master Set & Mesin") },
+  { path: "/cssd/datamaster/mesin", permission: read("CSSD", "Master Set & Mesin") },
+  { path: "/cssd/laporan", permission: read("CSSD", "Laporan CSSD") },
+  { path: "/cssd", mode: "prefix", permission: read("CSSD", null, null, null) },
+
   { path: "/training/daftar-kelas", featureStatus: "stub", permission: read("Training", "Daftar Kelas") },
   { path: "/training/booking-kelas", featureStatus: "stub", permission: read("Training", "Booking Kelas") },
   { path: "/training/datamaster/kelas", featureStatus: "stub", permission: read("Training", "Datamaster") },
