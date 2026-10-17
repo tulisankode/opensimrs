@@ -263,6 +263,17 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/cssd/laporan", permission: read("CSSD", "Laporan CSSD") },
   { path: "/cssd", mode: "prefix", permission: read("CSSD", null, null, null) },
 
+  // Bank Darah RS (BDRS) — penunjang-service
+  { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },
+  { path: "/bank-darah/crossmatch", permission: read("Bank Darah RS (BDRS)", "Uji Silang Serasi") },
+  { path: "/bank-darah/stok", permission: read("Bank Darah RS (BDRS)", "Stok & Penerimaan") },
+  { path: "/bank-darah/serah-terima", permission: read("Bank Darah RS (BDRS)", "Serah Terima") },
+  { path: "/bank-darah/transfusi", permission: read("Bank Darah RS (BDRS)", "Pemantauan Transfusi") },
+  { path: "/bank-darah/datamaster/komponen", permission: read("Bank Darah RS (BDRS)", "Datamaster", "Komponen Darah") },
+  { path: "/bank-darah/pengaturan", permission: read("Bank Darah RS (BDRS)", "Pengaturan") },
+  { path: "/bank-darah/laporan", permission: read("Bank Darah RS (BDRS)", "Laporan BDRS", ["Pemakaian Darah", "Rasio Crossmatch-Transfusi", "Hemovigilans"]) },
+  { path: "/bank-darah", mode: "prefix", permission: read("Bank Darah RS (BDRS)", null, null, null) },
+
   { path: "/training/daftar-kelas", featureStatus: "stub", permission: read("Training", "Daftar Kelas") },
   { path: "/training/booking-kelas", featureStatus: "stub", permission: read("Training", "Booking Kelas") },
   { path: "/training/datamaster/kelas", featureStatus: "stub", permission: read("Training", "Datamaster") },

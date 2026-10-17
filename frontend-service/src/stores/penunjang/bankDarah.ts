@@ -1,5 +1,6 @@
-// API modul Bank Darah RS / BDRS (penunjang-service: /api/v3/penunjang/bank-darah). Request otomatis snake_case,
-// respons camelCase; galat → toast + undefined (lihat apiHandler).
+// API modul Bank Darah RS / BDRS (penunjang-service: /api/v3/penunjang/bank-darah). Body request otomatis snake_case,
+// respons camelCase; galat → toast + undefined (lihat apiHandler). Parameter query (qs) TIDAK dikonversi: pemanggil
+// menulis kunci snake_case (mis. { tanggal_mulai, komponen_uuid }).
 import { apiPenunjangDelete, apiPenunjangGet, apiPenunjangPatch, apiPenunjangPost, apiPenunjangPut } from "@/utils/apiHandler";
 import { getStoredPermissions, hasPermission } from "@/utils/permissions";
 export { keTanggal, rupiahRad as rupiahBdrs, umurRad as umurBdrs, waktuRad as waktuBdrs } from "@/stores/penunjang/radiologi";
@@ -60,6 +61,13 @@ export const gayaReaksiBdrs = (s?: string) => STATUS_TINDAK_LANJUT_REAKSI[s as s
 
 export const opsi = (obj: Record<string, string>) => Object.entries(obj).map(([value, label]) => ({ value, label }));
 
+export const JK_BDRS: Record<string, string> = { Male: "L", Female: "P" };
+// Golongan + rhesus ringkas, mis. "O+" / "AB-".
+export const golonganRh = (golongan?: string | null, rhesus?: string | null) =>
+  golongan ? `${golongan}${rhesus === "positif" ? "+" : rhesus === "negatif" ? "-" : ""}` : "-";
+// Sisa hari menuju kedaluwarsa (bisa negatif) dari epoch detik.
+export const sisaHariBdrs = (epoch?: number | string | null) => (epoch ? Math.floor((Number(epoch) * 1000 - Date.now()) / 86400000) : null);
+
 // Izin aksi modul (tanpa daftar izin = super admin → boleh; backend tetap memeriksa login).
 export const izinBdrs = (submodul: string, aksi: string, fitur?: string) =>
   !getStoredPermissions().length || hasPermission("Bank Darah RS (BDRS)", submodul, aksi, fitur ?? null);
@@ -77,6 +85,9 @@ const qs = (params: Record<string, any> = {}) => {
 // ── Permintaan darah
 export const daftarPermintaanBdrs = (params: Record<string, any> = {}) => apiPenunjangGet(`/bank-darah/permintaan${qs(params)}`);
 export const detailPermintaanBdrs = (uuid: string) => apiPenunjangGet(`/bank-darah/permintaan/${uuid}`);
+// Riwayat permintaan satu kunjungan/pasien (array, maks. 100): salah satu dari no_reg / rekam_medis_uuid / patient_uuid wajib.
+export const permintaanKunjunganBdrs = (params: { no_reg?: string; rekam_medis_uuid?: string; patient_uuid?: string }) =>
+  apiPenunjangGet(`/bank-darah/permintaan/kunjungan${qs(params)}`);
 export const buatPermintaanBdrs = (data: {
   noReg?: string;
   rekamMedisUuid?: string;
@@ -99,7 +110,10 @@ export const catatCrossmatchBdrs = (permintaanUuid: string, data: { stokUuid: st
   apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/crossmatch`, data);
 
 // ── Stok
+// Respons: { data, pagination, ambangKedaluwarsaHari, ringkasan[] } — tiap baris diberi flag kedaluwarsa & peringatanKedaluwarsa.
+// Filter: komponen_uuid, golongan_abo, rhesus, status (boleh dipisah koma), cari (no. kantong), kedaluwarsa_dalam_hari, page, limit.
 export const daftarStokBdrs = (params: Record<string, any> = {}) => apiPenunjangGet(`/bank-darah/stok${qs(params)}`);
+export const detailStokBdrs = (uuid: string) => apiPenunjangGet(`/bank-darah/stok/${uuid}`);
 export const terimaStokBdrs = (data: {
   noKantong: string;
   komponenUuid: string;
@@ -116,12 +130,22 @@ export const pengeluaranStokBdrs = (uuid: string, aksi: "kembalikan" | "musnahka
   apiPenunjangPost(`/bank-darah/stok/${uuid}/pengeluaran`, { aksi, alasan });
 
 // ── Serah terima
+// Backend hanya membaca stok_uuids; verifikasi identitas & nomor kantong ditegakkan saat konfirmasi.
 export const buatSerahTerimaBdrs = (permintaanUuid: string, stokUuids: string[]) =>
-  apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/serah-terima`, { stokUuids, verifikasiPasien: true, verifikasiNomorKantong: true });
+  apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/serah-terima`, { stokUuids });
 export const daftarSerahTerimaBdrs = (params: Record<string, any> = {}) => apiPenunjangGet(`/bank-darah/serah-terima${qs(params)}`);
 export const detailSerahTerimaBdrs = (uuid: string) => apiPenunjangGet(`/bank-darah/serah-terima/${uuid}`);
-export const konfirmasiSerahTerimaBdrs = (uuid: string, peran: "penyerah" | "penerima") =>
-  apiPenunjangPost(`/bank-darah/serah-terima/${uuid}/konfirmasi`, { peran, verifikasiPasien: true, verifikasiNomorKantong: true });
+// Verifikasi diteruskan apa adanya dari centang di layar (backend menolak bila salah satunya bukan true).
+export const konfirmasiSerahTerimaBdrs = (
+  uuid: string,
+  peran: "penyerah" | "penerima",
+  verifikasi: { pasien: boolean; nomorKantong: boolean } = { pasien: false, nomorKantong: false },
+) =>
+  apiPenunjangPost(`/bank-darah/serah-terima/${uuid}/konfirmasi`, {
+    peran,
+    verifikasiPasien: verifikasi.pasien === true,
+    verifikasiNomorKantong: verifikasi.nomorKantong === true,
+  });
 export const batalSerahTerimaBdrs = (uuid: string, alasan: string) => apiPenunjangPost(`/bank-darah/serah-terima/${uuid}/batal`, { alasan });
 export const kirimUlangTagihanSerahTerimaBdrs = (uuid: string) => apiPenunjangPost(`/bank-darah/serah-terima/${uuid}/tagihan/kirim-ulang`);
 

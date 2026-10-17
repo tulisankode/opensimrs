@@ -243,6 +243,17 @@ import MasterSetCssdPage from "@/views/Cssd/MasterSetCssdPage.vue";
 import MasterMesinCssdPage from "@/views/Cssd/MasterMesinCssdPage.vue";
 import LaporanCssdPage from "@/views/Cssd/LaporanCssdPage.vue";
 
+// NOTE Bank Darah RS (BDRS) — permintaan darah, uji silang serasi, stok & serah terima (penunjang-service)
+import BankDarahView from "@/views/BankDarah/BankDarahView.vue";
+import PermintaanBdrsPage from "@/views/BankDarah/PermintaanBdrsPage.vue";
+import CrossmatchBdrsPage from "@/views/BankDarah/CrossmatchBdrsPage.vue";
+import StokBdrsPage from "@/views/BankDarah/StokBdrsPage.vue";
+import SerahTerimaBdrsPage from "@/views/BankDarah/SerahTerimaBdrsPage.vue";
+import TransfusiBdrsPage from "@/views/BankDarah/TransfusiBdrsPage.vue";
+import KomponenBdrsPage from "@/views/BankDarah/KomponenBdrsPage.vue";
+import PengaturanBdrsPage from "@/views/BankDarah/PengaturanBdrsPage.vue";
+import LaporanBdrsPage from "@/views/BankDarah/LaporanBdrsPage.vue";
+
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
   daftar.map(([path, name, page]) => ({ path, name, meta: { layout: SidebarLayout, page, requiresAuth: true }, component: view }));
@@ -1722,6 +1733,20 @@ const router = createRouter({
       ["/cssd/datamaster/master-set", "cssd-datamaster-master-set", MasterSetCssdPage],
       ["/cssd/datamaster/mesin", "cssd-datamaster-mesin", MasterMesinCssdPage],
       ["/cssd/laporan", "cssd-laporan", LaporanCssdPage],
+    ]),
+    // !SECTION
+
+    // SECTION Bank Darah RS (BDRS)
+    { path: "/bank-darah", name: "bank-darah", redirect: "/bank-darah/permintaan" },
+    ...halamanModul(BankDarahView, [
+      ["/bank-darah/permintaan", "bank-darah-permintaan", PermintaanBdrsPage],
+      ["/bank-darah/crossmatch", "bank-darah-crossmatch", CrossmatchBdrsPage],
+      ["/bank-darah/stok", "bank-darah-stok", StokBdrsPage],
+      ["/bank-darah/serah-terima", "bank-darah-serah-terima", SerahTerimaBdrsPage],
+      ["/bank-darah/transfusi", "bank-darah-transfusi", TransfusiBdrsPage],
+      ["/bank-darah/datamaster/komponen", "bank-darah-datamaster-komponen", KomponenBdrsPage],
+      ["/bank-darah/pengaturan", "bank-darah-pengaturan", PengaturanBdrsPage],
+      ["/bank-darah/laporan", "bank-darah-laporan", LaporanBdrsPage],
     ]),
     // !SECTION
 
