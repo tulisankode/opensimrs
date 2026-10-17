@@ -66,3 +66,4 @@ export const izinPa = (submodul, aksi, fitur = null) => wajibIzin("Patologi Anat
 export const izinMikro = (submodul, aksi, fitur = null) => wajibIzin("Mikrobiologi", submodul, aksi, fitur);
 export const izinMcu = (submodul, aksi, fitur = null) => wajibIzin("MCU", submodul, aksi, fitur);
 export const izinCssd = (submodul, aksi, fitur = null) => wajibIzin("CSSD", submodul, aksi, fitur);
+export const izinBdrs = (submodul, aksi, fitur = null) => wajibIzin("Bank Darah RS (BDRS)", submodul, aksi, fitur);

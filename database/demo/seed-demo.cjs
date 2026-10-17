@@ -17,6 +17,7 @@ const { seed: seedRadiologi } = require('./seed-radiologi.cjs');
 const { seed: seedMcu } = require('./seed-mcu.cjs');
 const { seed: seedPatologi } = require('./seed-patologi.cjs');
 const { seed: seedMikrobiologi } = require('./seed-mikrobiologi.cjs');
+const { seed: seedBankDarah } = require('./seed-bank-darah.cjs');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 require('dotenv').config({ path: path.join(ROOT, '.env') });
@@ -43,19 +44,19 @@ const PERM_MODUL = {
   rawat_inap: ['Rawat Inap'], igd: ['IGD'], farmasi: ['Farmasi', 'STOK'], inventory: ['Inventory'],
   laboratorium: ['Laboratorium'], pembayaran: ['Pembayaran'], datamaster: ['Datamaster'], laporan: ['Laporan'],
   fisioterapi: ['Fisioterapi'], radiologi: ['Radiologi'], mcu: ['MCU'],
-  patologi_anatomi: ['Patologi Anatomi'], mikrobiologi: ['Mikrobiologi'],
+  patologi_anatomi: ['Patologi Anatomi'], mikrobiologi: ['Mikrobiologi'], bank_darah: ['Bank Darah RS (BDRS)'],
 };
 const PERAN = {
   admin: { nama: 'Admin Faskes', kode: 'ADM', modul: null },
-  dokter: { nama: 'Dokter', kode: 'DOK', modul: ['Rawat Jalan', 'Rawat Inap', 'IGD', 'Laboratorium', 'Patologi Anatomi', 'Mikrobiologi', 'Farmasi', 'Radiologi', 'MCU', 'Dashboard'] },
+  dokter: { nama: 'Dokter', kode: 'DOK', modul: ['Rawat Jalan', 'Rawat Inap', 'IGD', 'Laboratorium', 'Patologi Anatomi', 'Mikrobiologi', 'Bank Darah RS (BDRS)', 'Farmasi', 'Radiologi', 'MCU', 'Dashboard'] },
   fisioterapis: { nama: 'Fisioterapis', kode: 'FIS', modul: ['Fisioterapi', 'Dashboard'] },
   radiografer: { nama: 'Radiografer', kode: 'RAD', modul: ['Radiologi', 'Dashboard'] },
   mcu: { nama: 'Petugas MCU', kode: 'MCU', modul: ['MCU', 'Admisi', 'Dashboard'] },
-  perawat: { nama: 'Perawat / Bidan', kode: 'PRW', modul: ['Rawat Jalan', 'Rawat Inap', 'IGD', 'Dashboard'] },
+  perawat: { nama: 'Perawat / Bidan', kode: 'PRW', modul: ['Rawat Jalan', 'Rawat Inap', 'IGD', 'Bank Darah RS (BDRS)', 'Dashboard'] },
   admisi: { nama: 'Petugas Pendaftaran', kode: 'PDF', modul: ['Admisi', 'Antrian', 'Dashboard'] },
   apoteker: { nama: 'Apoteker', kode: 'APT', modul: ['Farmasi', 'STOK', 'Dashboard'] },
   kasir: { nama: 'Kasir', kode: 'KSR', modul: ['Pembayaran', 'Laporan', 'Dashboard'] },
-  lab: { nama: 'Analis Laboratorium', kode: 'LAB', modul: ['Laboratorium', 'Patologi Anatomi', 'Mikrobiologi', 'Dashboard'] },
+  lab: { nama: 'Analis Laboratorium', kode: 'LAB', modul: ['Laboratorium', 'Patologi Anatomi', 'Mikrobiologi', 'Bank Darah RS (BDRS)', 'Dashboard'] },
   gudang: { nama: 'Petugas Gudang Farmasi', kode: 'GDG', modul: ['Inventory', 'STOK', 'Dashboard'] },
   // Praktik mandiri: dokter pemilik mengelola semuanya, dibantu satu asisten.
   pemilik: { nama: 'Dokter Pemilik', kode: 'OWN', modul: null },
@@ -350,7 +351,7 @@ async function seedFaskes(F, mapPermission, superRole) {
   const ringkasPenunjang = [];
   const ctx = { ins, satu, db, F, fUuid, base, punya, level, penjamin, rupiah, NOW, komponen };
   for (const [modul, seed] of [['laboratorium', seedLab], ['fisioterapi', seedFisioterapi], ['radiologi', seedRadiologi], ['mcu', seedMcu],
-    ['patologi_anatomi', seedPatologi], ['mikrobiologi', seedMikrobiologi]]) {
+    ['patologi_anatomi', seedPatologi], ['mikrobiologi', seedMikrobiologi], ['bank_darah', seedBankDarah]]) {
     if (punya(modul)) ringkasPenunjang.push(await seed(ctx));
   }
 

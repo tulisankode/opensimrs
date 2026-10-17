@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 7 berstatus Segera), **63 fitur** (13 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 6 berstatus Segera), **63 fitur** (10 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -292,7 +292,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `icu` | ICU / Intensif | Pemantauan intensif & flowsheet. | Tersedia | ICU |
 | `gizi` | Gizi | Diet & distribusi makan pasien rawat inap. | Segera | – |
 | `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Segera | – |
-| `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Segera | – |
+| `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Bank Darah RS (BDRS) |
 | `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Segera | – |
 | `akuntansi` | Akuntansi & Remunerasi | Jurnal, laporan keuangan, jasa pelayanan. | Segera | – |
 
@@ -325,7 +325,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Gizi (`gizi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
 | Koding & Rekam Medis (`koding_rm`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
 | CSSD (`cssd`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
-| Bank Darah RS (BDRS) (`bank_darah`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
+| Bank Darah RS (BDRS) (`bank_darah`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | UTD / UPTD Produksi Darah (`utd`) | Segera | – | – | – | – | – | – | – | ✓ |
 | Akuntansi & Remunerasi (`akuntansi`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
 | Kelas Training (`training`) | Segera | – | – | – | – | – | – | – | – |
@@ -457,9 +457,9 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
-| `bdrs_permintaan` | Permintaan Darah | Permintaan darah dari ruangan/IGD/OK beserta golongan & jumlah kantong. | Segera | – | – | – |
-| `bdrs_crossmatch` | Uji Silang Serasi | Pemeriksaan golongan darah & crossmatch sebelum transfusi. | Segera | – | – | – |
-| `bdrs_stok` | Stok & Serah Terima Darah | Penerimaan dari UTD, penyimpanan, kedaluwarsa, serah terima & pemantauan reaksi transfusi. | Segera | – | – | – |
+| `bdrs_permintaan` | Permintaan Darah | Permintaan darah dari ruangan/IGD/OK beserta golongan & jumlah kantong. | Tersedia | – | – | – |
+| `bdrs_crossmatch` | Uji Silang Serasi | Pemeriksaan golongan darah & crossmatch sebelum transfusi. | Tersedia | – | – | – |
+| `bdrs_stok` | Stok & Serah Terima Darah | Penerimaan dari UTD, penyimpanan, kedaluwarsa, serah terima & pemantauan reaksi transfusi. | Tersedia | – | – | – |
 
 #### UTD / UPTD Produksi Darah (`utd`)
 

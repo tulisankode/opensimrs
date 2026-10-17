@@ -918,6 +918,27 @@ export const mikrobiologiPermission = {
   ],
 };
 
+export const bankDarahPermission = {
+  module: "Bank Darah RS (BDRS)",
+  subModules: [
+    { name: "Permintaan Darah", allows: ["READ", "CREATE", "UPDATE", "LENGKAPI", "BATAL"] },
+    { name: "Uji Silang Serasi", allows: ["READ", "CATAT PEMERIKSAAN", "CATAT CROSSMATCH"] },
+    { name: "Stok & Penerimaan", allows: ["READ", "TERIMA KANTONG", "MUSNAHKAN", "KEMBALIKAN"] },
+    { name: "Serah Terima", allows: ["READ", "KONFIRMASI PENYERAH", "KONFIRMASI PENERIMA"] },
+    { name: "Pemantauan Transfusi", allows: ["READ", "CATAT TRANSFUSI", "LAPOR REAKSI"] },
+    { name: "Pengaturan", allows: ["READ", "UPDATE"] },
+    { name: "Datamaster", features: [{ name: "Komponen Darah", allows: ["READ", "CREATE", "UPDATE", "DELETE"] }] },
+    {
+      name: "Laporan BDRS",
+      features: [
+        { name: "Pemakaian Darah", allows: ["READ", "CETAK LAPORAN"] },
+        { name: "Rasio Crossmatch-Transfusi", allows: ["READ", "CETAK LAPORAN"] },
+        { name: "Hemovigilans", allows: ["READ", "CETAK LAPORAN"] },
+      ],
+    },
+  ],
+};
+
 export const cssdPermission = {
   module: "CSSD",
   subModules: [
@@ -1369,6 +1390,7 @@ export function mapPermission(permissionList) {
     "program puskesmas": programPuskesmasPermission,
     "patologi anatomi": patologiAnatomiPermission,
     mikrobiologi: mikrobiologiPermission,
+    "bank darah rs (bdrs)": bankDarahPermission,
     cssd: cssdPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,
