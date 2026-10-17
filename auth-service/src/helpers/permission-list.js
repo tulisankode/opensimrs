@@ -20,6 +20,10 @@ export const antrianPermission = {
       name: "Apm",
       allows: ["CREATE PASIEN JKN", "CREATE PASIEN NON-JKN", "CHECKIN", "PRINT"],
     },
+    {
+      name: "Antrean Online BPJS",
+      allows: ["READ", "KONFIGURASI", "KIRIM ULANG"],
+    },
   ],
 };
 

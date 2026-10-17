@@ -15,7 +15,15 @@ const menuKonfigurasiIntegrasi = (): SidebarBody => ({
   type: linkType.DROPDOWN,
   icon: "GearFillIcon",
   child: [
-    { name: "BPJS", type: linkType.DROPDOWN, child: [tautan("BPJS PCare", "bpjs-pcare"), tautan("BPJS VClaim", "bpjs-vclaim")] },
+    {
+      name: "BPJS",
+      type: linkType.DROPDOWN,
+      child: [
+        tautan("BPJS PCare", "bpjs-pcare"),
+        tautan("BPJS VClaim", "bpjs-vclaim"),
+        ...(fiturAktif("antrian_online_bpjs") ? [tautan("Antrean Online (Mobile JKN)", "antrean-bpjs")] : []),
+      ],
+    },
     tautan("SATUSEHAT", "satusehat"),
     {
       name: "LIS",

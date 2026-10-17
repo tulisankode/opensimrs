@@ -104,6 +104,7 @@ import KomponenTarifPage from "@/views/Datamaster/KomponenTarif/KomponenTarifPag
 import LayarAntrianPage from "@/views/Antrian/Layar/LayarAntrianPage.vue";
 import DataAntrianPage from "@/views/Antrian/DataAntrian/AntrianPage.vue";
 import ApmPage from "@/views/Antrian/APM/ApmPage.vue";
+import MonitoringAntreanBpjsPage from "@/views/Antrian/MonitoringAntreanBpjsPage.vue";
 import KonfigurasiLayarPage from "@/views/Antrian/Konfigurasi/KonfigurasiLayar/KonfigurasiLayarPage.vue";
 import KonfigurasiJadwalPage from "@/views/Antrian/Konfigurasi/KonfigurasiJadwalDokter/KonfigurasiJadwalPage.vue";
 import DaftarPasienPage from "@/views/Antrian/APM/ApmPasienJKN/DaftarPasienPage.vue";
@@ -905,6 +906,12 @@ const router = createRouter({
       path: "/antrian/apm",
       name: "antrian-apm",
       meta: { layout: SidebarLayout, page: ApmPage, requiresAuth: true },
+      component: AntrianView,
+    },
+    {
+      path: "/antrian/monitoring-bpjs",
+      name: "antrian-monitoring-bpjs",
+      meta: { layout: SidebarLayout, page: MonitoringAntreanBpjsPage, requiresAuth: true },
       component: AntrianView,
     },
     {

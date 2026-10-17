@@ -1052,11 +1052,13 @@
       "kode": "antrian_online_bpjs",
       "modul": "antrian",
       "nama": "Antrean Online BPJS (Mobile JKN)",
-      "deskripsi": "Sinkron antrean & task id ke BPJS, ambil antrean dari Mobile JKN.",
-      "tersedia": false,
+      "deskripsi": "Sinkron antrean & task id ke BPJS, ambil antrean dari Mobile JKN. Perlu BPJS FKRTL atau BPJS FKTP aktif.",
+      "tersedia": true,
       "wajib": false,
-      "modul_syarat": "bpjs_fkrtl",
-      "rute": [],
+      "modul_syarat": "bpjs_fkrtl,bpjs_fktp",
+      "rute": [
+        "/antrian/monitoring-bpjs"
+      ],
       "urutan": 44
     },
     {
@@ -1750,19 +1752,22 @@
         "daftar_general_consent",
         "farmasi_retur",
         "inv_pengadaan_po",
-        "inv_retur_supplier"
+        "inv_retur_supplier",
+        "antrian_online_bpjs"
       ],
       "klinik_pratama": [
         "lab_bridging_lis",
         "lab_expertise",
         "farmasi_ruangan",
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "antrian_online_bpjs"
       ],
       "klinik_utama": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "antrian_online_bpjs"
       ],
       "puskesmas": [
         "bayar_diskon_voucher",
@@ -1770,29 +1775,34 @@
         "inv_pengadaan_po",
         "inv_retur_supplier",
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "antrian_online_bpjs"
       ],
       "rs_d": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "antrian_online_bpjs"
       ],
       "rs_c": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "antrian_online_bpjs"
       ],
       "rs_b": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
-        "bdrs_bridging"
+        "bdrs_bridging",
+        "antrian_online_bpjs"
       ],
       "rs_a": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
-        "bdrs_bridging"
+        "bdrs_bridging",
+        "antrian_online_bpjs"
       ]
     },
     "bagian_mati": {

@@ -37,6 +37,16 @@ export default {
   pekerjaRentangHari: angka(process.env.BPJS_RENTANG_HARI, 3),
   maksPercobaan: angka(process.env.BPJS_MAKS_PERCOBAAN, 5),
 
+  // Antrean Online BPJS (Mobile JKN): layanan antrian-service dipanggil lewat endpoint "mobile" (x-api-key,
+  // tanpa JWT) yang sudah ada untuk membuat pendaftaran & membatalkan booking — lihat antrean-service.js.
+  antrianApiUrl:
+    process.env.BASE_URL_API_ANTRIAN || process.env.BASE_URL_ANTRIAN || process.env.ANTRIAN_SERVICE_URL || "http://localhost:8082/api/v3/antrian",
+  antrianApiKey: process.env.ANTRIAN_KEY_SECRET,
+  antreanPekerjaAktif: process.env.BPJS_ANTREAN_PEKERJA !== "false",
+  antreanPekerjaIntervalMenit: angka(process.env.BPJS_ANTREAN_INTERVAL_MENIT, 2),
+  antreanMaksPercobaan: angka(process.env.BPJS_ANTREAN_MAKS_PERCOBAAN, 5),
+  antreanTokenKedaluwarsaDetik: angka(process.env.BPJS_ANTREAN_TOKEN_TTL, 3600),
+
   pg: {
     host: process.env.DB_HOST || "localhost",
     port: angka(process.env.DB_PORT, 5432),

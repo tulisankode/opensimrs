@@ -123,6 +123,7 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/antrian/data-antrian", permission: read("Antrian", "Data Antrian") },
   { path: "/antrian/layar", permission: read("Antrian", "Layar") },
   { path: "/antrian/apm", mode: "prefix", permission: any("Antrian", "Apm", ["READ", "CHECKIN", "PRINT", "CREATE PASIEN JKN", "CREATE PASIEN NON-JKN"]) },
+  { path: "/antrian/monitoring-bpjs", permission: read("Antrian", "Antrean Online BPJS") },
 
   { path: "/rawat-jalan/poli", permission: read("Rawat Jalan", "Poli") },
   { path: "/rawat-jalan/bpjs/monitoring-kunjungan", featureStatus: "stub", permission: read("Rawat Jalan", "BPJS-PCARE", "Monitoring Kunjungan") },
