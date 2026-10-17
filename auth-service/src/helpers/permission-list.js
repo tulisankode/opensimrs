@@ -854,6 +854,9 @@ export const mcuPermission = {
     },
     { name: "Tagihan Korporasi", allows: ["READ", "CREATE", "UPDATE", "PEMBAYARAN", "CETAK"] },
     { name: "Laporan MCU", allows: ["READ", "CETAK LAPORAN"] },
+    // Pelaporan hasil MCU ke BPJS PCare (STD-0020): KIRIM mencakup kirim pertama & kirim ulang; UBAH/HAPUS
+    // dipisah karena mengubah/menghapus laporan yang sudah terkirim di PCare berisiko lebih tinggi.
+    { name: "MCU PCare", allows: ["READ", "KIRIM", "UBAH", "HAPUS"] },
   ],
 };
 

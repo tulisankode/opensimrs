@@ -24,14 +24,16 @@ const PILIH = `s.uuid, s.no_mcu, s.tanggal::text AS tanggal, s.patient_uuid, s.n
   pr.nama AS nama_perusahaan, pk.nama AS nama_paket, pk.kode AS kode_paket, pk.harga::float8 AS harga_paket,
   iv.no_invoice, iv.status AS status_invoice, lo.no_order AS no_order_lab, lo.order_status AS status_order_lab,
   (SELECT name FROM penjamin pj WHERE pj.uuid = s.penjamin_uuid) AS nama_penjamin,
-  (SELECT name FROM lokasi lk WHERE lk.uuid = s.unit_asal_uuid) AS nama_unit_asal`;
+  (SELECT name FROM lokasi lk WHERE lk.uuid = s.unit_asal_uuid) AS nama_unit_asal,
+  pc.status AS status_pcare, pc.mode AS mode_pcare, pc.no_referensi_pcare, pc.pesan AS pesan_pcare`;
 const DARI = `mcu_peserta s
   JOIN patients pt ON pt.uuid = s.patient_uuid
   LEFT JOIN birth_details bd ON bd.uuid = pt.birth_detail_uuid
   LEFT JOIN mcu_perusahaan pr ON pr.uuid = s.perusahaan_uuid
   LEFT JOIN mcu_paket pk ON pk.uuid = s.paket_uuid
   LEFT JOIN mcu_invoice iv ON iv.uuid = s.invoice_uuid
-  LEFT JOIN order_lab lo ON lo.uuid = s.lab_order_uuid`;
+  LEFT JOIN order_lab lo ON lo.uuid = s.lab_order_uuid
+  LEFT JOIN mcu_pcare_kirim pc ON pc.faskes_uuid = s.faskes_uuid AND pc.peserta_uuid = s.uuid AND pc.deleted_at IS NULL`;
 
 // ── Status LIS per peserta (lab-service: lab_lis_kirim; hasil = observation_item order lab) ──────────────────
 // belum | mengirim | terkirim | gagal | tidak_pasti | hasil_sebagian | hasil_lengkap | tanpa_order

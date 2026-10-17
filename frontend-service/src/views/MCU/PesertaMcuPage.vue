@@ -13,6 +13,7 @@ import {
   daftarPesertaMcu, daftarkanPesertaMcu, batalPesertaMcu, batalMassalPesertaMcu, hapusMassalPesertaMcu, detailPesertaMcu, daftarPaketMcu, daftarPerusahaanMcu, cariPasienMcu,
   buatOrderLabMcu, izinMcu, daftarPasienBaruMcu, referensiImporMcu, STATUS_PESERTA, KESIMPULAN_MCU, OPSI_JENIS_MCU, JENIS_MCU, tglIso, tglIndo, rupiah, jenisKelamin,
   STATUS_LIS, FILTER_STATUS_LIS, AKSI_LIS, petunjukGalatLis, type StatusPeserta, type Kesimpulan, type StatusLis, type AksiLis,
+  STATUS_PCARE_MCU, statusPcareMcu, kandidatKunjunganPcareMcu, kirimPcareMcu, ulangPcareMcu, ubahPcareMcu, hapusPcareMcu, type StatusPcareMcu,
 } from "@/stores/penunjang/mcu";
 import { fiturAktif } from "@/stores/modulFaskes";
 import KirimLisMcu from "./Komponen/KirimLisMcu.vue";
@@ -80,6 +81,56 @@ const reset = () => {
 const toggleStatusLis = (s: string) => {
   statusLisFilter.value = statusLisFilter.value.includes(s) ? statusLisFilter.value.filter((x) => x !== s) : [...statusLisFilter.value, s];
 };
+
+// ── MCU PCare (BPJS, STD-0020): kirim hasil MCU peserta JKN ke PCare, per peserta (bukan massal) ──
+const pcareAktif = computed(() => fiturAktif("mcu_pcare"));
+const dialogPcare = ref(false);
+const pcareAksi = ref<"kirim" | "ulang" | "ubah" | "hapus">("kirim");
+const pcareTarget = ref<any>(null);
+const pcareStatus = ref<any>(null);
+const pcareKandidat = ref<any[]>([]);
+const pcareRawatJalanUuid = ref<string>("");
+const pcareKonfirmasi = ref(false);
+const pcareAlasan = ref("");
+const pcareMemuat = ref(false);
+const pcareMemproses = ref(false);
+const bukaPcare = async (r: any, aksi: "kirim" | "ulang" | "ubah" | "hapus") => {
+  pcareTarget.value = r;
+  pcareAksi.value = aksi;
+  pcareAlasan.value = "";
+  pcareKonfirmasi.value = false;
+  pcareRawatJalanUuid.value = "";
+  pcareKandidat.value = [];
+  dialogPcare.value = true;
+  pcareMemuat.value = true;
+  const [st, kd] = await Promise.all([
+    statusPcareMcu(r.uuid),
+    aksi === "kirim" || aksi === "ulang" ? kandidatKunjunganPcareMcu(r.uuid) : Promise.resolve(undefined),
+  ]);
+  pcareStatus.value = st?.payload ?? null;
+  pcareKandidat.value = kd?.payload ?? [];
+  if (pcareKandidat.value.length === 1) pcareRawatJalanUuid.value = pcareKandidat.value[0].rawatJalanUuid;
+  else if (pcareStatus.value?.rawatJalanUuid) pcareRawatJalanUuid.value = pcareStatus.value.rawatJalanUuid;
+  pcareMemuat.value = false;
+};
+const pcareBisaProses = computed(() => {
+  if (pcareAksi.value === "kirim" || pcareAksi.value === "ulang") return !!pcareRawatJalanUuid.value;
+  return !!pcareAlasan.value.trim();
+});
+const prosesPcare = async () => {
+  pcareMemproses.value = true;
+  const uuid = pcareTarget.value.uuid;
+  if (pcareAksi.value === "kirim") await kirimPcareMcu(uuid, { rawatJalanUuid: pcareRawatJalanUuid.value, konfirmasi: pcareKonfirmasi.value });
+  else if (pcareAksi.value === "ulang") await ulangPcareMcu(uuid, { rawatJalanUuid: pcareRawatJalanUuid.value, konfirmasi: pcareKonfirmasi.value });
+  else if (pcareAksi.value === "ubah") await ubahPcareMcu(uuid, { alasan: pcareAlasan.value.trim(), rawatJalanUuid: pcareRawatJalanUuid.value || undefined });
+  else await hapusPcareMcu(uuid, pcareAlasan.value.trim());
+  pcareMemproses.value = false;
+  dialogPcare.value = false;
+  muat();
+};
+const judulPcare = computed(
+  () => ({ kirim: "Kirim ke PCare", ulang: "Kirim Ulang ke PCare", ubah: "Perbarui di PCare", hapus: "Hapus dari PCare" })[pcareAksi.value],
+);
 
 // ── Bridging LIS: pilih peserta (checkbox) → kirim / kirim ulang yang gagal / ambil hasil / cek status (batch di server) ──
 const lisAktif = computed(() => fiturAktif("lab_bridging_lis"));
@@ -296,6 +347,8 @@ const itemMenu = computed(() => {
   const r = menuRow.value;
   if (!r) return [];
   const labPerlu = !["batal", "selesai"].includes(r.status) && (!r.labOrderUuid || Number(r.statusOrderLab) === 0);
+  const bpjsPcare = pcareAktif.value && r.status === "selesai" && /^BPJS/i.test(r.namaPenjamin ?? "");
+  const statusPcare = r.statusPcare ?? "belum";
   return [
     { label: "Detail", icon: "pi pi-eye", command: () => bukaDetail(r) },
     { label: "Pemeriksaan Stasiun", icon: "pi pi-clipboard", disabled: r.status === "batal", visible: izinMcu("Pemeriksaan", "READ"), command: () => periksa(r) },
@@ -303,6 +356,10 @@ const itemMenu = computed(() => {
     { label: "Cetak Surat Keterangan", icon: "pi pi-file", disabled: r.status !== "selesai", visible: boleh("CETAK"), command: () => cetak(r, "sertifikat") },
     { label: "Buat Order Laboratorium", icon: "pi pi-plus", visible: boleh("UPDATE") && labPerlu, command: () => orderLabUlang(r) },
     { label: "Batalkan", icon: "pi pi-times", disabled: ["batal", "selesai"].includes(r.status) || !!r.invoiceUuid, visible: boleh("BATAL"), command: () => bukaBatal(r) },
+    { label: "Kirim ke PCare", icon: "pi pi-send", visible: bpjsPcare && izinMcu("MCU PCare", "KIRIM") && statusPcare === "belum", command: () => bukaPcare(r, "kirim") },
+    { label: "Kirim Ulang ke PCare", icon: "pi pi-refresh", visible: bpjsPcare && izinMcu("MCU PCare", "KIRIM") && ["gagal", "tidak_pasti"].includes(statusPcare), command: () => bukaPcare(r, "ulang") },
+    { label: "Perbarui di PCare", icon: "pi pi-sync", visible: bpjsPcare && izinMcu("MCU PCare", "UBAH") && statusPcare === "terkirim", command: () => bukaPcare(r, "ubah") },
+    { label: "Hapus dari PCare", icon: "pi pi-ban", visible: bpjsPcare && izinMcu("MCU PCare", "HAPUS") && statusPcare === "terkirim", command: () => bukaPcare(r, "hapus") },
   ];
 });
 const orderLabUlang = async (r: any) => {
@@ -461,6 +518,19 @@ onMounted(async () => {
                   <span v-else-if="petunjukGalatLis(data.pesanLis)" class="text-[10px] text-grey-400">{{ petunjukGalatLis(data.pesanLis)!.teks }}</span>
                 </template>
               </div>
+            </template>
+          </Column>
+          <Column v-if="pcareAktif" header="PCare" headerClass="bg-opensimrs-50" class="w-40">
+            <template #body="{ data }">
+              <div v-if="/^BPJS/i.test(data.namaPenjamin ?? '')" class="flex flex-col items-start gap-0.5" data-uji="status-pcare">
+                <span class="px-2 py-0.5 rounded-full font-semibold" :class="[STATUS_PCARE_MCU[(data.statusPcare ?? 'belum') as StatusPcareMcu]?.bg, STATUS_PCARE_MCU[(data.statusPcare ?? 'belum') as StatusPcareMcu]?.text]">
+                  {{ STATUS_PCARE_MCU[(data.statusPcare ?? 'belum') as StatusPcareMcu]?.label }}
+                </span>
+                <span v-if="data.modePcare === 'mock'" class="text-[10px] text-[#B54708]">simulasi (mock)</span>
+                <span v-if="data.noReferensiPcare" class="text-[10px] text-grey-400">Ref. {{ data.noReferensiPcare }}</span>
+                <span v-if="['gagal', 'tidak_pasti'].includes(data.statusPcare) && data.pesanPcare" class="text-[10px] text-[#B42318] line-clamp-2" :title="data.pesanPcare">{{ data.pesanPcare }}</span>
+              </div>
+              <span v-else class="text-grey-300">-</span>
             </template>
           </Column>
           <Column header="" headerClass="bg-opensimrs-50" class="w-28">
@@ -683,6 +753,53 @@ onMounted(async () => {
         <div class="flex justify-end gap-2">
           <CustomButton label="Tutup" outlined borderColor="border-grey-200" textColor="text-grey-400" @click="dialogBatal = false" />
           <CustomButton label="Batalkan Peserta" backgroundColor="bg-danger-300" :disabled="!alasan.trim()" @click="batal" />
+        </div>
+      </template>
+    </CustomDialog>
+
+    <!-- MCU PCare: kirim / kirim ulang / perbarui / hapus (STD-0020) -->
+    <CustomDialog v-model:visible="dialogPcare" width="520px">
+      <template #header>{{ judulPcare }} — {{ pcareTarget?.noMcu }}</template>
+      <template #body>
+        <div v-if="pcareMemuat" class="py-6 text-sm text-center text-grey-400">Memuat…</div>
+        <div v-else class="flex flex-col gap-3 pt-4 text-sm">
+          <div>{{ pcareTarget?.namaPasien }} — {{ pcareTarget?.namaPaket }}</div>
+          <div v-if="pcareStatus" class="p-2 text-xs rounded bg-opensimrs-50">
+            Status saat ini:
+            <span class="px-2 py-0.5 rounded-full font-semibold" :class="[STATUS_PCARE_MCU[(pcareStatus.status ?? 'belum') as StatusPcareMcu]?.bg, STATUS_PCARE_MCU[(pcareStatus.status ?? 'belum') as StatusPcareMcu]?.text]">
+              {{ STATUS_PCARE_MCU[(pcareStatus.status ?? 'belum') as StatusPcareMcu]?.label }}
+            </span>
+            <div v-if="pcareStatus.noReferensiPcare">No. referensi PCare: {{ pcareStatus.noReferensiPcare }}</div>
+            <div v-if="pcareStatus.pesan" class="text-[#B42318]">{{ pcareStatus.pesan }}</div>
+          </div>
+
+          <template v-if="pcareAksi === 'kirim' || pcareAksi === 'ulang'">
+            <div v-if="!pcareKandidat.length" class="text-xs text-danger-300">
+              Belum ada kunjungan PCare yang dapat ditautkan. Lengkapi pendaftaran/kunjungan PCare peserta terlebih dahulu (Setting › Konfigurasi Integrasi › BPJS PCare).
+            </div>
+            <label v-else-if="pcareKandidat.length > 1" class="flex flex-col gap-1">
+              Kunjungan PCare * <span class="text-xs text-grey-400">(lebih dari satu kunjungan cocok, pilih salah satu)</span>
+              <Select v-model="pcareRawatJalanUuid" :options="pcareKandidat" optionLabel="noKunjungan" optionValue="rawatJalanUuid" placeholder="Pilih kunjungan" />
+            </label>
+            <div v-else class="text-xs text-grey-400">Kunjungan PCare: <b>{{ pcareKandidat[0]?.noKunjungan }}</b></div>
+            <label v-if="pcareStatus?.status === 'tidak_pasti'" class="flex items-center gap-2 text-xs">
+              <Checkbox v-model="pcareKonfirmasi" binary /> Saya sudah memastikan laporan sebelumnya belum diterima PCare
+            </label>
+          </template>
+          <template v-else>
+            <label class="flex flex-col gap-1">Alasan *<TextArea v-model="pcareAlasan" rows="3" /></label>
+          </template>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <CustomButton label="Tutup" outlined borderColor="border-grey-200" textColor="text-grey-400" @click="dialogPcare = false" />
+          <CustomButton
+            :label="judulPcare"
+            :loading="pcareMemproses"
+            :disabled="pcareMemuat || !pcareBisaProses || (['kirim', 'ulang'].includes(pcareAksi) && pcareStatus?.status === 'tidak_pasti' && !pcareKonfirmasi)"
+            @click="prosesPcare"
+          />
         </div>
       </template>
     </CustomDialog>
