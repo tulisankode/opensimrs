@@ -2,7 +2,8 @@
 import MainHeaderSetting from '../MainHeaderSetting.vue';
 import KonfigurasiLainnya from './KonfigurasiLainnya.vue';
 import GreenCard from '../GreenCard.vue';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import FormEditKonfigurasiLainnya from './FormEditKonfigurasiLainnya.vue';
 import CustomButton from '@/components/Base/CustomButton.vue';
 import KonfigurasiSatuSehat from './KonfigurasiSatuSehat.vue';
@@ -29,6 +30,26 @@ import { utilsStore } from "@/stores/utils";
 import { fiturAktif } from "@/stores/modulFaskes";
 
 const useUtilsStore = utilsStore();
+
+// Satu bagian per halaman (submenu Setting › Konfigurasi Integrasi); tanpa parameter → bagian pertama.
+const BAGIAN: Record<string, string> = {
+    'bpjs-pcare': 'BPJS › BPJS PCare',
+    'bpjs-vclaim': 'BPJS › BPJS VClaim',
+    satusehat: 'SATUSEHAT',
+    'lis-pk': 'LIS › Lab PK',
+    'lis-pa': 'LIS › Lab PA',
+    'lis-mikrobiologi': 'LIS › Mikrobiologi',
+    pacs: 'Radiologi › PACS/RIS',
+    'bdrs-utd': 'Bank Darah › UTD',
+    helpdesk: 'Helpdesk AI',
+    lainnya: 'Lainnya',
+};
+const route = useRoute();
+const bagian = computed(() => {
+    const b = String(route.params.bagian ?? '');
+    return b in BAGIAN ? b : 'bpjs-pcare';
+});
+const judul = computed(() => `Konfigurasi Integrasi › ${BAGIAN[bagian.value]}`);
 
 const konfigurasiIntegrasiResponse = ref({
     baseUrl: "",
@@ -104,55 +125,75 @@ const handleKonfigurasiSatuSehat = (updatedKonfigurasiSatuSehat: any) => {
 
     <Card pt:body:class="h-full pt-0 overflow-auto" pt:content:class="h-full overflow-auto">
         <template #header>
-            <MainHeaderSetting heading="Konfigurasi Integrasi" />
+            <MainHeaderSetting :heading="judul" />
         </template>
         <template #content>
             <!-- BPJS VClaim (rumah sakit): konfigurasi terenkripsi & pemetaan poli; SEP dibuat di Admisi › SEP -->
-            <KonfigurasiBpjsVclaim @tersimpan="pemetaanVclaimRef?.muat()" />
-            <PemetaanVclaim ref="pemetaanVclaimRef" />
-
-            <template v-if="!isEditKonfigurasiSatuSehat">
-                    <KonfigurasiSatuSehat :edit-handler="editKonfigurasiSatuSehat" :konfigurasi-integrasi-response="konfigurasiIntegrasiResponse" />
+            <template v-if="bagian === 'bpjs-vclaim'">
+                <KonfigurasiBpjsVclaim @tersimpan="pemetaanVclaimRef?.muat()" />
+                <PemetaanVclaim ref="pemetaanVclaimRef" />
             </template>
-            <template v-else>
-                    <FormEditKonfigurasiSatuSehat :is-edit-konfigurasi-satu-sehat="isEditKonfigurasiSatuSehat" :konfigurasi-integrasi-response="konfigurasiIntegrasiResponse" @update:is-edit-konfigurasi-satu-sehat="isEditKonfigurasiSatuSehat = $event" @update:after-edit-konfigurasi-satu-sehat="handleKonfigurasiSatuSehat" />
-            </template>
-            <!-- dipasang ulang setelah konfigurasi disimpan agar status terbaru tampil -->
-            <SinkronisasiSatuSehat v-if="!isEditKonfigurasiSatuSehat" :key="konfigurasiIntegrasiResponse.clientId + konfigurasiIntegrasiResponse.statusSatuSehat" />
             <!-- BPJS PCare (FKTP): konfigurasi, pemetaan kode, sinkronisasi kunjungan -->
-            <KonfigurasiPcare @tersimpan="pemetaanPcareRef?.muat()" />
-            <PemetaanPcare ref="pemetaanPcareRef" />
-            <SinkronisasiPcare />
+            <template v-else-if="bagian === 'bpjs-pcare'">
+                <KonfigurasiPcare @tersimpan="pemetaanPcareRef?.muat()" />
+                <PemetaanPcare ref="pemetaanPcareRef" />
+                <SinkronisasiPcare />
+            </template>
+            <template v-else-if="bagian === 'satusehat'">
+                <template v-if="!isEditKonfigurasiSatuSehat">
+                    <KonfigurasiSatuSehat :edit-handler="editKonfigurasiSatuSehat" :konfigurasi-integrasi-response="konfigurasiIntegrasiResponse" />
+                </template>
+                <template v-else>
+                    <FormEditKonfigurasiSatuSehat :is-edit-konfigurasi-satu-sehat="isEditKonfigurasiSatuSehat" :konfigurasi-integrasi-response="konfigurasiIntegrasiResponse" @update:is-edit-konfigurasi-satu-sehat="isEditKonfigurasiSatuSehat = $event" @update:after-edit-konfigurasi-satu-sehat="handleKonfigurasiSatuSehat" />
+                </template>
+                <!-- dipasang ulang setelah konfigurasi disimpan agar status terbaru tampil -->
+                <SinkronisasiSatuSehat v-if="!isEditKonfigurasiSatuSehat" :key="konfigurasiIntegrasiResponse.clientId + konfigurasiIntegrasiResponse.statusSatuSehat" />
+            </template>
             <!-- LIS laboratorium (adamLIS): koneksi/endpoint & kredensial + riwayat pengiriman. Mapping kode ada di Laboratorium › Mapping LIS -->
-            <KonfigurasiLis />
-            <PengirimanLis />
-            <!-- PACS/RIS radiologi: koneksi/endpoint & kredensial + riwayat pengiriman. Mapping kode ada di Radiologi › Mapping PACS -->
-            <template v-if="fiturAktif('rad_bridging_pacs')">
-                <KonfigurasiPacs />
-                <PengirimanPacs />
+            <template v-else-if="bagian === 'lis-pk'">
+                <KonfigurasiLis />
+                <PengirimanLis />
             </template>
             <!-- LIS Patologi Anatomi: koneksi/endpoint & kredensial + riwayat pengiriman. Mapping kode ada di Patologi Anatomi › Mapping LIS -->
-            <template v-if="fiturAktif('pa_bridging_lis')">
-                <KonfigurasiLisPa />
-                <PengirimanLisPa />
+            <template v-else-if="bagian === 'lis-pa'">
+                <template v-if="fiturAktif('pa_bridging_lis')">
+                    <KonfigurasiLisPa />
+                    <PengirimanLisPa />
+                </template>
+                <p v-else class="text-sm text-gray-500">Fitur Bridging LIS Patologi Anatomi belum aktif. Aktifkan di Setting › Manajemen Modul.</p>
             </template>
             <!-- LIS Mikrobiologi (fitur mikro_bridging_lis): koneksi & kredensial terpisah dari LIS laboratorium. Mapping kode ada di Mikrobiologi › Mapping LIS -->
-            <KonfigurasiLisMikrobiologi />
-            <PengirimanLisMikrobiologi />
+            <template v-else-if="bagian === 'lis-mikrobiologi'">
+                <KonfigurasiLisMikrobiologi />
+                <PengirimanLisMikrobiologi />
+            </template>
+            <!-- PACS/RIS radiologi: koneksi/endpoint & kredensial + riwayat pengiriman. Mapping kode ada di Radiologi › Mapping PACS -->
+            <template v-else-if="bagian === 'pacs'">
+                <template v-if="fiturAktif('rad_bridging_pacs')">
+                    <KonfigurasiPacs />
+                    <PengirimanPacs />
+                </template>
+                <p v-else class="text-sm text-gray-500">Fitur Bridging PACS/RIS belum aktif. Aktifkan di Setting › Manajemen Modul.</p>
+            </template>
             <!-- Bridging Bank Darah ke UTD (fitur bdrs_bridging): koneksi & kredensial + riwayat pengiriman. Mapping kode ada di Bank Darah › Mapping UTD -->
-            <template v-if="fiturAktif('bdrs_bridging')">
-                <KonfigurasiBdrsUtd />
-                <PengirimanBdrs />
+            <template v-else-if="bagian === 'bdrs-utd'">
+                <template v-if="fiturAktif('bdrs_bridging')">
+                    <KonfigurasiBdrsUtd />
+                    <PengirimanBdrs />
+                </template>
+                <p v-else class="text-sm text-gray-500">Fitur Bridging Bank Darah (UTD) belum aktif. Aktifkan di Setting › Manajemen Modul.</p>
             </template>
             <!-- Helpdesk AI: Gateway OpenClaw untuk tombol Bantuan (khusus superadmin; token terenkripsi) -->
-            <KonfigurasiHelpdesk />
-
-            <!--  -->
-            <template v-if="!isEditKonfigurasiLainnya">
-                    <KonfigurasiLainnya :edit-handler="editKonfigurasiLainnya" :konfigurasi-integrasi-response="konfigurasiIntegrasiResponse"/>
+            <template v-else-if="bagian === 'helpdesk'">
+                <KonfigurasiHelpdesk />
             </template>
-            <template v-else>
+            <template v-else-if="bagian === 'lainnya'">
+                <template v-if="!isEditKonfigurasiLainnya">
+                    <KonfigurasiLainnya :edit-handler="editKonfigurasiLainnya" :konfigurasi-integrasi-response="konfigurasiIntegrasiResponse"/>
+                </template>
+                <template v-else>
                     <FormEditKonfigurasiLainnya :is-edit-konfigurasi-lainnya="isEditKonfigurasiLainnya" :konfigurasi-integrasi-response="konfigurasiIntegrasiResponse" @update:is-edit-konfigurasi-lainnya="isEditKonfigurasiLainnya = $event" @update:after-edit-konfigurasi-lainnya="handleKonfigurasiLainnya"/>
+                </template>
             </template>
         </template>
     </Card>

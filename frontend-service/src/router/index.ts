@@ -467,7 +467,7 @@ const router = createRouter({
       component: SettingView,
     },
     {
-      path: "/setting/konfigurasi-integrasi",
+      path: "/setting/konfigurasi-integrasi/:bagian?",
       name: "setting-konfigurasi-integrasi",
       meta: {
         layout: SidebarLayout,

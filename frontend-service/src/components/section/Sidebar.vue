@@ -81,6 +81,14 @@ watch(searchSidebar, (newValue) => {
   emit("update:searchSidebar", newValue);
 });
 
+// Ada tautan aktif di dalam dropdown (dipakai agar dropdown terbuka setelah halaman dimuat ulang).
+const anakAktif = (row: SidebarBody): boolean =>
+  (row.child ?? []).some((c) => (c.url && route.path === c.url) || anakAktif(c));
+
+// Tautan pertama di dalam dropdown (bisa bertingkat), untuk ikon saat sidebar diciutkan.
+const urlPertama = (row: SidebarBody): string =>
+  row.url ?? (row.child ?? []).map(urlPertama).find(Boolean) ?? "";
+
 const goToPage = (url: string) => {
   router.push(url);
 };
@@ -163,7 +171,7 @@ onMounted(() => {
                   </div>
                 </div>
                 <Accordion v-else-if="row1.type == linkType.DROPDOWN" :title="row1.name"
-                  :icon="row1.icon ? row1.icon : ''" class="cursor-pointer">
+                  :icon="row1.icon ? row1.icon : ''" :terbuka="anakAktif(row1)" class="cursor-pointer">
                   <div class="flex m-[10px]" v-if="
                     (showFilter && row1.name === 'Poli') ||
                     row1.name === 'Ruang Rawatan'
@@ -198,9 +206,11 @@ onMounted(() => {
                       }">
                       {{ row2.name }}
                     </div>
-                    <Accordion v-else-if="row2.type == linkType.DROPDOWN" :title="row2.name" class="cursor-pointer">
-                      <div v-for="row3 in row2.child">
-                        <div v-if="row3.type == linkType.LINK">
+                    <Accordion v-else-if="row2.type == linkType.DROPDOWN" :title="row2.name" :terbuka="anakAktif(row2)" class="cursor-pointer">
+                      <div v-for="row3 in row2.child" class="ml-[10px]">
+                        <div v-if="row3.type == linkType.LINK" @click="goToPage(row3.url ?? '')"
+                          class="cursor-pointer mx-[10px] my-[8px] px-[10px] py-[5px]"
+                          :class="{ 'bg-opensimrs-100 rounded-lg': route.path === row3.url }">
                           {{ row3.name }}
                         </div>
                         <Accordion v-else-if="row3.type == linkType.DROPDOWN" :title="row3.name">
@@ -214,7 +224,7 @@ onMounted(() => {
               <div v-else>
                 <component v-if="row1.icon" :is="row1.icon" :size="16" class="mx-auto my-5 text-white" @click="
                   row1.type == linkType.DROPDOWN
-                    ? goToPage(row1.child ? row1.child[0].url ?? '' : '')
+                    ? goToPage(urlPertama(row1))
                     : goToPage(row1.url ?? '')
                   " />
               </div>

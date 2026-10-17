@@ -10,9 +10,14 @@ const props = defineProps({
   icon: {
     type: String,
   },
+  // Terbuka saat dimuat, mis. bila salah satu tautan di dalamnya sedang aktif.
+  terbuka: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const isOpen = ref(false);
+const isOpen = ref(props.terbuka);
 const toggle = () => {
   isOpen.value = !isOpen.value;
 };

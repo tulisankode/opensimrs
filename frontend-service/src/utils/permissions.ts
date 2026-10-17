@@ -74,7 +74,7 @@ const any = (
 
 export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/setting/profil-faskes", permission: read("Setting", "Profile Faskes") },
-  { path: "/setting/konfigurasi-integrasi", permission: read("Setting", "Konfigurasi Integrasi") },
+  { path: "/setting/konfigurasi-integrasi", mode: "prefix", permission: read("Setting", "Konfigurasi Integrasi") },
   { path: "/setting/permission-menu", permission: read("Setting", "Profile Faskes") },
   { path: "/setting/print-out", permission: read("Setting", "Print Out") },
   { path: "/setting/profil-akun", permission: read("Setting", "Profile Saya") },
