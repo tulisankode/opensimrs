@@ -3,7 +3,7 @@
 #  OpenSIMRS — hapus instalasi lokal (pasangan install.sh; macOS/Ubuntu/Debian)
 #
 #  Yang dihapus — HANYA milik OpenSIMRS:
-#    1. Proses OpenSIMRS yang masih berjalan (port 5520, 8081–8099) — dengan konfirmasi.
+#    1. Proses OpenSIMRS yang masih berjalan (port 5520, 8081–8100) — dengan konfirmasi.
 #    2. (Opsional, ditawarkan) cadangan: pg_dump + mongodump ke ~/opensimrs-cadangan-<waktu>/.
 #    3. PostgreSQL: database & role aplikasi (bawaan "opensimrs", dibaca dari .env).
 #    4. MongoDB: database & akun aplikasi "opensimrs".
@@ -95,7 +95,7 @@ fi
 if [ "$PLATFORM" = mac ]; then pgadmin() { psql -X -q -p "$DB_PORT" -d postgres "$@"; }; AKSI_PG=aksi
 else pgadmin() { sudo -u postgres psql -X -q -p "$DB_PORT" -d postgres "$@"; }; AKSI_PG=aksi_langsung; fi   # sudo bisa meminta sandi
 
-PORT_APLIKASI="5520 8081 8082 8083 8084 8085 8086 8087 8088 8089 8090 8091 8092 8093 8094 8095 8096 8097 8098 8099"
+PORT_APLIKASI="5520 8081 8082 8083 8084 8085 8086 8087 8088 8089 8090 8091 8092 8093 8094 8095 8096 8097 8098 8099 8100"
 pid_port() { # PID proses yang mendengarkan port aplikasi
   local p
   for p in $PORT_APLIKASI; do

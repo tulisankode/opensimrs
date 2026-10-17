@@ -46,6 +46,7 @@ export const itemOrder = async (orderUuids, faskesUuid, lengkap = false, k) => {
   const items = await query(
     `SELECT i.uuid, i.order_uuid, i.pemeriksaan_uuid, i.nama, i.jenis, i.harga::float8 AS harga, i.tat_hari, i.status,
             i.no_pa, i.waktu_terima, i.target_selesai, i.waktu_selesai, i.kasus_induk_uuid, ki.no_pa AS no_pa_induk,
+            i.ditolak_eksternal_pada, i.ditolak_eksternal_alasan,
             m.kode, m.kategori, m.kode_icd9, i.created_at, i.updated_at,
             s.jenis_spesimen, s.lokasi_anatomi, s.lateralitas, s.cara_pengambilan, s.jumlah_wadah, s.fiksasi,
             s.waktu_pengambilan, s.waktu_fiksasi, s.kondisi, s.petugas AS petugas_terima,
@@ -368,11 +369,19 @@ rute.put(
 // ── Validasi & batal ─────────────────────────────────────────────────────────
 
 // Validasi petugas PA: status 'valid' + kirim tagihan (dalam transaksi: bila Pembayaran menolak, status tidak berubah).
+// "Validasi & Kirim ke LIS PA" (body.kirim_lis_pa / body.koneksi_uuid): seluruh kasus (item) order dikirim ke LIS PA
+// SEBELUM status order diubah; bila pengiriman gagal/tidak pasti, validasi dibatalkan (pola sama dengan Bridging LIS).
 rute.post(
   "/:uuid/validasi",
   izinPa("Order PA", "VALIDASI"),
   tangani(async (req, res) => {
     const faskes = req.author.faskesUuid;
+    const b = req.body ?? {};
+    let lis = null;
+    if (b.kirim_lis_pa) {
+      const { kirimOrderKePa } = await import("./lis-pa/lis-pa-service.js");
+      lis = await kirimOrderKePa(faskes, req.params.uuid, { koneksiUuid: b.koneksi_uuid || null, pengguna: req.author.username ?? null });
+    }
     const tagihan = await transaksi(async (k) => {
       const o = await kunciOrder(req.params.uuid, faskes, k);
       if (o.status !== "order") throw new Galat(409, `Order berstatus ${o.status}, tidak dapat divalidasi`);
@@ -380,7 +389,8 @@ rute.post(
       return tagihanOrder(o, req, false, k);
     });
     const o = await detailOrder(req.params.uuid, faskes);
-    kirim(res, { ...o, tagihan }, tagihan.dikirim ? `Order ${o.no_order} divalidasi, tagihan dikirim ke Pembayaran` : `Order ${o.no_order} divalidasi`);
+    const pesanLis = lis ? `, ${lis.length} kasus terkirim ke LIS PA` : "";
+    kirim(res, { ...o, tagihan, lis }, `${tagihan.dikirim ? `Order ${o.no_order} divalidasi, tagihan dikirim ke Pembayaran` : `Order ${o.no_order} divalidasi`}${pesanLis}`);
   }),
 );
 

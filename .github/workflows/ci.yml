@@ -53,6 +53,16 @@ jobs:
       - name: Uji unit (setting-service, penyaring Helpdesk)
         working-directory: setting-service
         run: node --test test/*.test.mjs
+      - name: Uji unit (penunjang-service, CSSD)
+        working-directory: penunjang-service
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+      - name: Uji unit (program-puskesmas-service)
+        working-directory: program-puskesmas-service
+        run: |
+          npm install --no-audit --no-fund
+          npm test
       - name: Muat schema.sql + jalankan migrasi
         env:
           PGPASSWORD: opensimrs
@@ -68,6 +78,8 @@ jobs:
           npx sequelize-cli db:migrate   # idempoten: kedua kali tidak boleh mengubah apa pun
       - name: Dokumen katalog modul sinkron dengan katalog-modul.json
         run: node scripts/dokumen-katalog.mjs --cek
+      - name: Integritas lintas berkas (rute katalog, menu navbar, migrasi, import @/main)
+        run: node scripts/cek-integritas.mjs
 
   frontend:
     runs-on: ubuntu-latest

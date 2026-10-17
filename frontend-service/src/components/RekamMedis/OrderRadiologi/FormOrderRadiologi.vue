@@ -196,7 +196,10 @@ defineExpose({ open, close });
               <div v-if="i.status === 'selesai'" class="p-2 mt-1 text-xs rounded bg-opensimrs-50">
                 <div class="whitespace-pre-line">{{ i.hasil }}</div>
                 <div class="mt-1"><b>Kesan:</b> {{ i.kesan }}</div>
-                <div class="mt-1 text-grey-400">{{ i.dokterRadiologi ?? "-" }} · {{ waktuRad(i.waktuHasil) }}</div>
+                <div class="flex items-center justify-between mt-1 text-grey-400">
+                  <span>{{ i.dokterRadiologi ?? "-" }} · {{ waktuRad(i.waktuHasil) }}</span>
+                  <CustomButton v-if="i.urlViewer" label="Buka Citra" icon="PhImage" size="small" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="() => window.open(i.urlViewer, '_blank', 'noopener')" />
+                </div>
               </div>
             </div>
           </div>

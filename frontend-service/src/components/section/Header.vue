@@ -77,6 +77,11 @@ const templistMenu = ref<ListMenu[]>([
     url: "/rawat-inap",
   },
   {
+    title: "ICU",
+    icon: "PhHeartbeat",
+    url: "/icu",
+  },
+  {
     title: "IGD",
     icon: "PhHospital",
     url: "/igd",
@@ -85,6 +90,11 @@ const templistMenu = ref<ListMenu[]>([
     title: "Kamar Operasi",
     icon: "PhKnife",
     url: "/kamar-operasi",
+  },
+  {
+    title: "Gizi",
+    icon: "PhBowlFood",
+    url: "/gizi",
   },
   {
     title: "Farmasi",
@@ -123,6 +133,26 @@ const templistMenu = ref<ListMenu[]>([
     title: "MCU",
     icon: "PhClipboardText",
     url: "/mcu",
+  },
+  {
+    title: "Program Puskesmas",
+    icon: "PhBabyCarriage",
+    url: "/program-puskesmas",
+  },
+  {
+    title: "CSSD",
+    icon: "PhSprayBottle",
+    url: "/cssd",
+  },
+  {
+    title: "Bank Darah RS (BDRS)",
+    icon: "PhDrop",
+    url: "/bank-darah",
+  },
+  {
+    title: "UTD",
+    icon: "PhDropHalf",
+    url: "/utd",
   },
   {
     title: "Training",
@@ -302,7 +332,7 @@ const susunMenu = () => {
     .map((m) => ({ title: NAMA_SEGERA[m.kode] ?? m.nama, icon: IKON_SEGERA[m.kode] ?? "PhPuzzlePiece", url: `/segera/${m.kode}`, segera: true }))
     .filter((s) => !menu.some((x) => x.title === s.title));
 };
-const MODUL_PENUNJANG = ["Laboratorium", "Patologi Anatomi", "Mikrobiologi", "Radiologi", "Fisioterapi"];
+const MODUL_PENUNJANG = ["Laboratorium", "Patologi Anatomi", "Mikrobiologi", "Radiologi", "Fisioterapi", "CSSD", "Bank Darah RS (BDRS)", "UTD"];
 const menuAktif = (m: ListMenu) =>
   m.anak ? m.anak.some((a) => checkActiveTab(a.url)) : checkActiveTab(m.url) || route.path === m.url;
 const popupGrup = ref();
@@ -374,16 +404,12 @@ const bukaSegera = (url: string) => {
 };
 
 const NAMA_SEGERA: Record<string, string> = {
-  fisioterapi: "Fisioterapi", radiologi: "Radiologi", icu: "ICU", gizi: "Gizi",
-  koding_rm: "Koding RM", cssd: "CSSD", bank_darah: "Bank Darah", utd: "UTD", akuntansi: "Akuntansi",
-  program_puskesmas: "Program Puskesmas", training: "Training", mcu: "MCU",
-  patologi_anatomi: "Patologi Anatomi", mikrobiologi: "Mikrobiologi",
+  koding_rm: "Koding RM", akuntansi: "Akuntansi",
+  training: "Training",
 };
 const IKON_SEGERA: Record<string, string> = {
-  fisioterapi: "FisioIcon", radiologi: "PhScan", icu: "PhHeartbeat", gizi: "PhBowlFood",
-  koding_rm: "PhFileCode", cssd: "PhSprayBottle", bank_darah: "PhDrop", utd: "PhDropHalf", akuntansi: "PhCalculator",
-  mcu: "PhClipboardText", patologi_anatomi: "PhMicroscope", mikrobiologi: "PhBug",
-  program_puskesmas: "PhUsersThree", training: "TrainingIcon",
+  koding_rm: "PhFileCode", akuntansi: "PhCalculator",
+  training: "TrainingIcon",
 };
 
 onMounted(async () => {

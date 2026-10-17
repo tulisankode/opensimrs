@@ -19,6 +19,7 @@ const { seed: seedFisioterapi } = require('./seed-fisioterapi.cjs');
 const { seed: seedMcu } = require('./seed-mcu.cjs');
 const { seed: seedPatologi } = require('./seed-patologi.cjs');
 const { seed: seedMikrobiologi } = require('./seed-mikrobiologi.cjs');
+const { seed: seedBankDarah } = require('./seed-bank-darah.cjs');
 
 // Daftar modul penunjang: [kode modul (ref_modul), fungsi seed]. Tambahkan baris baru di sini untuk modul lain.
 const MODUL = [
@@ -28,6 +29,7 @@ const MODUL = [
   ['mcu', seedMcu], // setelah lab & radiologi: paket MCU menunjuk item lab & Thorax PA
   ['patologi_anatomi', seedPatologi],
   ['mikrobiologi', seedMikrobiologi],
+  ['bank_darah', seedBankDarah],
 ];
 
 const ROOT = path.resolve(__dirname, '..', '..');

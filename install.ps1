@@ -49,7 +49,8 @@ Set-Location $ROOT
 $DB_NAMA = "opensimrs"; $DB_USER = "opensimrs"; $MONGO_USER = "opensimrs"
 $LAYANAN = [ordered]@{ "admisi"=8081; "antrian"=8082; "auth"=8083; "farmasi"=8084; "igd"=8085; "inventory"=8086;
   "lab"=8087; "laporan"=8088; "payment"=8089; "rawat-inap"=8091; "rawat-jalan"=8092; "rekamedis"=8093;
-  "setting"=8094; "stok-farmasi"=8095; "datamaster"=8096; "satusehat"=8097; "bpjs"=8098; "penunjang"=8099; "studio"=8090 }
+  "setting"=8094; "stok-farmasi"=8095; "datamaster"=8096; "satusehat"=8097; "bpjs"=8098; "penunjang"=8099; "studio"=8090;
+  "program-puskesmas"=8100 }
 $PG_SUPERPASS_BARU = $null
 
 # ---------- tampilan ----------
@@ -400,6 +401,7 @@ VITE_BASE_STOK=http://localhost:8095/api/v3
 VITE_BASE_SATUSEHAT=http://localhost:8097/api/v3/satusehat
 VITE_BASE_BPJS=http://localhost:8098/api/v3/bpjs
 VITE_BASE_PENUNJANG=http://localhost:8099/api/v3/penunjang
+VITE_BASE_PROGRAM_PUSKESMAS=http://localhost:8100/api/v3/program-puskesmas
 VITE_BASE_STUDIO=http://localhost:8090/api/v3/studio
 "@ -replace "`r`n", "`n"
   TulisUtf8 "frontend-service\.env" ($fe + "`n")

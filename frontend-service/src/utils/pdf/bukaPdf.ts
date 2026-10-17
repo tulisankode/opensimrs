@@ -1,5 +1,5 @@
 import pdfMake from "pdfmake/build/pdfmake";
-import { app } from "@/main";
+import { app } from "@/utils/aplikasi";
 
 // Buka PDF hasil pdfmake di tab baru dengan aman:
 // - PDF dibuat lebih dulu; bila gagal (mis. gambar rusak) tampil toast, bukan tab kosong.

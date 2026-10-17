@@ -185,6 +185,9 @@ import PenjadwalanRadiologiPage from "@/views/Radiologi/PenjadwalanRadiologiPage
 import MasterRuangRadiologiPage from "@/views/Radiologi/MasterRuangRadiologiPage.vue";
 import MasterTemplateRadiologiPage from "@/views/Radiologi/MasterTemplateRadiologiPage.vue";
 import MasterPetugasRadiologiPage from "@/views/Radiologi/MasterPetugasRadiologiPage.vue";
+import MappingTindakanPacsPage from "@/views/Radiologi/Mapping/MappingTindakanPacsPage.vue";
+import MappingRefPacsPage from "@/views/Radiologi/Mapping/MappingRefPacsPage.vue";
+import MappingRuangPacsPage from "@/views/Radiologi/Mapping/MappingRuangPacsPage.vue";
 
 // NOTE MEDICAL CHECK UP (penunjang-service)
 import McuView from "@/views/MCU/McuView.vue";
@@ -203,6 +206,7 @@ import ArsipPaPage from "@/views/PatologiAnatomi/ArsipPaPage.vue";
 import MasterPemeriksaanPaPage from "@/views/PatologiAnatomi/MasterPemeriksaanPaPage.vue";
 import MasterTemplatePaPage from "@/views/PatologiAnatomi/MasterTemplatePaPage.vue";
 import LaporanKunjunganPaPage from "@/views/PatologiAnatomi/LaporanKunjunganPaPage.vue";
+import MappingLisPaPage from "@/views/PatologiAnatomi/MappingLisPaPage.vue";
 import MikrobiologiView from "@/views/Mikrobiologi/MikrobiologiView.vue";
 import OrderMikroPage from "@/views/Mikrobiologi/OrderMikroPage.vue";
 import PemeriksaanMikroPage from "@/views/Mikrobiologi/PemeriksaanMikroPage.vue";
@@ -216,6 +220,63 @@ import DaftarTungguOkPage from "@/views/KamarOperasi/DaftarTungguPage.vue";
 import JadwalOkPage from "@/views/KamarOperasi/JadwalPage.vue";
 import MasterRuangOkPage from "@/views/KamarOperasi/MasterRuangOkPage.vue";
 import LaporanRekapOkPage from "@/views/KamarOperasi/LaporanRekapPage.vue";
+import ProgramPuskesmasView from "@/views/ProgramPuskesmas/ProgramPuskesmasView.vue";
+import KiaKohortPage from "@/views/ProgramPuskesmas/KiaKohortPage.vue";
+import KbPage from "@/views/ProgramPuskesmas/KbPage.vue";
+import ImunisasiPage from "@/views/ProgramPuskesmas/ImunisasiPage.vue";
+import MtbsPage from "@/views/ProgramPuskesmas/MtbsPage.vue";
+import SasaranPage from "@/views/ProgramPuskesmas/SasaranPage.vue";
+import UkmPage from "@/views/ProgramPuskesmas/UkmPage.vue";
+import LaporanPagePkm from "@/views/ProgramPuskesmas/LaporanPage.vue";
+import DatamasterJenisVaksinPage from "@/views/ProgramPuskesmas/DatamasterJenisVaksinPage.vue";
+import DatamasterFormatLaporanPage from "@/views/ProgramPuskesmas/DatamasterFormatLaporanPage.vue";
+
+import IcuView from "@/views/Icu/IcuView.vue";
+import DashboardIcuPage from "@/views/Icu/DashboardIcuPage.vue";
+import PerawatanIcuPage from "@/views/Icu/PerawatanIcuPage.vue";
+import LaporanIcuPage from "@/views/Icu/LaporanIcuPage.vue";
+
+// NOTE CSSD — Sterilisasi Alat & Pelacakan Set Instrumen (penunjang-service)
+import CssdView from "@/views/Cssd/CssdView.vue";
+import DashboardCssdPage from "@/views/Cssd/DashboardCssdPage.vue";
+import PenerimaanCssdPage from "@/views/Cssd/PenerimaanCssdPage.vue";
+import PemrosesanCssdPage from "@/views/Cssd/PemrosesanCssdPage.vue";
+import LoadCssdPage from "@/views/Cssd/LoadCssdPage.vue";
+import DistribusiCssdPage from "@/views/Cssd/DistribusiCssdPage.vue";
+import RecallCssdPage from "@/views/Cssd/RecallCssdPage.vue";
+import MasterSetCssdPage from "@/views/Cssd/MasterSetCssdPage.vue";
+import MasterMesinCssdPage from "@/views/Cssd/MasterMesinCssdPage.vue";
+import LaporanCssdPage from "@/views/Cssd/LaporanCssdPage.vue";
+
+// NOTE Bank Darah RS (BDRS) — permintaan darah, uji silang serasi, stok & serah terima (penunjang-service)
+import BankDarahView from "@/views/BankDarah/BankDarahView.vue";
+import PermintaanBdrsPage from "@/views/BankDarah/PermintaanBdrsPage.vue";
+import CrossmatchBdrsPage from "@/views/BankDarah/CrossmatchBdrsPage.vue";
+import StokBdrsPage from "@/views/BankDarah/StokBdrsPage.vue";
+import SerahTerimaBdrsPage from "@/views/BankDarah/SerahTerimaBdrsPage.vue";
+import TransfusiBdrsPage from "@/views/BankDarah/TransfusiBdrsPage.vue";
+import KomponenBdrsPage from "@/views/BankDarah/KomponenBdrsPage.vue";
+import PengaturanBdrsPage from "@/views/BankDarah/PengaturanBdrsPage.vue";
+import LaporanBdrsPage from "@/views/BankDarah/LaporanBdrsPage.vue";
+
+// NOTE UTD / UPTD Produksi Darah — donor, aftap, uji saring IMLTD, komponen, distribusi & pelaporan (penunjang-service)
+import UtdView from "@/views/Utd/UtdView.vue";
+import DonorUtdPage from "@/views/Utd/DonorUtdPage.vue";
+import AftapUtdPage from "@/views/Utd/AftapUtdPage.vue";
+import ImltdUtdPage from "@/views/Utd/ImltdUtdPage.vue";
+import KomponenUtdPage from "@/views/Utd/KomponenUtdPage.vue";
+import DistribusiUtdPage from "@/views/Utd/DistribusiUtdPage.vue";
+import PelaporanUtdPage from "@/views/Utd/PelaporanUtdPage.vue";
+import PengaturanUtdPage from "@/views/Utd/PengaturanUtdPage.vue";
+import GiziView from "@/views/Gizi/GiziView.vue";
+import SkriningGiziPage from "@/views/Gizi/SkriningPage.vue";
+import AsuhanGiziPage from "@/views/Gizi/AsuhanPage.vue";
+import OrderDietPage from "@/views/Gizi/OrderDietPage.vue";
+import DistribusiGiziPage from "@/views/Gizi/DistribusiPage.vue";
+import MasterDietPage from "@/views/Gizi/MasterDietPage.vue";
+import BentukMakananGiziPage from "@/views/Gizi/BentukMakananPage.vue";
+import StandarPorsiGiziPage from "@/views/Gizi/StandarPorsiPage.vue";
+import LaporanGiziPage from "@/views/Gizi/LaporanGiziPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
@@ -1619,6 +1680,9 @@ const router = createRouter({
       ["/radiologi/datamaster/ruang", "radiologi-datamaster-ruang", MasterRuangRadiologiPage],
       ["/radiologi/datamaster/template", "radiologi-datamaster-template", MasterTemplateRadiologiPage],
       ["/radiologi/datamaster/petugas", "radiologi-datamaster-petugas", MasterPetugasRadiologiPage],
+      ["/radiologi/mapping/tindakan-pacs", "radiologi-mapping-tindakan-pacs", MappingTindakanPacsPage],
+      ["/radiologi/mapping/referensi-pacs", "radiologi-mapping-referensi-pacs", MappingRefPacsPage],
+      ["/radiologi/mapping/ruang-pacs", "radiologi-mapping-ruang-pacs", MappingRuangPacsPage],
       ["/radiologi/laporan/kunjungan", "radiologi-laporan-kunjungan", LaporanKunjunganRadiologiPage],
     ]),
     // !SECTION
@@ -1644,6 +1708,7 @@ const router = createRouter({
       ["/patologi-anatomi/datamaster/pemeriksaan", "patologi-anatomi-datamaster-pemeriksaan", MasterPemeriksaanPaPage],
       ["/patologi-anatomi/datamaster/template", "patologi-anatomi-datamaster-template", MasterTemplatePaPage],
       ["/patologi-anatomi/laporan/kunjungan", "patologi-anatomi-laporan-kunjungan", LaporanKunjunganPaPage],
+      ["/patologi-anatomi/mapping/lis", "patologi-anatomi-mapping-lis", MappingLisPaPage],
     ]),
     // SECTION Mikrobiologi
     { path: "/mikrobiologi", name: "mikrobiologi", redirect: "/mikrobiologi/order" },
@@ -1655,6 +1720,84 @@ const router = createRouter({
       ["/mikrobiologi/datamaster/antibiotik", "mikrobiologi-datamaster-antibiotik", MasterAntibiotikPage],
       ["/mikrobiologi/laporan/kunjungan", "mikrobiologi-laporan-kunjungan", LaporanKunjunganMikroPage],
       ["/mikrobiologi/laporan/antibiogram", "mikrobiologi-laporan-antibiogram", LaporanAntibiogramPage],
+    ]),
+    // SECTION Gizi (penunjang-service)
+    { path: "/gizi", name: "gizi", redirect: "/gizi/skrining" },
+    ...halamanModul(GiziView, [
+      ["/gizi/skrining", "gizi-skrining", SkriningGiziPage],
+      ["/gizi/asuhan", "gizi-asuhan", AsuhanGiziPage],
+      ["/gizi/order", "gizi-order", OrderDietPage],
+      ["/gizi/distribusi", "gizi-distribusi", DistribusiGiziPage],
+      ["/gizi/master/diet", "gizi-master-diet", MasterDietPage],
+      ["/gizi/master/bentuk-makanan", "gizi-master-bentuk-makanan", BentukMakananGiziPage],
+      ["/gizi/master/standar-porsi", "gizi-master-standar-porsi", StandarPorsiGiziPage],
+      ["/gizi/laporan", "gizi-laporan", LaporanGiziPage],
+    ]),
+    // !SECTION
+
+    // SECTION Program Puskesmas (program-puskesmas-service)
+    { path: "/program-puskesmas", name: "program-puskesmas", redirect: "/program-puskesmas/kia" },
+    ...halamanModul(ProgramPuskesmasView, [
+      ["/program-puskesmas/kia", "program-puskesmas-kia", KiaKohortPage],
+      ["/program-puskesmas/kb", "program-puskesmas-kb", KbPage],
+      ["/program-puskesmas/imunisasi", "program-puskesmas-imunisasi", ImunisasiPage],
+      ["/program-puskesmas/mtbs", "program-puskesmas-mtbs", MtbsPage],
+      ["/program-puskesmas/sasaran", "program-puskesmas-sasaran", SasaranPage],
+      ["/program-puskesmas/ukm", "program-puskesmas-ukm", UkmPage],
+      ["/program-puskesmas/laporan", "program-puskesmas-laporan", LaporanPagePkm],
+      ["/program-puskesmas/datamaster/jenis-vaksin", "program-puskesmas-datamaster-jenis-vaksin", DatamasterJenisVaksinPage],
+      ["/program-puskesmas/datamaster/format-laporan", "program-puskesmas-datamaster-format-laporan", DatamasterFormatLaporanPage],
+    ]),
+    // !SECTION
+
+    // SECTION ICU / Intensif
+    { path: "/icu", name: "icu", redirect: "/icu/dashboard" },
+    ...halamanModul(IcuView, [
+      ["/icu/dashboard", "icu-dashboard", DashboardIcuPage],
+      ["/icu/perawatan", "icu-perawatan", PerawatanIcuPage],
+      ["/icu/laporan", "icu-laporan", LaporanIcuPage],
+    ]),
+    // !SECTION
+
+    // SECTION CSSD
+    { path: "/cssd", name: "cssd", redirect: "/cssd/dashboard" },
+    ...halamanModul(CssdView, [
+      ["/cssd/dashboard", "cssd-dashboard", DashboardCssdPage],
+      ["/cssd/penerimaan", "cssd-penerimaan", PenerimaanCssdPage],
+      ["/cssd/pemrosesan", "cssd-pemrosesan", PemrosesanCssdPage],
+      ["/cssd/load", "cssd-load", LoadCssdPage],
+      ["/cssd/distribusi", "cssd-distribusi", DistribusiCssdPage],
+      ["/cssd/recall", "cssd-recall", RecallCssdPage],
+      ["/cssd/datamaster/master-set", "cssd-datamaster-master-set", MasterSetCssdPage],
+      ["/cssd/datamaster/mesin", "cssd-datamaster-mesin", MasterMesinCssdPage],
+      ["/cssd/laporan", "cssd-laporan", LaporanCssdPage],
+    ]),
+    // !SECTION
+
+    // SECTION Bank Darah RS (BDRS)
+    { path: "/bank-darah", name: "bank-darah", redirect: "/bank-darah/permintaan" },
+    ...halamanModul(BankDarahView, [
+      ["/bank-darah/permintaan", "bank-darah-permintaan", PermintaanBdrsPage],
+      ["/bank-darah/crossmatch", "bank-darah-crossmatch", CrossmatchBdrsPage],
+      ["/bank-darah/stok", "bank-darah-stok", StokBdrsPage],
+      ["/bank-darah/serah-terima", "bank-darah-serah-terima", SerahTerimaBdrsPage],
+      ["/bank-darah/transfusi", "bank-darah-transfusi", TransfusiBdrsPage],
+      ["/bank-darah/datamaster/komponen", "bank-darah-datamaster-komponen", KomponenBdrsPage],
+      ["/bank-darah/pengaturan", "bank-darah-pengaturan", PengaturanBdrsPage],
+      ["/bank-darah/laporan", "bank-darah-laporan", LaporanBdrsPage],
+    ]),
+    // !SECTION
+
+    // SECTION UTD / UPTD Produksi Darah
+    { path: "/utd", name: "utd", redirect: "/utd/donor" },
+    ...halamanModul(UtdView, [
+      ["/utd/donor", "utd-donor", DonorUtdPage],
+      ["/utd/aftap", "utd-aftap", AftapUtdPage],
+      ["/utd/imltd", "utd-imltd", ImltdUtdPage],
+      ["/utd/komponen", "utd-komponen", KomponenUtdPage],
+      ["/utd/distribusi", "utd-distribusi", DistribusiUtdPage],
+      ["/utd/pengaturan", "utd-pengaturan", PengaturanUtdPage],
+      ["/utd/laporan", "utd-laporan", PelaporanUtdPage],
     ]),
     // !SECTION
 
