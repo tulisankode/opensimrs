@@ -19,7 +19,7 @@ Berkas ini dibaca otomatis oleh Claude Code. Isinya aturan dan konteks proyek ya
 - Tulis kode yang mirip kode di sekitarnya, termasuk penamaan, kepadatan komentar, dan gaya.
 
 ## Arsitektur singkat
-- **18 layanan Express** (`*-service/`, port 8081–8099, awalan `/api/v3/...`) dan **frontend** Vue 3 + PrimeVue + Tailwind (`frontend-service/`, port 5520). Tabel port ada di [docs/INSTALLATION_GUIDE.md](./docs/INSTALLATION_GUIDE.md#3-gambaran-sistem--port).
+- **19 layanan Express** (`*-service/`, port 8081–8100, awalan `/api/v3/...`) dan **frontend** Vue 3 + PrimeVue + Tailwind (`frontend-service/`, port 5520). Tabel port ada di [docs/INSTALLATION_GUIDE.md](./docs/INSTALLATION_GUIDE.md#3-gambaran-sistem--port).
 - **PostgreSQL**: satu database bersama `opensimrs` (Sequelize lewat `@opensimrs/model-sdk`; bpjs, satusehat, dan penunjang memakai `pg` langsung).
 - **MongoDB**: isi rekam medis elektronik (`rekam_medises`, `sessions`, `catatan_perawats`, `instruksi_medises`).
 - **Redis**: token sesi dan cache izin.

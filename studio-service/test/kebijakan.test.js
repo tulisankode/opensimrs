@@ -67,3 +67,24 @@ test("uji backend hanya peringatan", () => {
   assert.equal(cek(h, "Uji").lulus, false);
   assert.equal(h.lulus, true);
 });
+
+test("import @/main di frontend ditolak (import melingkar → layar putih)", () => {
+  const h = periksaKebijakan([
+    { path: "frontend-service/src/utils/baru.ts", status: "??", patch: '+import { app } from "@/main";' },
+    { path: "frontend-service/src/views/Icu/Halaman.vue", status: "??", patch: '+import { app } from "../../main";' },
+    changelog,
+  ]);
+  assert.equal(h.lulus, false);
+  assert.match(cek(h, "Import melingkar").pesan, /utils\/baru\.ts.*Halaman\.vue/);
+});
+
+test("import @/utils/aplikasi lolos; main.ts sendiri dan baris dihapus tidak diperiksa", () => {
+  const h = periksaKebijakan([
+    { path: "frontend-service/src/utils/baru.ts", status: "??", patch: '+import { app } from "@/utils/aplikasi";' },
+    { path: "frontend-service/src/main.ts", status: "M", patch: '+import { setAplikasi } from "./utils/aplikasi";' },
+    { path: "frontend-service/src/utils/apiHandler.ts", status: "M", patch: '-import { app } from "@/main";\n+import { app } from "@/utils/aplikasi";' },
+    changelog,
+  ]);
+  assert.equal(cek(h, "Import melingkar").lulus, true);
+  assert.equal(h.lulus, true);
+});

@@ -81,7 +81,8 @@ OrderAlkesModel.init({
             allowNull: false,
         },
         jenis_pelayanan: {
-            type: DataTypes.ENUM("rj", "ri", "fisio", "igd"),
+            // "ok": pemakaian BHP/obat depo Kamar Operasi (STD-0004), lihat penunjang-service/src/kamar-operasi/pemakaian.js.
+            type: DataTypes.ENUM("rj", "ri", "fisio", "igd", "ok"),
             allowNull: false,
         },
         lokasi_uuid: {
