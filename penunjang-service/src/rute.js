@@ -5,6 +5,7 @@ import radiologi from "./radiologi/rute.js";
 import mcu from "./mcu/rute.js";
 import patologi from "./patologi/rute.js";
 import mikrobiologi from "./mikrobiologi/rute.js";
+import koding from "./koding/rute.js";
 import kamarOperasi from "./kamar-operasi/rute.js";
 import gizi from "./gizi/rute.js";
 import utd from "./utd/rute.js";
@@ -25,5 +26,6 @@ rute.use("/bank-darah", bankDarah);
 rute.use("/utd", utd);
 rute.use("/gizi", gizi);
 rute.use("/kamar-operasi", kamarOperasi);
+rute.use("/koding", koding);
 
 export default rute;

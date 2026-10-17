@@ -160,6 +160,11 @@ const templistMenu = ref<ListMenu[]>([
     url: "/training",
   },
   {
+    title: "Koding Rekam Medis",
+    icon: "PhFileCode",
+    url: "/koding-rm",
+  },
+  {
     title: "Pembayaran",
     icon: "PhMoneyWavy",
     url: "/pembayaran",
@@ -404,11 +409,11 @@ const bukaSegera = (url: string) => {
 };
 
 const NAMA_SEGERA: Record<string, string> = {
-  koding_rm: "Koding RM", akuntansi: "Akuntansi",
+  akuntansi: "Akuntansi",
   training: "Training",
 };
 const IKON_SEGERA: Record<string, string> = {
-  koding_rm: "PhFileCode", akuntansi: "PhCalculator",
+  akuntansi: "PhCalculator",
   training: "TrainingIcon",
 };
 

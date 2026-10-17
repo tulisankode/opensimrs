@@ -435,10 +435,14 @@
       "nama": "Koding & Rekam Medis",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "Koding ICD untuk klaim, peminjaman & retensi berkas.",
-      "menu": [],
-      "rute": [],
+      "menu": [
+        "Koding Rekam Medis"
+      ],
+      "rute": [
+        "/koding-rm"
+      ],
       "urutan": 22
     },
     {
