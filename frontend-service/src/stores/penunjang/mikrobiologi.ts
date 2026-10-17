@@ -147,7 +147,8 @@ export const buatOrderMikro = (data: {
   cito?: boolean;
   items: ItemOrderMikroInput[];
 }) => apiPenunjangPost("/mikrobiologi/order", data);
-export const validasiOrderMikro = (uuid: string) => apiPenunjangPost(`/mikrobiologi/order/${uuid}/validasi`);
+export const validasiOrderMikro = (uuid: string, aksi: "validasi_saja" | "validasi_kirim" = "validasi_saja", koneksiUuid?: string) =>
+  apiPenunjangPost(`/mikrobiologi/order/${uuid}/validasi`, { aksi, koneksi_uuid: koneksiUuid });
 export const batalOrderMikro = (uuid: string, alasan: string) => apiPenunjangPost(`/mikrobiologi/order/${uuid}/batal`, { alasan });
 
 // ── Pemeriksaan (worklist per spesimen) & hasil
@@ -166,6 +167,26 @@ export const laporanKunjunganMikro = (tanggalMulai: string, tanggalSelesai: stri
 export const laporanAntibiogramMikro = (params: Record<string, any>) => apiPenunjangGet(`/mikrobiologi/laporan/antibiogram${qs(params)}`);
 export const cariPasienMikro = (cari: string) => apiPenunjangGet(`/mikrobiologi/referensi/pasien${qs({ cari })}`);
 export const daftarDokterMikro = () => apiPenunjangGet("/mikrobiologi/referensi/dokter");
+
+// ── Bridging LIS Mikrobiologi (STD-0014) — fitur mikro_bridging_lis, /mikrobiologi/lis/...
+export const daftarKoneksiLisMikro = () => apiPenunjangGet("/mikrobiologi/lis/koneksi");
+export const simpanKoneksiLisMikro = (uuid: string | null, data: Record<string, any>) =>
+  uuid ? apiPenunjangPut(`/mikrobiologi/lis/koneksi/${uuid}`, data) : apiPenunjangPost("/mikrobiologi/lis/koneksi", data);
+export const jadikanBawaanLisMikro = (uuid: string) => apiPenunjangPut(`/mikrobiologi/lis/koneksi/${uuid}/bawaan`);
+export const buatUlangKunciMasukLisMikro = (uuid: string) => apiPenunjangPost(`/mikrobiologi/lis/koneksi/${uuid}/kunci-masuk`);
+export const hapusKoneksiLisMikro = (uuid: string) => apiPenunjangDelete(`/mikrobiologi/lis/koneksi/${uuid}`);
+export const ujiKoneksiLisMikro = (uuid: string) => apiPenunjangPost(`/mikrobiologi/lis/koneksi/${uuid}/uji`);
+
+export type JenisPemetaanLisMikro = "pemeriksaan" | "spesimen" | "organisme" | "antibiotik" | "unit" | "dokter" | "penjamin";
+export const daftarPemetaanLisMikro = (jenis: JenisPemetaanLisMikro) => apiPenunjangGet(`/mikrobiologi/lis/pemetaan${qs({ jenis })}`);
+export const simpanPemetaanLisMikro = (jenis: JenisPemetaanLisMikro, items: Record<string, any>[]) =>
+  apiPenunjangPut(`/mikrobiologi/lis/pemetaan/${jenis}`, { items });
+
+export const daftarPengirimanLisMikro = (params: Record<string, any> = {}) => apiPenunjangGet(`/mikrobiologi/lis/pengiriman${qs(params)}`);
+export const statusKirimOrderMikro = (orderUuid: string) => apiPenunjangGet(`/mikrobiologi/lis/kirim/${orderUuid}`);
+export const kirimOrderMikroLis = (orderUuid: string, koneksiUuid?: string) => apiPenunjangPost(`/mikrobiologi/lis/kirim/${orderUuid}`, { koneksi_uuid: koneksiUuid });
+export const cekStatusKirimOrderMikro = (orderUuid: string) => apiPenunjangPost(`/mikrobiologi/lis/kirim/${orderUuid}/cek-status`);
+export const tarikHasilLisMikro = (orderUuid: string) => apiPenunjangPost(`/mikrobiologi/lis/tarik/${orderUuid}`);
 
 // Epoch detik ⇄ Date untuk input waktu.
 export const keEpoch = (d?: Date | null) => (d ? Math.floor(d.getTime() / 1000) : undefined);

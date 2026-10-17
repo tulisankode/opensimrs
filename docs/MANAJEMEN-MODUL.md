@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 1 berstatus Segera), **66 fitur** (4 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 1 berstatus Segera), **67 fitur** (4 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -497,6 +497,12 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
 | `pa_bridging_lis` | Bridging LIS Patologi Anatomi | Kirim order PA ke sistem patologi & terima diagnosis otomatis. | Tersedia | – | – | – |
+
+#### Mikrobiologi (`mikrobiologi`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `mikro_bridging_lis` | Bridging LIS Mikrobiologi | Kirim order ke LIS mikrobiologi & terima hasil identifikasi/AST otomatis. | Tersedia | – | – | – |
 
 ### E. Bagian (unit terkecil)
 

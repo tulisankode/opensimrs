@@ -6,6 +6,7 @@ import { pemeriksaan, organisme, antibiotik, panel } from "./master.js";
 import order from "./order.js";
 import hasil from "./hasil.js";
 import laporan from "./laporan.js";
+import lis from "./lis-rute.js";
 
 // Mikrobiologi Klinik — /api/v3/penunjang/mikrobiologi/...
 //   /pemeriksaan | /organisme | /antibiotik   datamaster (CRUD, ?cari=&status=; pemeriksaan ?jenis=&spesimen=; organisme ?gram=&kelompok=)
@@ -16,6 +17,7 @@ import laporan from "./laporan.js";
 //   /laporan/kunjungan        rekap kunjungan, positivitas kultur, organisme terbanyak, TAT (hari)
 //   /laporan/antibiogram      antibiogram kumulatif (%S per organisme × antibiotik, jumlah isolat)
 //   /referensi/pilihan|pasien|dokter
+//   /lis                      Bridging LIS Mikrobiologi (fitur mikro_bridging_lis): koneksi, mapping, kirim/tarik hasil, status kiriman
 const rute = express.Router();
 
 rute.use("/pemeriksaan", pemeriksaan);
@@ -24,6 +26,7 @@ rute.use("/antibiotik", antibiotik);
 rute.use("/panel", panel);
 rute.use("/order", order);
 rute.use("/laporan", laporan);
+rute.use("/lis", lis);
 
 // Daftar pilihan (enum) untuk form frontend.
 rute.get(

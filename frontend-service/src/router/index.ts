@@ -215,6 +215,7 @@ import MasterOrganismePage from "@/views/Mikrobiologi/MasterOrganismePage.vue";
 import MasterAntibiotikPage from "@/views/Mikrobiologi/MasterAntibiotikPage.vue";
 import LaporanKunjunganMikroPage from "@/views/Mikrobiologi/LaporanKunjunganMikroPage.vue";
 import LaporanAntibiogramPage from "@/views/Mikrobiologi/LaporanAntibiogramPage.vue";
+import MappingLisMikrobiologiPage from "@/views/Mikrobiologi/MappingLisMikrobiologiPage.vue";
 import KodingRmView from "@/views/KodingRM/KodingRmView.vue";
 import WorklistKodingPage from "@/views/KodingRM/WorklistKodingPage.vue";
 import KunjunganKodingPage from "@/views/KodingRM/KunjunganKodingPage.vue";
@@ -1725,6 +1726,7 @@ const router = createRouter({
       ["/mikrobiologi/datamaster/pemeriksaan", "mikrobiologi-datamaster-pemeriksaan", MasterPemeriksaanMikroPage],
       ["/mikrobiologi/datamaster/organisme", "mikrobiologi-datamaster-organisme", MasterOrganismePage],
       ["/mikrobiologi/datamaster/antibiotik", "mikrobiologi-datamaster-antibiotik", MasterAntibiotikPage],
+      ["/mikrobiologi/mapping-lis", "mikrobiologi-mapping-lis", MappingLisMikrobiologiPage],
       ["/mikrobiologi/laporan/kunjungan", "mikrobiologi-laporan-kunjungan", LaporanKunjunganMikroPage],
       ["/mikrobiologi/laporan/antibiogram", "mikrobiologi-laporan-antibiogram", LaporanAntibiogramPage],
     ]),
