@@ -167,8 +167,45 @@ export const buatOrderPa = (data: {
   cito?: boolean;
   items: ItemOrderPa[];
 }) => apiPenunjangPost("/patologi/order", data);
-export const validasiOrderPa = (uuid: string) => apiPenunjangPost(`/patologi/order/${uuid}/validasi`);
+export const validasiOrderPa = (uuid: string, opsi: { kirimLisPa?: boolean; koneksiUuid?: string | null } = {}) =>
+  apiPenunjangPost(`/patologi/order/${uuid}/validasi`, opsi.kirimLisPa ? { kirimLisPa: true, koneksiUuid: opsi.koneksiUuid || null } : {});
 export const batalOrderPa = (uuid: string, alasan: string) => apiPenunjangPost(`/patologi/order/${uuid}/batal`, { alasan });
+
+// ── Bridging LIS Patologi Anatomi (fitur pa_bridging_lis; pola sama dengan Bridging LIS Laboratorium)
+export const daftarKoneksiLisPa = () => apiPenunjangGet("/patologi/lis/koneksi");
+export const simpanKoneksiLisPa = (uuid: string | null, data: Record<string, any>) =>
+  uuid ? apiPenunjangPut(`/patologi/lis/koneksi/${uuid}`, data) : apiPenunjangPost("/patologi/lis/koneksi", data);
+export const jadikanBawaanLisPa = (uuid: string) => apiPenunjangPut(`/patologi/lis/koneksi/${uuid}/bawaan`, {});
+export const kunciMasukBaruLisPa = (uuid: string) => apiPenunjangPost(`/patologi/lis/koneksi/${uuid}/kunci-masuk`, {});
+// diam=true: pesan sukses generik tidak relevan (hasil uji bisa "tidak terhubung" walau HTTP 200) — tampilkan toast kustom di halaman.
+export const ujiKoneksiLisPa = (uuid: string) => apiPenunjangPost(`/patologi/lis/koneksi/${uuid}/uji`, {}, true);
+export const hapusKoneksiLisPa = (uuid: string) => apiPenunjangDelete(`/patologi/lis/koneksi/${uuid}`);
+
+export const daftarPemetaanPemeriksaanLisPa = (koneksiUuid: string) => apiPenunjangGet(`/patologi/lis/mapping/pemeriksaan${qs({ koneksi_uuid: koneksiUuid })}`);
+export const simpanPemetaanPemeriksaanLisPa = (koneksiUuid: string, items: Record<string, any>[]) => apiPenunjangPut("/patologi/lis/mapping/pemeriksaan", { koneksiUuid, items });
+export const daftarPemetaanRefLisPa = (koneksiUuid: string) => apiPenunjangGet(`/patologi/lis/mapping/ref${qs({ koneksi_uuid: koneksiUuid })}`);
+export const simpanPemetaanRefLisPa = (koneksiUuid: string, items: Record<string, any>[]) => apiPenunjangPut("/patologi/lis/mapping/ref", { koneksiUuid, items });
+export const daftarPemetaanHasilLisPa = (koneksiUuid: string) => apiPenunjangGet(`/patologi/lis/mapping/hasil${qs({ koneksi_uuid: koneksiUuid })}`);
+export const simpanPemetaanHasilLisPa = (koneksiUuid: string, items: Record<string, any>[]) => apiPenunjangPut("/patologi/lis/mapping/hasil", { koneksiUuid, items });
+
+// Field laporan yang boleh dipetakan ke nama field vendor LIS PA (lihat penunjang-service lis-pa-peta.js FIELD_HASIL_SIMRS).
+export const FIELD_HASIL_LIS_PA: { kode: string; label: string }[] = [
+  { kode: "makroskopis", label: "Makroskopis" },
+  { kode: "mikroskopis", label: "Mikroskopis" },
+  { kode: "diagnosis", label: "Kesimpulan / Diagnosis" },
+  { kode: "icd_o_topografi", label: "ICD-O Topografi" },
+  { kode: "icd_o_morfologi", label: "ICD-O Morfologi" },
+  { kode: "icd10", label: "ICD-10" },
+  { kode: "komentar", label: "Komentar" },
+];
+
+export const daftarPengirimanLisPa = (params: Record<string, any> = {}) => apiPenunjangGet(`/patologi/lis/kirim${qs(params)}`);
+export const statusKirimLisPa = (orderItemUuid: string) => apiPenunjangGet(`/patologi/lis/kirim/${orderItemUuid}`);
+export const kirimUlangLisPa = (orderItemUuid: string, koneksiUuid?: string) => apiPenunjangPost(`/patologi/lis/kirim/${orderItemUuid}`, koneksiUuid ? { koneksiUuid } : {});
+// diam=true: pesan "Data berhasil ditampilkan" selalu HTTP 200 walau hasilnya tidak_pasti/gagal — tampilkan toast kustom.
+export const cekStatusLisPa = (orderItemUuid: string) => apiPenunjangPost(`/patologi/lis/kirim/${orderItemUuid}/cek-status`, {}, true);
+export const ambilHasilLisPa = (orderItemUuid: string) => apiPenunjangPost(`/patologi/lis/tarik/${orderItemUuid}`, {});
+export const riwayatLaporanLisPa = (orderItemUuid: string) => apiPenunjangGet(`/patologi/lis/riwayat/${orderItemUuid}`);
 
 // ── Kasus: penerimaan jaringan & pemeriksaan
 export const worklistPa = (params: Record<string, any> = {}) => apiPenunjangGet(`/patologi/kasus${qs(params)}`);

@@ -13,12 +13,14 @@ import CustomDialog from "@/components/Base/CustomDialog.vue";
 import CustomPaginator from "@/components/Base/CustomPaginator.vue";
 import NoData from "@/components/section/NoData.vue";
 import { utilsStore } from "@/stores/utils";
+import { fiturAktif } from "@/stores/modulFaskes";
 import {
   MODALITAS_RAD,
   PELAYANAN_RAD,
   STATUS_ITEM_RAD,
   STATUS_JADWAL_RAD,
   SUMBER_RAD,
+  ambilHasilItemPacs,
   daftarRuangRad,
   detailItemRad,
   noAntreanRad,
@@ -251,6 +253,21 @@ const JK: Record<string, string> = { Male: "L", Female: "P" };
 const gayaStatus = (s: string) => STATUS_ITEM_RAD[s as keyof typeof STATUS_ITEM_RAD];
 const gayaJadwal = (s: string) => STATUS_JADWAL_RAD[s as keyof typeof STATUS_JADWAL_RAD];
 
+// ── Bridging PACS/RIS: Accession Number, Ambil Hasil PACS (tarik manual), dan Buka Citra (URL viewer tersimpan)
+const pacsAktif = computed(() => fiturAktif("rad_bridging_pacs"));
+const ambilHasilPacs = async (baris: any) => {
+  storeUtils.setLoading(true);
+  try {
+    const res = await ambilHasilItemPacs(baris.uuid);
+    if (res?.payload) muat();
+  } finally {
+    storeUtils.setLoading(false);
+  }
+};
+const bukaCitra = (baris: any) => {
+  if (baris.urlViewer) window.open(baris.urlViewer, "_blank", "noopener");
+};
+
 onMounted(async () => {
   muat();
   ruang.value = (await daftarRuangRad({ limit: 200 }))?.payload?.data ?? [];
@@ -395,6 +412,9 @@ onMounted(async () => {
               </span>
             </template>
           </Column>
+          <Column v-if="pacsAktif" header="Accession No. (PACS)" headerClass="bg-opensimrs-50">
+            <template #body="{ data: d }">{{ d.accessionNumber ?? "-" }}</template>
+          </Column>
           <Column header="Aksi" headerClass="bg-opensimrs-50" class="w-[230px]">
             <template #body="{ data: d }">
               <div class="flex flex-wrap gap-2">
@@ -410,6 +430,8 @@ onMounted(async () => {
                   @click="bukaHasil(d)"
                 />
                 <CustomButton v-if="d.status === 'selesai'" label="Cetak" icon="PhPrinter" size="small" @click="cetak(d)" />
+                <CustomButton v-if="pacsAktif && d.accessionNumber" label="Ambil Hasil PACS" icon="PhDownloadSimple" size="small" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="ambilHasilPacs(d)" />
+                <CustomButton v-if="d.urlViewer" label="Buka Citra" icon="PhImage" size="small" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="bukaCitra(d)" />
               </div>
             </template>
           </Column>

@@ -833,6 +833,7 @@ export const radiologiPermission = {
         { name: "Ruang & Alat", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
         { name: "Template Expertise", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
         { name: "Petugas Radiologi", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+        { name: "Mapping PACS", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
       ],
     },
     { name: "Laporan Radiologi", features: [{ name: "Kunjungan", allows: ["READ", "CETAK LAPORAN"] }] },
