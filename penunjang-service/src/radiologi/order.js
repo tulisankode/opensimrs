@@ -47,7 +47,9 @@ const KOLOM_ITEM = (denganLampiran) => `
   i.hasil, i.kesan, i.waktu_hasil, jsonb_array_length(i.lampiran) AS jumlah_lampiran,
   ${denganLampiran ? "i.lampiran," : ""} m.kode, m.bagian_tubuh, m.kode_icd9, m.persiapan, i.paket_uuid, pk.kode AS paket_kode, pk.nama AS paket_nama,
   i.radiografer_uuid, i.ruang_uuid, i.jadwal_uuid, COALESCE(ri.nama, rj.nama) AS ruang, COALESCE(ri.kode, rj.kode) AS ruang_kode,
+  COALESCE(i.ruang_uuid, j.ruang_uuid) AS ruang_pakai_uuid,
   to_char(j.tanggal, 'YYYY-MM-DD') AS jadwal_tanggal, to_char(j.jam_mulai, 'HH24:MI') AS jadwal_jam, j.status AS jadwal_status, j.no_antrean,
+  i.accession_number, i.pacs_koneksi_uuid, i.url_viewer,
   i.created_at, i.updated_at`;
 
 export const itemOrder = (orderUuids, faskesUuid, denganLampiran = false, k) =>
@@ -329,17 +331,22 @@ rute.put(
 
 // Validasi petugas radiologi: status 'valid' + kirim tagihan (kecuali order tanpa tagihan, mis. MCU).
 // Pengiriman tagihan di dalam transaksi: bila Pembayaran menolak, status order tidak berubah.
+// Dipakai juga oleh "Validasi Saja" (pacs-rute.js) dan "Validasi & Kirim ke PACS" setelah pengiriman PACS berhasil.
+export const jalankanValidasi = async (faskes, orderUuid, req) => {
+  const tagihan = await transaksi(async (k) => {
+    const o = await kunciOrder(orderUuid, faskes, k);
+    if (o.status !== "order") throw new Galat(409, `Order berstatus ${o.status}, tidak dapat divalidasi`);
+    await ubah("rad_order", o.uuid, faskes, { status: "valid", divalidasi_oleh: req.author.username ?? null, divalidasi_pada: sekarang() }, k);
+    return o.tanpa_tagihan ? { dikirim: false, total: 0 } : tagihanOrder(o, req, false, k);
+  });
+  const o = await detailOrder(orderUuid, faskes);
+  return { order: o, tagihan };
+};
+
 rute.post(
   "/:uuid/validasi",
   tangani(async (req, res) => {
-    const faskes = req.author.faskesUuid;
-    const tagihan = await transaksi(async (k) => {
-      const o = await kunciOrder(req.params.uuid, faskes, k);
-      if (o.status !== "order") throw new Galat(409, `Order berstatus ${o.status}, tidak dapat divalidasi`);
-      await ubah("rad_order", o.uuid, faskes, { status: "valid", divalidasi_oleh: req.author.username ?? null, divalidasi_pada: sekarang() }, k);
-      return o.tanpa_tagihan ? { dikirim: false, total: 0 } : tagihanOrder(o, req, false, k);
-    });
-    const o = await detailOrder(req.params.uuid, faskes);
+    const { order: o, tagihan } = await jalankanValidasi(req.author.faskesUuid, req.params.uuid, req);
     kirim(res, { ...o, tagihan }, tagihan.dikirim ? `Order ${o.no_order} divalidasi, tagihan dikirim ke Pembayaran` : `Order ${o.no_order} divalidasi`);
   }),
 );

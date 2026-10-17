@@ -191,6 +191,14 @@ services:
       APPLICATION_HOST: 0.0.0.0
       APPLICATION_PORT: "8099"
       PORT: "8099"
+  program-puskesmas-service:
+    mem_limit: 192m
+    ports: !reset []
+    environment:
+      <<: *internal-env
+      APPLICATION_HOST: 0.0.0.0
+      APPLICATION_PORT: "8100"
+      PORT: "8100"
   setting-service:
     mem_limit: 384m
     environment:

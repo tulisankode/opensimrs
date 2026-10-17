@@ -110,7 +110,7 @@ Buka **http://localhost:5520** dan login dengan **`superadmin` / `Demo@2026`**. 
                                        │
                                        │ REST /api/v3/<layanan>/...
  ┌───────────┬────────────┬────────────┼────────────┬──────────────┬───────────────┐
- auth     admisi/antrian  rawat-jalan  rekamedis   farmasi/stok   payment   ... (18 layanan Express)
+ auth     admisi/antrian  rawat-jalan  rekamedis   farmasi/stok   payment   ... (19 layanan Express)
  └───────────┴────────────┴────────────┼────────────┴──────────────┴───────────────┘
                                        │
           PostgreSQL (satu database bersama) · MongoDB (isi RME) · Redis (cache token & izin)

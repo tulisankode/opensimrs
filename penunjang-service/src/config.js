@@ -8,11 +8,22 @@ export default {
   basePath: "/api/v3/penunjang",
   secretKey: process.env.SECRET_KEY,
   pembayaranUrl: (process.env.BASE_URL_API_PEMBAYARAN || "http://localhost:8089/api/v3/payment/internal").replace(/\/$/, ""),
+  // Status fitur (Manajemen Modul) untuk pemeriksaan rad_bridging_pacs, lihat pacs/izin.js.
+  // SETTING_SERVICE_URL berisi host saja (http://localhost:8094), sama seperti lab-service/src/helpers/fitur-aktif.js;
+  // path /api/v3/setting ditambahkan di sini (nilai yang sudah memuat path tetap diterima).
+  settingUrl: (() => {
+    const dasar = (process.env.SETTING_SERVICE_URL || "http://localhost:8094").replace(/\/+$/, "");
+    return /\/api\/v3\/setting$/.test(dasar) ? dasar : `${dasar}/api/v3/setting`;
+  })(),
   // Laboratorium PK (order lab MCU) & Admisi (pendaftaran pasien baru dari impor rombongan MCU).
   labUrl: (process.env.BASE_URL_API_LAB || "http://localhost:8087/api/v3/lab").replace(/\/$/, ""),
   admisiUrl: (process.env.BASE_URL_API_ADMISI || "http://localhost:8081/api/v3/admisi").replace(/\/$/, ""),
   // Rekam Medis Elektronik (resume & diagnosis dokter pembanding untuk modul Koding Rekam Medis).
   rekamedisUrl: (process.env.BASE_URL_API_REKAMEDIS || "http://localhost:8093/api/v3/rekam-medis").replace(/\/$/, ""),
+  // Farmasi: pemakaian BHP/obat depo Kamar Operasi memakai alur order alkes (stok otoritatif) yang sudah ada.
+  farmasiUrl: (process.env.BASE_URL_API_FARMASI || "http://localhost:8084/api/v3/farmasi").replace(/\/$/, ""),
+  // Rekam Medis (RME) — modul Gizi membaca alergi tercatat (read-only, tidak mengubah data/struktur RME).
+  rmeUrl: (process.env.BASE_URL_API_RME || "http://localhost:8093/api/v3/rekam-medis").replace(/\/$/, ""),
   pg: {
     host: process.env.DB_HOST || "localhost",
     port: angka(process.env.DB_PORT, 5432),

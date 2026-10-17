@@ -98,6 +98,49 @@ Buka **Penunjang › Radiologi › Datamaster**:
 
 **Hasilnya:** berkas Excel laporan terunduh.
 
+## Bridging PACS/RIS
+
+> Hanya tersedia bila superadmin mengaktifkan fitur **Bridging PACS/RIS** untuk faskes di **Setting › Manajemen Modul** (modul Radiologi tetap harus aktif).
+
+### Menyiapkan koneksi PACS
+1. Buka **Setting › Konfigurasi Integrasi › Konfigurasi PACS**, lalu klik **Tambah PACS**.
+2. Isi **Nama**, **Kode RS di PACS**, **URL Kirim Order**, **URL Ambil Hasil/Status** (opsional, pakai `{accession_number}` sebagai placeholder), **URL Viewer** (opsional), dan **API Key**.
+3. Atur **Maks. request paralel** dan **Jeda antar-request**, tandai **Status: Aktif**, dan tandai **PACS Bawaan** bila ini satu-satunya/koneksi utama.
+4. Klik **Simpan**. Salin **alamat penerima hasil** dan **kunci masuk** yang tampil (hanya sekali) untuk dipasang di PACS sebagai URL pengembalian hasil.
+5. Klik **Uji Koneksi** untuk memastikan PACS dapat dihubungi.
+
+**Hasilnya:** koneksi PACS siap dipakai mengirim order dan menerima hasil.
+
+### Memetakan tindakan, referensi, dan ruang/alat
+1. Buka **Penunjang › Radiologi › Mapping PACS**.
+2. **Tindakan**: isi **Kode Prosedur PACS** dan **Modalitas PACS** untuk tiap tindakan radiologi. Centang **Belum dipetakan** untuk menyaring yang belum diisi.
+3. **Unit, Dokter & Penjamin**: isi **Kode di PACS** (opsional) bila PACS mensyaratkan kode khusus untuk unit asal, dokter pengirim, atau penjamin.
+4. **Ruang/Alat (AE Title)**: isi **AE Title** modalitas untuk ruang/alat yang relevan (data referensi yang dikirim bersama order; SIMRS tidak membentuk worklist DICOM).
+5. Klik **Simpan** pada tiap halaman.
+
+**Hasilnya:** mapping tersimpan dan dipakai saat order dikirim ke PACS.
+
+### Memvalidasi dan mengirim order ke PACS
+1. Buka detail order radiologi berstatus **Order**.
+2. Klik **Validasi & Kirim ke PACS**. Bila ada lebih dari satu koneksi aktif tanpa koneksi bawaan, pilih koneksi tujuan.
+3. Bila koneksi PACS sedang bermasalah atau mapping belum lengkap, klik **Validasi Saja** sebagai jalur darurat (tagihan tetap diproses, tanpa mengirim ke PACS).
+
+**Hasilnya:** setiap pemeriksaan mendapat **Accession Number** unik, order tervalidasi, dan status pengiriman tercatat di **Pengiriman PACS**. Accession Number tampil di detail order dan cetak hasil.
+
+### Mengelola pengiriman yang gagal atau tidak pasti
+1. Buka **Setting › Konfigurasi Integrasi › Pengiriman PACS**.
+2. Saring dengan **Status** bila perlu.
+3. Klik **Kirim Ulang** (status Gagal) atau **Kirim Lagi** (status lain) untuk mengirim ulang dengan Accession Number yang sama.
+4. Klik **Cek Status** pada baris berstatus **Tidak pasti** untuk memastikan status terbaru di PACS sebelum mengirim ulang.
+
+**Hasilnya:** status pengiriman diperbarui tanpa menggandakan order di PACS.
+
+### Mengambil hasil dan membuka citra
+1. Di **Pemeriksaan & Hasil**, klik **Ambil Hasil PACS** pada pemeriksaan yang sudah dikirim untuk menarik status/hasil terbaru secara manual. Biasanya hasil masuk otomatis dari PACS tanpa langkah ini.
+2. Klik **Buka Citra** pada hasil radiologi (atau riwayat penunjang di RME) untuk membuka viewer PACS bila tautannya tersedia.
+
+**Hasilnya:** status, expertise, dan tautan citra dari PACS tersimpan pada pemeriksaan yang benar. Expertise yang sudah diisi manual tidak ditimpa otomatis oleh hasil PACS.
+
 ## Pesan galat yang sering muncul
 | Pesan | Arti | Yang perlu dilakukan |
 |---|---|---|
@@ -112,6 +155,11 @@ Buka **Penunjang › Radiologi › Datamaster**:
 | Kode pemeriksaan … sudah dipakai / Kode ruang … sudah dipakai | Kode data master sudah ada. | Pakai kode lain. |
 | Ruang masih memiliki … jadwal aktif; pindahkan atau batalkan dahulu | Ruang yang akan dihapus masih punya jadwal. | Pindahkan atau batalkan jadwalnya dulu. |
 | Jam tutup harus setelah jam buka | Jam operasional ruang terbalik. | Perbaiki **Jam Buka** dan **Jam Tutup**. |
+| Tindakan "…" belum dipetakan ke kode prosedur PACS | Pemeriksaan belum punya mapping di **Mapping PACS › Tindakan**. | Lengkapi mapping, atau klik **Validasi Saja** untuk melanjutkan tanpa kirim ke PACS. |
+| Belum ada koneksi PACS aktif | Fitur aktif tapi belum ada koneksi, atau semua koneksi nonaktif. | Tambahkan/koneksi aktifkan di **Setting › Konfigurasi Integrasi › Konfigurasi PACS**. |
+| Lebih dari satu koneksi PACS aktif — pilih koneksi tujuan | Ada beberapa koneksi aktif tanpa koneksi bawaan. | Pilih koneksi tujuan pada dialog yang muncul, atau tandai satu koneksi sebagai **PACS Bawaan**. |
+| Pengiriman ke PACS gagal/sebagian gagal — validasi dibatalkan | PACS menolak atau tidak dapat dihubungi. | Perbaiki penyebab (lihat pesan), lalu kirim ulang dari **Pengiriman PACS**, atau pakai **Validasi Saja**. |
+| Item ini belum terkirim ke PACS | **Ambil Hasil PACS** ditekan sebelum order dikirim. | Kirim order ke PACS terlebih dahulu. |
 
 ## Pertanyaan yang sering diajukan
 **Apakah pemeriksaan harus dijadwalkan dulu?** Tidak selalu. Pemeriksaan yang belum dijadwalkan tetap tampil di **Pemeriksaan & Hasil** dan bisa langsung dicatat dengan **Periksa**. Penjadwalan membantu mengatur antrean ruang/alat.
@@ -131,7 +179,7 @@ Buka **Penunjang › Radiologi › Datamaster**:
 - Tab **Order Radiologi** di RME hanya muncul bila modul Radiologi aktif.
 
 ## Catatan untuk peninjau
-- Katalog modul menyebut "bridging PACS", tetapi tidak ditemukan menu atau tombol PACS/DICOM di halaman Radiologi. Panduan tidak membahasnya.
+- Bridging PACS/RIS (fitur `rad_bridging_pacs`) ditambahkan mengikuti pola Bridging LIS; mohon ditinjau bersama tim radiologi sebelum dipakai di faskes produksi.
 - Pembatasan per tombol (mis. VALIDASI, INPUT HASIL) tidak ditemukan pada halaman radiologi di frontend maupun di rute penunjang-service. Pengguna yang bisa membuka menu kemungkinan bisa menjalankan semua tombol. Mohon dipastikan.
 - Isi pilihan **Modalitas** (mis. X-Ray, CT, USG) tidak dituliskan karena daftarnya diambil dari kode (`MODALITAS_RAD`). Mohon disesuaikan dengan layar.
 - Belum dijelaskan langkah order radiologi dari RME (tab **Penunjang › Order Radiologi**). Rinciannya sebaiknya ada di panduan RME.
