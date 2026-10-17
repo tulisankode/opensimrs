@@ -1055,7 +1055,7 @@
       "deskripsi": "Sinkron antrean & task id ke BPJS, ambil antrean dari Mobile JKN. Perlu BPJS FKRTL atau BPJS FKTP aktif.",
       "tersedia": true,
       "wajib": false,
-      "modul_syarat": "bpjs_fkrtl,bpjs_fktp",
+      "modul_syarat": null,
       "rute": [
         "/antrian/monitoring-bpjs"
       ],

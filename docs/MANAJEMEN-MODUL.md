@@ -381,7 +381,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 |---|---|---|---|---|---|---|
 | `antrian_layar_kiosk` | Layar TV Kiosk | Link layar antrian TV tanpa login, dengan suara panggilan. | Tersedia | – | – | – |
 | `antrian_apm` | Anjungan Pasien Mandiri (APM) | Pasien mengambil nomor, check-in & mendaftar sendiri di anjungan. | Tersedia | – | – | – |
-| `antrian_online_bpjs` | Antrean Online BPJS (Mobile JKN) | Sinkron antrean & task id ke BPJS, ambil antrean dari Mobile JKN. Perlu BPJS FKRTL atau BPJS FKTP aktif. | Tersedia | – | BPJS FKRTL (VClaim/SEP) (`bpjs_fkrtl`) atau BPJS FKTP (PCare) (`bpjs_fktp`) | PM, KP, KU, PKM, RS D, RS C, RS B, RS A |
+| `antrian_online_bpjs` | Antrean Online BPJS (Mobile JKN) | Sinkron antrean & task id ke BPJS, ambil antrean dari Mobile JKN. Perlu BPJS FKRTL atau BPJS FKTP aktif. | Tersedia | – | – | PM, KP, KU, PKM, RS D, RS C, RS B, RS A |
 
 #### Farmasi (`farmasi`)
 
