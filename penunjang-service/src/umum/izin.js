@@ -65,3 +65,7 @@ export const wajibIzin = (modul, submodul, aksi, fitur = null) => (req, res, nex
 export const izinPa = (submodul, aksi, fitur = null) => wajibIzin("Patologi Anatomi", submodul, aksi, fitur);
 export const izinMikro = (submodul, aksi, fitur = null) => wajibIzin("Mikrobiologi", submodul, aksi, fitur);
 export const izinMcu = (submodul, aksi, fitur = null) => wajibIzin("MCU", submodul, aksi, fitur);
+export const izinUtd = (submodul, aksi, fitur = null) => wajibIzin("UTD", submodul, aksi, fitur);
+
+// Hasil IMLTD reaktif & identitas donor terkait (KF-18): izin terpisah dari "IMLTD" › READ.
+export const bolehLihatReaktif = (req) => punyaIzin(req, "UTD", "Lihat Hasil Reaktif", "READ");
