@@ -4,7 +4,7 @@ import { tangani, kirim, halaman, denganHalaman } from "../umum/respons.js";
 import { izinTraining } from "../umum/izin.js";
 import { rentang } from "./bersama.js";
 
-// Laporan rekapitulasi kunjungan kelas Training: hanya order bukan batal (KF-16), dibatasi faskes dari token.
+// Laporan rekapitulasi kunjungan kelas Training: hanya order (KF-16; booking yang belum didaftarkan & batal tidak dihitung), dibatasi faskes dari token.
 // Ekspor Excel dibuat di frontend dari data yang sama (lihat pola Fisioterapi), bukan endpoint terpisah,
 // agar baris layar & berkas selalu identik (KT-10).
 const rute = express.Router();
@@ -23,7 +23,7 @@ rute.get(
     const { mulai, selesai } = rentang(req.query);
     const pg = halaman(req.query);
     const p = [req.author.faskesUuid, mulai, selesai];
-    let w = "o.faskes_uuid = $1 AND o.status <> 'batal' AND o.tanggal_kelas BETWEEN $2::date AND $3::date";
+    let w = "o.faskes_uuid = $1 AND o.status = 'order' AND o.tanggal_kelas BETWEEN $2::date AND $3::date";
     if (req.query.kelas_uuid) {
       p.push(req.query.kelas_uuid);
       w += ` AND o.kelas_uuid = $${p.length}`;

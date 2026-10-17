@@ -101,6 +101,12 @@ export interface RingkasanLaporan {
   totalPasien: number;
   totalTarif: number;
 }
+export interface PerKelasLaporan {
+  kelasUuid: string;
+  kelasNama: string;
+  peserta: number;
+  tarif: number;
+}
 export interface BarisLaporan {
   uuid: string;
   tanggalKelas: string;
@@ -152,7 +158,54 @@ export const apiTraining = {
     ),
 };
 
-export const rupiah = (n?: number | null) =>
+// Cara bayar order Training (payment_method di backend): 1 = tunai/umum, 2 = asuransi/penjamin.
+export const CARA_BAYAR: Record<number, string> = { 1: "Tunai", 2: "Asuransi" };
+export const OPSI_CARA_BAYAR = Object.entries(CARA_BAYAR).map(([value, label]) => ({ value: Number(value), label }));
+export const labelCaraBayar = (n?: number | null) => (n ? CARA_BAYAR[Number(n)] ?? "-" : "-");
+
+// ── Format tanggal, sesi & pasien ──────────────────────────────────────────────────
+// Tanggal lokal ⇄ YYYY-MM-DD (format tanggal_kelas & filter periode di backend).
+export const keIso = (d?: Date | string | null) => {
+  if (!d) return "";
+  if (typeof d === "string") return d.slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+export const dariIso = (s?: string | null) => {
+  if (!s) return new Date();
+  const [y, m, d] = s.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+export const tglIndo = (s?: string | null, hari = false) => {
+  if (!s) return "-";
+  const d = dariIso(s);
+  return `${hari ? HARI[d.getDay()] + ", " : ""}${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
+};
+export const waktuEpoch = (e?: number | string | null) => {
+  const n = Number(e);
+  if (!n) return "-";
+  const d = new Date(n * 1000);
+  return `${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+export const umur = (lahir?: string | null) => {
+  if (!lahir) return "-";
+  const l = dariIso(lahir);
+  const n = new Date();
+  let th = n.getFullYear() - l.getFullYear();
+  if (n.getMonth() < l.getMonth() || (n.getMonth() === l.getMonth() && n.getDate() < l.getDate())) th--;
+  return `${th} th`;
+};
+export const labelGender = (g?: string | null) => (g === "Male" ? "Laki-laki" : g === "Female" ? "Perempuan" : g ?? "-");
+// Jam sesi "HH:MM:SS" → "HH:MM".
+export const jam = (j?: string | null) => (j ? String(j).slice(0, 5) : "");
+export const labelSesi = (s?: { namaSesi?: string | null; jamMulai?: string | null; jamSelesai?: string | null } | null) => {
+  if (!s?.namaSesi) return "-";
+  if (!s.jamMulai) return s.namaSesi;
+  return `${s.namaSesi} (${jam(s.jamMulai)}${s.jamSelesai ? `–${jam(s.jamSelesai)}` : ""})`;
+};
+
+export const rupiah = (n?: number | string | null) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(n) || 0);
 
 // Store ringan: cache datamaster kelas aktif (dipakai form booking/pendaftaran).
