@@ -226,3 +226,47 @@ export const ubahJadwalRad = (uuid: string, data: { ruangUuid?: string; tanggal?
   apiPenunjangPut(`/radiologi/jadwal/${uuid}`, data);
 export const hadirJadwalRad = (uuid: string) => apiPenunjangPost(`/radiologi/jadwal/${uuid}/hadir`);
 export const batalJadwalRad = (uuid: string, alasan: string) => apiPenunjangPost(`/radiologi/jadwal/${uuid}/batal`, { alasan });
+
+// ── Bridging PACS/RIS (fitur rad_bridging_pacs) — pola sama dengan Bridging LIS Laboratorium.
+export const STATUS_KIRIM_PACS: Record<string, { label: string; bg: string; text: string }> = {
+  baru: { label: "Baru", bg: "bg-[#D4D8DC]", text: "text-[#475467]" },
+  mengirim: { label: "Sedang dikirim", bg: "bg-[#D1E9FF]", text: "text-[#175CD3]" },
+  terkirim: { label: "Terkirim", bg: "bg-[#D1FADF]", text: "text-[#027A48]" },
+  gagal: { label: "Gagal", bg: "bg-[#FDE2E1]", text: "text-[#B42318]" },
+  tidak_pasti: { label: "Tidak pasti (perlu Cek Status)", bg: "bg-[#FEF0C7]", text: "text-[#B54708]" },
+};
+
+export const daftarKoneksiPacs = (hanyaAktif = false) => apiPenunjangGet(`/radiologi/pacs/koneksi${qs({ aktif: hanyaAktif ? 1 : undefined })}`);
+export const simpanKoneksiPacs = (uuid: string | null, data: Record<string, any>) =>
+  uuid ? apiPenunjangPut(`/radiologi/pacs/koneksi/${uuid}`, data) : apiPenunjangPost("/radiologi/pacs/koneksi", data);
+export const hapusKoneksiPacs = (uuid: string) => apiPenunjangDelete(`/radiologi/pacs/koneksi/${uuid}`);
+export const jadikanBawaanPacs = (uuid: string) => apiPenunjangPost(`/radiologi/pacs/koneksi/${uuid}/bawaan`);
+export const kunciMasukBaruPacs = (uuid: string) => apiPenunjangPost(`/radiologi/pacs/koneksi/${uuid}/kunci-masuk`);
+export const ujiKoneksiPacs = (uuid: string) => apiPenunjangPost(`/radiologi/pacs/koneksi/${uuid}/uji`);
+
+// ── Mapping PACS: tindakan (pemeriksaan → kode prosedur & modalitas PACS)
+export const daftarMappingTindakanPacs = (params: { cari?: string; belumDipetakan?: boolean } = {}) =>
+  apiPenunjangGet(`/radiologi/pacs/mapping/tindakan${qs({ cari: params.cari, belum_dipetakan: params.belumDipetakan ? 1 : undefined })}`);
+export const simpanMappingTindakanPacs = (pemeriksaanUuid: string, data: { kodeProsedurPacs: string; modalitasPacs: string }) =>
+  apiPenunjangPut(`/radiologi/pacs/mapping/tindakan/${pemeriksaanUuid}`, { kode_prosedur_pacs: data.kodeProsedurPacs, modalitas_pacs: data.modalitasPacs });
+
+// ── Mapping PACS: unit asal / dokter pengirim / penjamin → kode PACS
+export const daftarMappingRefPacs = () => apiPenunjangGet("/radiologi/pacs/mapping/referensi");
+export const simpanMappingRefPacs = (jenis: "unit" | "dokter" | "penjamin", refUuid: string, data: { kodePacs: string; namaPacs?: string | null }) =>
+  apiPenunjangPut(`/radiologi/pacs/mapping/referensi/${jenis}/${refUuid}`, { kode_pacs: data.kodePacs, nama_pacs: data.namaPacs ?? null });
+
+// ── Mapping PACS: ruang/alat → AE Title (data referensi worklist)
+export const daftarMappingRuangPacs = (params: { cari?: string; belumDipetakan?: boolean } = {}) =>
+  apiPenunjangGet(`/radiologi/pacs/mapping/ruang${qs({ cari: params.cari, belum_dipetakan: params.belumDipetakan ? 1 : undefined })}`);
+export const simpanMappingRuangPacs = (ruangUuid: string, aeTitle: string | null) =>
+  apiPenunjangPut(`/radiologi/pacs/mapping/ruang/${ruangUuid}`, { ae_title: aeTitle });
+
+// ── Riwayat pengiriman & aksi validasi/kirim per order atau item
+export const daftarPengirimanPacs = (params: { page?: number; limit?: number; status?: string } = {}) =>
+  apiPenunjangGet(`/radiologi/pacs/pengiriman${qs(params)}`);
+export const validasiDanKirimPacs = (orderUuid: string, koneksiUuid: string | null = null) =>
+  apiPenunjangPost(`/radiologi/pacs/order/${orderUuid}/validasi-kirim`, koneksiUuid ? { koneksi_uuid: koneksiUuid } : {}, true);
+export const kirimUlangItemPacs = (itemUuid: string, koneksiUuid: string | null = null) =>
+  apiPenunjangPost(`/radiologi/pacs/order-item/${itemUuid}/kirim`, koneksiUuid ? { koneksi_uuid: koneksiUuid } : {}, true);
+export const cekStatusItemPacs = (itemUuid: string) => apiPenunjangPost(`/radiologi/pacs/order-item/${itemUuid}/cek-status`);
+export const ambilHasilItemPacs = (itemUuid: string) => apiPenunjangPost(`/radiologi/pacs/order-item/${itemUuid}/ambil-hasil`);

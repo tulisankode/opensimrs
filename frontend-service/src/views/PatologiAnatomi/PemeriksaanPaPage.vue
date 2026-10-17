@@ -12,6 +12,7 @@ import CustomDialog from "@/components/Base/CustomDialog.vue";
 import CustomPaginator from "@/components/Base/CustomPaginator.vue";
 import NoData from "@/components/section/NoData.vue";
 import { utilsStore } from "@/stores/utils";
+import { fiturAktif } from "@/stores/modulFaskes";
 import {
   FIKSASI_PA,
   ICDO_MORFOLOGI_PA,
@@ -20,6 +21,7 @@ import {
   JK_PA,
   LATERALITAS_PA,
   STATUS_ARSIP_PA,
+  ambilHasilLisPa,
   cariIcd10Pa,
   detailKasusPa,
   detailOrderPa,
@@ -27,10 +29,12 @@ import {
   izinPa,
   pilihanPetugasPa,
   revisiPa,
+  riwayatLaporanLisPa,
   simpanDiagnosisPa,
   simpanMakroskopisPa,
   simpanMikroskopisPa,
   sisaHariPa,
+  statusKirimLisPa,
   templateUntukPa,
   umurPa,
   verifikasiPa,
@@ -153,6 +157,29 @@ const isiForm = (k: any) => {
     templateUuid: k.templateUuid ?? "",
   };
 };
+// Bridging LIS PA: status pengiriman kasus & riwayat versi laporan (addendum internal maupun dari LIS PA).
+const lisStatus = ref<any[]>([]);
+const riwayatLaporan = ref<any[]>([]);
+const muatLis = async () => {
+  if (!kasus.value || !fiturAktif("pa_bridging_lis")) return;
+  const [s, r] = await Promise.all([statusKirimLisPa(kasus.value.uuid), riwayatLaporanLisPa(kasus.value.uuid)]);
+  lisStatus.value = s?.payload ?? [];
+  riwayatLaporan.value = r?.payload ?? [];
+};
+const ambilHasil = async () => {
+  if (!kasus.value) return;
+  storeUtils.setLoading(true);
+  try {
+    const res = await ambilHasilLisPa(kasus.value.uuid);
+    if (!res) return;
+    const ulang = await detailKasusPa(kasus.value.uuid);
+    if (ulang?.payload) segarkan(ulang.payload);
+    await muatLis();
+  } finally {
+    storeUtils.setLoading(false);
+  }
+};
+
 const buka = async (baris: any) => {
   storeUtils.setLoading(true);
   try {
@@ -171,6 +198,7 @@ const buka = async (baris: any) => {
     galat.value = "";
     isiForm(res.payload);
     dialog.value = true;
+    await muatLis();
   } finally {
     storeUtils.setLoading(false);
   }
@@ -442,6 +470,31 @@ onMounted(muat);
               <span class="text-grey-400">IHK tambahan:</span> {{ kasus.ihk.map((x: any) => `${x.nama} (${x.noPa ?? "belum diterima"})`).join(", ") }}
             </div>
             <div v-if="kasus.alasanRevisi && kasus.status !== 'selesai'" class="col-span-3 text-danger-300">Alasan revisi: {{ kasus.alasanRevisi }}</div>
+          </div>
+
+          <!-- Spesimen ditolak sistem PA tujuan (eksternal) — terpisah dari penolakan manual internal di Penerimaan Jaringan -->
+          <div v-if="kasus.ditolakEksternalPada" class="p-3 text-sm rounded-lg bg-[#FDE2E1] text-[#B42318]">
+            <b>Spesimen ditolak oleh sistem PA tujuan</b> ({{ waktuPa(kasus.ditolakEksternalPada) }}): {{ kasus.ditolakEksternalAlasan }}
+          </div>
+
+          <!-- Bridging LIS PA: status pengiriman, ambil hasil & riwayat versi laporan (addendum) -->
+          <div v-if="fiturAktif('pa_bridging_lis')" class="flex flex-col gap-2 p-3 border rounded-lg border-grey-75">
+            <div class="flex items-center justify-between">
+              <div class="font-semibold text-opensimrs-400">Bridging LIS PA</div>
+              <CustomButton label="Ambil Hasil LIS PA" icon="PhDownloadSimple" size="small" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="ambilHasil" />
+            </div>
+            <div v-if="!lisStatus.length" class="text-xs text-grey-400">Kasus ini belum pernah dikirim ke LIS PA.</div>
+            <div v-for="s in lisStatus" :key="s.lis + s.noRegistrasi" class="flex items-center justify-between text-xs">
+              <span>{{ s.lis }} · No. registrasi {{ s.noRegistrasi }} <span v-if="s.lisNoPa">· No. PA tujuan {{ s.lisNoPa }}</span></span>
+              <span class="font-semibold">{{ s.status }}<span v-if="s.pesan" class="font-normal text-grey-400"> — {{ s.pesan }}</span></span>
+            </div>
+            <template v-if="riwayatLaporan.length > 1">
+              <div class="mt-1 text-xs font-semibold text-grey-500">Riwayat Laporan / Addendum</div>
+              <div v-for="v in riwayatLaporan" :key="v.uuid" class="p-2 text-xs rounded bg-grey-50">
+                <div class="font-semibold">Versi {{ v.versi }} · {{ v.sumber === "lis_pa" ? "Dari LIS PA" : "Internal" }} · {{ waktuPa(v.createdAt) }}</div>
+                <div class="text-grey-400">{{ v.diagnosis || "-" }}</div>
+              </div>
+            </template>
           </div>
 
           <CustomSelect
