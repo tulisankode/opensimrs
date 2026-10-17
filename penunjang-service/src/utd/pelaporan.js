@@ -2,7 +2,7 @@ import express from "express";
 import { query, satu, sisipkan } from "../db.js";
 import { tangani, kirim, permintaanSalah } from "../umum/respons.js";
 import { JENIS_LAPORAN, cekPilihan, tanggalValid, tglLokal } from "./bersama.js";
-import { bolehLihatReaktif, pastikanIzin } from "../umum/izin.js";
+import { bolehLihatReaktif, izinUtd, pastikanIzin } from "../umum/izin.js";
 
 // Pelaporan UTD: rekap donor, produksi, uji saring, distribusi & pemusnahan per periode (KF-33..37). Setiap
 // pembentukan laporan dicatat di utd_pelaporan_log agar dapat ditelusuri ke transaksi sumber (KT-16).
@@ -94,6 +94,7 @@ const susunLaporan = async (req, jenis, awal, akhir) => {
 
 rute.get(
   "/",
+  izinUtd("Laporan UTD", "READ"),
   tangani(async (req, res) => {
     const jenis = cekPilihan(req.query.jenis, JENIS_LAPORAN, "jenis");
     if (!jenis) throw permintaanSalah("jenis wajib diisi");
@@ -105,6 +106,7 @@ rute.get(
 // Membentuk & mencatat laporan (KF-37): hasil sama dengan GET, ditambah jejak pembentukan yang tersimpan.
 rute.post(
   "/",
+  izinUtd("Laporan UTD", "CETAK LAPORAN"),
   tangani(async (req, res) => {
     const jenis = cekPilihan(req.body?.jenis, JENIS_LAPORAN, "jenis");
     if (!jenis) throw permintaanSalah("jenis wajib diisi");
@@ -113,8 +115,9 @@ rute.post(
     const data = await susunLaporan(req, jenis, awal, akhir);
     const log = await sisipkan("utd_pelaporan_log", {
       faskes_uuid: faskes, jenis_laporan: jenis,
-      periode_awal: Math.floor(new Date(`${awal}T00:00:00Z`).getTime() / 1000),
-      periode_akhir: Math.floor(new Date(`${akhir}T23:59:59Z`).getTime() / 1000),
+      // Batas periode dalam waktu lokal faskes (WIB), selaras dengan filter tglLokal() pada rekap.
+      periode_awal: Math.floor(new Date(`${awal}T00:00:00+07:00`).getTime() / 1000),
+      periode_akhir: Math.floor(new Date(`${akhir}T23:59:59+07:00`).getTime() / 1000),
       parameter: { periode_awal: awal, periode_akhir: akhir }, dibuat_oleh: req.author.username ?? null,
     });
     kirim(res, { jenis, periode_awal: awal, periode_akhir: akhir, log, ...data }, `Laporan ${JENIS_LAPORAN[jenis]} terbentuk`);
@@ -123,6 +126,7 @@ rute.post(
 
 rute.get(
   "/riwayat",
+  izinUtd("Laporan UTD", "READ"),
   tangani(async (req, res) => {
     const rows = await query(
       `SELECT * FROM utd_pelaporan_log WHERE faskes_uuid = $1 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 100`,

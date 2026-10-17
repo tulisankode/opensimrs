@@ -3,13 +3,15 @@
 // Izin modul "UTD" (UTD / UPTD Produksi Darah) untuk peran & pengguna yang sudah ada: diberikan kepada yang sudah
 // memiliki modul Laboratorium, hanya pada faskes yang modul utd-nya aktif (preset segmen + override), serta super
 // admin (tanpa faskes). Pola sama dengan 20261016181500-izin_bank_darah; definisi dari permission-list.js (utdPermission).
-// Catatan: submodul "Lihat Hasil Reaktif" ikut terberi bersama modul — cabut manual dari peran yang tidak berhak.
+// Submodul "Lihat Hasil Reaktif" (KF-18: hasil IMLTD reaktif & identitas donor terkait) hanya diberikan kepada super
+// admin; peran lain harus diberi izin ini secara eksplisit di pengaturan peran.
 
 const path = require('path');
 const { pathToFileURL } = require('url');
 
 const MODUL_KODE = 'utd';
 const MODUL_KUNCI = 'utd';
+const SUB_REAKTIF = 'Lihat Hasil Reaktif';
 
 const modulAktif = async (sq) => {
   const [preset] = await sq.query(
@@ -48,7 +50,11 @@ const proses = async (queryInterface, tambah) => {
       const boleh = !r.faskes_uuid || aktif.has(r.faskes_uuid);
       let berubah = false;
       if (tambah && boleh && idx < 0) {
-        data.push(...mapPermission([MODUL_KUNCI]));
+        const izin = mapPermission([MODUL_KUNCI]);
+        if (r.faskes_uuid) {
+          for (const m of izin) if (Array.isArray(m.subModules)) m.subModules = m.subModules.filter((sub) => sub?.name !== SUB_REAKTIF);
+        }
+        data.push(...izin);
         berubah = true;
       } else if (!tambah && idx >= 0) {
         data.splice(idx, 1);

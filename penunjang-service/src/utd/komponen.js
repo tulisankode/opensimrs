@@ -1,8 +1,10 @@
 import express from "express";
 import { query, satu, sisipkan, sekarang, transaksi } from "../db.js";
 import { tangani, kirim, halaman, denganHalaman, wajib, tidakDitemukan, permintaanSalah, Galat } from "../umum/respons.js";
-import { GOLONGAN_DARAH, JENIS_KOMPONEN, cekPilihan, angkaOpsional, daftarNilai, hariIni, tanggalOpsional } from "./bersama.js";
-import { izinUtd } from "../umum/izin.js";
+import {
+  GOLONGAN_DARAH, JENIS_KOMPONEN, cekPilihan, angkaOpsional, daftarNilai, hariIni, samarkanBarisKantong, sqlKantongReaktif, tanggalOpsional,
+} from "./bersama.js";
+import { izinUtd, bolehLihatReaktif, wajibSalahSatu } from "../umum/izin.js";
 import { jejakAftap } from "./aftap.js";
 
 // Pengolahan Komponen: satu aftap → ≥1 komponen (PRC/TC/FFP/cryo), label unik otomatis, status awal karantina
@@ -13,7 +15,13 @@ const rute = express.Router();
 const KOLOM_KOMPONEN = `k.uuid, k.aftap_uuid, k.jenis_komponen, k.label_unik, k.volume_ml, k.golongan_darah, k.rhesus,
   k.tanggal_kedaluwarsa, k.status, k.dilepas_oleh, k.dilepas_pada, k.created_at,
   a.no_kantong, d.no_donor, d.nama AS nama_donor`;
-const DARI_KOMPONEN = `FROM utd_komponen k JOIN utd_aftap a ON a.uuid = k.aftap_uuid JOIN utd_donor d ON d.uuid = a.donor_uuid`;
+const DARI_KOMPONEN = `FROM utd_komponen k JOIN utd_aftap a ON a.uuid = k.aftap_uuid AND a.faskes_uuid = k.faskes_uuid
+  JOIN utd_donor d ON d.uuid = a.donor_uuid AND d.faskes_uuid = a.faskes_uuid`;
+
+// Stok komponen juga dibaca halaman Distribusi (memilih komponen untuk distribusi/pemusnahan).
+const bacaStok = wajibSalahSatu(
+  ["UTD", "Komponen", "READ"], ["UTD", "Distribusi", "READ", "Distribusi"], ["UTD", "Distribusi", "READ", "Pemusnahan"],
+);
 
 // Komponen "tersedia" yang sudah lewat tanggal kedaluwarsa otomatis ditandai (KF-24).
 const segarkanKedaluwarsa = (faskes, k) =>
@@ -23,8 +31,11 @@ const segarkanKedaluwarsa = (faskes, k) =>
     [faskes, sekarang(), hariIni()], k,
   );
 
+// Tanpa izin Lihat Hasil Reaktif, identitas donor pada komponen dari kantong reaktif disamarkan (KF-18): nomor kantong
+// reaktif tampil di daftar tindak lanjut pemusnahan, sehingga nama donor di sini dapat dikaitkan dengannya.
 rute.get(
   "/komponen",
+  bacaStok,
   tangani(async (req, res) => {
     const faskes = req.author.faskesUuid;
     await segarkanKedaluwarsa(faskes);
@@ -57,15 +68,18 @@ rute.get(
     }
     const total = (await satu(`SELECT COUNT(*) n ${DARI_KOMPONEN} WHERE ${w}`, p)).n;
     const rows = await query(
-      `SELECT ${KOLOM_KOMPONEN} ${DARI_KOMPONEN} WHERE ${w} ORDER BY k.tanggal_kedaluwarsa, k.created_at LIMIT ${pg.limit} OFFSET ${pg.offset}`,
+      `SELECT ${KOLOM_KOMPONEN}, ${sqlKantongReaktif("a")} AS reaktif ${DARI_KOMPONEN}
+        WHERE ${w} ORDER BY k.tanggal_kedaluwarsa, k.created_at LIMIT ${pg.limit} OFFSET ${pg.offset}`,
       p,
     );
-    kirim(res, denganHalaman(rows, total, pg));
+    const boleh = await bolehLihatReaktif(req);
+    kirim(res, denganHalaman(rows.map((r) => samarkanBarisKantong(r, boleh)), total, pg));
   }),
 );
 
 rute.get(
   "/komponen/:uuid/jejak",
+  wajibSalahSatu(["UTD", "Komponen", "READ"], ["UTD", "Aftap", "READ"]),
   tangani(async (req, res) => {
     const faskes = req.author.faskesUuid;
     const k = await satu(`SELECT aftap_uuid FROM utd_komponen WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [req.params.uuid, faskes]);
@@ -88,12 +102,12 @@ rute.post(
       if (!a) throw tidakDitemukan("Aftap");
       if (["karantina_reaktif", "dimusnahkan"].includes(a.status_kantong))
         throw new Galat(409, `Kantong berstatus ${a.status_kantong}, tidak dapat diolah menjadi komponen`);
-      const imltd = await satu(`SELECT * FROM utd_imltd WHERE aftap_uuid = $1 AND deleted_at IS NULL`, [a.uuid], k);
+      const imltd = await satu(`SELECT * FROM utd_imltd WHERE aftap_uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [a.uuid, faskes], k);
       const lengkap = imltd && ["hiv", "hbsag", "hcv", "sifilis"].every((p) => imltd[`${p}_hasil`] != null);
       if (!lengkap) throw new Galat(409, "Hasil IMLTD kantong ini belum lengkap; komponen belum dapat diolah");
       // Kantong yang sudah dilepas (tersedia): komponen baru langsung tersedia; selain itu tetap karantina sampai pelepasan.
       const statusAwal = a.status_kantong === "tersedia" ? "tersedia" : "karantina";
-      const existing = await satu(`SELECT COUNT(*)::int n FROM utd_komponen WHERE aftap_uuid = $1 AND deleted_at IS NULL`, [a.uuid], k);
+      const existing = await satu(`SELECT COUNT(*)::int n FROM utd_komponen WHERE aftap_uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [a.uuid, faskes], k);
       const dibuat = [];
       for (const [idx, item] of items.entries()) {
         wajib(item, ["jenis_komponen", "volume_ml", "tanggal_kedaluwarsa"]);

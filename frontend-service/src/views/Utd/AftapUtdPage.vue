@@ -233,8 +233,12 @@ const simpan = async () => {
           </Column>
           <Column header="Donor" headerClass="bg-opensimrs-50">
             <template #body="{ data: a }">
-              <div class="font-semibold">{{ a.namaDonor }}</div>
-              <div class="text-grey-400">{{ a.noDonor }}</div>
+              <!-- Kantong reaktif tanpa izin Lihat Hasil Reaktif: backend tidak mengirim identitas donor. -->
+              <i v-if="a.identitasDisamarkan" class="text-grey-400">disembunyikan</i>
+              <template v-else>
+                <div class="font-semibold">{{ a.namaDonor }}</div>
+                <div class="text-grey-400">{{ a.noDonor }}</div>
+              </template>
             </template>
           </Column>
           <Column header="Gol." headerClass="bg-opensimrs-50">

@@ -2,16 +2,20 @@ import express from "express";
 import { query, satu, sisipkan, ubah, sekarang, transaksi, uuidv7 } from "../db.js";
 import { tangani, kirim, halaman, denganHalaman, wajib, tidakDitemukan, permintaanSalah, Galat } from "../umum/respons.js";
 import { ALASAN_MUSNAH, GOLONGAN_DARAH, JENIS_KOMPONEN, PENERIMA_TIPE, cekPilihan, angkaOpsional, daftarNilai, hariIni, teks, waktuOpsional } from "./bersama.js";
-import { izinUtd } from "../umum/izin.js";
+import { izinUtd, bolehLihatReaktif, wajibSalahSatu } from "../umum/izin.js";
 
 // Penyimpanan & Distribusi: permintaan dari BDRS internal/RS lain, distribusi dengan validasi ulang status di dalam
 // transaksi (KT-8), serta pemusnahan kantong/komponen reaktif/kedaluwarsa (menolak barang yang sudah terdistribusi).
 const rute = express.Router();
 
+// Detail permintaan juga dibuka petugas distribusi saat memilih komponen.
+const bacaPermintaan = wajibSalahSatu(["UTD", "Distribusi", "READ", "Permintaan"], ["UTD", "Distribusi", "READ", "Distribusi"]);
+
 // ── Permintaan ───────────────────────────────────────────────────────────────
 
 rute.get(
   "/permintaan",
+  bacaPermintaan,
   tangani(async (req, res) => {
     const pg = halaman(req.query);
     const p = [req.author.faskesUuid];
@@ -54,15 +58,17 @@ const detailPermintaan = async (uuid, faskes) => {
   const p = await satu(`SELECT * FROM utd_permintaan WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [uuid, faskes]);
   if (!p) throw tidakDitemukan("Permintaan");
   const distribusi = await query(
-    `SELECT d.*, k.label_unik, k.jenis_komponen, k.golongan_darah FROM utd_distribusi d JOIN utd_komponen k ON k.uuid = d.komponen_uuid
-      WHERE d.permintaan_uuid = $1 AND d.deleted_at IS NULL ORDER BY d.created_at`,
-    [p.uuid],
+    `SELECT d.*, k.label_unik, k.jenis_komponen, k.golongan_darah FROM utd_distribusi d
+       JOIN utd_komponen k ON k.uuid = d.komponen_uuid AND k.faskes_uuid = d.faskes_uuid
+      WHERE d.permintaan_uuid = $1 AND d.faskes_uuid = $2 AND d.deleted_at IS NULL ORDER BY d.created_at`,
+    [p.uuid, faskes],
   );
   return { ...p, distribusi };
 };
 
 rute.get(
   "/permintaan/:uuid",
+  bacaPermintaan,
   tangani(async (req, res) => kirim(res, await detailPermintaan(req.params.uuid, req.author.faskesUuid))),
 );
 
@@ -75,6 +81,7 @@ const statusIntegrasiAwal = (penerimaTipe) => (penerimaTipe === "bdrs_internal" 
 
 rute.get(
   "/distribusi",
+  izinUtd("Distribusi", "READ", "Distribusi"),
   tangani(async (req, res) => {
     const pg = halaman(req.query);
     const p = [req.author.faskesUuid];
@@ -84,7 +91,7 @@ rute.get(
       p.push(status);
       w += ` AND d.status = ANY($${p.length})`;
     }
-    const dari = `FROM utd_distribusi d JOIN utd_komponen k ON k.uuid = d.komponen_uuid`;
+    const dari = `FROM utd_distribusi d JOIN utd_komponen k ON k.uuid = d.komponen_uuid AND k.faskes_uuid = d.faskes_uuid`;
     const total = (await satu(`SELECT COUNT(*) n ${dari} WHERE ${w}`, p)).n;
     const rows = await query(
       `SELECT d.*, k.label_unik, k.jenis_komponen, k.golongan_darah ${dari} WHERE ${w} ORDER BY d.created_at DESC LIMIT ${pg.limit} OFFSET ${pg.offset}`,
@@ -115,19 +122,24 @@ rute.post(
       if (!permintaan) throw tidakDitemukan("Permintaan");
       if (!["menunggu", "sebagian"].includes(permintaan.status)) throw new Galat(409, `Permintaan berstatus ${permintaan.status}, tidak dapat didistribusikan`);
       const sudahDikirim = await satu(
-        `SELECT COUNT(*)::int n FROM utd_distribusi WHERE permintaan_uuid = $1 AND deleted_at IS NULL`, [permintaan.uuid], k,
+        `SELECT COUNT(*)::int n FROM utd_distribusi WHERE permintaan_uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [permintaan.uuid, faskes], k,
       );
       if (sudahDikirim.n + komponenUuid.length > permintaan.jumlah_diminta)
         throw permintaanSalah(`Melebihi jumlah diminta (sisa ${permintaan.jumlah_diminta - sudahDikirim.n})`);
 
       const dibuat = [];
+      // Kedaluwarsa dibandingkan di SQL (DATE vs tanggal lokal hari ini): pg membaca kolom DATE sebagai objek Date,
+      // sehingga perbandingan `Date < "YYYY-MM-DD"` di JavaScript selalu false dan komponen kedaluwarsa lolos.
+      const hari = hariIni();
       for (const kompUuid of komponenUuid) {
         const komp = await satu(
-          `SELECT * FROM utd_komponen WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL FOR UPDATE`, [kompUuid, faskes], k,
+          `SELECT *, (tanggal_kedaluwarsa < $3::date) AS sudah_kedaluwarsa FROM utd_komponen
+            WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL FOR UPDATE`,
+          [kompUuid, faskes, hari], k,
         );
         if (!komp) throw tidakDitemukan(`Komponen ${kompUuid}`);
         if (komp.status !== "tersedia") throw new Galat(409, `Komponen ${komp.label_unik} berstatus ${komp.status}, status telah berubah`);
-        if (komp.tanggal_kedaluwarsa < hariIni()) throw new Galat(409, `Komponen ${komp.label_unik} sudah kedaluwarsa`);
+        if (komp.sudah_kedaluwarsa) throw new Galat(409, `Komponen ${komp.label_unik} sudah kedaluwarsa`);
         if (komp.golongan_darah !== permintaan.golongan_darah) throw permintaanSalah(`Komponen ${komp.label_unik} bukan golongan darah ${permintaan.golongan_darah}`);
         if (komp.jenis_komponen !== permintaan.jenis_komponen) throw permintaanSalah(`Komponen ${komp.label_unik} bukan jenis ${permintaan.jenis_komponen}`);
 
@@ -178,6 +190,7 @@ rute.post(
 
 rute.get(
   "/pemusnahan",
+  izinUtd("Distribusi", "READ", "Pemusnahan"),
   tangani(async (req, res) => {
     const pg = halaman(req.query);
     const p = [req.author.faskesUuid];
@@ -190,22 +203,26 @@ rute.get(
   }),
 );
 
-// Daftar tindak lanjut pemusnahan: kantong reaktif & komponen kedaluwarsa yang belum dimusnahkan (KF-17).
+// Daftar tindak lanjut pemusnahan: kantong reaktif & komponen kedaluwarsa yang belum dimusnahkan (KF-17). Nomor donor
+// kantong reaktif hanya dikirim kepada pemilik izin Lihat Hasil Reaktif (KF-18).
 rute.get(
   "/pemusnahan/tindak-lanjut",
+  izinUtd("Distribusi", "READ", "Pemusnahan"),
   tangani(async (req, res) => {
     const faskes = req.author.faskesUuid;
+    const boleh = await bolehLihatReaktif(req);
     const kantongReaktif = await query(
-      `SELECT a.uuid AS kantong_uuid, a.no_kantong, d.no_donor FROM utd_aftap a JOIN utd_donor d ON d.uuid = a.donor_uuid
+      `SELECT a.uuid AS kantong_uuid, a.no_kantong${boleh ? ", d.no_donor" : ""} FROM utd_aftap a
+         JOIN utd_donor d ON d.uuid = a.donor_uuid AND d.faskes_uuid = a.faskes_uuid
         WHERE a.faskes_uuid = $1 AND a.status_kantong = 'karantina_reaktif' AND a.deleted_at IS NULL
-          AND NOT EXISTS (SELECT 1 FROM utd_pemusnahan p WHERE p.kantong_uuid = a.uuid AND p.deleted_at IS NULL)
+          AND NOT EXISTS (SELECT 1 FROM utd_pemusnahan p WHERE p.kantong_uuid = a.uuid AND p.faskes_uuid = a.faskes_uuid AND p.deleted_at IS NULL)
         ORDER BY a.created_at`,
       [faskes],
     );
     const komponenKedaluwarsa = await query(
       `SELECT uuid AS komponen_uuid, label_unik, jenis_komponen, tanggal_kedaluwarsa FROM utd_komponen
         WHERE faskes_uuid = $1 AND status = 'kedaluwarsa' AND deleted_at IS NULL
-          AND NOT EXISTS (SELECT 1 FROM utd_pemusnahan p WHERE p.komponen_uuid = utd_komponen.uuid AND p.deleted_at IS NULL)
+          AND NOT EXISTS (SELECT 1 FROM utd_pemusnahan p WHERE p.komponen_uuid = utd_komponen.uuid AND p.faskes_uuid = utd_komponen.faskes_uuid AND p.deleted_at IS NULL)
         ORDER BY tanggal_kedaluwarsa`,
       [faskes],
     );
@@ -236,13 +253,15 @@ rute.post(
         const aftap = await satu(`SELECT * FROM utd_aftap WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL FOR UPDATE`, [b.kantong_uuid, faskes], k);
         if (!aftap) throw tidakDitemukan("Kantong");
         const terdistribusi = await satu(
-          `SELECT COUNT(*)::int n FROM utd_komponen WHERE aftap_uuid = $1 AND status = 'didistribusikan' AND deleted_at IS NULL`, [aftap.uuid], k,
+          `SELECT COUNT(*)::int n FROM utd_komponen WHERE aftap_uuid = $1 AND faskes_uuid = $2 AND status = 'didistribusikan' AND deleted_at IS NULL`,
+          [aftap.uuid, faskes], k,
         );
         if (terdistribusi.n) throw new Galat(409, `Kantong ${aftap.no_kantong} memiliki komponen yang sudah didistribusikan, tidak dapat dimusnahkan`);
         await ubah("utd_aftap", aftap.uuid, faskes, { status_kantong: "dimusnahkan" }, k);
         await query(
-          `UPDATE utd_komponen SET status = 'dimusnahkan', updated_at = $2 WHERE aftap_uuid = $1 AND status NOT IN ('didistribusikan', 'dimusnahkan') AND deleted_at IS NULL`,
-          [aftap.uuid, waktu], k,
+          `UPDATE utd_komponen SET status = 'dimusnahkan', updated_at = $2
+            WHERE aftap_uuid = $1 AND faskes_uuid = $3 AND status NOT IN ('didistribusikan', 'dimusnahkan') AND deleted_at IS NULL`,
+          [aftap.uuid, waktu, faskes], k,
         );
       }
       return sisipkan(

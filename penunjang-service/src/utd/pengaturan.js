@@ -13,8 +13,10 @@ export const pengaturanUtd = async (faskesUuid) => {
   return sisipkan("utd_pengaturan", { faskes_uuid: faskesUuid });
 };
 
+// Dibaca halaman Pengaturan UTD (menu memakai izin Donor, sama dengan penyimpanan).
 rute.get(
   "/",
+  izinUtd("Donor", "READ"),
   tangani(async (req, res) => kirim(res, await pengaturanUtd(req.author.faskesUuid))),
 );
 
