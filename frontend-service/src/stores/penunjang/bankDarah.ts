@@ -11,6 +11,8 @@ export const SUMBER_KUNJUNGAN_BDRS: Record<string, string> = { rajal: "Rawat Jal
 export const HASIL_UJI: Record<string, string> = { kompatibel: "Kompatibel", inkompatibel: "Inkompatibel" };
 export const SKRINING_ANTIBODI: Record<string, string> = { negatif: "Negatif", positif: "Positif" };
 export const SUMBER_STOK: Record<string, string> = { utd_manual: "UTD (manual)", utd_otomatis: "UTD (otomatis)" };
+export const STATUS_IMLTD: Record<string, string> = { belum_diperiksa: "Belum Diperiksa", non_reaktif: "Non-Reaktif", reaktif: "Reaktif" };
+export const KELOMPOK_KOMPONEN: Record<string, string> = { sel_darah_merah: "Sel Darah Merah", plasma: "Plasma", trombosit: "Trombosit", lainnya: "Lainnya" };
 
 type Gaya = { label: string; bg: string; text: string };
 
@@ -30,6 +32,11 @@ export const STATUS_STOK_BDRS: Record<string, Gaya> = {
   kedaluwarsa: { label: "Kedaluwarsa", bg: "bg-[#FDE2E1]", text: "text-[#B42318]" },
   dimusnahkan: { label: "Dimusnahkan", bg: "bg-grey-50", text: "text-grey-400" },
   dikembalikan: { label: "Dikembalikan", bg: "bg-grey-50", text: "text-grey-400" },
+};
+export const STATUS_IMLTD_BDRS: Record<string, Gaya> = {
+  belum_diperiksa: { label: "Belum Diperiksa", bg: "bg-[#FEF0C7]", text: "text-[#B54708]" },
+  non_reaktif: { label: "Non-Reaktif", bg: "bg-[#D1FADF]", text: "text-[#027A48]" },
+  reaktif: { label: "Reaktif", bg: "bg-[#FDE2E1]", text: "text-[#B42318]" },
 };
 export const STATUS_SERAH_TERIMA_BDRS: Record<string, Gaya> = {
   menunggu: { label: "Menunggu Konfirmasi", bg: "bg-[#FEF0C7]", text: "text-[#B54708]" },
@@ -54,6 +61,7 @@ export const STATUS_TINDAK_LANJUT_REAKSI: Record<string, Gaya> = {
 
 export const gayaPermintaanBdrs = (s?: string) => STATUS_PERMINTAAN_BDRS[s as string];
 export const gayaStokBdrs = (s?: string) => STATUS_STOK_BDRS[s as string];
+export const gayaImltdBdrs = (s?: string) => STATUS_IMLTD_BDRS[s as string];
 export const gayaSerahTerimaBdrs = (s?: string) => STATUS_SERAH_TERIMA_BDRS[s as string];
 export const gayaTagihanStBdrs = (s?: string) => STATUS_TAGIHAN_ST_BDRS[s as string];
 export const gayaTransfusiBdrs = (s?: string) => STATUS_TRANSFUSI_BDRS[s as string];
@@ -98,6 +106,7 @@ export const buatPermintaanBdrs = (data: {
   jumlahDiminta: number;
   indikasi: string;
   cito?: boolean;
+  dokterPemintaUuid: string;
 }) => apiPenunjangPost("/bank-darah/permintaan", data);
 export const ubahStatusPermintaanBdrs = (uuid: string, aksi: "proses" | "kembalikan" | "tolak" | "batalkan", alasan?: string) =>
   apiPenunjangPatch(`/bank-darah/permintaan/${uuid}/status`, { aksi, alasan });
@@ -106,8 +115,10 @@ export const lengkapiPermintaanBdrs = (uuid: string, data: Record<string, any>) 
 // ── Pemeriksaan & crossmatch
 export const catatPemeriksaanBdrs = (permintaanUuid: string, data: { golonganAbo: string; rhesus: string; hasilSkriningAntibodi: string; catatan?: string }) =>
   apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/pemeriksaan`, data);
-export const catatCrossmatchBdrs = (permintaanUuid: string, data: { stokUuid: string; hasilMayor: string; hasilMinor: string; catatan?: string }) =>
-  apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/crossmatch`, data);
+export const catatCrossmatchBdrs = (
+  permintaanUuid: string,
+  data: { stokUuid: string; hasilMayor: string; hasilMinor: string; catatan?: string; overrideDarurat?: boolean; alasanOverride?: string },
+) => apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/crossmatch`, data);
 
 // ── Stok
 // Respons: { data, pagination, ambangKedaluwarsaHari, ringkasan[] } — tiap baris diberi flag kedaluwarsa & peringatanKedaluwarsa.
@@ -125,14 +136,16 @@ export const terimaStokBdrs = (data: {
   lokasiPenyimpanan?: string;
   sumber?: string;
   utdReferensiUuid?: string;
+  statusImltd?: string;
 }) => apiPenunjangPost("/bank-darah/stok/penerimaan", data);
 export const pengeluaranStokBdrs = (uuid: string, aksi: "kembalikan" | "musnahkan", alasan: string) =>
   apiPenunjangPost(`/bank-darah/stok/${uuid}/pengeluaran`, { aksi, alasan });
+export const ubahImltdStokBdrs = (uuid: string, statusImltd: string) => apiPenunjangPatch(`/bank-darah/stok/${uuid}/imltd`, { statusImltd });
 
 // ── Serah terima
 // Backend hanya membaca stok_uuids; verifikasi identitas & nomor kantong ditegakkan saat konfirmasi.
-export const buatSerahTerimaBdrs = (permintaanUuid: string, stokUuids: string[]) =>
-  apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/serah-terima`, { stokUuids });
+export const buatSerahTerimaBdrs = (permintaanUuid: string, stokUuids: string[], override?: { overrideDarurat: boolean; alasanOverride: string }) =>
+  apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/serah-terima`, { stokUuids, ...override });
 export const daftarSerahTerimaBdrs = (params: Record<string, any> = {}) => apiPenunjangGet(`/bank-darah/serah-terima${qs(params)}`);
 export const detailSerahTerimaBdrs = (uuid: string) => apiPenunjangGet(`/bank-darah/serah-terima/${uuid}`);
 // Verifikasi diteruskan apa adanya dari centang di layar (backend menolak bila salah satunya bukan true).
@@ -179,8 +192,13 @@ export const hapusKomponenBdrs = (uuid: string) => apiPenunjangDelete(`/bank-dar
 
 // ── Pengaturan
 export const ambilPengaturanBdrs = () => apiPenunjangGet("/bank-darah/pengaturan");
-export const simpanPengaturanBdrs = (data: { ambangKedaluwarsaHari?: number; tarifPengolahan?: number; tarifCrossmatch?: number }) =>
-  apiPenunjangPatch("/bank-darah/pengaturan", data);
+export const simpanPengaturanBdrs = (data: {
+  ambangKedaluwarsaHari?: number;
+  tarifPengolahan?: number;
+  tarifCrossmatch?: number;
+  overrideDaruratAktif?: boolean;
+  overrideOPosAktif?: boolean;
+}) => apiPenunjangPatch("/bank-darah/pengaturan", data);
 
 // ── Referensi
 export const referensiPilihanBdrs = () => apiPenunjangGet("/bank-darah/referensi/pilihan");

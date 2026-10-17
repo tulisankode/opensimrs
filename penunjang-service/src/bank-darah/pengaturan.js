@@ -5,7 +5,8 @@ import { izinBdrs } from "../umum/izin.js";
 import { AMBANG_KEDALUWARSA_BAWAAN, angkaOpsional } from "./bersama.js";
 
 // Pengaturan BDRS per faskes (baris tunggal, dibuat otomatis saat pertama kali diakses): ambang peringatan
-// kedaluwarsa kantong (hari) & tarif pengolahan darah/crossmatch yang dikirim ke tagihan kunjungan saat serah terima.
+// kedaluwarsa kantong (hari), tarif pengolahan darah/crossmatch yang dikirim ke tagihan kunjungan saat serah terima,
+// dan sakelar pengecualian darurat (STD-0016/KF-7) — bawaan nonaktif, hanya mengubah lewat izin Pengaturan › UPDATE.
 const rute = express.Router();
 
 export const ambilPengaturan = async (faskesUuid) => {
@@ -16,6 +17,8 @@ export const ambilPengaturan = async (faskesUuid) => {
     ambang_kedaluwarsa_hari: AMBANG_KEDALUWARSA_BAWAAN,
     tarif_pengolahan: 0,
     tarif_crossmatch: 0,
+    override_darurat_aktif: false,
+    override_o_pos_aktif: false,
   });
 };
 
@@ -28,6 +31,8 @@ rute.get(
       ambangKedaluwarsaHari: p.ambang_kedaluwarsa_hari,
       tarifPengolahan: Number(p.tarif_pengolahan),
       tarifCrossmatch: Number(p.tarif_crossmatch),
+      overrideDaruratAktif: p.override_darurat_aktif,
+      overrideOPosAktif: p.override_o_pos_aktif,
     });
   }),
 );
@@ -49,6 +54,8 @@ rute.patch(
       ambang_kedaluwarsa_hari: ambang,
       tarif_pengolahan: tarifPengolahan,
       tarif_crossmatch: tarifCrossmatch,
+      override_darurat_aktif: b.override_darurat_aktif === undefined ? undefined : Boolean(b.override_darurat_aktif),
+      override_o_pos_aktif: b.override_o_pos_aktif === undefined ? undefined : Boolean(b.override_o_pos_aktif),
     });
     kirim(
       res,
@@ -57,6 +64,8 @@ rute.patch(
         ambangKedaluwarsaHari: hasil.ambang_kedaluwarsa_hari,
         tarifPengolahan: Number(hasil.tarif_pengolahan),
         tarifCrossmatch: Number(hasil.tarif_crossmatch),
+        overrideDaruratAktif: hasil.override_darurat_aktif,
+        overrideOPosAktif: hasil.override_o_pos_aktif,
       },
       "Pengaturan BDRS berhasil disimpan",
     );

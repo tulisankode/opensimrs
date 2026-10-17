@@ -35,6 +35,7 @@ import {
 const storeUtils = utilsStore();
 const bolehPenyerah = izinBdrs("Serah Terima", "KONFIRMASI PENYERAH");
 const bolehPenerima = izinBdrs("Serah Terima", "KONFIRMASI PENERIMA");
+const bolehOverride = izinBdrs("Uji Silang Serasi", "OVERRIDE DARURAT");
 const tab = ref("siap");
 
 // ── Permintaan siap diserahkan
@@ -65,6 +66,8 @@ const dialogBuat = ref(false);
 const pm = ref<any>(null);
 const pilihan = ref<string[]>([]);
 const galatBuat = ref("");
+const overrideDarurat = ref(false);
+const alasanOverride = ref("");
 // Kantong boleh diserahkan: crossmatch kompatibel, masih berlaku (tidak perlu ditinjau ulang), kantong masih tersedia.
 const kantongSiap = computed(() =>
   (pm.value?.crossmatch ?? []).filter((c: any) => c.kompatibel && c.statusValidasi === "berlaku" && c.statusStok === "tersedia" && Number(c.tanggalKedaluwarsa) > Date.now() / 1000),
@@ -84,6 +87,8 @@ const bukaBuat = async (baris: any) => {
     pm.value = res.payload;
     pilihan.value = [];
     galatBuat.value = "";
+    overrideDarurat.value = false;
+    alasanOverride.value = "";
     dialogBuat.value = true;
   } finally {
     storeUtils.setLoading(false);
@@ -99,7 +104,11 @@ const simpanBuat = async () => {
   if (pilihan.value.length > sisa.value) return (galatBuat.value = `Jumlah kantong melebihi sisa permintaan (sisa ${sisa.value})`);
   storeUtils.setLoading(true);
   try {
-    const res = await buatSerahTerimaBdrs(pm.value.uuid, pilihan.value);
+    const res = await buatSerahTerimaBdrs(
+      pm.value.uuid,
+      pilihan.value,
+      overrideDarurat.value ? { overrideDarurat: true, alasanOverride: alasanOverride.value } : undefined,
+    );
     if (res?.payload) {
       dialogBuat.value = false;
       tab.value = "transaksi";
@@ -333,6 +342,13 @@ const batal = async () => {
               {{ c.noKantong }} ({{ !c.kompatibel ? "inkompatibel" : c.statusValidasi !== "berlaku" ? "perlu crossmatch ulang" : c.statusStok }})
             </span>
           </div>
+          <div v-if="bolehOverride" class="flex flex-col gap-2 p-3 border rounded-lg border-danger-300">
+            <label class="flex items-center gap-2 text-sm font-semibold text-danger-300">
+              <Checkbox v-model="overrideDarurat" binary inputId="bdrs-st-override" />
+              Ajukan pengecualian darurat (hanya kantong universal & diaktifkan pengaturan BDRS)
+            </label>
+            <CustomTextArea v-if="overrideDarurat" v-model="alasanOverride" label="Alasan pengecualian (minimal 10 karakter)" required />
+          </div>
           <div v-if="galatBuat" class="text-sm text-danger-300">{{ galatBuat }}</div>
         </div>
       </template>
@@ -366,6 +382,7 @@ const batal = async () => {
               </span>
             </div>
             <div v-if="st.pesanTagihan" class="col-span-2 text-xs text-danger-300">{{ st.pesanTagihan }}</div>
+            <div v-if="st.alasanBatal" class="col-span-2 text-xs text-danger-300">Alasan dibatalkan: {{ st.alasanBatal }}</div>
           </div>
           <DataTable :value="st.items" stripedRows class="text-xs">
             <Column field="noKantong" header="No. Kantong" headerClass="bg-opensimrs-50" />

@@ -3,16 +3,17 @@ import { query, satu, sisipkan, ubah } from "../db.js";
 import { tangani, kirim, halaman, denganHalaman, wajib, tidakDitemukan, permintaanSalah, Galat } from "../umum/respons.js";
 import { izinBdrs, pastikanIzin } from "../umum/izin.js";
 import { ambilPengaturan } from "./pengaturan.js";
-import { cekPilihan, daftarNilai, ramah, teks, GOLONGAN_ABO, RHESUS, STATUS_STOK, SUMBER_STOK } from "./bersama.js";
+import { catatAuditBdrs, cekPilihan, daftarNilai, ramah, segarkanKedaluwarsa, teks, GOLONGAN_ABO, RHESUS, STATUS_IMLTD, STATUS_STOK, SUMBER_STOK } from "./bersama.js";
 
-// Stok kantong darah: satu baris per kantong. Penerimaan manual dari UTD (KF-10), ringkasan per golongan/komponen
-// dengan peringatan kedaluwarsa (KF-11, KF-12), serta pengembalian/pemusnahan beralasan tanpa menghapus riwayat (KF-13).
+// Stok kantong darah: satu baris per kantong. Penerimaan manual dari UTD (KF-10/KF-12 IMLTD), ringkasan per
+// golongan/komponen dengan peringatan kedaluwarsa (KF-11), serta pengembalian/pemusnahan beralasan tanpa menghapus
+// riwayat (KF-13). Status kedaluwarsa disegarkan (KF-10) sebelum daftar/detail dihitung — lihat bersama.js.
 const rute = express.Router();
 const TABEL = "bdrs_stok";
 const PILIH = `
   s.uuid, s.no_kantong, s.komponen_uuid, k.kode AS komponen_kode, k.nama AS komponen_nama,
   s.golongan_abo, s.rhesus, s.volume_ml, s.tanggal_produksi, s.tanggal_kedaluwarsa, s.lokasi_penyimpanan,
-  s.sumber, s.utd_referensi_uuid, s.status, s.alasan_keluar, s.diterima_oleh, s.created_at, s.updated_at`;
+  s.sumber, s.utd_referensi_uuid, s.status, s.status_imltd, s.alasan_keluar, s.diterima_oleh, s.created_at, s.updated_at`;
 const JOIN = `LEFT JOIN bdrs_komponen_darah k ON k.uuid = s.komponen_uuid`;
 
 const ambil = (uuid, faskes) => satu(`SELECT ${PILIH} FROM ${TABEL} s ${JOIN} WHERE s.uuid = $1 AND s.faskes_uuid = $2 AND s.deleted_at IS NULL`, [uuid, faskes]);
@@ -20,6 +21,7 @@ const ambil = (uuid, faskes) => satu(`SELECT ${PILIH} FROM ${TABEL} s ${JOIN} WH
 rute.get(
   "/",
   tangani(async (req, res) => {
+    await segarkanKedaluwarsa(req.author.faskesUuid);
     const pg = halaman(req.query);
     const p = [req.author.faskesUuid];
     let w = "s.faskes_uuid = $1 AND s.deleted_at IS NULL";
@@ -69,6 +71,7 @@ rute.get(
 );
 
 rute.get("/:uuid", tangani(async (req, res) => {
+  await segarkanKedaluwarsa(req.author.faskesUuid);
   const s = await ambil(req.params.uuid, req.author.faskesUuid);
   if (!s) throw tidakDitemukan("Kantong darah");
   kirim(res, s);
@@ -90,11 +93,23 @@ rute.post(
     const sumber = cekPilihan(b.sumber || "utd_manual", SUMBER_STOK, "sumber");
     const volume = b.volume_ml === undefined || b.volume_ml === null || b.volume_ml === "" ? null : Number(b.volume_ml);
     if (volume !== null && (!Number.isFinite(volume) || volume <= 0)) throw permintaanSalah("volume_ml tidak valid");
+    const noKantong = String(b.no_kantong).trim();
+    const statusImltd = cekPilihan(b.status_imltd || "belum_diperiksa", STATUS_IMLTD, "status_imltd");
+
+    // Kantong IMLTD reaktif ditolak dari stok (tidak disimpan) & penolakannya dicatat (KF-12/F3).
+    if (statusImltd === "reaktif") {
+      await catatAuditBdrs(faskes, "tolak_imltd_reaktif", {
+        pengguna: req.author.username ?? null,
+        data: { no_kantong: noKantong, komponen_uuid: b.komponen_uuid, golongan_abo: b.golongan_abo, rhesus: b.rhesus },
+      });
+      throw new Galat(409, `Kantong ${noKantong} berstatus IMLTD reaktif, tidak dapat diterima sebagai stok`);
+    }
+
     const kantong = await sisipkan(
       TABEL,
       {
         faskes_uuid: faskes,
-        no_kantong: String(b.no_kantong).trim(),
+        no_kantong: noKantong,
         komponen_uuid: b.komponen_uuid,
         golongan_abo: cekPilihan(b.golongan_abo, GOLONGAN_ABO, "golongan_abo"),
         rhesus: cekPilihan(b.rhesus, RHESUS, "rhesus"),
@@ -105,10 +120,31 @@ rute.post(
         sumber,
         utd_referensi_uuid: teks(b.utd_referensi_uuid),
         status: "tersedia",
+        status_imltd: statusImltd,
         diterima_oleh: req.author.username ?? null,
       },
     ).catch((e) => ramah(e, `No. kantong ${b.no_kantong} sudah terdaftar`));
     kirim(res, await ambil(kantong.uuid, faskes), `Kantong ${kantong.no_kantong} berhasil diterima`);
+  }),
+);
+
+// Perubahan status IMLTD setelah penerimaan (KF-12/KT-12/KT-13): hanya petugas berizin TERIMA KANTONG, tercatat di audit.
+rute.patch(
+  "/:uuid/imltd",
+  izinBdrs("Stok & Penerimaan", "TERIMA KANTONG"),
+  tangani(async (req, res) => {
+    const faskes = req.author.faskesUuid;
+    const statusBaru = cekPilihan(req.body?.status_imltd, STATUS_IMLTD, "status_imltd");
+    if (!statusBaru) throw permintaanSalah("status_imltd wajib diisi");
+    const s = await satu(`SELECT * FROM ${TABEL} WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [req.params.uuid, faskes]);
+    if (!s) throw tidakDitemukan("Kantong darah");
+    const hasil = await ubah(TABEL, s.uuid, faskes, { status_imltd: statusBaru });
+    await catatAuditBdrs(faskes, "ubah_imltd", {
+      stokUuid: s.uuid,
+      pengguna: req.author.username ?? null,
+      data: { no_kantong: s.no_kantong, status_lama: s.status_imltd, status_baru: statusBaru },
+    });
+    kirim(res, await ambil(hasil.uuid, faskes), `Status IMLTD kantong ${s.no_kantong} berhasil diperbarui`);
   }),
 );
 
