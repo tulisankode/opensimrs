@@ -42,12 +42,18 @@ const temukanCodex = async () => {
     lokasi = config.codexBin.endsWith(".js") ? { bin: process.execPath, awal: [config.codexBin] } : { bin: config.codexBin, awal: [] };
     return lokasi;
   }
+  // Studio dijalankan lewat `npm --prefix studio-service run dev`, yang mewariskan npm_config_prefix ke proses anak:
+  // tanpa dibuang, `npm root -g` menunjuk ke studio-service/node_modules, bukan folder paket global.
+  const envNpm = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^npm_config_prefix$/i.test(k)));
   const akar = await new Promise((resolve) =>
-    execFile("npm", ["root", "-g"], { windowsHide: true, timeout: 20000, shell: process.platform === "win32" }, (err, stdout) => resolve(err ? null : stdout.trim())),
+    execFile("npm", ["root", "-g"], { windowsHide: true, timeout: 20000, shell: process.platform === "win32", env: envNpm }, (err, stdout) => resolve(err ? null : stdout.trim())),
   );
-  const js = akar ? path.join(akar, "@openai", "codex", "bin", "codex.js") : null;
+  const kandidat = [akar, process.platform === "win32" && process.env.APPDATA ? path.join(process.env.APPDATA, "npm", "node_modules") : null]
+    .filter(Boolean)
+    .map((a) => path.join(a, "@openai", "codex", "bin", "codex.js"));
+  const js = kandidat.find((f) => fs.existsSync(f));
   // Hanya diingat bila paket ditemukan, agar Codex yang baru dipasang terbaca tanpa menjalankan ulang Studio.
-  if (js && fs.existsSync(js)) lokasi = { bin: process.execPath, awal: [js] };
+  if (js) lokasi = { bin: process.execPath, awal: [js] };
   return lokasi ?? { bin: "codex", awal: [] };
 };
 
