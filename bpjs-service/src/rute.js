@@ -6,6 +6,7 @@ import {
   daftarPemetaan, simpanPemetaan, sinkronKunjungan, daftarKunjungan, jalankanPekerja,
 } from "./pcare.js";
 import * as vc from "./vclaim.js";
+import fiturAktif from "./fitur-aktif.js";
 
 const rute = express.Router();
 const tangani = (fn) => (req, res) =>
@@ -99,6 +100,51 @@ rute.get("/vclaim/pemetaan-poli", tangani(async (req, res) => kirim(res, await v
 rute.put(
   "/vclaim/pemetaan-poli",
   tangani(async (req, res) => kirim(res, await vc.simpanPemetaanPoli(fk(req), req.body?.poli ?? []), "Pemetaan poli VClaim disimpan"))
+);
+
+// Rencana Kontrol & SPRI (fitur vclaim_rencana_kontrol, modul bpjs_fkrtl, mati bawaan — STD-0021)
+const wajibFiturRencanaKontrol = async (req, res, next) => {
+  const aktif = await fiturAktif("vclaim_rencana_kontrol", req.headers.authorization);
+  if (aktif === false) return res.status(403).json({ message: "Fitur Rencana Kontrol & SPRI (VClaim) belum diaktifkan untuk faskes ini" });
+  next();
+};
+rute.use(["/vclaim/rencana-kontrol", "/vclaim/spri"], wajibFiturRencanaKontrol);
+
+rute.get(
+  "/vclaim/rencana-kontrol",
+  tangani(async (req, res) => {
+    const { data, pagination } = await vc.daftarRencanaKontrol(fk(req), req.query);
+    res.json({ message: "Data berhasil ditampilkan", payload: data, pagination });
+  })
+);
+rute.post(
+  "/vclaim/rencana-kontrol",
+  tangani(async (req, res) => kirim(res, await vc.buatRencanaKontrol(fk(req), req.author.username, req.body ?? {}), "Rencana Kontrol berhasil dibuat"))
+);
+rute.get("/vclaim/rencana-kontrol/:uuid", tangani(async (req, res) => kirim(res, await vc.detailRencanaKontrol(fk(req), req.params.uuid))));
+rute.put(
+  "/vclaim/rencana-kontrol/:uuid",
+  tangani(async (req, res) =>
+    kirim(res, await vc.ubahRencanaKontrol(fk(req), req.author.username, req.params.uuid, req.body ?? {}), "Rencana Kontrol berhasil diubah")
+  )
+);
+rute.delete(
+  "/vclaim/rencana-kontrol/:uuid",
+  tangani(async (req, res) => kirim(res, await vc.hapusRencanaKontrol(fk(req), req.author.username, req.params.uuid), "Rencana Kontrol dihapus"))
+);
+
+rute.get(
+  "/vclaim/spri",
+  tangani(async (req, res) => {
+    const { data, pagination } = await vc.daftarSpri(fk(req), req.query);
+    res.json({ message: "Data berhasil ditampilkan", payload: data, pagination });
+  })
+);
+rute.post("/vclaim/spri", tangani(async (req, res) => kirim(res, await vc.buatSpri(fk(req), req.author.username, req.body ?? {}), "SPRI berhasil dibuat")));
+rute.get("/vclaim/spri/:uuid", tangani(async (req, res) => kirim(res, await vc.detailSpri(fk(req), req.params.uuid))));
+rute.put(
+  "/vclaim/spri/:uuid",
+  tangani(async (req, res) => kirim(res, await vc.ubahSpri(fk(req), req.author.username, req.params.uuid, req.body ?? {}), "SPRI berhasil diubah"))
 );
 
 export default rute;

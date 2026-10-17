@@ -1064,7 +1064,7 @@
       "modul": "bpjs_fkrtl",
       "nama": "Rencana Kontrol & SPRI",
       "deskripsi": "Pembuatan surat kontrol dan SPRI lewat VClaim.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
       "rute": [],
       "urutan": 45
@@ -1762,7 +1762,8 @@
       "klinik_utama": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "vclaim_rencana_kontrol"
       ],
       "puskesmas": [
         "bayar_diskon_voucher",
@@ -1775,24 +1776,28 @@
       "rs_d": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "vclaim_rencana_kontrol"
       ],
       "rs_c": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "vclaim_rencana_kontrol"
       ],
       "rs_b": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
-        "bdrs_bridging"
+        "bdrs_bridging",
+        "vclaim_rencana_kontrol"
       ],
       "rs_a": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
-        "bdrs_bridging"
+        "bdrs_bridging",
+        "vclaim_rencana_kontrol"
       ]
     },
     "bagian_mati": {
