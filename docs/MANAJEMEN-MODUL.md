@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 6 berstatus Segera), **63 fitur** (10 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 5 berstatus Segera), **63 fitur** (4 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -293,7 +293,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `gizi` | Gizi | Diet & distribusi makan pasien rawat inap. | Segera | – |
 | `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Segera | – |
 | `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Bank Darah RS (BDRS) |
-| `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Segera | – |
+| `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Tersedia | UTD |
 | `akuntansi` | Akuntansi & Remunerasi | Jurnal, laporan keuangan, jasa pelayanan. | Segera | – |
 
 ### C. Matriks modul × segmen (preset bawaan)
@@ -326,7 +326,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Koding & Rekam Medis (`koding_rm`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
 | CSSD (`cssd`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | Bank Darah RS (BDRS) (`bank_darah`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
-| UTD / UPTD Produksi Darah (`utd`) | Segera | – | – | – | – | – | – | – | ✓ |
+| UTD / UPTD Produksi Darah (`utd`) | Tersedia | – | – | – | – | – | – | – | ✓ |
 | Akuntansi & Remunerasi (`akuntansi`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
 | Kelas Training (`training`) | Segera | – | – | – | – | – | – | – | – |
 | Medical Check Up (MCU) (`mcu`) | Tersedia | – | ✓ | ✓ | – | ✓ | ✓ | ✓ | ✓ |
@@ -465,12 +465,12 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
-| `utd_donor` | Rekrutmen & Seleksi Donor | Pendaftaran donor, kuesioner, pemeriksaan Hb/tekanan darah, riwayat & kartu donor. | Segera | – | – | – |
-| `utd_aftap` | Pengambilan Darah (Aftap) | Pencatatan pengambilan darah, nomor kantong & reaksi donor; donor mobile/kegiatan. | Segera | – | – | – |
-| `utd_imltd` | Uji Saring IMLTD | Uji saring infeksi menular lewat transfusi darah (HIV, HBsAg, HCV, sifilis) & konfirmasi. | Segera | – | – | – |
-| `utd_komponen` | Pengolahan Komponen | Pemisahan whole blood menjadi PRC, TC, FFP, cryo; pelabelan & karantina. | Segera | – | – | – |
-| `utd_distribusi` | Penyimpanan & Distribusi | Stok per golongan/komponen, distribusi ke BDRS/RS lain, pemusnahan kantong reaktif/kedaluwarsa. | Segera | – | – | – |
-| `utd_pelaporan` | Pelaporan UTD | Laporan produksi, donor & distribusi untuk Dinkes/Kemenkes. | Segera | – | – | – |
+| `utd_donor` | Rekrutmen & Seleksi Donor | Pendaftaran donor, kuesioner, pemeriksaan Hb/tekanan darah, riwayat & kartu donor. | Tersedia | – | – | – |
+| `utd_aftap` | Pengambilan Darah (Aftap) | Pencatatan pengambilan darah, nomor kantong & reaksi donor; donor mobile/kegiatan. | Tersedia | – | – | – |
+| `utd_imltd` | Uji Saring IMLTD | Uji saring infeksi menular lewat transfusi darah (HIV, HBsAg, HCV, sifilis) & konfirmasi. | Tersedia | – | – | – |
+| `utd_komponen` | Pengolahan Komponen | Pemisahan whole blood menjadi PRC, TC, FFP, cryo; pelabelan & karantina. | Tersedia | – | – | – |
+| `utd_distribusi` | Penyimpanan & Distribusi | Stok per golongan/komponen, distribusi ke BDRS/RS lain, pemusnahan kantong reaktif/kedaluwarsa. | Tersedia | – | – | – |
+| `utd_pelaporan` | Pelaporan UTD | Laporan produksi, donor & distribusi untuk Dinkes/Kemenkes. | Tersedia | – | – | – |
 
 #### Medical Check Up (MCU) (`mcu`)
 

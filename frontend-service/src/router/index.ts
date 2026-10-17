@@ -254,6 +254,16 @@ import KomponenBdrsPage from "@/views/BankDarah/KomponenBdrsPage.vue";
 import PengaturanBdrsPage from "@/views/BankDarah/PengaturanBdrsPage.vue";
 import LaporanBdrsPage from "@/views/BankDarah/LaporanBdrsPage.vue";
 
+// NOTE UTD / UPTD Produksi Darah — donor, aftap, uji saring IMLTD, komponen, distribusi & pelaporan (penunjang-service)
+import UtdView from "@/views/Utd/UtdView.vue";
+import DonorUtdPage from "@/views/Utd/DonorUtdPage.vue";
+import AftapUtdPage from "@/views/Utd/AftapUtdPage.vue";
+import ImltdUtdPage from "@/views/Utd/ImltdUtdPage.vue";
+import KomponenUtdPage from "@/views/Utd/KomponenUtdPage.vue";
+import DistribusiUtdPage from "@/views/Utd/DistribusiUtdPage.vue";
+import PelaporanUtdPage from "@/views/Utd/PelaporanUtdPage.vue";
+import PengaturanUtdPage from "@/views/Utd/PengaturanUtdPage.vue";
+
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
   daftar.map(([path, name, page]) => ({ path, name, meta: { layout: SidebarLayout, page, requiresAuth: true }, component: view }));
@@ -1747,6 +1757,19 @@ const router = createRouter({
       ["/bank-darah/datamaster/komponen", "bank-darah-datamaster-komponen", KomponenBdrsPage],
       ["/bank-darah/pengaturan", "bank-darah-pengaturan", PengaturanBdrsPage],
       ["/bank-darah/laporan", "bank-darah-laporan", LaporanBdrsPage],
+    ]),
+    // !SECTION
+
+    // SECTION UTD / UPTD Produksi Darah
+    { path: "/utd", name: "utd", redirect: "/utd/donor" },
+    ...halamanModul(UtdView, [
+      ["/utd/donor", "utd-donor", DonorUtdPage],
+      ["/utd/aftap", "utd-aftap", AftapUtdPage],
+      ["/utd/imltd", "utd-imltd", ImltdUtdPage],
+      ["/utd/komponen", "utd-komponen", KomponenUtdPage],
+      ["/utd/distribusi", "utd-distribusi", DistribusiUtdPage],
+      ["/utd/pengaturan", "utd-pengaturan", PengaturanUtdPage],
+      ["/utd/laporan", "utd-laporan", PelaporanUtdPage],
     ]),
     // !SECTION
 

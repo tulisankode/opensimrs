@@ -472,10 +472,10 @@
       "nama": "UTD / UPTD Produksi Darah",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi.",
-      "menu": [],
-      "rute": [],
+      "menu": ["UTD"],
+      "rute": ["/utd"],
       "urutan": 25
     },
     {
@@ -827,9 +827,9 @@
       "modul": "utd",
       "nama": "Rekrutmen & Seleksi Donor",
       "deskripsi": "Pendaftaran donor, kuesioner, pemeriksaan Hb/tekanan darah, riwayat & kartu donor.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/donor","/utd/pengaturan"],
       "urutan": 25
     },
     {
@@ -837,9 +837,9 @@
       "modul": "utd",
       "nama": "Pengambilan Darah (Aftap)",
       "deskripsi": "Pencatatan pengambilan darah, nomor kantong & reaksi donor; donor mobile/kegiatan.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/aftap"],
       "urutan": 26
     },
     {
@@ -847,9 +847,9 @@
       "modul": "utd",
       "nama": "Uji Saring IMLTD",
       "deskripsi": "Uji saring infeksi menular lewat transfusi darah (HIV, HBsAg, HCV, sifilis) & konfirmasi.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/imltd"],
       "urutan": 27
     },
     {
@@ -857,9 +857,9 @@
       "modul": "utd",
       "nama": "Pengolahan Komponen",
       "deskripsi": "Pemisahan whole blood menjadi PRC, TC, FFP, cryo; pelabelan & karantina.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/komponen"],
       "urutan": 28
     },
     {
@@ -867,9 +867,9 @@
       "modul": "utd",
       "nama": "Penyimpanan & Distribusi",
       "deskripsi": "Stok per golongan/komponen, distribusi ke BDRS/RS lain, pemusnahan kantong reaktif/kedaluwarsa.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/distribusi"],
       "urutan": 29
     },
     {
@@ -877,9 +877,9 @@
       "modul": "utd",
       "nama": "Pelaporan UTD",
       "deskripsi": "Laporan produksi, donor & distribusi untuk Dinkes/Kemenkes.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/laporan"],
       "urutan": 30
     },
     {

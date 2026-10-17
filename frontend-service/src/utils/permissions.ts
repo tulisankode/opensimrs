@@ -274,6 +274,16 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/bank-darah/laporan", permission: read("Bank Darah RS (BDRS)", "Laporan BDRS", ["Pemakaian Darah", "Rasio Crossmatch-Transfusi", "Hemovigilans"]) },
   { path: "/bank-darah", mode: "prefix", permission: read("Bank Darah RS (BDRS)", null, null, null) },
 
+  // UTD / UPTD Produksi Darah — penunjang-service (Pengaturan memakai Donor: backend menyimpan dengan izin Donor › UPDATE)
+  { path: "/utd/donor", permission: read("UTD", "Donor") },
+  { path: "/utd/aftap", permission: read("UTD", "Aftap") },
+  { path: "/utd/imltd", permission: read("UTD", "IMLTD") },
+  { path: "/utd/komponen", permission: read("UTD", "Komponen") },
+  { path: "/utd/distribusi", permission: read("UTD", "Distribusi", ["Permintaan", "Distribusi", "Pemusnahan"]) },
+  { path: "/utd/pengaturan", permission: read("UTD", "Donor") },
+  { path: "/utd/laporan", permission: read("UTD", "Laporan UTD") },
+  { path: "/utd", mode: "prefix", permission: read("UTD", null, null, null) },
+
   { path: "/training/daftar-kelas", featureStatus: "stub", permission: read("Training", "Daftar Kelas") },
   { path: "/training/booking-kelas", featureStatus: "stub", permission: read("Training", "Booking Kelas") },
   { path: "/training/datamaster/kelas", featureStatus: "stub", permission: read("Training", "Datamaster") },
