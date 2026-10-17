@@ -1,6 +1,7 @@
 import { apiAuthPost, apiAuthDelete, apiAuthPut } from "@/utils/apiHandler";
 import { defineStore } from "pinia";
 import { useModulFaskesStore } from "@/stores/modulFaskes";
+import { bersihkanStatusStudio } from "@/stores/simrsStudio";
 
 export const useAuthStore = defineStore({
   id: "auth",
@@ -26,6 +27,8 @@ export const useAuthStore = defineStore({
         JSON.stringify(response.payload.permissions)
       );
       localStorage.setItem("user", JSON.stringify(response.payload.user));
+      // Status SIMRS Studio milik pengguna sebelumnya (mis. superadmin) tidak boleh terbawa ke sesi ini.
+      bersihkanStatusStudio();
 
       // Modul aktif faskes (Setting › Manajemen Modul) untuk menu & guard rute.
       try {
@@ -45,6 +48,7 @@ export const useAuthStore = defineStore({
       localStorage.removeItem("faskes");
       localStorage.removeItem("faskes_profile");
       useModulFaskesStore().bersihkan();
+      bersihkanStatusStudio();
       return response;
     },
 
