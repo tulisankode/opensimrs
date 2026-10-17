@@ -57,3 +57,16 @@ test("berkasBerubah hanya mengambil berkas yang disentuh agen", () => {
   const sesudah = { status: { "a.js": "M", "vite.config.ts": "M", "b.js": "??" }, sidik: { "a.js": "h2", "vite.config.ts": "v1", "b.js": "h3" } };
   assert.deepEqual(berkasBerubah(sebelum, sesudah).map((b) => b.path).sort(), ["a.js", "b.js"]);
 });
+
+test("teksLampiran: isi lampiran teks disisipkan utuh bila tersedia, sisanya cukup lokasi", async () => {
+  const { teksLampiran } = await import("../src/agen/prompt.js");
+  assert.equal(teksLampiran([]), null);
+  const lokasi = teksLampiran([{ nama: "a.png", lokasi: "/x/a.png" }]);
+  assert.match(lokasi, /a\.png: \/x\/a\.png/);
+  assert.match(lokasi, /alat baca berkas/);
+  const sisip = teksLampiran([{ nama: "prd.md", lokasi: "/x/prd.md", isi: "# PRD\nisi rahasia tidak ada" }]);
+  assert.match(sisip, /prd\.md \(isi di bawah\)/);
+  assert.match(sisip, /<lampiran nama="prd\.md">\n# PRD\nisi rahasia tidak ada\n<\/lampiran>/);
+  assert.doesNotMatch(sisip, /\/x\/prd\.md/);
+  assert.doesNotMatch(sisip, /alat baca berkas/);
+});
