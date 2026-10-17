@@ -381,6 +381,17 @@ export const jalankanCoding = async (item, instruksi, oleh) => {
 
 // ---------- Perubahan & pemeriksa kebijakan ----------
 
+// Helper enkripsi rahasia yang sudah teruji: berkas kriptografi baru buatan agen harus salinan bakunya (kebijakan §4a).
+const BERKAS_KRIPTO_BAKU = ["lab-service/src/lis/rahasia.js", "setting-service/src/bantuan/rahasia.js"];
+const kriptoBaku = () =>
+  BERKAS_KRIPTO_BAKU.map((p) => {
+    try {
+      return fs.readFileSync(path.join(config.repoDir, p), "utf8");
+    } catch {
+      return null;
+    }
+  }).filter(Boolean);
+
 const migrasiTerakhir = async (dasar) => {
   const { keluaran } = await git(["ls-tree", "--name-only", dasar || "main", "database/migrations/"], { izinkanGagal: true });
   const stempel = keluaran.split("\n").map((p) => p.match(/(\d{14})-/)?.[1]).filter(Boolean).sort();
@@ -436,7 +447,7 @@ export const perubahanItem = async (item) => {
     }
   }
   const { nilai } = await bacaSemua();
-  const kebijakan = periksaKebijakan(berkas, { risiko: item.risiko, migrasiTerakhir: await migrasiTerakhir(await branchDasar(nilai, item)) });
+  const kebijakan = periksaKebijakan(berkas, { risiko: item.risiko, migrasiTerakhir: await migrasiTerakhir(await branchDasar(nilai, item)), kriptoBaku: kriptoBaku() });
   berkas = berkas.map((b) => ({ ...b, ...hitungBaris(b.patch), patch: b.patch.length > BATAS ? `${b.patch.slice(0, BATAS)}\n… (dipotong)` : b.patch }));
   return { branch: item.branch, worktree: item.worktree, commitSha: item.commit_sha, berkas, kebijakan };
 };
@@ -996,6 +1007,29 @@ const gabung = async (cwd, args, judul) => {
   throw new Galat(409, `${judul} gagal karena konflik${bentrok.length ? ` pada: ${bentrok.join(", ")}` : `: ${r.galat}`}. Selesaikan manual di VS Code, atau minta agen merevisi item.`);
 };
 
+// Pra-cek konflik tanpa menyentuh working tree (git merge-tree --write-tree, git ≥ 2.38). Merge yang berkonflik lalu
+// dibatalkan membuat berkas di aplikasi yang sedang berjalan muncul lalu hilang lagi, dan Vite/Tailwind tetap mencari
+// berkas yang hilang itu (galat ENOENT sampai npm run dev dijalankan ulang). Mengembalikan daftar berkas yang bentrok.
+const pracekGabung = async (target, sumber) => {
+  const r = await git(["merge-tree", "--write-tree", "--name-only", "--no-messages", target, sumber], { izinkanGagal: true });
+  if (r.ok) return [];
+  const [oid, ...berkas] = r.keluaran.split("\n");
+  // Bukan keluaran konflik (mis. git lama tanpa --write-tree): lanjut ke merge biasa yang tetap dibatalkan bila bentrok.
+  if (!/^[0-9a-f]{40,64}$/.test(oid ?? "")) return [];
+  return [...new Set(berkas.filter(Boolean))];
+};
+
+// Migrasi baru milik item yang stempelnya lebih tua dari migrasi terakhir di branch tujuan (aturan repo: migrasi
+// harus berurutan paling akhir saat merge ke main).
+const migrasiTidakUrut = async (target, sumber) => {
+  const { keluaran: baru } = await git(["diff", "--name-only", "--diff-filter=A", `${target}...${sumber}`, "--", "database/migrations"], { izinkanGagal: true });
+  const milikItem = baru.split("\n").filter((p) => p.endsWith(".cjs"));
+  if (!milikItem.length) return [];
+  const { keluaran: ada } = await git(["ls-tree", "--name-only", target, "database/migrations/"], { izinkanGagal: true });
+  const terakhir = ada.split("\n").filter((p) => p.endsWith(".cjs") && !milikItem.includes(p)).map((p) => path.basename(p)).sort().pop();
+  return terakhir ? milikItem.map((p) => path.basename(p)).filter((n) => n < terakhir) : [];
+};
+
 // Berkas masuk layanan yang dijalankan nodemon (scripts.dev "nodemon <berkas>", atau main).
 const berkasMasuk = (cwd, layanan) => {
   try {
@@ -1126,6 +1160,12 @@ export const terapkanLokal = async (item, oleh, faskesUuid = null) => {
   const target = await branchLokal(nilai, item);
   if (target === item.branch) throw permintaanSalah("Branch lokal sama dengan branch item — atur Branch lokal di Pengaturan & Agen");
   if (!(await git(["rev-parse", "--verify", "--quiet", `refs/heads/${target}`], { izinkanGagal: true })).ok) throw permintaanSalah(`Branch lokal ${target} tidak ditemukan`);
+  const bentrok = await pracekGabung(target, item.branch);
+  if (bentrok.length) {
+    throw new Galat(409, `Penerapan dibatalkan sebelum menyentuh ${target}: branch item bentrok dengan ${target} pada ${bentrok.join(", ")}. ` +
+      `Gabungkan ${target} ke branch item dan selesaikan konfliknya di worktree item (atau minta agen merevisi), lalu terapkan lagi.`);
+  }
+  const tidakUrut = await migrasiTidakUrut(target, item.branch);
   const adaMigrasi = (item.riwayat_commit ?? []).some((c) => (c.berkas ?? []).some((p) => p.startsWith("database/migrations/")));
   let migrasi = null;
   let aktivasi = item.sha_batal ? null : item.aktivasi ?? null;
@@ -1160,6 +1200,7 @@ export const terapkanLokal = async (item, oleh, faskesUuid = null) => {
     item, item.tahap, "sistem",
     `Diterapkan ke branch lokal ${target} (${sha.slice(0, 7)}).` +
       (adaMigrasi && migrasi === false && nilai.migrasi_otomatis ? " Ada migrasi baru: jalankan npm run db:migrate setelah aplikasi memakai branch itu." : "") +
+      (tidakUrut.length ? ` Perhatian: migrasi ${tidakUrut.join(", ")} lebih tua dari migrasi terakhir di ${target}; nomori ulang sebelum PR ke main.` : "") +
       catatanDependensi +
       catatanAktivasi +
       (aplikasi.sama

@@ -59,7 +59,7 @@ const gantiHalaman = (e: { page: number; rows: number }) => {
 };
 onMounted(muat);
 // Baris reaktif tanpa izin: nama donor tidak ditampilkan.
-const samarkanBaris = (w: any) => !bolehReaktif && (w.statusAkhir === "reaktif" || w.statusKantong === "karantina_reaktif");
+const samarkanBaris = (w: any) => w.identitasDisamarkan || (!bolehReaktif && (w.statusAkhir === "reaktif" || w.statusKantong === "karantina_reaktif"));
 
 // ── Detail kantong + form hasil
 const jejak = ref<any>(null);

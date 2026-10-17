@@ -78,9 +78,15 @@ export const pathDiubahDalamDesain = (teks = "") => {
 };
 
 const POLA_MIGRASI =/^database\/migrations\/(\d{14})-[a-z0-9_-]+\.cjs$/i;
+// Kode kriptografi (enkripsi/dekripsi rahasia) di luar nama zona merah (mis. kripto.js): hanya boleh berupa salinan
+// baku helper yang sudah teruji. Pembanding dinormalkan: tanpa komentar, nama variabel kunci *_KUNCI_RAHASIA disamakan.
+const POLA_KRIPTO = /\bcreate(?:Cipher|Decipher)iv\s*\(/;
+export const normalKripto = (teks = "") =>
+  String(teks).replace(/\r\n/g, "\n").split("\n").map((b) => b.replace(/\s+$/, "")).filter((b) => b.trim() && !/^\s*\/\//.test(b))
+    .map((b) => b.replace(/\b[A-Z][A-Z0-9_]*_KUNCI_RAHASIA\b/g, "X_KUNCI_RAHASIA")).join("\n");
 const POLA_IMPORT_MAIN = /\bfrom\s*["'](?:@\/main|(?:\.\.?\/)+main)(?:\.ts)?["']|\bimport\s*\(\s*["']@\/main(?:\.ts)?["']\s*\)/;
 
-export const periksaKebijakan = (berkas, { risiko = "sedang", migrasiTerakhir = null } = {}) => {
+export const periksaKebijakan = (berkas, { risiko = "sedang", migrasiTerakhir = null, kriptoBaku = [] } = {}) => {
   const temuan = [];
   const tambah = (cek, lulus, pesan) => temuan.push({ cek, lulus, pesan });
 
@@ -136,6 +142,17 @@ export const periksaKebijakan = (berkas, { risiko = "sedang", migrasiTerakhir = 
   const katalog = berkas.some((b) => b.path === "database/data/katalog-modul.json");
   const dokKatalog = berkas.some((b) => b.path.startsWith("docs/") && /katalog|MANAJEMEN-MODUL/i.test(b.path));
   tambah("Katalog modul", !katalog || dokKatalog, !katalog ? "Katalog tidak diubah" : dokKatalog ? "Katalog & dokumennya diperbarui" : "Katalog diubah tanpa menjalankan npm run docs:katalog");
+
+  // 4a. Kriptografi: berkas baru yang mengenkripsi/dekripsi wajib salinan baku (lab-service/src/lis/rahasia.js dkk.);
+  // perubahan lain yang menyentuh kriptografi dikerjakan & ditinjau programmer (risiko kritis).
+  const baku = new Set(kriptoBaku.map(normalKripto));
+  const kripto = berkas.filter((b) => barisTambahan(b.patch).some((baris) => POLA_KRIPTO.test(baris)));
+  const kriptoLiar = kripto.filter((b) => !(["??", "A"].includes(b.status) && baku.has(normalKripto(barisTambahan(b.patch).join("\n")))));
+  if (kripto.length) {
+    tambah("Kriptografi", !kriptoLiar.length || risiko === "kritis", kriptoLiar.length
+      ? `Kode enkripsi/dekripsi baru yang bukan salinan baku: ${kriptoLiar.map((b) => b.path).join(", ")}. Salin persis lab-service/src/lis/rahasia.js (boleh ganti komentar & nama variabel *_KUNCI_RAHASIA), atau tetapkan risiko kritis agar dikerjakan & ditinjau programmer.`
+      : `${kripto.length} berkas kriptografi berupa salinan baku helper rahasia`);
+  }
 
   // 4b. Frontend: import "@/main" membuat import melingkar (main → router → halaman → main) → layar putih setelah diterapkan.
   const impMain = berkas

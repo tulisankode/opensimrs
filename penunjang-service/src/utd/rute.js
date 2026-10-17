@@ -1,5 +1,6 @@
 import express from "express";
 import { tangani, kirim } from "../umum/respons.js";
+import { wajibSalahSatu } from "../umum/izin.js";
 import donor from "./donor.js";
 import aftap from "./aftap.js";
 import imltd from "./imltd.js";
@@ -31,9 +32,14 @@ rute.use("/", imltd);
 rute.use("/", komponen);
 rute.use("/", distribusi);
 
-// Daftar pilihan (enum) untuk form frontend.
+// Daftar pilihan (enum) untuk form frontend: cukup salah satu hak READ di modul UTD.
 rute.get(
   "/referensi/pilihan",
+  wajibSalahSatu(
+    ["UTD", "Donor", "READ"], ["UTD", "Aftap", "READ"], ["UTD", "IMLTD", "READ"], ["UTD", "Komponen", "READ"],
+    ["UTD", "Distribusi", "READ", "Permintaan"], ["UTD", "Distribusi", "READ", "Distribusi"], ["UTD", "Distribusi", "READ", "Pemusnahan"],
+    ["UTD", "Laporan UTD", "READ"],
+  ),
   tangani(async (req, res) =>
     kirim(res, {
       jenis_kelamin: pilihan(JENIS_KELAMIN),

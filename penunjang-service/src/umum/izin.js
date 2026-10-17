@@ -61,6 +61,16 @@ export const wajibIzin = (modul, submodul, aksi, fitur = null) => (req, res, nex
     .then((boleh) => (boleh ? next() : res.status(403).json({ message: galatIzin(modul, submodul, aksi, fitur).message })))
     .catch(next);
 
+// Middleware: lolos bila pengguna punya SALAH SATU syarat [modul, submodul, aksi, fitur?]; selain itu 403.
+export const wajibSalahSatu = (...syarat) => async (req, res, next) => {
+  try {
+    for (const [modul, submodul, aksi, fitur] of syarat) if (await punyaIzin(req, modul, submodul, aksi, fitur)) return next();
+    res.status(403).json({ message: `Akses ditolak: butuh hak ${syarat.map((s) => s.filter(Boolean).join(" › ")).join(" atau ")}` });
+  } catch (e) {
+    next(e);
+  }
+};
+
 // Pintasan per modul.
 export const izinPa = (submodul, aksi, fitur = null) => wajibIzin("Patologi Anatomi", submodul, aksi, fitur);
 export const izinMikro = (submodul, aksi, fitur = null) => wajibIzin("Mikrobiologi", submodul, aksi, fitur);

@@ -1,8 +1,8 @@
 import express from "express";
 import { query, satu, sisipkan, ubah, sekarang, transaksi } from "../db.js";
 import { tangani, kirim, halaman, denganHalaman, tidakDitemukan, permintaanSalah, Galat } from "../umum/respons.js";
-import { HASIL_IMLTD, PARAMETER_IMLTD, cekPilihan, teks, waktuOpsional } from "./bersama.js";
-import { izinUtd } from "../umum/izin.js";
+import { HASIL_IMLTD, PARAMETER_IMLTD, cekPilihan, samarkanBarisKantong, samarkanImltd, sqlKantongReaktif, teks, waktuOpsional } from "./bersama.js";
+import { izinUtd, bolehLihatReaktif } from "../umum/izin.js";
 
 // Uji Saring IMLTD (HIV, HBsAg, HCV, sifilis) per kantong; satu hasil reaktif mengarantina kantong & seluruh
 // komponen turunannya (KF-17), kecuali konfirmasi menyatakan sebaliknya (aturan bisnis #6). Pelepasan ke stok
@@ -57,26 +57,30 @@ const kolomHasil = (b, prefix) => {
 };
 
 // Antrean kantong yang menunggu/berjalan uji saring (belum berstatus akhir non-reaktif/reaktif final yang dilepas).
+// Identitas donor pada kantong reaktif disamarkan bagi pengguna tanpa izin Lihat Hasil Reaktif (KF-18).
 rute.get(
   "/imltd/worklist",
+  izinUtd("IMLTD", "READ"),
   tangani(async (req, res) => {
     const pg = halaman(req.query);
     const p = [req.author.faskesUuid];
-    const dari = `FROM utd_aftap a LEFT JOIN utd_imltd i ON i.aftap_uuid = a.uuid AND i.deleted_at IS NULL
-                  JOIN utd_donor d ON d.uuid = a.donor_uuid`;
+    const dari = `FROM utd_aftap a LEFT JOIN utd_imltd i ON i.aftap_uuid = a.uuid AND i.faskes_uuid = a.faskes_uuid AND i.deleted_at IS NULL
+                  JOIN utd_donor d ON d.uuid = a.donor_uuid AND d.faskes_uuid = a.faskes_uuid`;
     const w = `a.faskes_uuid = $1 AND a.deleted_at IS NULL AND a.status_kantong IN ('karantina', 'karantina_reaktif')`;
     const total = (await satu(`SELECT COUNT(*) n ${dari} WHERE ${w}`, p)).n;
     const rows = await query(
       `SELECT a.uuid AS aftap_uuid, a.no_kantong, a.status_kantong, a.created_at, d.no_donor, d.nama AS nama_donor,
-              i.uuid AS imltd_uuid, i.status_akhir
+              i.uuid AS imltd_uuid, i.status_akhir, ${sqlKantongReaktif("a")} AS reaktif
          ${dari} WHERE ${w} ORDER BY a.created_at LIMIT ${pg.limit} OFFSET ${pg.offset}`,
       p,
     );
-    kirim(res, denganHalaman(rows, total, pg));
+    const boleh = await bolehLihatReaktif(req);
+    kirim(res, denganHalaman(rows.map((r) => samarkanBarisKantong(r, boleh)), total, pg));
   }),
 );
 
-// Simpan/ubah hasil awal 4 parameter. Body: { hiv_hasil?, hiv_metode?, hiv_waktu?, hbsag_*, hcv_*, sifilis_*, analis_uuid? }.
+// Simpan/ubah hasil awal 4 parameter. Respons disamarkan tanpa izin Lihat Hasil Reaktif: PUT dengan body kosong tidak
+// boleh menjadi jalan pintas membaca hasil reaktif yang sudah tercatat. Body: { hiv_hasil?, hiv_metode?, hiv_waktu?, hbsag_*, hcv_*, sifilis_*, analis_uuid? }.
 rute.put(
   "/aftap/:uuid/imltd",
   izinUtd("IMLTD", "INPUT HASIL"),
@@ -86,7 +90,7 @@ rute.put(
     const t = await transaksi(async (k) => {
       const aftap = await kunciAftap(req.params.uuid, faskes, k);
       if (["tersedia", "dimusnahkan"].includes(aftap.status_kantong)) throw new Galat(409, `Kantong berstatus ${aftap.status_kantong}, hasil tidak dapat diubah`);
-      let i = await satu(`SELECT * FROM utd_imltd WHERE aftap_uuid = $1 AND deleted_at IS NULL FOR UPDATE`, [aftap.uuid], k);
+      let i = await satu(`SELECT * FROM utd_imltd WHERE aftap_uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL FOR UPDATE`, [aftap.uuid, faskes], k);
       const data = { ...kolomHasil(b, "hiv"), ...kolomHasil(b, "hbsag"), ...kolomHasil(b, "hcv"), ...kolomHasil(b, "sifilis") };
       if (b.analis_uuid !== undefined) data.analis_uuid = teks(b.analis_uuid);
       if (!i) i = await sisipkan("utd_imltd", { faskes_uuid: faskes, aftap_uuid: aftap.uuid, ...data }, k);
@@ -97,7 +101,7 @@ rute.put(
       await terapkanCascade(aftap, statusLama, statusBaru, faskes, k);
       return i;
     });
-    kirim(res, t, `Hasil IMLTD tersimpan (${t.status_akhir === "reaktif" ? "REAKTIF — kantong dikarantina" : t.status_akhir})`);
+    kirim(res, samarkanImltd(t, await bolehLihatReaktif(req)), `Hasil IMLTD tersimpan (${t.status_akhir === "reaktif" ? "REAKTIF — kantong dikarantina" : t.status_akhir})`);
   }),
 );
 
@@ -115,7 +119,7 @@ rute.post(
     const t = await transaksi(async (k) => {
       const aftap = await kunciAftap(req.params.uuid, faskes, k);
       if (aftap.status_kantong === "dimusnahkan") throw new Galat(409, "Kantong sudah dimusnahkan");
-      const i = await satu(`SELECT * FROM utd_imltd WHERE aftap_uuid = $1 AND deleted_at IS NULL FOR UPDATE`, [aftap.uuid], k);
+      const i = await satu(`SELECT * FROM utd_imltd WHERE aftap_uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL FOR UPDATE`, [aftap.uuid, faskes], k);
       if (!i) throw new Galat(409, "Hasil awal IMLTD belum dicatat");
       if (i[`${parameter}_hasil`] == null) throw permintaanSalah(`Hasil awal ${PARAMETER_IMLTD[parameter]} belum dicatat`);
       const konfirmasi = [
@@ -128,7 +132,7 @@ rute.post(
       await terapkanCascade(aftap, i.status_akhir, statusBaru, faskes, k);
       return t2;
     });
-    kirim(res, t, "Hasil konfirmasi IMLTD tersimpan");
+    kirim(res, samarkanImltd(t, await bolehLihatReaktif(req)), "Hasil konfirmasi IMLTD tersimpan");
   }),
 );
 
@@ -141,7 +145,7 @@ rute.post(
     await transaksi(async (k) => {
       const aftap = await kunciAftap(req.params.uuid, faskes, k);
       if (aftap.status_kantong !== "karantina") throw new Galat(409, `Kantong berstatus ${aftap.status_kantong}, tidak dapat dilepas`);
-      const i = await satu(`SELECT * FROM utd_imltd WHERE aftap_uuid = $1 AND deleted_at IS NULL FOR UPDATE`, [aftap.uuid], k);
+      const i = await satu(`SELECT * FROM utd_imltd WHERE aftap_uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL FOR UPDATE`, [aftap.uuid, faskes], k);
       if (!i || i.status_akhir !== "non_reaktif") throw new Galat(409, "Hasil IMLTD belum lengkap/non-reaktif; kantong tidak dapat dilepas");
       if (i.dilepas_pada) throw new Galat(409, "Kantong sudah pernah dilepas");
       await ubah("utd_imltd", i.uuid, faskes, { dilepas_oleh: req.author.username ?? null, dilepas_pada: sekarang() }, k);
@@ -153,7 +157,10 @@ rute.post(
       );
     });
     const a = await satu(`SELECT * FROM utd_aftap WHERE uuid = $1 AND faskes_uuid = $2`, [req.params.uuid, faskes]);
-    const komponen = await query(`SELECT uuid, jenis_komponen, label_unik, status FROM utd_komponen WHERE aftap_uuid = $1 AND deleted_at IS NULL`, [a.uuid]);
+    const komponen = await query(
+      `SELECT uuid, jenis_komponen, label_unik, status FROM utd_komponen WHERE aftap_uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`,
+      [a.uuid, faskes],
+    );
     kirim(res, { ...a, komponen }, `Kantong ${a.no_kantong} dilepas ke stok`);
   }),
 );

@@ -118,7 +118,10 @@ export const perbaruiBooking = async (uuid, faskesUuid, b, k) => {
   const o = await ambilOrder(uuid, faskesUuid, k);
   if (o.status !== "booking") throw new Galat(409, `Booking berstatus ${o.status}, tidak dapat diubah`);
   const kelas = await kunciKelasAktif(o.kelas_uuid, faskesUuid, k);
-  const tanggal = b.tanggal_kelas === undefined ? o.tanggal_kelas : tanggalValid(b.tanggal_kelas, "tanggal_kelas");
+  // Kolom DATE dibaca pg sebagai objek Date; dinormalkan ke YYYY-MM-DD agar perbandingan dengan hariIni() benar.
+  const tanggal = b.tanggal_kelas === undefined
+    ? (await satu(`SELECT to_char(tanggal_kelas, 'YYYY-MM-DD') AS t FROM training_order WHERE uuid = $1`, [o.uuid], k)).t
+    : tanggalValid(b.tanggal_kelas, "tanggal_kelas");
   if (tanggal < hariIni()) throw permintaanSalah("Tanggal kelas sudah lewat");
   const sesiUuid = b.sesi_uuid === undefined ? o.sesi_uuid : await sesiValid(kelas, b.sesi_uuid, k);
   const patientUuid = b.patient_uuid ?? o.patient_uuid;

@@ -153,7 +153,9 @@ const pilihKantong = async (a: any) => {
 };
 const imltdLengkap = computed(() => {
   const i = kantong.value?.imltd;
-  if (!i || i.disamarkan) return false;
+  if (!i) return false;
+  // Hasil disamarkan (tanpa izin Lihat Hasil Reaktif): backend hanya mengirim status ringkas, termasuk kelengkapan.
+  if (i.disamarkan) return !!i.lengkap;
   return ["hiv", "hbsag", "hcv", "sifilis"].every((p) => i[`${p}Hasil`]);
 });
 const gantiJenis = (it: ItemKomponen, jenis: string) => {

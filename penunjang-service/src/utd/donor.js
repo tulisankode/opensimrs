@@ -2,8 +2,11 @@ import express from "express";
 import { query, satu, sisipkan, ubah, sekarang, transaksi } from "../db.js";
 import { tangani, kirim, halaman, denganHalaman, wajib, tidakDitemukan, permintaanSalah, Galat } from "../umum/respons.js";
 import { nomorBaru } from "../umum/nomor.js";
-import { GOLONGAN_DARAH, JENIS_KELAMIN, cekPilihan, angkaOpsional, ramah, selisihHari, tanggalOpsional, teks, waktuOpsional } from "./bersama.js";
-import { izinUtd, bolehLihatReaktif } from "../umum/izin.js";
+import {
+  GOLONGAN_DARAH, JENIS_KELAMIN, cekPilihan, angkaOpsional, hariIni, ramah, samarkanDonor, selisihHari, statusKantongRingkas, tambahHariIso,
+  tanggalOpsional, teks, tglLokalEpoch,
+} from "./bersama.js";
+import { izinUtd, bolehLihatReaktif, wajibSalahSatu } from "../umum/izin.js";
 import { pengaturanUtd } from "./pengaturan.js";
 
 // Rekrutmen & Seleksi Donor (utd_donor): pendaftaran, pencarian, kuesioner & pemeriksaan per kunjungan seleksi
@@ -14,10 +17,14 @@ const rute = express.Router();
 const KOLOM_DONOR = `uuid, no_donor, nik, nama, tanggal_lahir, jenis_kelamin, golongan_darah, rhesus, telepon, alamat,
   status_aktif, alasan_ditahan, perlu_notifikasi, notifikasi_selesai, catatan_notifikasi, notifikasi_pada, created_at, updated_at`;
 
+// Daftar & riwayat donor juga dibuka dari halaman Aftap (memilih kunjungan seleksi yang layak).
+const bacaDonor = wajibSalahSatu(["UTD", "Donor", "READ"], ["UTD", "Aftap", "READ"]);
+
 const ambilDonor = (uuid, faskes) => satu(`SELECT ${KOLOM_DONOR} FROM utd_donor WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [uuid, faskes]);
 
 rute.get(
   "/",
+  bacaDonor,
   tangani(async (req, res) => {
     const pg = halaman(req.query);
     const p = [req.author.faskesUuid];
@@ -32,7 +39,8 @@ rute.get(
     }
     const total = (await satu(`SELECT COUNT(*) n FROM utd_donor WHERE ${w}`, p)).n;
     const rows = await query(`SELECT ${KOLOM_DONOR} FROM utd_donor WHERE ${w} ORDER BY created_at DESC LIMIT ${pg.limit} OFFSET ${pg.offset}`, p);
-    kirim(res, denganHalaman(rows, total, pg));
+    const boleh = await bolehLihatReaktif(req);
+    kirim(res, denganHalaman(rows.map((d) => samarkanDonor(d, boleh)), total, pg));
   }),
 );
 
@@ -52,7 +60,7 @@ rute.post(
       rhesus: b.rhesus === undefined ? null : cekPilihan(b.rhesus, { positif: 1, negatif: 1 }, "rhesus"),
       telepon: teks(b.telepon), alamat: teks(b.alamat), status_aktif: "aktif", dibuat_oleh: req.author.username ?? null,
     }).catch((e) => ramah(e, `Nomor donor ${noDonor} sudah dipakai`));
-    kirim(res, await ambilDonor(t.uuid, faskes), `Donor ${noDonor} berhasil didaftarkan`);
+    kirim(res, samarkanDonor(await ambilDonor(t.uuid, faskes), await bolehLihatReaktif(req)), `Donor ${noDonor} berhasil didaftarkan`);
   }),
 );
 
@@ -71,7 +79,7 @@ rute.put(
       telepon: teks(b.telepon), alamat: teks(b.alamat),
     });
     if (!t) throw tidakDitemukan("Donor");
-    kirim(res, await ambilDonor(t.uuid, faskes), "Donor berhasil diperbarui");
+    kirim(res, samarkanDonor(await ambilDonor(t.uuid, faskes), await bolehLihatReaktif(req)), "Donor berhasil diperbarui");
   }),
 );
 
@@ -79,6 +87,7 @@ rute.put(
 // tanpa izin "Lihat Hasil Reaktif"; upaya akses dicatat di utd_akses_log).
 rute.get(
   "/:uuid",
+  izinUtd("Donor", "READ"),
   tangani(async (req, res) => {
     const faskes = req.author.faskesUuid;
     const d = await ambilDonor(req.params.uuid, faskes);
@@ -102,8 +111,8 @@ rute.get(
       });
     }
     kirim(res, {
-      ...d,
-      aftap_terakhir: aftapTerakhir ?? null,
+      ...samarkanDonor(d, bolehReaktif),
+      aftap_terakhir: aftapTerakhir ? { ...aftapTerakhir, status_kantong: statusKantongRingkas(aftapTerakhir.status_kantong, bolehReaktif) } : null,
       jumlah_aftap: jumlahAftap.n,
       pernah_reaktif: bolehReaktif ? Boolean(adaReaktif.n) : null,
     });
@@ -113,21 +122,24 @@ rute.get(
 // Riwayat kunjungan seleksi (terbaru dulu).
 rute.get(
   "/:uuid/riwayat",
+  bacaDonor,
   tangani(async (req, res) => {
     const faskes = req.author.faskesUuid;
     const d = await satu(`SELECT uuid FROM utd_donor WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [req.params.uuid, faskes]);
     if (!d) throw tidakDitemukan("Donor");
     const pg = halaman(req.query);
-    const total = (await satu(`SELECT COUNT(*)::int n FROM utd_donor_riwayat WHERE donor_uuid = $1 AND deleted_at IS NULL`, [d.uuid])).n;
+    const w = "donor_uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL";
+    const total = (await satu(`SELECT COUNT(*)::int n FROM utd_donor_riwayat WHERE ${w}`, [d.uuid, faskes])).n;
     const rows = await query(
-      `SELECT * FROM utd_donor_riwayat WHERE donor_uuid = $1 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT ${pg.limit} OFFSET ${pg.offset}`,
-      [d.uuid],
+      `SELECT * FROM utd_donor_riwayat WHERE ${w} ORDER BY created_at DESC LIMIT ${pg.limit} OFFSET ${pg.offset}`,
+      [d.uuid, faskes],
     );
     kirim(res, denganHalaman(rows, total, pg));
   }),
 );
 
-// Hitung keputusan interval donor (KF-4): jarak hari sejak aftap terakhir vs interval minimal faskes.
+// Hitung keputusan interval donor (KF-4): jarak hari kalender lokal (Asia/Jakarta) sejak aftap terakhir vs interval
+// minimal faskes. Sebelumnya memakai tanggal UTC sehingga aftap pukul 00.00–07.00 WIB terhitung hari sebelumnya.
 const periksaInterval = async (donorUuid, faskes) => {
   const pengaturan = await pengaturanUtd(faskes);
   const terakhir = await satu(
@@ -135,15 +147,12 @@ const periksaInterval = async (donorUuid, faskes) => {
     [donorUuid, faskes],
   );
   if (!terakhir) return { cukup: true };
-  const tglTerakhir = new Date(Number(terakhir.created_at) * 1000).toISOString().slice(0, 10);
-  const hariIni = new Date().toISOString().slice(0, 10);
-  const hari = selisihHari(tglTerakhir, hariIni);
+  const tglTerakhir = tglLokalEpoch(terakhir.created_at);
+  const hari = selisihHari(tglTerakhir, hariIni());
   if (hari >= pengaturan.interval_minimal_hari) return { cukup: true };
-  const berikutnya = new Date(Number(terakhir.created_at) * 1000);
-  berikutnya.setUTCDate(berikutnya.getUTCDate() + pengaturan.interval_minimal_hari);
   return {
     cukup: false, hari, interval: pengaturan.interval_minimal_hari,
-    tanggal_layak_berikutnya: berikutnya.toISOString().slice(0, 10),
+    tanggal_layak_berikutnya: tambahHariIso(tglTerakhir, pengaturan.interval_minimal_hari),
   };
 };
 
@@ -210,7 +219,7 @@ rute.put(
       const keputusan = await susunKeputusan(r.donor_uuid, faskes, status, teks(b.alasan));
       await ubah("utd_donor_riwayat", r.uuid, faskes, { ...keputusan, pemeriksa_uuid: teks(b.pemeriksa_uuid), waktu_keputusan: sekarang() }, k);
     });
-    const t = await satu(`SELECT * FROM utd_donor_riwayat WHERE uuid = $1`, [req.params.riwayatUuid]);
+    const t = await satu(`SELECT * FROM utd_donor_riwayat WHERE uuid = $1 AND faskes_uuid = $2`, [req.params.riwayatUuid, faskes]);
     kirim(res, t, "Keputusan kunjungan seleksi tersimpan");
   }),
 );
