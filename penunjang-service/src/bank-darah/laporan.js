@@ -2,6 +2,7 @@ import express from "express";
 import { query, satu } from "../db.js";
 import { tangani, kirim } from "../umum/respons.js";
 import { hariIni, tanggalValid, tglLokal } from "./bersama.js";
+import { izinBdrs } from "../umum/izin.js";
 
 // Laporan BDRS: pemakaian darah per golongan/komponen/ruangan, rasio crossmatch-transfusi (C/T), kantong
 // kedaluwarsa/dimusnahkan/dikembalikan, dan rekap reaksi transfusi (hemovigilans) — KF-21.
@@ -16,6 +17,7 @@ const rentang = (q) => {
 // Pemakaian darah: kantong yang benar-benar diserahkan (serah terima selesai) pada periode, per golongan/komponen/ruangan.
 rute.get(
   "/pemakaian",
+  izinBdrs("Laporan BDRS", "READ", "Pemakaian Darah"),
   tangani(async (req, res) => {
     const { mulai, selesai } = rentang(req.query);
     const p = [req.author.faskesUuid, mulai, selesai];
@@ -38,6 +40,7 @@ rute.get(
 // Rasio C/T = jumlah kantong yang menjalani crossmatch dibagi jumlah kantong yang benar-benar ditransfusikan (KT-15).
 rute.get(
   "/rasio-crossmatch-transfusi",
+  izinBdrs("Laporan BDRS", "READ", "Rasio Crossmatch-Transfusi"),
   tangani(async (req, res) => {
     const { mulai, selesai } = rentang(req.query);
     const p = [req.author.faskesUuid, mulai, selesai];
@@ -63,6 +66,7 @@ rute.get(
 // Kantong yang kedaluwarsa, dimusnahkan, atau dikembalikan pada periode (berdasarkan waktu pembaruan status).
 rute.get(
   "/stok-keluar",
+  izinBdrs("Laporan BDRS", "READ", "Pemakaian Darah"),
   tangani(async (req, res) => {
     const { mulai, selesai } = rentang(req.query);
     const p = [req.author.faskesUuid, mulai, selesai];
@@ -80,6 +84,7 @@ rute.get(
 // Rekap reaksi transfusi (hemovigilans) per periode.
 rute.get(
   "/reaksi",
+  izinBdrs("Laporan BDRS", "READ", "Hemovigilans"),
   tangani(async (req, res) => {
     const { mulai, selesai } = rentang(req.query);
     const p = [req.author.faskesUuid, mulai, selesai];
