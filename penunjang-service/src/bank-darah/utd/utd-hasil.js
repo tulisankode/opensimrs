@@ -163,6 +163,33 @@ const simpanKantong = async ({ faskesUuid, hasilUuid, kirimUuid, permintaanUuid,
       data: { no_kantong: noKantong, koneksi: koneksiNama, no_registrasi: noRegistrasi },
     });
   }
+  // UTD melaporkan IMLTD reaktif SETELAH kantong diterima ke stok: kantong di bdrs_stok ikut ditandai reaktif sehingga
+  // terkunci dari crossmatch & serah terima (aturan STD-0016) dan tampil untuk dimusnahkan. Bila kantong sudah
+  // diserahkan ke pasien, audit menandai perlunya tindak lanjut hemovigilans. Dicatat sekali (saat pertama berubah).
+  if (lama?.status_validasi === "diterima" && lama.stok_uuid && data.status_imltd === "reaktif" && lama.status_imltd !== "reaktif") {
+    const stok = await satu(
+      `UPDATE bdrs_stok SET status_imltd = 'reaktif', updated_at = $3
+        WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL
+        RETURNING uuid, no_kantong, status`,
+      [lama.stok_uuid, faskesUuid, t],
+    );
+    if (stok) {
+      await catatAuditBdrs(faskesUuid, "ubah_imltd", {
+        stokUuid: stok.uuid,
+        permintaanUuid,
+        data: {
+          status_lama: lama.status_imltd,
+          status_baru: "reaktif",
+          no_kantong: stok.no_kantong,
+          status_stok: stok.status,
+          sumber: "utd",
+          koneksi: koneksiNama,
+          no_registrasi: noRegistrasi,
+          perlu_tindak_lanjut_hemovigilans: stok.status === "diserahkan",
+        },
+      });
+    }
+  }
 };
 
 /** Inti penyimpanan hasil UTD (push maupun tarik): cocokkan dengan pengiriman faskes, simpan hasil + kantong per item. */
