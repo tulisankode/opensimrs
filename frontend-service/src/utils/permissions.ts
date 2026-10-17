@@ -50,7 +50,7 @@ type LegacyPermissionNode = {
 };
 
 const STORAGE_KEY = "permission";
-const STUB_MODULES = ["Training"];
+const STUB_MODULES: string[] = [];
 
 interface PermissionRouteEntry {
   path: string;
@@ -214,6 +214,10 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/radiologi/datamaster/ruang", permission: read("Radiologi", "Datamaster", "Ruang & Alat") },
   { path: "/radiologi/datamaster/template", permission: read("Radiologi", "Datamaster", "Template Expertise") },
   { path: "/radiologi/datamaster/petugas", permission: read("Radiologi", "Datamaster", "Petugas Radiologi") },
+  // Mapping PACS (Bridging PACS/RIS, fitur rad_bridging_pacs) memakai izin datamaster "Mapping PACS"
+  { path: "/radiologi/mapping/tindakan-pacs", permission: read("Radiologi", "Datamaster", "Mapping PACS") },
+  { path: "/radiologi/mapping/referensi-pacs", permission: read("Radiologi", "Datamaster", "Mapping PACS") },
+  { path: "/radiologi/mapping/ruang-pacs", permission: read("Radiologi", "Datamaster", "Mapping PACS") },
   { path: "/radiologi/laporan/kunjungan", permission: read("Radiologi", "Laporan Radiologi", "Kunjungan") },
   { path: "/radiologi", mode: "prefix", permission: read("Radiologi", null, null, null) },
 
@@ -242,11 +246,72 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/mikrobiologi/laporan/kunjungan", permission: read("Mikrobiologi", "Laporan Mikrobiologi", "Kunjungan") },
   { path: "/mikrobiologi/laporan/antibiogram", permission: read("Mikrobiologi", "Laporan Mikrobiologi", "Antibiogram") },
   { path: "/mikrobiologi", mode: "prefix", permission: read("Mikrobiologi", null, null, null) },
-  { path: "/training/daftar-kelas", featureStatus: "stub", permission: read("Training", "Daftar Kelas") },
-  { path: "/training/booking-kelas", featureStatus: "stub", permission: read("Training", "Booking Kelas") },
-  { path: "/training/datamaster/kelas", featureStatus: "stub", permission: read("Training", "Datamaster") },
-  { path: "/training/laporan/rekapitulasi", featureStatus: "stub", permission: read("Training", "Laporan") },
-  { path: "/training", mode: "prefix", featureStatus: "stub", permission: read("Training", null, null, null) },
+  { path: "/training/daftar-kelas", permission: read("Training", "Daftar Kelas") },
+  { path: "/training/booking-kelas", permission: read("Training", "Booking Kelas") },
+  { path: "/training/datamaster/kelas", permission: read("Training", "Datamaster", "Kelas") },
+  { path: "/training/laporan/rekapitulasi", permission: read("Training", "Laporan") },
+  { path: "/training", mode: "prefix", permission: read("Training", null, null, null) },
+
+  { path: "/koding-rm/worklist", permission: read("Koding Rekam Medis", "Worklist") },
+  { path: "/koding-rm/kunjungan", mode: "prefix", permission: read("Koding Rekam Medis", "Koding") },
+  { path: "/koding-rm/checklist", permission: read("Koding Rekam Medis", "Checklist") },
+  { path: "/koding-rm/peminjaman", permission: read("Koding Rekam Medis", "Peminjaman") },
+  { path: "/koding-rm/retensi", permission: read("Koding Rekam Medis", "Retensi") },
+  { path: "/koding-rm/laporan", permission: read("Koding Rekam Medis", "Laporan Koding") },
+  { path: "/koding-rm", mode: "prefix", permission: read("Koding Rekam Medis", null, null, null) },
+  { path: "/kamar-operasi/daftar-tunggu", permission: read("Kamar Operasi", "Order Operasi") },
+  { path: "/kamar-operasi/jadwal", permission: read("Kamar Operasi", "Jadwal OK") },
+  { path: "/kamar-operasi/datamaster/ruang", permission: read("Kamar Operasi", "Datamaster", "Ruang OK") },
+  { path: "/kamar-operasi/laporan/rekap", permission: read("Kamar Operasi", "Laporan Rekap") },
+  { path: "/kamar-operasi", mode: "prefix", permission: read("Kamar Operasi", null, null, null) },
+  // Gizi (penunjang-service): skrining, asuhan gizi (PAGT), order diet, distribusi makan & rekap porsi.
+  { path: "/gizi/skrining", permission: read("Gizi", "Skrining") },
+  { path: "/gizi/asuhan", permission: read("Gizi", "Asesmen Gizi") },
+  { path: "/gizi/order", permission: read("Gizi", "Order Diet") },
+  { path: "/gizi/distribusi", permission: read("Gizi", "Distribusi") },
+  { path: "/gizi/master/diet", permission: read("Gizi", "Datamaster", "Master Diet") },
+  { path: "/gizi/master/bentuk-makanan", permission: read("Gizi", "Datamaster", "Bentuk Makanan") },
+  { path: "/gizi/master/standar-porsi", permission: read("Gizi", "Datamaster", "Standar Porsi") },
+  { path: "/gizi/laporan", permission: read("Gizi", "Laporan Gizi") },
+  { path: "/gizi", mode: "prefix", permission: read("Gizi", null, null, null) },
+  { path: "/icu/dashboard", permission: read("ICU", "Dasbor") },
+  { path: "/icu/perawatan", permission: read("ICU", "Perawatan") },
+  { path: "/icu/laporan", permission: read("ICU", "Laporan ICU") },
+  { path: "/icu", mode: "prefix", permission: read("ICU", null, null, null) },
+
+  // CSSD — Sterilisasi Alat & Pelacakan Set Instrumen (penunjang-service)
+  { path: "/cssd/dashboard", permission: read("CSSD", "Penyimpanan & Distribusi") },
+  { path: "/cssd/penerimaan", permission: read("CSSD", "Penerimaan & Dekontaminasi") },
+  { path: "/cssd/pemrosesan", permission: read("CSSD", "Penerimaan & Dekontaminasi") },
+  { path: "/cssd/load", permission: read("CSSD", "Siklus Sterilisasi") },
+  { path: "/cssd/distribusi", permission: read("CSSD", "Penyimpanan & Distribusi") },
+  { path: "/cssd/recall", permission: read("CSSD", "Recall") },
+  { path: "/cssd/datamaster/master-set", permission: read("CSSD", "Master Set & Mesin") },
+  { path: "/cssd/datamaster/mesin", permission: read("CSSD", "Master Set & Mesin") },
+  { path: "/cssd/laporan", permission: read("CSSD", "Laporan CSSD") },
+  { path: "/cssd", mode: "prefix", permission: read("CSSD", null, null, null) },
+
+  // Bank Darah RS (BDRS) — penunjang-service
+  { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },
+  { path: "/bank-darah/crossmatch", permission: read("Bank Darah RS (BDRS)", "Uji Silang Serasi") },
+  { path: "/bank-darah/stok", permission: read("Bank Darah RS (BDRS)", "Stok & Penerimaan") },
+  { path: "/bank-darah/serah-terima", permission: read("Bank Darah RS (BDRS)", "Serah Terima") },
+  { path: "/bank-darah/transfusi", permission: read("Bank Darah RS (BDRS)", "Pemantauan Transfusi") },
+  { path: "/bank-darah/datamaster/komponen", permission: read("Bank Darah RS (BDRS)", "Datamaster", "Komponen Darah") },
+  { path: "/bank-darah/pengaturan", permission: read("Bank Darah RS (BDRS)", "Pengaturan") },
+  { path: "/bank-darah/laporan", permission: read("Bank Darah RS (BDRS)", "Laporan BDRS", ["Pemakaian Darah", "Rasio Crossmatch-Transfusi", "Hemovigilans"]) },
+  { path: "/bank-darah", mode: "prefix", permission: read("Bank Darah RS (BDRS)", null, null, null) },
+
+  // UTD / UPTD Produksi Darah — penunjang-service (Pengaturan memakai Donor: backend menyimpan dengan izin Donor › UPDATE)
+  { path: "/utd/donor", permission: read("UTD", "Donor") },
+  { path: "/utd/aftap", permission: read("UTD", "Aftap") },
+  { path: "/utd/imltd", permission: read("UTD", "IMLTD") },
+  { path: "/utd/komponen", permission: read("UTD", "Komponen") },
+  { path: "/utd/distribusi", permission: read("UTD", "Distribusi", ["Permintaan", "Distribusi", "Pemusnahan"]) },
+  { path: "/utd/pengaturan", permission: read("UTD", "Donor") },
+  { path: "/utd/laporan", permission: read("UTD", "Laporan UTD") },
+  { path: "/utd", mode: "prefix", permission: read("UTD", null, null, null) },
+
 
   { path: "/inventory/pengadaan-barang/pembelian-barang-supplier", permission: read("Inventory", "Pengadaan Barang", "Verifikasi Pembelian Barang Supplier") },
   { path: "/inventory/pengadaan-barang/verifikasi-pembelian-barang-supplier", permission: read("Inventory", "Verifikasi Pembelian Barang Supplier") },

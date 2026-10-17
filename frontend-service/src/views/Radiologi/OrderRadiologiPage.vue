@@ -14,6 +14,7 @@ import NoData from "@/components/section/NoData.vue";
 import PilihPemeriksaanRadiologi from "@/components/RekamMedis/OrderRadiologi/PilihPemeriksaanRadiologi.vue";
 import DialogJadwalRadiologi from "./Komponen/DialogJadwalRadiologi.vue";
 import { utilsStore } from "@/stores/utils";
+import { fiturAktif } from "@/stores/modulFaskes";
 import {
   MODALITAS_RAD,
   PELAYANAN_RAD,
@@ -24,12 +25,14 @@ import {
   buatOrderRad,
   cariPasienRad,
   daftarDokterRad,
+  daftarKoneksiPacs,
   daftarOrderRad,
   detailOrderRad,
   keTanggal,
   noAntreanRad,
   rupiahRad,
   umurRad,
+  validasiDanKirimPacs,
   validasiOrderRad,
   waktuRad,
 } from "@/stores/penunjang/radiologi";
@@ -123,6 +126,37 @@ const validasi = async () => {
     storeUtils.setLoading(false);
   }
 };
+
+// ── Bridging PACS/RIS: "Validasi & Kirim ke PACS" (tersedia bila fitur rad_bridging_pacs aktif & ada koneksi aktif)
+const pacsAktif = computed(() => fiturAktif("rad_bridging_pacs"));
+const koneksiAktifPacs = ref<any[]>([]);
+const dialogPilihKoneksiPacs = ref(false);
+const koneksiPilihanPacs = ref<string | null>(null);
+const muatKoneksiPacs = async () => {
+  if (!pacsAktif.value) return;
+  const res = await daftarKoneksiPacs(true);
+  koneksiAktifPacs.value = res?.payload ?? [];
+};
+const kirimPacs = async () => {
+  if (!detail.value) return;
+  const bawaan = koneksiAktifPacs.value.find((k: any) => k.bawaan);
+  if (!bawaan && koneksiAktifPacs.value.length > 1 && !koneksiPilihanPacs.value) {
+    dialogPilihKoneksiPacs.value = true;
+    return;
+  }
+  storeUtils.setLoading(true);
+  try {
+    const res = await validasiDanKirimPacs(detail.value.uuid, koneksiPilihanPacs.value);
+    if (res?.payload?.order) {
+      detail.value = res.payload.order;
+      dialogPilihKoneksiPacs.value = false;
+      koneksiPilihanPacs.value = null;
+      muat();
+    }
+  } finally {
+    storeUtils.setLoading(false);
+  }
+};
 const dialogBatal = ref(false);
 const alasanBatal = ref("");
 const galatBatal = ref("");
@@ -210,7 +244,10 @@ const kirimOrder = async () => {
 
 const JK: Record<string, string> = { Male: "L", Female: "P" };
 
-onMounted(muat);
+onMounted(() => {
+  muat();
+  muatKoneksiPacs();
+});
 </script>
 
 <template>
@@ -378,6 +415,9 @@ onMounted(muat);
                 <span v-else class="text-grey-400">{{ i.status === "menunggu" ? "Belum dijadwalkan" : "-" }}</span>
               </template>
             </Column>
+            <Column v-if="pacsAktif" header="Accession No. (PACS)" headerClass="bg-opensimrs-50">
+              <template #body="{ data: i }">{{ i.accessionNumber ?? "-" }}</template>
+            </Column>
             <Column header="Kesan" headerClass="bg-opensimrs-50">
               <template #body="{ data: i }">{{ i.kesan ?? "-" }}</template>
             </Column>
@@ -386,21 +426,58 @@ onMounted(muat);
         </div>
       </template>
       <template #footer>
-        <div v-if="detail" class="flex flex-wrap justify-end gap-2">
-          <CustomButton
-            v-if="['order', 'valid'].includes(detail.status)"
-            label="Batalkan"
-            icon="PhXCircle"
-            outlined
-            borderColor="border-danger-300"
-            textColor="text-danger-300"
-            @click="bukaBatal"
-          />
-          <CustomButton label="Cetak Bukti Order" icon="PhPrinter" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="cetakBukti" />
-          <CustomButton v-if="detail.items?.some((i: any) => i.status === 'selesai')" label="Cetak Hasil" icon="PhFileText" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="cetakHasil" />
-          <CustomButton v-if="detail.status === 'order'" label="Validasi & Kirim Tagihan" icon="PhCheckCircle" @click="validasi" />
-          <CustomButton v-if="orderUntukJadwal" label="Jadwalkan" icon="PhCalendarPlus" @click="dialogJadwal = true" />
+        <div v-if="detail" class="flex flex-col items-end gap-2">
+          <div class="flex flex-wrap justify-end gap-2">
+            <CustomButton
+              v-if="['order', 'valid'].includes(detail.status)"
+              label="Batalkan"
+              icon="PhXCircle"
+              outlined
+              borderColor="border-danger-300"
+              textColor="text-danger-300"
+              @click="bukaBatal"
+            />
+            <CustomButton label="Cetak Bukti Order" icon="PhPrinter" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="cetakBukti" />
+            <CustomButton v-if="detail.items?.some((i: any) => i.status === 'selesai')" label="Cetak Hasil" icon="PhFileText" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="cetakHasil" />
+            <CustomButton
+              v-if="detail.status === 'order'"
+              :label="pacsAktif ? 'Validasi Saja' : 'Validasi & Kirim Tagihan'"
+              icon="PhCheckCircle"
+              :outlined="pacsAktif"
+              :borderColor="pacsAktif ? 'border-opensimrs-300' : undefined"
+              :textColor="pacsAktif ? 'text-opensimrs-300' : undefined"
+              @click="validasi"
+            />
+            <CustomButton
+              v-if="detail.status === 'order' && pacsAktif"
+              label="Validasi & Kirim ke PACS"
+              icon="PhPaperPlaneTilt"
+              :disabled="!koneksiAktifPacs.length"
+              @click="kirimPacs"
+            />
+            <CustomButton v-if="orderUntukJadwal" label="Jadwalkan" icon="PhCalendarPlus" @click="dialogJadwal = true" />
+          </div>
+          <div v-if="detail.status === 'order' && pacsAktif && !koneksiAktifPacs.length" class="text-xs text-danger-300">
+            Belum ada koneksi PACS aktif. Lengkapi dahulu di Setting › Konfigurasi Integrasi › Konfigurasi PACS.
+          </div>
         </div>
+      </template>
+    </CustomDialog>
+
+    <!-- Pilih koneksi PACS tujuan (lebih dari satu koneksi aktif tanpa koneksi bawaan) -->
+    <CustomDialog v-model:visible="dialogPilihKoneksiPacs" width="420px">
+      <template #header>Pilih Koneksi PACS Tujuan</template>
+      <template #body>
+        <div class="flex flex-col gap-2 pt-4">
+          <label v-for="k in koneksiAktifPacs" :key="k.uuid" class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer border-grey-75 hover:bg-opensimrs-50">
+            <RadioButton v-model="koneksiPilihanPacs" :value="k.uuid" />
+            <span class="text-sm">{{ k.nama }}</span>
+          </label>
+        </div>
+      </template>
+      <template #footer>
+        <CustomButton label="Batal" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="dialogPilihKoneksiPacs = false" />
+        <CustomButton label="Kirim" :disabled="!koneksiPilihanPacs" @click="kirimPacs" />
       </template>
     </CustomDialog>
 

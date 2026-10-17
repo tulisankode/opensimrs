@@ -15,9 +15,16 @@ import KonfigurasiBpjsVclaim from './KonfigurasiBpjsVclaim.vue';
 import PemetaanVclaim from './PemetaanVclaim.vue';
 import KonfigurasiLis from './KonfigurasiLis.vue';
 import PengirimanLis from './PengirimanLis.vue';
+import KonfigurasiPacs from './KonfigurasiPacs.vue';
+import PengirimanPacs from './PengirimanPacs.vue';
+import KonfigurasiLisPa from './KonfigurasiLisPa.vue';
+import PengirimanLisPa from './PengirimanLisPa.vue';
+import KonfigurasiLisMikrobiologi from './KonfigurasiLisMikrobiologi.vue';
+import PengirimanLisMikrobiologi from './PengirimanLisMikrobiologi.vue';
 import KonfigurasiHelpdesk from './KonfigurasiHelpdesk.vue';
 import { useSettingStore } from '@/stores/setting';
 import { utilsStore } from "@/stores/utils";
+import { fiturAktif } from "@/stores/modulFaskes";
 
 const useUtilsStore = utilsStore();
 
@@ -117,6 +124,19 @@ const handleKonfigurasiSatuSehat = (updatedKonfigurasiSatuSehat: any) => {
             <!-- LIS laboratorium (adamLIS): koneksi/endpoint & kredensial + riwayat pengiriman. Mapping kode ada di Laboratorium › Mapping LIS -->
             <KonfigurasiLis />
             <PengirimanLis />
+            <!-- PACS/RIS radiologi: koneksi/endpoint & kredensial + riwayat pengiriman. Mapping kode ada di Radiologi › Mapping PACS -->
+            <template v-if="fiturAktif('rad_bridging_pacs')">
+                <KonfigurasiPacs />
+                <PengirimanPacs />
+            </template>
+            <!-- LIS Patologi Anatomi: koneksi/endpoint & kredensial + riwayat pengiriman. Mapping kode ada di Patologi Anatomi › Mapping LIS -->
+            <template v-if="fiturAktif('pa_bridging_lis')">
+                <KonfigurasiLisPa />
+                <PengirimanLisPa />
+            </template>
+            <!-- LIS Mikrobiologi (fitur mikro_bridging_lis): koneksi & kredensial terpisah dari LIS laboratorium. Mapping kode ada di Mikrobiologi › Mapping LIS -->
+            <KonfigurasiLisMikrobiologi />
+            <PengirimanLisMikrobiologi />
             <!-- Helpdesk AI: Gateway OpenClaw untuk tombol Bantuan (khusus superadmin; token terenkripsi) -->
             <KonfigurasiHelpdesk />
 

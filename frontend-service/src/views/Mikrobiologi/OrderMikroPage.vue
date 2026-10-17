@@ -14,6 +14,7 @@ import CustomPaginator from "@/components/Base/CustomPaginator.vue";
 import NoData from "@/components/section/NoData.vue";
 import PilihPemeriksaanMikro from "@/components/RekamMedis/OrderMikro/PilihPemeriksaanMikro.vue";
 import { utilsStore } from "@/stores/utils";
+import { fiturAktif } from "@/stores/modulFaskes";
 import {
   PELAYANAN_MIKRO,
   STATUS_ORDER_MIKRO,
@@ -39,9 +40,12 @@ import { createBuktiOrderMikroPdf, createHasilMikroPdf } from "@/utils/pdf/pdfMi
 
 // Order Mikrobiologi: daftar order (RME / APS), validasi (tagihan dikirim ke Pembayaran), batal (tagihan dihapus),
 // cetak bukti order & hasil, dan order APS baru untuk pasien terdaftar (pemeriksaan + jenis & sumber spesimen).
+// Bila fitur mikro_bridging_lis aktif, validasi dapat sekaligus mengirim order ke LIS Mikrobiologi (STD-0014);
+// kegagalan kirim membatalkan validasi gabungan (order.js menjaga konsistensi status & tagihan).
 const storeUtils = utilsStore();
 const router = useRouter();
 const boleh = (aksi: string) => izinMikro("Order Mikrobiologi", aksi);
+const bridgingLisAktif = computed(() => fiturAktif("mikro_bridging_lis"));
 
 const data = ref<any[]>([]);
 const total = ref(0);
@@ -109,11 +113,11 @@ const bukaDetail = async (uuid: string) => {
     storeUtils.setLoading(false);
   }
 };
-const validasi = async () => {
+const validasi = async (aksi: "validasi_saja" | "validasi_kirim" = "validasi_saja") => {
   if (!detail.value) return;
   storeUtils.setLoading(true);
   try {
-    const res = await validasiOrderMikro(detail.value.uuid);
+    const res = await validasiOrderMikro(detail.value.uuid, aksi);
     if (res?.payload) {
       await bukaDetail(detail.value.uuid);
       muat();
@@ -370,7 +374,13 @@ onMounted(muat);
           <CustomButton v-if="boleh('CETAK')" label="Cetak Bukti Order" icon="PhPrinter" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="cetakBukti" />
           <CustomButton v-if="adaHasil" label="Cetak Hasil" icon="PhFileText" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="cetakHasil" />
           <CustomButton v-if="['valid', 'diproses'].includes(detail.status)" label="Ke Pemeriksaan" icon="PhArrowRight" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="keWorklist" />
-          <CustomButton v-if="detail.status === 'order' && boleh('VALIDASI')" label="Validasi & Kirim Tagihan" icon="PhCheckCircle" @click="validasi" />
+          <CustomButton v-if="detail.status === 'order' && boleh('VALIDASI')" label="Validasi Saja" icon="PhCheckCircle" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="validasi('validasi_saja')" />
+          <CustomButton
+            v-if="detail.status === 'order' && boleh('VALIDASI') && bridgingLisAktif"
+            label="Validasi & Kirim ke LIS Mikrobiologi"
+            icon="PhCheckCircle"
+            @click="validasi('validasi_kirim')"
+          />
         </div>
       </template>
     </CustomDialog>

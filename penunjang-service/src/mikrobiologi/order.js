@@ -6,6 +6,7 @@ import { cariKunjungan, kunjunganDariRekamMedis, pasien, namaPraktisi } from "..
 import { kirimTagihan } from "../umum/tagihan.js";
 import { NAMA_PRAKTISI, SPESIMEN, STATUS_ORDER, daftarNilai, rentangOpsional, tglLokal } from "./bersama.js";
 import { izinMikro, pastikanIzin } from "../umum/izin.js";
+import { kirimOrder as kirimOrderLis } from "./lis-service.js";
 
 // Order Mikrobiologi: dari RME (kunjungan RJ/RI/IGD) atau pasien APS. Satu item = satu pemeriksaan atas satu spesimen
 // (jenis + lokasi/sumber). Alur order: order → valid (tagihan "mikro:<uuid>" dikirim ke Pembayaran) → diproses
@@ -39,7 +40,7 @@ export const itemOrder = async (orderUuids, faskesUuid, lengkap = false, k) => {
   const items = await query(
     `SELECT i.uuid, i.order_uuid, i.pemeriksaan_uuid, i.nama, i.jenis, i.harga::float8 AS harga, i.tat_hari, i.jenis_spesimen,
             i.lokasi_spesimen, i.status, i.no_mikro, i.spesimen_uuid, i.created_at, i.updated_at,
-            m.kode, m.dengan_pewarnaan, m.dengan_kultur, m.dengan_ast,
+            m.kode, m.kode_lis, m.dengan_pewarnaan, m.dengan_kultur, m.dengan_ast,
             s.waktu_ambil, s.waktu_terima, s.diterima_oleh, s.status AS status_spesimen, s.alasan_tolak,
             h.uuid AS hasil_uuid, h.status AS status_hasil, h.kultur_status, h.sementara_pada, h.diverifikasi_pada,
             ${NAMA_PRAKTISI("h.dokter_mikro_uuid")} AS dokter_mikro,
@@ -341,20 +342,42 @@ rute.put(
 // ── Validasi & batal ─────────────────────────────────────────────────────────
 
 // Validasi petugas lab mikrobiologi: status 'valid' + kirim tagihan (di dalam transaksi: bila Pembayaran menolak,
-// status order tidak berubah).
+// status order tidak berubah). Body opsional { aksi: "validasi_saja" | "validasi_kirim", koneksi_uuid? } — "validasi_kirim"
+// memerlukan fitur mikro_bridging_lis & koneksi LIS Mikrobiologi aktif; kegagalan kirim membatalkan validasi (KF-3, KT-4).
 rute.post(
   "/:uuid/validasi",
   izinMikro("Order Mikrobiologi", "VALIDASI"),
   tangani(async (req, res) => {
     const faskes = req.author.faskesUuid;
+    const kirimKeLis = req.body?.aksi === "validasi_kirim";
     const tagihan = await transaksi(async (k) => {
       const o = await kunciOrder(req.params.uuid, faskes, k);
       if (o.status !== "order") throw new Galat(409, `Order berstatus ${o.status}, tidak dapat divalidasi`);
       await ubah("mikro_order", o.uuid, faskes, { status: "valid", divalidasi_oleh: req.author.username ?? null, divalidasi_pada: sekarang() }, k);
       return tagihanOrder(o, req, false, k);
     });
+    let hasilLis = null;
+    if (kirimKeLis) {
+      try {
+        hasilLis = await kirimOrderLis(faskes, req.params.uuid, { koneksiUuid: req.body?.koneksi_uuid, pengguna: req.author.username });
+        if (hasilLis.status !== "terkirim") throw new Error(hasilLis.pesan);
+      } catch (error) {
+        // Batalkan validasi gabungan: kembalikan status order & hapus tagihan agar status tidak tidak konsisten.
+        await transaksi(async (k) => {
+          const o = await kunciOrder(req.params.uuid, faskes, k);
+          await ubah("mikro_order", o.uuid, faskes, { status: "order", divalidasi_oleh: null, divalidasi_pada: null }, k);
+          await tagihanOrder(o, req, true, k);
+        });
+        throw new Galat(502, `Validasi dibatalkan: gagal mengirim ke LIS Mikrobiologi — ${error.message}`);
+      }
+    }
     const o = await detailOrder(req.params.uuid, faskes, undefined, false);
-    kirim(res, { ...o, tagihan }, tagihan.dikirim ? `Order ${o.no_order} divalidasi, tagihan dikirim ke Pembayaran` : `Order ${o.no_order} divalidasi`);
+    const pesan = hasilLis
+      ? `Order ${o.no_order} divalidasi & dikirim ke LIS Mikrobiologi`
+      : tagihan.dikirim
+        ? `Order ${o.no_order} divalidasi, tagihan dikirim ke Pembayaran`
+        : `Order ${o.no_order} divalidasi`;
+    kirim(res, { ...o, tagihan, kirim_lis: hasilLis }, pesan);
   }),
 );
 
