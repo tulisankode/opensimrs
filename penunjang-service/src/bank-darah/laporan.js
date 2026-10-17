@@ -1,7 +1,7 @@
 import express from "express";
 import { query, satu } from "../db.js";
 import { tangani, kirim } from "../umum/respons.js";
-import { hariIni, tanggalValid, tglLokal } from "./bersama.js";
+import { hariIni, tanggalValid, tglLokal, segarkanKedaluwarsa } from "./bersama.js";
 import { izinBdrs } from "../umum/izin.js";
 
 // Laporan BDRS: pemakaian darah per golongan/komponen/ruangan, rasio crossmatch-transfusi (C/T), kantong
@@ -69,6 +69,8 @@ rute.get(
   izinBdrs("Laporan BDRS", "READ", "Pemakaian Darah"),
   tangani(async (req, res) => {
     const { mulai, selesai } = rentang(req.query);
+    // Kantong yang lewat waktu tetapi belum tersegarkan endpoint lain ikut tercatat kedaluwarsa (KF-10/KF-11).
+    await segarkanKedaluwarsa(req.author.faskesUuid);
     const p = [req.author.faskesUuid, mulai, selesai];
     const rows = await query(
       `SELECT s.uuid, s.no_kantong, s.golongan_abo, s.rhesus, k.nama AS komponen_nama, s.tanggal_kedaluwarsa, s.status, s.alasan_keluar, s.updated_at

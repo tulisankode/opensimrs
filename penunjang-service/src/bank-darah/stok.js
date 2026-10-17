@@ -90,6 +90,7 @@ rute.post(
     const kedaluwarsa = Number(b.tanggal_kedaluwarsa);
     if (!Number.isFinite(kedaluwarsa)) throw permintaanSalah("tanggal_kedaluwarsa tidak valid");
     if (kedaluwarsa <= produksi) throw permintaanSalah("tanggal_kedaluwarsa harus setelah tanggal_produksi");
+    if (kedaluwarsa <= Math.floor(Date.now() / 1000)) throw new Galat(409, "Kantong sudah kedaluwarsa, tidak dapat diterima ke stok");
     const sumber = cekPilihan(b.sumber || "utd_manual", SUMBER_STOK, "sumber");
     const volume = b.volume_ml === undefined || b.volume_ml === null || b.volume_ml === "" ? null : Number(b.volume_ml);
     if (volume !== null && (!Number.isFinite(volume) || volume <= 0)) throw permintaanSalah("volume_ml tidak valid");

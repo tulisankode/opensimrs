@@ -95,10 +95,12 @@ buatSerahTerima.post(
       // Kunci baris stok & pastikan masih tersedia (mencegah dua transaksi memperebutkan kantong yang sama).
       const stokRows = await query(`SELECT * FROM bdrs_stok WHERE uuid = ANY($1) AND faskes_uuid = $2 AND deleted_at IS NULL FOR UPDATE`, [stokUuids, faskes], k);
       if (stokRows.length !== stokUuids.length) throw permintaanSalah("Sebagian kantong tidak ditemukan");
+      // Kedaluwarsa diperiksa lebih dulu: penyegaran di atas sudah mengubah statusnya, sehingga tanpa urutan ini
+      // petugas hanya melihat "tidak tersedia".
+      const kedaluwarsa = stokRows.filter((s) => s.status === "kedaluwarsa" || s.tanggal_kedaluwarsa <= sekarangEpoch);
+      if (kedaluwarsa.length) throw new Galat(409, `Kantong ${kedaluwarsa.map((s) => s.no_kantong).join(", ")} sudah kedaluwarsa`);
       const tidakTersedia = stokRows.filter((s) => s.status !== "tersedia");
       if (tidakTersedia.length) throw new Galat(409, `Kantong ${tidakTersedia.map((s) => s.no_kantong).join(", ")} sudah tidak tersedia`);
-      const kedaluwarsa = stokRows.filter((s) => s.tanggal_kedaluwarsa <= sekarangEpoch);
-      if (kedaluwarsa.length) throw new Galat(409, `Kantong ${kedaluwarsa.map((s) => s.no_kantong).join(", ")} sudah kedaluwarsa`);
       const belumNonReaktif = stokRows.filter((s) => s.status_imltd !== "non_reaktif");
       if (belumNonReaktif.length) throw new Galat(409, `Kantong ${belumNonReaktif.map((s) => s.no_kantong).join(", ")} berstatus IMLTD tidak layak diserahkan`);
 
