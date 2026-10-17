@@ -11,6 +11,8 @@ export default {
   // Laboratorium PK (order lab MCU) & Admisi (pendaftaran pasien baru dari impor rombongan MCU).
   labUrl: (process.env.BASE_URL_API_LAB || "http://localhost:8087/api/v3/lab").replace(/\/$/, ""),
   admisiUrl: (process.env.BASE_URL_API_ADMISI || "http://localhost:8081/api/v3/admisi").replace(/\/$/, ""),
+  // Rekam Medis (RME) — modul Gizi membaca alergi tercatat (read-only, tidak mengubah data/struktur RME).
+  rmeUrl: (process.env.BASE_URL_API_RME || "http://localhost:8093/api/v3/rekam-medis").replace(/\/$/, ""),
   pg: {
     host: process.env.DB_HOST || "localhost",
     port: angka(process.env.DB_PORT, 5432),

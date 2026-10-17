@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 10 berstatus Segera), **54 fitur** (13 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 9 berstatus Segera), **54 fitur** (13 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -289,7 +289,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 |---|---|---|---|---|
 | `kamar_operasi` | Kamar Operasi | Jadwal operasi, laporan operasi & anestesi. | Segera | – |
 | `icu` | ICU / Intensif | Pemantauan intensif & flowsheet. | Segera | – |
-| `gizi` | Gizi | Diet & distribusi makan pasien rawat inap. | Segera | – |
+| `gizi` | Gizi | Skrining & asesmen gizi, order diet, serta distribusi makan pasien rawat inap. | Tersedia | Gizi |
 | `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Segera | – |
 | `cssd` | CSSD | Sterilisasi alat. | Segera | – |
 | `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Segera | – |
@@ -322,7 +322,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Program Puskesmas (`program_puskesmas`) | Segera | – | – | – | ✓ | – | – | – | – |
 | Kamar Operasi (`kamar_operasi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
 | ICU / Intensif (`icu`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
-| Gizi (`gizi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
+| Gizi (`gizi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | Koding & Rekam Medis (`koding_rm`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
 | CSSD (`cssd`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
 | Bank Darah RS (BDRS) (`bank_darah`) | Segera | – | – | – | – | – | – | ✓ | ✓ |

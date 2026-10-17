@@ -884,6 +884,25 @@ export const mikrobiologiPermission = {
   ],
 };
 
+export const giziPermission = {
+  module: "Gizi",
+  subModules: [
+    { name: "Skrining", allows: ["READ", "CREATE"] },
+    { name: "Asesmen Gizi", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Order Diet", allows: ["READ", "CREATE", "UPDATE", "BATAL"] },
+    { name: "Distribusi", allows: ["READ", "CREATE", "CETAK"] },
+    {
+      name: "Datamaster",
+      features: [
+        { name: "Master Diet", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+        { name: "Bentuk Makanan", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+        { name: "Standar Porsi", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+      ],
+    },
+    { name: "Laporan Gizi", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
 export const trainingPermission = {
   module: "Training",
   subModules: [
@@ -1320,6 +1339,7 @@ export function mapPermission(permissionList) {
     mcu: mcuPermission,
     "patologi anatomi": patologiAnatomiPermission,
     mikrobiologi: mikrobiologiPermission,
+    gizi: giziPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,
     stok: stokPermission,
