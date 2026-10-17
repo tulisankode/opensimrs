@@ -25,6 +25,7 @@ import PengirimanLisMikrobiologi from './PengirimanLisMikrobiologi.vue';
 import KonfigurasiHelpdesk from './KonfigurasiHelpdesk.vue';
 import KonfigurasiBdrsUtd from './KonfigurasiBdrsUtd.vue';
 import PengirimanBdrs from './PengirimanBdrs.vue';
+import KonfigurasiAntreanBpjs from './KonfigurasiAntreanBpjs.vue';
 import { useSettingStore } from '@/stores/setting';
 import { utilsStore } from "@/stores/utils";
 import { fiturAktif } from "@/stores/modulFaskes";
@@ -41,6 +42,7 @@ const BAGIAN: Record<string, string> = {
     'lis-mikrobiologi': 'LIS › Mikrobiologi',
     pacs: 'Radiologi › PACS/RIS',
     'bdrs-utd': 'Bank Darah › UTD',
+    'antrean-bpjs': 'BPJS › Antrean Online (Mobile JKN)',
     helpdesk: 'Helpdesk AI',
     lainnya: 'Lainnya',
 };
@@ -182,6 +184,10 @@ const handleKonfigurasiSatuSehat = (updatedKonfigurasiSatuSehat: any) => {
                     <PengirimanBdrs />
                 </template>
                 <p v-else class="text-sm text-gray-500">Fitur Bridging Bank Darah (UTD) belum aktif. Aktifkan di Setting › Manajemen Modul.</p>
+            </template>
+            <!-- Antrean Online BPJS (fitur antrian_online_bpjs): sinkron antrean & task id, ambil antrean Mobile JKN -->
+            <template v-else-if="bagian === 'antrean-bpjs'">
+                <KonfigurasiAntreanBpjs />
             </template>
             <!-- Helpdesk AI: Gateway OpenClaw untuk tombol Bantuan (khusus superadmin; token terenkripsi) -->
             <template v-else-if="bagian === 'helpdesk'">

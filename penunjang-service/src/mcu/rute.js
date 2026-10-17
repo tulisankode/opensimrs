@@ -14,6 +14,7 @@ import invoice from "./invoice.js";
 import laporan from "./laporan.js";
 import impor from "./impor.js";
 import lis from "./lis.js";
+import pcare from "./pcare.js";
 import { katalogTarifLab } from "./lab.js";
 
 // Medical Check Up (MCU) — /api/v3/penunjang/mcu/...
@@ -138,5 +139,7 @@ rute.use("/invoice", invoice);
 rute.use("/laporan", laporan);
 // Kirim order lab peserta ke LIS secara massal (batch di lab-service)
 rute.use("/lis", lis);
+// Pelaporan hasil MCU peserta JKN ke BPJS PCare (STD-0020)
+rute.use("/pcare", pcare);
 
 export default rute;

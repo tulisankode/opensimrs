@@ -1,6 +1,7 @@
 import { dekripsi, timeoutMs } from "./utd-koneksi.js";
 import { mappingSatu } from "./utd-peta.js";
 import { Galat } from "../../umum/respons.js";
+import { penjaminKunjungan } from "../../umum/kunjungan.js";
 
 // Adapter kontrak REST generik ke UTD — kontrak didokumentasikan bersama scripts/utd-tiruan.mjs (README di
 // scripts/README-utd-tiruan.md). Satu lapisan adapter agar konektor mitra nyata kelak hanya mengganti berkas ini,
@@ -21,10 +22,12 @@ const jenisKelamin = (g) => {
 export const buatPayloadPermintaan = async (faskesUuid, permintaan, koneksi, noRegistrasi) => {
   const mapKomponen = await mappingSatu(faskesUuid, "komponen", koneksi.uuid, permintaan.komponen_uuid);
   if (!mapKomponen) throw new Galat(422, `Komponen "${permintaan.komponen_nama ?? permintaan.komponen_uuid}" belum dipetakan ke kode UTD (Bank Darah › Mapping UTD)`);
+  // bdrs_permintaan tidak menyimpan penjamin: diambil dari kunjungan asal permintaan (no_reg), lalu dipetakan ke kode UTD.
+  const penjamin = await penjaminKunjungan(permintaan.no_reg, faskesUuid);
   const [mapUnit, mapDokter, mapPenjamin] = await Promise.all([
     mappingSatu(faskesUuid, "unit", koneksi.uuid, permintaan.lokasi_asal_uuid),
     mappingSatu(faskesUuid, "dokter", koneksi.uuid, permintaan.dokter_peminta_uuid),
-    mappingSatu(faskesUuid, "penjamin", koneksi.uuid, permintaan.penjamin_uuid ?? null),
+    mappingSatu(faskesUuid, "penjamin", koneksi.uuid, penjamin?.uuid ?? null),
   ]);
   const golonganAbo = permintaan.pemeriksaan?.golongan_abo ?? permintaan.golongan_diminta ?? null;
   const rhesus = permintaan.pemeriksaan?.rhesus ?? permintaan.rhesus_diminta ?? null;

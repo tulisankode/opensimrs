@@ -4,9 +4,11 @@ import { wajibLogin } from "./auth.js";
 import {
   konfigurasiTersamar, simpanKonfigurasi, ujiKoneksi, referensi, cekPeserta,
   daftarPemetaan, simpanPemetaan, sinkronKunjungan, daftarKunjungan, jalankanPekerja,
+  kandidatKunjunganMcu, operasiMcu, statusMcu,
 } from "./pcare.js";
 import * as vc from "./vclaim.js";
 import fiturAktif from "./fitur-aktif.js";
+import { ruteInternal as ruteAntrean } from "./antrean-route.js";
 
 const rute = express.Router();
 const tangani = (fn) => (req, res) =>
@@ -66,6 +68,33 @@ rute.post(
   tangani(async (req, res) => {
     const hasil = await jalankanPekerja(req.author.faskesUuid);
     kirim(res, hasil[0] ?? { diproses: 0, berhasil: 0, gagal: 0 }, "Sinkronisasi PCare selesai");
+  })
+);
+
+// MCU PCare (STD-0020) — dipanggil dari penunjang-service (lihat penunjang-service/src/mcu/pcare.js), yang
+// meneruskan token pengguna apa adanya sehingga wajibLogin di atas tetap berlaku sebagai otorisasi layanan.
+rute.get(
+  "/pcare/mcu/kunjungan",
+  tangani(async (req, res) => kirim(res, await kandidatKunjunganMcu(req.author.faskesUuid, req.query.patient_uuid)))
+);
+rute.get("/pcare/mcu/status/:pesertaUuid", tangani(async (req, res) => kirim(res, await statusMcu(req.author.faskesUuid, req.params.pesertaUuid))));
+rute.post(
+  "/pcare/mcu/operasi",
+  tangani(async (req, res) => {
+    // Kontrak penunjang-service → bpjs-service memakai snake_case (penunjang-service/src/mcu/pcare.js); dipetakan
+    // eksplisit ke parameter operasiMcu (camelCase) agar field tidak hilang diam-diam.
+    const b = req.body ?? {};
+    const hasil = await operasiMcu(req.author.faskesUuid, {
+      pesertaUuid: b.peserta_uuid,
+      rawatJalanUuid: b.rawat_jalan_uuid,
+      operasi: b.operasi,
+      payload: b.payload ?? {},
+      alasan: b.alasan,
+      konfirmasi: !!b.konfirmasi,
+      dikirimOleh: req.author.username ?? null,
+    });
+    const berhasil = !["gagal", "tidak_pasti"].includes(hasil.status);
+    res.status(berhasil ? 200 : 422).json({ message: berhasil ? "Laporan MCU PCare diproses" : hasil.pesan, payload: hasil });
   })
 );
 
@@ -146,5 +175,9 @@ rute.put(
   "/vclaim/spri/:uuid",
   tangani(async (req, res) => kirim(res, await vc.ubahSpri(fk(req), req.author.username, req.params.uuid, req.body ?? {}), "SPRI berhasil diubah"))
 );
+
+// --- Antrean Online BPJS (Mobile JKN): konfigurasi & monitoring (izin "Antrian > Antrean Online BPJS") ----------
+// Rute WS Antrean yang dipanggil BPJS (token WS, bukan JWT) dipasang terpisah di server.js: lihat antrean-route.js.
+rute.use("/antrean", ruteAntrean);
 
 export default rute;

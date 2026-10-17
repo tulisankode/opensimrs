@@ -62,7 +62,12 @@ export const hitungModulAktif = (K, { segmen, tambahan = [], nonaktif = [] }) =>
 };
 
 // Fitur layak: modul induknya aktif dan modul syaratnya (bila ada, mis. BPJS FKRTL) juga aktif.
-export const fiturLayak = (f, modulAktif) => modulAktif.includes(f.modul) && (!f.modul_syarat || modulAktif.includes(f.modul_syarat));
+// modul_syarat boleh berisi beberapa modul dipisah koma (OR): layak bila salah satu aktif, mis. "bpjs_fkrtl,bpjs_fktp".
+export const fiturLayak = (f, modulAktif) => {
+  if (!modulAktif.includes(f.modul)) return false;
+  if (!f.modul_syarat) return true;
+  return String(f.modul_syarat).split(",").map((s) => s.trim()).filter(Boolean).some((s) => modulAktif.includes(s));
+};
 
 // Fitur bawaan segmen: fitur layak kecuali yang dimatikan preset.
 export const fiturBawaan = (K, segmen, modulAktif) => {
