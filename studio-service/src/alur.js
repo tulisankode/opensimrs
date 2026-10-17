@@ -63,6 +63,18 @@ const pesan = (item, tahap, dari, isi, pengguna = null, tugasUuid = null) =>
 const tugasBerjalan = (itemUuid) =>
   satu(`SELECT * FROM studio_tugas WHERE item_uuid = $1 AND status IN ('antri', 'jalan') ORDER BY id DESC LIMIT 1`, [itemUuid]);
 
+// Repo utama dipakai agen coding/cek item lain (item tanpa worktree) → jangan pindah branch di sana: perubahan agen
+// akan tercatat di branch yang salah dan daftar berkas item itu menjadi kosong. Item `kecuali` = item yang sedang diproses.
+export const pastikanRepoUtamaBebas = async (kecuali = null) => {
+  const lain = await satu(
+    `SELECT i.nomor FROM studio_tugas t JOIN studio_item i ON i.uuid = t.item_uuid
+      WHERE t.jenis IN ('coding', 'cek') AND t.status IN ('antri', 'jalan') AND i.worktree IS NULL AND ($1::uuid IS NULL OR i.uuid <> $1)
+      LIMIT 1`,
+    [kecuali],
+  );
+  if (lain) throw new Galat(409, `Working tree sedang dipakai item STD-${String(lain.nomor).padStart(4, "0")}. Tunggu sampai selesai, atau gunakan mode worktree.`);
+};
+
 const buatTugas = (item, tahap, jenis, instruksi, oleh) =>
   sisipkan("studio_tugas", { item_uuid: item?.uuid ?? null, tahap, jenis, status: "antri", instruksi, dibuat_oleh: oleh, updated_at: sekarang() });
 
@@ -308,11 +320,7 @@ export const jalankanCoding = async (item, instruksi, oleh) => {
   if (item.tahap !== "coding") throw permintaanSalah("Item belum berada di tahap coding");
   if (item.risiko === "kritis") throw new Galat(403, "Item berisiko kritis: agen hanya boleh menulis PRD/desain; kode dikerjakan programmer.");
   if (await tugasBerjalan(item.uuid)) throw new Galat(409, "Masih ada tugas agen yang berjalan untuk item ini");
-  if (nilai.mode_kerja !== "worktree" && !item.worktree) {
-    const lain = await satu(`SELECT t.uuid, i.nomor FROM studio_tugas t JOIN studio_item i ON i.uuid = t.item_uuid
-                              WHERE t.jenis IN ('coding', 'cek') AND t.status IN ('antri', 'jalan') AND i.worktree IS NULL LIMIT 1`);
-    if (lain) throw new Galat(409, `Working tree sedang dipakai item STD-${String(lain.nomor).padStart(4, "0")}. Tunggu sampai selesai, atau gunakan mode worktree.`);
-  }
+  if (nilai.mode_kerja !== "worktree" && !item.worktree) await pastikanRepoUtamaBebas();
   await periksaBatas(item, oleh);
 
   const siap = await siapkanKerja(item);
@@ -440,6 +448,8 @@ export const siapkanManual = async (item, oleh) => {
   pastikanBukanProduksi();
   if (item.tahap !== "coding") throw permintaanSalah("Branch kerja disiapkan pada tahap coding");
   if (await tugasBerjalan(item.uuid)) throw new Galat(409, "Masih ada tugas agen yang berjalan untuk item ini");
+  const { nilai } = await bacaSemua();
+  if (nilai.mode_kerja !== "worktree" && !item.worktree) await pastikanRepoUtamaBebas(item.uuid);
   const siap = await siapkanKerja(item);
   const potret = siap.snapshot ?? (await potretKerja(direktoriKerja(siap)));
   const baru = await ubah("studio_item", item.uuid, { snapshot: potret });
@@ -540,6 +550,14 @@ export const jalankanCek = async (item, oleh) => {
         const r = await jalankanPerintah("npm", ["--prefix", l, "test"], { cwd: base });
         await log(r.ok ? "hasil" : "galat", `${r.ok ? "✔" : "✘"} npm --prefix ${l} test\n${r.keluaran.split("\n").slice(-15).join("\n")}`);
         langkah.push({ nama: `Uji ${l}`, lulus: r.ok });
+      }
+
+      // Integritas lintas berkas (rute katalog ganda, menu navbar, migrasi kembar, import "@/main"): selalu, karena
+      // pelanggarannya baru terlihat setelah diterapkan (modul tetap "Segera", menu tidak muncul, layar putih).
+      if (fs.existsSync(path.join(base, "scripts", "cek-integritas.mjs"))) {
+        const r = await jalankanPerintah("node", ["scripts/cek-integritas.mjs"], { cwd: base, timeoutMs: 60000 });
+        await log(r.ok ? "hasil" : "galat", `${r.ok ? "✔" : "✘"} cek integritas\n${r.keluaran.slice(-1500)}`);
+        langkah.push({ nama: "Integritas lintas berkas", lulus: r.ok });
       }
 
       if (ada.some((b) => b.path === "database/data/katalog-modul.json")) {
@@ -901,6 +919,7 @@ export const bukaBranch = async (item, oleh) => {
   pastikanBukanProduksi();
   if (!item.branch) throw permintaanSalah("Item belum punya branch");
   if (item.worktree) return { branch: item.branch, worktree: item.worktree };
+  await pastikanRepoUtamaBebas(item.uuid);
   try {
     await git(["switch", item.branch]);
   } catch (e) {
@@ -918,6 +937,7 @@ export const kembaliBranch = async (item, oleh) => {
     return { branch: null };
   }
   if (!item.branch_asal) throw permintaanSalah("Branch asal tidak diketahui");
+  await pastikanRepoUtamaBebas(item.uuid);
   const status = await statusBerkas();
   if ((item.berkas ?? []).some((b) => b.path in status)) throw permintaanSalah("Perubahan item belum di-commit; commit dulu agar tidak terbawa ke branch lain");
   try {
@@ -939,6 +959,7 @@ const diBranchTarget = async (item, target, fn) => {
   const aktif = await branchSekarang();
   if (aktif === target) return fn(config.repoDir, true);
   if (!item.worktree && aktif === item.branch) {
+    await pastikanRepoUtamaBebas(item.uuid);
     try {
       await git(["switch", target]);
     } catch (e) {
@@ -1075,7 +1096,12 @@ export const pindahkanAplikasi = async (oleh) => {
   if (s.sama) return s;
   if (/\/STD-\d+/.test(s.branchLokal)) throw permintaanSalah("Branch lokal tidak boleh branch item");
   if (!(await git(["rev-parse", "--verify", "--quiet", `refs/heads/${s.branchLokal}`], { izinkanGagal: true })).ok) throw permintaanSalah(`Branch lokal ${s.branchLokal} tidak ditemukan`);
-  if ((await query(`SELECT 1 FROM studio_tugas WHERE status IN ('antri', 'jalan') LIMIT 1`)).length) throw new Galat(409, "Masih ada tugas agen yang berjalan");
+  // Hanya tugas yang bekerja di repo utama yang menghalangi; agen di worktree item tidak terpengaruh perpindahan ini.
+  const diRepoUtama = await satu(
+    `SELECT i.nomor FROM studio_tugas t LEFT JOIN studio_item i ON i.uuid = t.item_uuid
+      WHERE t.status IN ('antri', 'jalan') AND i.worktree IS NULL LIMIT 1`,
+  );
+  if (diRepoUtama) throw new Galat(409, `Masih ada tugas agen yang berjalan di repo utama${diRepoUtama.nomor ? ` (STD-${String(diRepoUtama.nomor).padStart(4, "0")})` : ""}`);
   // Branch yang sedang terbuka di worktree lain tidak bisa dibuka di repo utama.
   const { keluaran: daftar } = await git(["worktree", "list", "--porcelain"], { izinkanGagal: true });
   const lain = daftar.split(/\n\n+/).slice(1).find((b) => b.includes(`branch refs/heads/${s.branchLokal}`))?.match(/^worktree (.+)$/m)?.[1];
@@ -1154,6 +1180,11 @@ export const aktifkanItem = async (item, oleh, faskesUuid = null) => {
   if ((await branchSekarang().catch(() => null)) !== item.branch_lokal) {
     const { keluaran: daftar } = await git(["worktree", "list", "--porcelain"], { izinkanGagal: true });
     cwd = daftar.split(/\n\n+/).find((b) => b.includes(`branch refs/heads/${item.branch_lokal}`))?.match(/^worktree (.+)$/m)?.[1] ?? cwd;
+  }
+  // Migrasi yang tertunda (penerapan saat aplikasi di branch lain) atau gagal dijalankan dulu: tanpa migrasi katalog,
+  // modul baru masih "Segera" dan aktivasi hanya melewatinya. Migrasi wajib idempoten, jadi aman diulang.
+  if (nilai.migrasi_otomatis && !(await jalankanMigrasi(cwd, item, oleh))) {
+    throw new Galat(409, "Migrasi database gagal, jadi modul belum diaktifkan. Baca penyebabnya di diskusi item, perbaiki migrasi/katalognya, lalu klik Aktifkan lagi.");
   }
   const aktivasi = await aktifkan({ sha: item.sha_lokal, dari: awalItem(item), cwd, faskes: faskesAktivasi(nilai, faskesUuid), oleh, alasan: `SIMRS Studio ${nomor(item)}: ${item.judul}`, sebelumnya: item.aktivasi });
   await audit(oleh, "Mengaktifkan modul/fitur hasil penerapan", item.uuid, { modul: aktivasi?.modul.map((m) => m.kode), fitur: aktivasi?.fitur.map((f) => f.kode) });

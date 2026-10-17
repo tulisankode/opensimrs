@@ -2,7 +2,8 @@
 import Sidebar from "@/components/section/Sidebar.vue";
 import { linkType } from "@/utils/Enum";
 import type { SidebarBody } from "@/utils/Interface";
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import { fiturAktif } from "@/stores/modulFaskes";
 
 const sidebarBodyList = ref<SidebarBody[]>([
   {
@@ -31,6 +32,13 @@ const sidebarBodyList = ref<SidebarBody[]>([
     ],
   },
   {
+    name: "mapping-lis",
+    type: linkType.SECTION,
+    child: [
+      { name: "Mapping LIS PA", icon: "PhArrowsLeftRight", type: linkType.LINK, url: "/patologi-anatomi/mapping/lis" },
+    ],
+  },
+  {
     name: "3",
     type: linkType.SECTION,
     child: [
@@ -45,11 +53,13 @@ const sidebarBodyList = ref<SidebarBody[]>([
     ],
   },
 ]);
+// Mapping LIS PA hanya tampil bila fitur Bridging LIS Patologi Anatomi aktif (Manajemen Modul).
+const sidebarTampil = computed(() => sidebarBodyList.value.filter((s) => s.name !== "mapping-lis" || fiturAktif("pa_bridging_lis")));
 </script>
 
 <template>
   <div class="flex h-full gap-3">
-    <Sidebar sidebarTitle="Patologi Anatomi" sidebarTitleUrl="/patologi-anatomi" class="flex-none" :sidebar-body-list="sidebarBodyList" />
+    <Sidebar sidebarTitle="Patologi Anatomi" sidebarTitleUrl="/patologi-anatomi" class="flex-none" :sidebar-body-list="sidebarTampil" />
     <component class="max-h-full overflow-auto grow" :is="$route.meta.page || 'div'"></component>
   </div>
 </template>

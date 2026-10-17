@@ -71,6 +71,7 @@ rute.get(
       `SELECT i.uuid, i.order_uuid, i.pemeriksaan_uuid, i.nama, i.modalitas, i.harga::float8 AS harga, i.status,
               i.radiografer, i.waktu_periksa, i.dokter_radiologi_uuid, ${NAMA_PRAKTISI("i.dokter_radiologi_uuid")} AS dokter_radiologi,
               i.waktu_hasil, (i.hasil IS NOT NULL) AS ada_hasil, jsonb_array_length(i.lampiran) AS jumlah_lampiran,
+              i.accession_number, i.pacs_koneksi_uuid, i.url_viewer,
               o.no_order, o.no_rm, o.no_reg, o.sumber, o.pelayanan, o.cito, o.klinis, o.status AS status_order,
               o.tanpa_tagihan, o.created_at AS waktu_order, o.patient_uuid,
               p.name AS nama_pasien, p.gender, bd.birth_date,
