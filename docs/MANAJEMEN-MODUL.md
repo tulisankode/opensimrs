@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 10 berstatus Segera), **54 fitur** (13 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 9 berstatus Segera), **54 fitur** (13 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -290,7 +290,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `kamar_operasi` | Kamar Operasi | Jadwal operasi, laporan operasi & anestesi. | Segera | – |
 | `icu` | ICU / Intensif | Pemantauan intensif & flowsheet. | Segera | – |
 | `gizi` | Gizi | Diet & distribusi makan pasien rawat inap. | Segera | – |
-| `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Segera | – |
+| `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Tersedia | Koding Rekam Medis |
 | `cssd` | CSSD | Sterilisasi alat. | Segera | – |
 | `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Segera | – |
 | `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Segera | – |
@@ -323,7 +323,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Kamar Operasi (`kamar_operasi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
 | ICU / Intensif (`icu`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
 | Gizi (`gizi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
-| Koding & Rekam Medis (`koding_rm`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
+| Koding & Rekam Medis (`koding_rm`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | CSSD (`cssd`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
 | Bank Darah RS (BDRS) (`bank_darah`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
 | UTD / UPTD Produksi Darah (`utd`) | Segera | – | – | – | – | – | – | – | ✓ |

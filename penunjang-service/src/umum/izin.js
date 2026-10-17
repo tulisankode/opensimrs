@@ -65,3 +65,4 @@ export const wajibIzin = (modul, submodul, aksi, fitur = null) => (req, res, nex
 export const izinPa = (submodul, aksi, fitur = null) => wajibIzin("Patologi Anatomi", submodul, aksi, fitur);
 export const izinMikro = (submodul, aksi, fitur = null) => wajibIzin("Mikrobiologi", submodul, aksi, fitur);
 export const izinMcu = (submodul, aksi, fitur = null) => wajibIzin("MCU", submodul, aksi, fitur);
+export const izinKoding = (submodul, aksi, fitur = null) => wajibIzin("Koding Rekam Medis", submodul, aksi, fitur);

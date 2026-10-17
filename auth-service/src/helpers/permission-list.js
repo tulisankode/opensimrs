@@ -884,6 +884,19 @@ export const mikrobiologiPermission = {
   ],
 };
 
+export const kodingRmPermission = {
+  module: "Koding Rekam Medis",
+  subModules: [
+    { name: "Worklist", allows: ["READ"] },
+    { name: "Koding", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Klarifikasi", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Checklist", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Peminjaman", allows: ["READ", "CREATE", "UPDATE", "HAPUS"] },
+    { name: "Retensi", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Laporan Koding", allows: ["READ"] },
+  ],
+};
+
 export const trainingPermission = {
   module: "Training",
   subModules: [
@@ -1320,6 +1333,7 @@ export function mapPermission(permissionList) {
     mcu: mcuPermission,
     "patologi anatomi": patologiAnatomiPermission,
     mikrobiologi: mikrobiologiPermission,
+    "koding rekam medis": kodingRmPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,
     stok: stokPermission,

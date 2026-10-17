@@ -211,6 +211,13 @@ import MasterOrganismePage from "@/views/Mikrobiologi/MasterOrganismePage.vue";
 import MasterAntibiotikPage from "@/views/Mikrobiologi/MasterAntibiotikPage.vue";
 import LaporanKunjunganMikroPage from "@/views/Mikrobiologi/LaporanKunjunganMikroPage.vue";
 import LaporanAntibiogramPage from "@/views/Mikrobiologi/LaporanAntibiogramPage.vue";
+import KodingRmView from "@/views/KodingRM/KodingRmView.vue";
+import WorklistKodingPage from "@/views/KodingRM/WorklistKodingPage.vue";
+import KunjunganKodingPage from "@/views/KodingRM/KunjunganKodingPage.vue";
+import ChecklistKodingPage from "@/views/KodingRM/ChecklistKodingPage.vue";
+import PeminjamanBerkasPage from "@/views/KodingRM/PeminjamanBerkasPage.vue";
+import RetensiBerkasPage from "@/views/KodingRM/RetensiBerkasPage.vue";
+import LaporanKodingPage from "@/views/KodingRM/LaporanKodingPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
@@ -1650,6 +1657,18 @@ const router = createRouter({
       ["/mikrobiologi/datamaster/antibiotik", "mikrobiologi-datamaster-antibiotik", MasterAntibiotikPage],
       ["/mikrobiologi/laporan/kunjungan", "mikrobiologi-laporan-kunjungan", LaporanKunjunganMikroPage],
       ["/mikrobiologi/laporan/antibiogram", "mikrobiologi-laporan-antibiogram", LaporanAntibiogramPage],
+    ]),
+    // !SECTION
+
+    // SECTION Koding Rekam Medis
+    { path: "/koding-rm", name: "koding-rm", redirect: "/koding-rm/worklist" },
+    ...halamanModul(KodingRmView, [
+      ["/koding-rm/worklist", "koding-rm-worklist", WorklistKodingPage],
+      ["/koding-rm/kunjungan/:tipe/:uuid", "koding-rm-kunjungan", KunjunganKodingPage],
+      ["/koding-rm/checklist", "koding-rm-checklist", ChecklistKodingPage],
+      ["/koding-rm/peminjaman", "koding-rm-peminjaman", PeminjamanBerkasPage],
+      ["/koding-rm/retensi", "koding-rm-retensi", RetensiBerkasPage],
+      ["/koding-rm/laporan", "koding-rm-laporan", LaporanKodingPage],
     ]),
     // !SECTION
 

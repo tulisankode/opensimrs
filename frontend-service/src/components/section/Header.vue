@@ -125,6 +125,11 @@ const templistMenu = ref<ListMenu[]>([
     url: "/training",
   },
   {
+    title: "Koding Rekam Medis",
+    icon: "PhFileCode",
+    url: "/koding-rm",
+  },
+  {
     title: "Pembayaran",
     icon: "PhMoneyWavy",
     url: "/pembayaran",
@@ -370,13 +375,13 @@ const bukaSegera = (url: string) => {
 
 const NAMA_SEGERA: Record<string, string> = {
   fisioterapi: "Fisioterapi", radiologi: "Radiologi", kamar_operasi: "Kamar Operasi", icu: "ICU", gizi: "Gizi",
-  koding_rm: "Koding RM", cssd: "CSSD", bank_darah: "Bank Darah", utd: "UTD", akuntansi: "Akuntansi",
+  cssd: "CSSD", bank_darah: "Bank Darah", utd: "UTD", akuntansi: "Akuntansi",
   program_puskesmas: "Program Puskesmas", training: "Training", mcu: "MCU",
   patologi_anatomi: "Patologi Anatomi", mikrobiologi: "Mikrobiologi",
 };
 const IKON_SEGERA: Record<string, string> = {
   fisioterapi: "FisioIcon", radiologi: "PhScan", kamar_operasi: "PhKnife", icu: "PhHeartbeat", gizi: "PhBowlFood",
-  koding_rm: "PhFileCode", cssd: "PhSprayBottle", bank_darah: "PhDrop", utd: "PhDropHalf", akuntansi: "PhCalculator",
+  cssd: "PhSprayBottle", bank_darah: "PhDrop", utd: "PhDropHalf", akuntansi: "PhCalculator",
   mcu: "PhClipboardText", patologi_anatomi: "PhMicroscope", mikrobiologi: "PhBug",
   program_puskesmas: "PhUsersThree", training: "TrainingIcon",
 };
