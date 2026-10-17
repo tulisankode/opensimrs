@@ -997,7 +997,7 @@ export const bankDarahPermission = {
   module: "Bank Darah RS (BDRS)",
   subModules: [
     { name: "Permintaan Darah", allows: ["READ", "CREATE", "UPDATE", "LENGKAPI", "BATAL"] },
-    { name: "Uji Silang Serasi", allows: ["READ", "CATAT PEMERIKSAAN", "CATAT CROSSMATCH"] },
+    { name: "Uji Silang Serasi", allows: ["READ", "CATAT PEMERIKSAAN", "CATAT CROSSMATCH", "OVERRIDE DARURAT"] },
     { name: "Stok & Penerimaan", allows: ["READ", "TERIMA KANTONG", "MUSNAHKAN", "KEMBALIKAN"] },
     { name: "Serah Terima", allows: ["READ", "KONFIRMASI PENYERAH", "KONFIRMASI PENERIMA"] },
     { name: "Pemantauan Transfusi", allows: ["READ", "CATAT TRANSFUSI", "LAPOR REAKSI"] },

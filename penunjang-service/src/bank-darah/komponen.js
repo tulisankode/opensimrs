@@ -2,12 +2,15 @@ import express from "express";
 import { query, satu, sisipkan, ubah, sekarang } from "../db.js";
 import { tangani, kirim, halaman, denganHalaman, wajib, tidakDitemukan, permintaanSalah } from "../umum/respons.js";
 import { izinBdrs } from "../umum/izin.js";
-import { ramah, teks } from "./bersama.js";
+import { KELOMPOK_KOMPONEN, klasifikasiKelompokKomponen } from "./kompatibilitas.js";
+import { cekPilihan, ramah, teks } from "./bersama.js";
 
-// Datamaster Komponen Darah (PRC/WB/TC/FFP, dapat ditambah faskes — PRD KF-14).
+// Datamaster Komponen Darah (PRC/WB/TC/FFP, dapat ditambah faskes — PRD KF-14). `kelompok` menentukan matriks
+// kompatibilitas ABO/Rh yang berlaku (STD-0016/KF-16); komponen berkelompok 'lainnya' ditolak saat crossmatch &
+// serah terima (KF-17) sampai admin menetapkannya di sini.
 const rute = express.Router();
 const TABEL = "bdrs_komponen_darah";
-const PILIH = `uuid, kode, nama, keterangan, status, created_at, updated_at`;
+const PILIH = `uuid, kode, nama, keterangan, kelompok, status, created_at, updated_at`;
 
 const ambil = (uuid, faskes) => satu(`SELECT ${PILIH} FROM ${TABEL} WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [uuid, faskes]);
 
@@ -37,9 +40,12 @@ rute.post(
   tangani(async (req, res) => {
     const b = req.body ?? {};
     wajib(b, ["kode", "nama"]);
+    const kode = String(b.kode).trim().toUpperCase();
+    const nama = String(b.nama).trim();
+    const kelompok = b.kelompok ? cekPilihan(b.kelompok, KELOMPOK_KOMPONEN, "kelompok") : klasifikasiKelompokKomponen(kode, nama);
     const t = await sisipkan(
       TABEL,
-      { faskes_uuid: req.author.faskesUuid, kode: String(b.kode).trim().toUpperCase(), nama: String(b.nama).trim(), keterangan: teks(b.keterangan), status: b.status ?? true },
+      { faskes_uuid: req.author.faskesUuid, kode, nama, keterangan: teks(b.keterangan), kelompok, status: b.status ?? true },
     ).catch((e) => ramah(e, `Kode ${b.kode} sudah dipakai`));
     kirim(res, await ambil(t.uuid, req.author.faskesUuid), "Komponen darah berhasil ditambahkan");
   }),
@@ -50,7 +56,7 @@ rute.put(
   izinBdrs("Datamaster", "UPDATE", "Komponen Darah"),
   tangani(async (req, res) => {
     const b = req.body ?? {};
-    if (b.kode === "" || b.nama === "") throw permintaanSalah("kode dan nama tidak boleh kosong");
+    if (b.kode === "" || b.nama === "" || b.kelompok === "") throw permintaanSalah("kode, nama, dan kelompok tidak boleh kosong");
     const t = await ubah(
       TABEL,
       req.params.uuid,
@@ -59,6 +65,7 @@ rute.put(
         kode: b.kode === undefined ? undefined : String(b.kode).trim().toUpperCase(),
         nama: b.nama === undefined ? undefined : String(b.nama).trim(),
         keterangan: teks(b.keterangan),
+        kelompok: b.kelompok === undefined ? undefined : cekPilihan(b.kelompok, KELOMPOK_KOMPONEN, "kelompok"),
         status: b.status === undefined ? undefined : Boolean(b.status),
       },
     ).catch((e) => ramah(e, `Kode ${b.kode} sudah dipakai`));

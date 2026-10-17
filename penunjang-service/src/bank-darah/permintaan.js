@@ -15,8 +15,8 @@ const rute = express.Router();
 const KOLOM = `
   pm.uuid, pm.no_permintaan, pm.patient_uuid, pm.no_rm, pm.no_reg, pm.rekam_medis_uuid, pm.sumber_kunjungan,
   pm.lokasi_asal_uuid, pm.komponen_uuid, pm.golongan_diminta, pm.rhesus_diminta, pm.jumlah_diminta, pm.jumlah_dipenuhi,
-  pm.indikasi, pm.cito, pm.status, pm.alasan_kembali, pm.dibuat_oleh, pm.diproses_oleh, pm.waktu_diproses,
-  pm.created_at, pm.updated_at,
+  pm.indikasi, pm.cito, pm.status, pm.alasan_kembali, pm.alasan_batal, pm.dokter_peminta_uuid, pm.dokter_peminta_nama,
+  pm.dibuat_oleh, pm.diproses_oleh, pm.waktu_diproses, pm.created_at, pm.updated_at,
   p.name AS nama_pasien, p.gender, bd.birth_date, l.name AS lokasi_asal, k.kode AS komponen_kode, k.nama AS komponen_nama`;
 const JOIN = `
   LEFT JOIN patients p ON p.uuid = pm.patient_uuid
@@ -124,7 +124,7 @@ rute.post(
   tangani(async (req, res) => {
     const b = req.body ?? {};
     const faskes = req.author.faskesUuid;
-    wajib(b, ["komponen_uuid", "golongan_diminta", "rhesus_diminta", "jumlah_diminta"]);
+    wajib(b, ["komponen_uuid", "golongan_diminta", "rhesus_diminta", "jumlah_diminta", "dokter_peminta_uuid"]);
     if (!b.no_reg && !b.rekam_medis_uuid) throw permintaanSalah("no_reg atau rekam_medis_uuid wajib diisi");
     const kunjungan = b.no_reg ? await cariKunjungan(b.no_reg, faskes) : await kunjunganDariRekamMedis(b.rekam_medis_uuid, faskes);
     if (!kunjungan) throw permintaanSalah("Kunjungan (No. Reg / rekam medis) tidak ditemukan");
@@ -137,6 +137,15 @@ rute.post(
     if (!komponen) throw permintaanSalah("Komponen darah tidak ditemukan atau tidak aktif");
     const indikasi = teks(b.indikasi);
     if (!indikasi) throw permintaanSalah("indikasi wajib diisi");
+    // Dokter peminta (KF-14): validasi UUID terhadap referensi faskes token & ambil nama snapshot dari server,
+    // bukan dari body klien.
+    const dokter = await satu(
+      `SELECT pr.uuid, TRIM(CONCAT_WS(' ', pg.first_title, pg.name, NULLIF(pg.last_title, ''))) AS nama
+         FROM practitioner pr JOIN pegawai pg ON pg.uuid = pr.pegawai_uuid
+        WHERE pr.uuid = $1 AND pr.faskes_uuid = $2 AND pr.deleted_at IS NULL AND pr.is_doctor AND COALESCE(pr.status, true)`,
+      [b.dokter_peminta_uuid, faskes],
+    );
+    if (!dokter) throw permintaanSalah("Dokter peminta tidak ditemukan atau tidak aktif di faskes ini");
 
     const permintaan = await sisipkan("bdrs_permintaan", {
       faskes_uuid: faskes,
@@ -155,6 +164,8 @@ rute.post(
       indikasi,
       cito: Boolean(b.cito),
       status: "baru",
+      dokter_peminta_uuid: dokter.uuid,
+      dokter_peminta_nama: dokter.nama,
       dibuat_oleh: req.author.username ?? null,
     });
     kirim(res, await detailPermintaan(permintaan.uuid, faskes), `Permintaan darah ${permintaan.no_permintaan} berhasil diajukan`);
@@ -167,7 +178,7 @@ rute.patch(
     const aksi = String(req.body?.aksi ?? "");
     if (!["proses", "kembalikan", "tolak", "batalkan"].includes(aksi)) throw permintaanSalah("aksi harus salah satu: proses, kembalikan, tolak, batalkan");
     const alasan = teks(req.body?.alasan);
-    if (["kembalikan", "tolak"].includes(aksi) && !alasan) throw permintaanSalah("alasan wajib diisi");
+    if (["kembalikan", "tolak", "batalkan"].includes(aksi) && !alasan) throw permintaanSalah("alasan wajib diisi");
     const faskes = req.author.faskesUuid;
     await transaksi(async (k) => {
       const pm = await kunciPermintaan(req.params.uuid, faskes, k);
@@ -177,7 +188,7 @@ rute.patch(
         const aktif = await satu(`SELECT COUNT(*)::int n FROM bdrs_serah_terima WHERE permintaan_uuid = $1 AND status <> 'batal' AND deleted_at IS NULL`, [pm.uuid], k);
         if (aktif.n) throw new Galat(409, "Sudah ada transaksi serah terima untuk permintaan ini, batalkan transaksi tersebut terlebih dahulu");
         if (pm.dibuat_oleh !== req.author.username) await pastikanIzin(req, "Bank Darah RS (BDRS)", "Permintaan Darah", "BATAL");
-        await ubah("bdrs_permintaan", pm.uuid, faskes, { status: "dibatalkan", alasan_kembali: alasan }, k);
+        await ubah("bdrs_permintaan", pm.uuid, faskes, { status: "dibatalkan", alasan_batal: alasan }, k);
         return;
       }
       // Proses/kembalikan/tolak adalah tindakan petugas BDRS terhadap antrean permintaan.

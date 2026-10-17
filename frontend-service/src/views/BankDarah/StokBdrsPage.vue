@@ -16,10 +16,12 @@ import { utilsStore } from "@/stores/utils";
 import {
   GOLONGAN_ABO,
   RHESUS,
+  STATUS_IMLTD,
   STATUS_STOK_BDRS,
   SUMBER_STOK,
   daftarKomponenBdrs,
   daftarStokBdrs,
+  gayaImltdBdrs,
   gayaStokBdrs,
   golonganRh,
   izinBdrs,
@@ -28,6 +30,7 @@ import {
   pengeluaranStokBdrs,
   sisaHariBdrs,
   terimaStokBdrs,
+  ubahImltdStokBdrs,
   waktuBdrs,
 } from "@/stores/penunjang/bankDarah";
 
@@ -127,7 +130,7 @@ const kosong = () => ({
   lokasiPenyimpanan: "",
   sumber: "utd_manual",
   utdReferensiUuid: "",
-  lolosImltd: false,
+  statusImltd: "",
 });
 const formTerima = ref(kosong());
 const galatTerima = ref("");
@@ -143,7 +146,7 @@ const simpanTerima = async (lanjut = false) => {
   if (!f.komponenUuid || !f.golonganAbo || !f.rhesus) return (galatTerima.value = "Komponen, golongan, dan rhesus wajib dipilih");
   if (!f.tanggalKedaluwarsa) return (galatTerima.value = "Tanggal kedaluwarsa wajib diisi");
   if (f.tanggalProduksi && f.tanggalKedaluwarsa <= f.tanggalProduksi) return (galatTerima.value = "Tanggal kedaluwarsa harus setelah tanggal aftap/produksi");
-  if (!f.lolosImltd) return (galatTerima.value = "Pastikan kantong sudah lolos uji saring IMLTD (non-reaktif) dari UTD");
+  if (!f.statusImltd) return (galatTerima.value = "Status IMLTD wajib dipilih");
   storeUtils.setLoading(true);
   try {
     const res = await terimaStokBdrs({
@@ -157,6 +160,7 @@ const simpanTerima = async (lanjut = false) => {
       lokasiPenyimpanan: f.lokasiPenyimpanan.trim() || undefined,
       sumber: f.sumber,
       utdReferensiUuid: f.utdReferensiUuid.trim() || undefined,
+      statusImltd: f.statusImltd,
     });
     if (res?.payload) {
       muat();
@@ -197,6 +201,18 @@ const simpanKeluar = async () => {
   }
 };
 const bisaKeluar = (s: any) => ["tersedia", "kedaluwarsa"].includes(s.status);
+
+// ── Perubahan status IMLTD setelah penerimaan (izin TERIMA KANTONG, tercatat di audit backend)
+const ubahImltd = async (s: any, statusImltd: string) => {
+  if (!window.confirm(`Ubah status IMLTD kantong ${s.noKantong} menjadi ${STATUS_IMLTD[statusImltd]}?`)) return;
+  storeUtils.setLoading(true);
+  try {
+    const res = await ubahImltdStokBdrs(s.uuid, statusImltd);
+    if (res?.payload) muat();
+  } finally {
+    storeUtils.setLoading(false);
+  }
+};
 </script>
 
 <template>
@@ -288,14 +304,37 @@ const bisaKeluar = (s: any) => ["tersedia", "kedaluwarsa"].includes(s.status);
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold" :class="[gayaStokBdrs(s.status)?.bg, gayaStokBdrs(s.status)?.text]">
                   {{ gayaStokBdrs(s.status)?.label ?? s.status }}
                 </span>
+                <div class="mt-0.5">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold" :class="[gayaImltdBdrs(s.statusImltd)?.bg, gayaImltdBdrs(s.statusImltd)?.text]">
+                    IMLTD: {{ gayaImltdBdrs(s.statusImltd)?.label ?? s.statusImltd }}
+                  </span>
+                </div>
                 <div v-if="s.alasanKeluar" class="text-grey-400">{{ s.alasanKeluar }}</div>
               </template>
             </Column>
-            <Column header="Aksi" headerClass="bg-opensimrs-50" class="w-[200px]">
+            <Column header="Aksi" headerClass="bg-opensimrs-50" class="w-[220px]">
               <template #body="{ data: s }">
-                <div v-if="bisaKeluar(s)" class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                   <CustomButton
-                    v-if="boleh('KEMBALIKAN')"
+                    v-if="boleh('TERIMA KANTONG') && s.statusImltd === 'belum_diperiksa'"
+                    label="Set Non-Reaktif"
+                    size="small"
+                    outlined
+                    borderColor="border-opensimrs-300"
+                    textColor="text-opensimrs-300"
+                    @click="ubahImltd(s, 'non_reaktif')"
+                  />
+                  <CustomButton
+                    v-if="boleh('TERIMA KANTONG') && s.statusImltd === 'belum_diperiksa'"
+                    label="Set Reaktif"
+                    size="small"
+                    outlined
+                    borderColor="border-danger-300"
+                    textColor="text-danger-300"
+                    @click="ubahImltd(s, 'reaktif')"
+                  />
+                  <CustomButton
+                    v-if="bisaKeluar(s) && boleh('KEMBALIKAN')"
                     label="Kembalikan"
                     size="small"
                     outlined
@@ -304,7 +343,7 @@ const bisaKeluar = (s: any) => ["tersedia", "kedaluwarsa"].includes(s.status);
                     @click="bukaKeluar(s, 'kembalikan')"
                   />
                   <CustomButton
-                    v-if="boleh('MUSNAHKAN')"
+                    v-if="bisaKeluar(s) && boleh('MUSNAHKAN')"
                     label="Musnahkan"
                     size="small"
                     outlined
@@ -340,10 +379,18 @@ const bisaKeluar = (s: any) => ["tersedia", "kedaluwarsa"].includes(s.status);
           <CustomDatePicker v-model="formTerima.tanggalKedaluwarsa" label="Tanggal Kedaluwarsa" :minDate="formTerima.tanggalProduksi ?? new Date()" required />
           <CustomTextfield v-model="formTerima.lokasiPenyimpanan" label="Lokasi Penyimpanan" placeholder="mis. Blood bank refrigerator 1" :maxLength="150" />
           <CustomTextfield v-model="formTerima.utdReferensiUuid" label="Referensi UTD (opsional)" placeholder="No. surat/berita acara kiriman" class="col-span-2" :maxLength="100" />
-          <div class="flex items-start col-span-3 gap-2 p-3 rounded-lg bg-opensimrs-50">
-            <Checkbox v-model="formTerima.lolosImltd" binary inputId="bdrs-imltd" />
-            <label for="bdrs-imltd" class="text-sm">Kantong sudah lolos uji saring <b>IMLTD</b> (HIV, Hepatitis B, Hepatitis C, Sifilis) dengan hasil non-reaktif dari UTD, label & segel utuh.</label>
-          </div>
+          <CustomSelect
+            v-model="formTerima.statusImltd"
+            label="Status IMLTD (HIV, Hepatitis B, Hepatitis C, Sifilis)"
+            placeHolder="Pilih status IMLTD dari UTD"
+            :options="opsi(STATUS_IMLTD)"
+            optionValue="value"
+            optionLabel="label"
+            :showFilter="false"
+            required
+            class="col-span-3"
+          />
+          <div class="col-span-3 text-xs text-grey-400">Kantong dengan status IMLTD reaktif ditolak sebagai stok. Hanya kantong non-reaktif yang dapat di-crossmatch/diserahkan.</div>
         </div>
         <div v-if="galatTerima" class="mt-3 text-sm text-danger-300">{{ galatTerima }}</div>
       </template>

@@ -4,12 +4,13 @@ import PageToolbar from "@/components/Base/PageToolbar.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import CustomTextfield from "@/components/Base/CustomTextfield.vue";
 import CustomSwitch from "@/components/Base/CustomSwitch.vue";
+import CustomSelect from "@/components/Base/CustomSelect.vue";
 import CustomTextArea from "@/components/Base/CustomTextArea.vue";
 import CustomDialog from "@/components/Base/CustomDialog.vue";
 import CustomPaginator from "@/components/Base/CustomPaginator.vue";
 import NoData from "@/components/section/NoData.vue";
 import { utilsStore } from "@/stores/utils";
-import { daftarKomponenBdrs, hapusKomponenBdrs, izinBdrs, simpanKomponenBdrs } from "@/stores/penunjang/bankDarah";
+import { KELOMPOK_KOMPONEN, daftarKomponenBdrs, hapusKomponenBdrs, izinBdrs, opsi, simpanKomponenBdrs } from "@/stores/penunjang/bankDarah";
 
 // Datamaster Komponen Darah (PRC/WB/TC/FFP, dapat ditambah faskes). Komponen nonaktif tidak dapat dipilih pada
 // permintaan & penerimaan stok; hapus bersifat lunak sehingga riwayat tetap utuh.
@@ -45,7 +46,7 @@ onMounted(muat);
 
 // ── Form
 const dialog = ref(false);
-const kosong = () => ({ uuid: "", kode: "", nama: "", keterangan: "", status: true });
+const kosong = () => ({ uuid: "", kode: "", nama: "", keterangan: "", kelompok: "lainnya", status: true });
 const form = ref<any>(kosong());
 const galat = ref("");
 const modeUbah = computed(() => !!form.value.uuid);
@@ -59,7 +60,7 @@ const simpan = async () => {
   if (!f.kode?.trim() || !f.nama?.trim()) return (galat.value = "Kode dan nama komponen wajib diisi");
   storeUtils.setLoading(true);
   try {
-    const res = await simpanKomponenBdrs({ kode: f.kode.trim(), nama: f.nama.trim(), keterangan: f.keterangan, status: !!f.status }, f.uuid || undefined);
+    const res = await simpanKomponenBdrs({ kode: f.kode.trim(), nama: f.nama.trim(), keterangan: f.keterangan, kelompok: f.kelompok, status: !!f.status }, f.uuid || undefined);
     if (res) {
       dialog.value = false;
       muat();
@@ -97,6 +98,11 @@ const hapus = async (baris: any) => {
         <DataTable v-else :value="data" stripedRows class="text-xs">
           <Column field="kode" header="Kode" headerClass="bg-opensimrs-50" class="w-[120px]" />
           <Column field="nama" header="Nama Komponen" headerClass="bg-opensimrs-50" />
+          <Column header="Kelompok" headerClass="bg-opensimrs-50">
+            <template #body="{ data: d }">
+              <span :class="d.kelompok === 'lainnya' ? 'text-[#B54708]' : ''">{{ KELOMPOK_KOMPONEN[d.kelompok] ?? d.kelompok }}</span>
+            </template>
+          </Column>
           <Column field="keterangan" header="Keterangan" headerClass="bg-opensimrs-50" />
           <Column header="Status" headerClass="bg-opensimrs-50" class="w-[110px]">
             <template #body="{ data: d }">
@@ -126,6 +132,16 @@ const hapus = async (baris: any) => {
         <div class="grid grid-cols-3 gap-4 pt-4">
           <CustomTextfield v-model="form.kode" label="Kode" placeholder="mis. PRC" required :maxLength="20" />
           <CustomTextfield v-model="form.nama" label="Nama" placeholder="mis. Packed Red Cell" required class="col-span-2" :maxLength="150" />
+          <CustomSelect
+            v-model="form.kelompok"
+            label="Kelompok Komponen"
+            :options="opsi(KELOMPOK_KOMPONEN)"
+            optionValue="value"
+            optionLabel="label"
+            :showFilter="false"
+            :clearable="false"
+            class="col-span-3"
+          />
           <CustomTextArea v-model="form.keterangan" label="Keterangan" placeholder="Opsional" class="col-span-3" />
           <CustomSwitch v-model="form.status" label="Status" sideLabel="Nonaktif" sideLabelTrue="Aktif" />
         </div>

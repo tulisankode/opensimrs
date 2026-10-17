@@ -23,6 +23,7 @@ import {
   SUMBER_KUNJUNGAN_BDRS,
   buatPermintaanBdrs,
   cariPasienBdrs,
+  daftarDokterBdrs,
   daftarKomponenBdrs,
   daftarLokasiBdrs,
   daftarPermintaanBdrs,
@@ -100,9 +101,11 @@ const gantiHalaman = (e: { page: number; rows: number }) => {
 // ── Referensi form
 const komponen = ref<any[]>([]);
 const lokasi = ref<any[]>([]);
+const dokter = ref<any[]>([]);
 const muatReferensi = async () => {
   if (!komponen.value.length) komponen.value = (await daftarKomponenBdrs({ status: "aktif", limit: 200 }))?.payload?.data ?? [];
   if (!lokasi.value.length) lokasi.value = (await daftarLokasiBdrs({ pelayanan: "rajal,ranap,igd" }))?.payload ?? [];
+  if (!dokter.value.length) dokter.value = (await daftarDokterBdrs())?.payload ?? [];
 };
 const opsiKomponen = computed(() => komponen.value.map((k: any) => ({ value: k.uuid, label: `${k.kode} — ${k.nama}` })));
 
@@ -154,10 +157,10 @@ const bukaAlasan = (aksi: "kembalikan" | "tolak" | "batalkan") => {
   dialogAlasan.value = true;
 };
 const simpanAlasan = async () => {
-  if (aksiAlasan.value !== "batalkan" && !alasan.value.trim()) return (galatAlasan.value = "Alasan wajib diisi");
+  if (!alasan.value.trim()) return (galatAlasan.value = "Alasan wajib diisi");
   storeUtils.setLoading(true);
   try {
-    const res = await ubahStatusPermintaanBdrs(detail.value.uuid, aksiAlasan.value, alasan.value.trim() || undefined);
+    const res = await ubahStatusPermintaanBdrs(detail.value.uuid, aksiAlasan.value, alasan.value.trim());
     if (res?.payload) {
       dialogAlasan.value = false;
       detail.value = res.payload;
@@ -175,7 +178,7 @@ const kataPasien = ref("");
 const hasilPasien = ref<any[]>([]);
 const pasien = ref<any>(null);
 const riwayatPasien = ref<any[]>([]);
-const kosong = () => ({ noReg: "", lokasiAsalUuid: "", komponenUuid: "", golonganDiminta: "", rhesusDiminta: "", jumlahDiminta: 1, indikasi: "", cito: false });
+const kosong = () => ({ noReg: "", lokasiAsalUuid: "", komponenUuid: "", golonganDiminta: "", rhesusDiminta: "", jumlahDiminta: 1, indikasi: "", cito: false, dokterPemintaUuid: "" });
 const form = ref<any>(kosong());
 const galatForm = ref("");
 // No. Reg dari riwayat permintaan pasien terpilih (bantuan isian; kunjungan aktif tetap diperiksa backend).
@@ -221,6 +224,7 @@ const simpanForm = async () => {
   const f = form.value;
   galatForm.value = "";
   if (!modeLengkapi.value && !f.noReg.trim()) return (galatForm.value = "No. Registrasi kunjungan wajib diisi");
+  if (!modeLengkapi.value && !f.dokterPemintaUuid) return (galatForm.value = "Dokter peminta wajib dipilih");
   if (!f.komponenUuid) return (galatForm.value = "Komponen darah wajib dipilih");
   if (!f.golonganDiminta || !f.rhesusDiminta) return (galatForm.value = "Golongan darah & rhesus yang diminta wajib dipilih");
   if (!Number.isInteger(Number(f.jumlahDiminta)) || f.jumlahDiminta < 1 || f.jumlahDiminta > 20) return (galatForm.value = "Jumlah kantong harus 1–20");
@@ -237,7 +241,7 @@ const simpanForm = async () => {
     };
     const res = modeLengkapi.value
       ? await lengkapiPermintaanBdrs(detail.value.uuid, isi)
-      : await buatPermintaanBdrs({ ...isi, noReg: f.noReg.trim(), lokasiAsalUuid: f.lokasiAsalUuid || null });
+      : await buatPermintaanBdrs({ ...isi, noReg: f.noReg.trim(), lokasiAsalUuid: f.lokasiAsalUuid || null, dokterPemintaUuid: f.dokterPemintaUuid });
     if (res?.payload) {
       dialogForm.value = false;
       detail.value = res.payload;
@@ -355,6 +359,7 @@ onMounted(muat);
             <div><span class="text-grey-400">Diajukan:</span> {{ waktuBdrs(detail.createdAt) }} · {{ detail.dibuatOleh ?? "-" }}</div>
             <div><span class="text-grey-400">Asal:</span> {{ SUMBER_KUNJUNGAN_BDRS[detail.sumberKunjungan] }} · {{ detail.lokasiAsal ?? "-" }} ({{ detail.noReg }})</div>
             <div v-if="detail.waktuDiproses"><span class="text-grey-400">Diproses:</span> {{ waktuBdrs(detail.waktuDiproses) }} · {{ detail.diprosesOleh }}</div>
+            <div><span class="text-grey-400">Dokter peminta:</span> {{ detail.dokterPemintaNama ?? "-" }}</div>
             <div><span class="text-grey-400">Komponen:</span> {{ detail.komponenKode }} — {{ detail.komponenNama }}</div>
             <div><span class="text-grey-400">Golongan diminta:</span> {{ golonganRh(detail.golonganDiminta, detail.rhesusDiminta) }}</div>
             <div><span class="text-grey-400">Jumlah:</span> {{ detail.jumlahDipenuhi ?? 0 }} dari {{ detail.jumlahDiminta }} kantong</div>
@@ -362,6 +367,7 @@ onMounted(muat);
             <div v-if="detail.alasanKembali" class="col-span-2 text-danger-300">
               {{ detail.status === "perlu_dilengkapi" ? "Perlu dilengkapi" : "Alasan" }}: {{ detail.alasanKembali }}
             </div>
+            <div v-if="detail.alasanBatal" class="col-span-2 text-danger-300">Alasan dibatalkan: {{ detail.alasanBatal }}</div>
           </div>
 
           <div>
@@ -438,9 +444,9 @@ onMounted(muat);
         <div class="flex flex-col gap-2 pt-4">
           <CustomTextArea
             v-model="alasan"
-            :label="aksiAlasan === 'batalkan' ? 'Alasan (opsional)' : 'Alasan'"
+            label="Alasan"
             :placeholder="aksiAlasan === 'kembalikan' ? 'mis. indikasi transfusi belum lengkap' : 'Tuliskan alasan'"
-            :required="aksiAlasan !== 'batalkan'"
+            required
           />
           <div v-if="galatAlasan" class="text-sm text-danger-300">{{ galatAlasan }}</div>
         </div>
@@ -509,6 +515,15 @@ onMounted(muat);
                 optionLabel="name"
               />
             </div>
+            <CustomSelect
+              v-model="form.dokterPemintaUuid"
+              label="Dokter Peminta"
+              placeHolder="Pilih dokter peminta"
+              :options="dokter"
+              optionValue="uuid"
+              optionLabel="nama"
+              required
+            />
           </template>
           <div class="grid grid-cols-3 gap-4">
             <CustomSelect v-model="form.komponenUuid" label="Komponen Darah" placeHolder="Pilih komponen" :options="opsiKomponen" optionValue="value" optionLabel="label" required />

@@ -10,7 +10,8 @@ import stok from "./stok.js";
 import serahTerima, { buatSerahTerima } from "./serah-terima.js";
 import transfusi from "./transfusi.js";
 import laporan from "./laporan.js";
-import { GOLONGAN_ABO, HASIL_UJI, RHESUS, STATUS_PERMINTAAN, STATUS_STOK, SUMBER_KUNJUNGAN, SUMBER_STOK, pilihan } from "./bersama.js";
+import { GOLONGAN_ABO, HASIL_UJI, RHESUS, STATUS_IMLTD, STATUS_PERMINTAAN, STATUS_STOK, SUMBER_KUNJUNGAN, SUMBER_STOK, pilihan } from "./bersama.js";
+import { KELOMPOK_KOMPONEN } from "./kompatibilitas.js";
 
 // Bank Darah RS (BDRS) — /api/v3/penunjang/bank-darah/...
 //   /komponen                       datamaster komponen darah (PRC/WB/TC/FFP, dapat ditambah faskes)
@@ -48,6 +49,8 @@ rute.get(
       hasil_uji: pilihan(HASIL_UJI),
       status_permintaan: pilihan(STATUS_PERMINTAAN),
       status_stok: pilihan(STATUS_STOK),
+      status_imltd: pilihan(STATUS_IMLTD),
+      kelompok_komponen: pilihan(KELOMPOK_KOMPONEN),
       sumber_kunjungan: pilihan(SUMBER_KUNJUNGAN),
       sumber_stok: pilihan(SUMBER_STOK),
     }),
