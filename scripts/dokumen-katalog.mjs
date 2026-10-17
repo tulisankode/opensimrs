@@ -49,6 +49,17 @@ const singkat = (k) => SINGKAT[k] ?? k;
 const namaModul = new Map(modul.map((m) => [m.kode, m.nama]));
 const namaFitur = new Map(fitur.map((f) => [f.kode, f.nama]));
 const namaPoli = new Map(jenisPoli.map((p) => [p.kode, p.nama]));
+// modul_syarat boleh berisi beberapa modul dipisah koma (OR, mis. "bpjs_fkrtl,bpjs_fktp" — lihat fiturLayak di
+// setting-service/src/modul/katalog-modul.js); render tiap modul dengan nama & kode, digabung "atau".
+const syaratModul = (nilai) =>
+  nilai
+    ? String(nilai)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s) => `${namaModul.get(s) ?? s} (${kode(s)})`)
+        .join(" atau ")
+    : "–";
 
 const statusModul = (m) => (m.inti ? "Inti (selalu aktif)" : m.tersedia ? "Tersedia" : "Segera");
 const segmenYang = (peta, kodeItem) =>
@@ -132,7 +143,7 @@ for (const m of modul) {
       f.deskripsi,
       f.tersedia ? "Tersedia" : "Segera",
       f.wajib ? "Ya" : "–",
-      f.modul_syarat ? `${namaModul.get(f.modul_syarat) ?? f.modul_syarat} (${kode(f.modul_syarat)})` : "–",
+      syaratModul(f.modul_syarat),
       daftar(segmenYang(fiturMati, f.kode)),
     ]),
   );
@@ -158,7 +169,7 @@ for (const kf of [...new Set(bagian.map((b) => b.fitur))]) {
         b.nama ?? b.label,
         b.wajib ? "Ya" : "–",
         daftar((b.poli ?? []).map((p) => namaPoli.get(p) ?? p)),
-        b.modul_syarat ? `${namaModul.get(b.modul_syarat) ?? b.modul_syarat} (${kode(b.modul_syarat)})` : "–",
+        syaratModul(b.modul_syarat),
         daftar(segmenYang(bagianMati, b.kode)),
       ]),
   );

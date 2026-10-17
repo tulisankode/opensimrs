@@ -7,6 +7,7 @@ import {
   kandidatKunjunganMcu, operasiMcu, statusMcu,
 } from "./pcare.js";
 import * as vc from "./vclaim.js";
+import { ruteInternal as ruteAntrean } from "./antrean-route.js";
 
 const rute = express.Router();
 const tangani = (fn) => (req, res) =>
@@ -117,5 +118,9 @@ rute.put(
   "/vclaim/pemetaan-poli",
   tangani(async (req, res) => kirim(res, await vc.simpanPemetaanPoli(fk(req), req.body?.poli ?? []), "Pemetaan poli VClaim disimpan"))
 );
+
+// --- Antrean Online BPJS (Mobile JKN): konfigurasi & monitoring (izin "Antrian > Antrean Online BPJS") ----------
+// Rute WS Antrean yang dipanggil BPJS (token WS, bukan JWT) dipasang terpisah di server.js: lihat antrean-route.js.
+rute.use("/antrean", ruteAntrean);
 
 export default rute;
