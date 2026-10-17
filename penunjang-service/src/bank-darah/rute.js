@@ -12,6 +12,7 @@ import transfusi from "./transfusi.js";
 import laporan from "./laporan.js";
 import { GOLONGAN_ABO, HASIL_UJI, RHESUS, STATUS_IMLTD, STATUS_PERMINTAAN, STATUS_STOK, SUMBER_KUNJUNGAN, SUMBER_STOK, pilihan } from "./bersama.js";
 import { KELOMPOK_KOMPONEN } from "./kompatibilitas.js";
+import { wajibSalahSatu } from "../umum/izin.js";
 
 // Bank Darah RS (BDRS) — /api/v3/penunjang/bank-darah/...
 //   /komponen                       datamaster komponen darah (PRC/WB/TC/FFP, dapat ditambah faskes)
@@ -25,6 +26,24 @@ import { KELOMPOK_KOMPONEN } from "./kompatibilitas.js";
 //   /laporan                        pemakaian, rasio crossmatch-transfusi, stok keluar, reaksi (hemovigilans)
 //   /referensi/pilihan|pasien|dokter|lokasi
 const rute = express.Router();
+
+// Semua pembacaan BDRS mewajibkan minimal satu hak READ di modul ini (sebelumnya GET hanya memeriksa login, sehingga
+// pengguna faskes tanpa izin BDRS dapat membaca stok, permintaan, dan serah terima). Penjaga per rute yang lebih
+// spesifik (laporan, transfusi, dsb.) tetap berlaku sesudahnya.
+const BDRS = "Bank Darah RS (BDRS)";
+const bacaBdrs = wajibSalahSatu(
+  [BDRS, "Permintaan Darah", "READ"],
+  [BDRS, "Uji Silang Serasi", "READ"],
+  [BDRS, "Stok & Penerimaan", "READ"],
+  [BDRS, "Serah Terima", "READ"],
+  [BDRS, "Pemantauan Transfusi", "READ"],
+  [BDRS, "Pengaturan", "READ"],
+  [BDRS, "Datamaster", "READ", "Komponen Darah"],
+  [BDRS, "Laporan BDRS", "READ", "Pemakaian Darah"],
+  [BDRS, "Laporan BDRS", "READ", "Rasio Crossmatch-Transfusi"],
+  [BDRS, "Laporan BDRS", "READ", "Hemovigilans"],
+);
+rute.use((req, res, next) => (req.method === "GET" ? bacaBdrs(req, res, next) : next()));
 
 rute.use("/komponen", komponen);
 rute.use("/pengaturan", pengaturan);
