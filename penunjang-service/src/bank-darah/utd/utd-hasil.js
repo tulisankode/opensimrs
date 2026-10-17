@@ -1,52 +1,102 @@
 import { query, satu, sekarang, uuidv7 } from "../../db.js";
 import { Galat, tidakDitemukan } from "../../umum/respons.js";
 import { catatAuditBdrs } from "../bersama.js";
-import { terimaKantong, ambilStok } from "../stok.js";
+import { terimaKantong, ambilStok, alasanEpochDetik } from "../stok.js";
 import { komponenDariKodeUtd } from "./utd-peta.js";
 import { hashKunci } from "./kripto.js";
+import { fiturAktifFaskes } from "./izin.js";
 
 // Penyimpanan & validasi hasil UTD (push maupun tarik) — KF-8/KF-9/KF-10/KF-11. Hasil crossmatch UTD hanya
 // disimpan sebagai informasi pada bdrs_utd_kantong.crossmatch_utd (tidak membuat/mengubah bdrs_crossmatch — A6/KF-9).
 
-// Normalisasi IMLTD (KT-11): trim + huruf kecil, lalu dipetakan ke enum tertutup. Nilai lain → 'tidak_dikenal' (ditolak).
+// Normalisasi IMLTD (KT-11, sesuai PRD): HANYA trim + huruf kecil. Nilai harus persis salah satu enum tertutup
+// non_reaktif | reaktif | belum_diperiksa; selain itu (termasuk "negatif", "non-reaktif", "positif") → 'tidak_dikenal'
+// dan ditolak. Sinonim sengaja tidak diterjemahkan: salah tafsir status IMLTD berisiko langsung terhadap keselamatan.
+export const STATUS_IMLTD_UTD = ["non_reaktif", "reaktif", "belum_diperiksa"];
 export const normalisasiImltd = (mentah) => {
   const v = String(mentah ?? "").trim().toLowerCase();
-  if (["non_reaktif", "non-reaktif", "nonreaktif", "negatif", "negative", "non reaktif"].includes(v)) return "non_reaktif";
-  if (["reaktif", "positif", "positive", "reactive"].includes(v)) return "reaktif";
-  if (["belum_diperiksa", "belum diperiksa", "pending", "menunggu", "belum_lulus", "belum lulus"].includes(v)) return "belum_diperiksa";
-  return "tidak_dikenal";
+  return STATUS_IMLTD_UTD.includes(v) ? v : "tidak_dikenal";
 };
 
+// Golongan ABO kantong: trim + huruf besar, harus A/B/AB/O. null = kosong; false = tidak dikenal.
+export const normalisasiGolongan = (mentah) => {
+  if (mentah === undefined || mentah === null || String(mentah).trim() === "") return null;
+  const v = String(mentah).trim().toUpperCase();
+  return ["A", "B", "AB", "O"].includes(v) ? v : false;
+};
+
+// Rhesus kantong: trim + huruf kecil, harus positif/negatif; "+"/"-" diterima sebagai positif/negatif.
+// null = kosong; false = tidak dikenal.
+export const normalisasiRhesus = (mentah) => {
+  if (mentah === undefined || mentah === null || String(mentah).trim() === "") return null;
+  const v = String(mentah).trim().toLowerCase();
+  if (v === "+") return "positif";
+  if (v === "-") return "negatif";
+  return ["positif", "negatif"].includes(v) ? v : false;
+};
+
+const ada = (v) => v !== undefined && v !== null;
 const angkaAtauNull = (v) => {
+  if (!ada(v) || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+};
+// Kolom BIGINT: simpan hanya bilangan bulat aman (nilai tanggal yang ditolak tetap disimpan untuk ditelusuri petugas).
+const bulatAtauNull = (v) => {
+  const n = angkaAtauNull(v);
+  return Number.isSafeInteger(n) ? n : null;
+};
+
+// Field yang tidak dikirim UTD pada push/tarik berikutnya diambil dari data kantong yang sudah tersimpan, agar push
+// parsial tidak menimpa data dengan null dan validasi tetap memakai data efektif kantong (bukan entri parsial).
+const gabungDenganTersimpan = (entri, lama) => {
+  if (!lama) return entri;
+  const pilih = (...nilai) => nilai.find(ada) ?? null;
+  return {
+    ...entri,
+    kode_komponen: pilih(entri?.kode_komponen, entri?.kode_komponen_utd, lama.kode_komponen_utd),
+    golongan_abo: pilih(entri?.golongan_abo, lama.golongan_abo),
+    rhesus: pilih(entri?.rhesus, lama.rhesus),
+    volume_ml: pilih(entri?.volume_ml, lama.volume_ml),
+    tanggal_produksi: pilih(entri?.tanggal_produksi, lama.tanggal_produksi),
+    tanggal_kedaluwarsa: pilih(entri?.tanggal_kedaluwarsa, lama.tanggal_kedaluwarsa),
+    imltd: pilih(entri?.imltd, entri?.status_imltd, lama.imltd_mentah),
+    crossmatch: pilih(entri?.crossmatch, lama.crossmatch_utd),
+  };
 };
 
 /** Validasi satu entri kantong dari UTD terhadap permintaan & stok faskes (KT-9/KT-10/KT-13). */
 const validasiKantong = async (faskesUuid, koneksiUuid, permintaan, entri) => {
   const noKantong = String(entri?.no_kantong ?? "").trim();
-  if (!noKantong) return { noKantong: null, alasan: "no_kantong kosong" };
-
   const kodeKomponen = String(entri?.kode_komponen ?? entri?.kode_komponen_utd ?? "").trim();
   const komponenUuid = kodeKomponen ? await komponenDariKodeUtd(faskesUuid, koneksiUuid, kodeKomponen) : null;
-  const tanggalKedaluwarsa = angkaAtauNull(entri?.tanggal_kedaluwarsa);
+  // Tanggal wajib epoch DETIK — milidetik/nilai tak wajar ditolak dengan alasan spesifik, tidak dikonversi (stok.js).
+  const alasanKedaluwarsa = alasanEpochDetik(entri?.tanggal_kedaluwarsa, "tanggal_kedaluwarsa");
+  const tanggalKedaluwarsa = alasanKedaluwarsa ? null : Number(entri.tanggal_kedaluwarsa);
+  const alasanProduksi = ada(entri?.tanggal_produksi) && entri.tanggal_produksi !== "" ? alasanEpochDetik(entri.tanggal_produksi, "tanggal_produksi") : null;
   const sudahAda = await satu(`SELECT 1 FROM bdrs_stok WHERE faskes_uuid = $1 AND no_kantong = $2 AND deleted_at IS NULL`, [faskesUuid, noKantong]);
   const imltdMentah = entri?.imltd ?? entri?.status_imltd ?? null;
   const statusImltd = normalisasiImltd(imltdMentah);
-  const golonganKantong = entri?.golongan_abo ? String(entri.golongan_abo).toUpperCase() : null;
-  const rhesusKantong = entri?.rhesus ?? null;
+  const golonganKantong = normalisasiGolongan(entri?.golongan_abo);
+  const rhesusKantong = normalisasiRhesus(entri?.rhesus);
+  const golonganMentah = ada(entri?.golongan_abo) ? String(entri.golongan_abo).trim() : "";
+  const rhesusMentah = ada(entri?.rhesus) ? String(entri.rhesus).trim() : "";
   const peringatanGolongan = Boolean(
     (golonganKantong && permintaan.golongan_diminta && golonganKantong !== permintaan.golongan_diminta) ||
       (rhesusKantong && permintaan.rhesus_diminta && rhesusKantong !== permintaan.rhesus_diminta),
   );
 
   let alasan = null;
-  if (!golonganKantong || !rhesusKantong) alasan = "Data kantong tidak lengkap (golongan_abo/rhesus kosong)";
-  else if (!kodeKomponen || !komponenUuid) alasan = `Kode komponen UTD "${kodeKomponen || "-"}" belum terpetakan balik (Bank Darah › Mapping UTD)`;
+  if (golonganKantong === null || rhesusKantong === null) alasan = "Data kantong tidak lengkap (golongan_abo/rhesus kosong)";
+  else if (golonganKantong === false) alasan = `golongan_abo "${golonganMentah.slice(0, 20)}" tidak dikenal (harus A, B, AB, atau O)`;
+  else if (rhesusKantong === false) alasan = `rhesus "${rhesusMentah.slice(0, 20)}" tidak dikenal (harus positif/negatif atau +/-)`;
+  else if (!kodeKomponen || !komponenUuid) alasan = `Kode komponen UTD "${kodeKomponen.slice(0, 50) || "-"}" belum terpetakan balik (Bank Darah › Mapping UTD)`;
   else if (komponenUuid !== permintaan.komponen_uuid) alasan = "Komponen kantong tidak sesuai komponen permintaan";
-  else if (!tanggalKedaluwarsa) alasan = "tanggal_kedaluwarsa tidak valid";
+  else if (alasanKedaluwarsa) alasan = alasanKedaluwarsa;
+  else if (alasanProduksi) alasan = alasanProduksi;
   else if (tanggalKedaluwarsa <= sekarang()) alasan = "Kantong sudah kedaluwarsa";
   else if (sudahAda) alasan = `No. kantong ${noKantong} sudah terdaftar di stok faskes ini`;
+  else if (statusImltd === "tidak_dikenal") alasan = `Status IMLTD tidak_dikenal ("${String(imltdMentah ?? "").slice(0, 30)}"; nilai sah: ${STATUS_IMLTD_UTD.join(", ")}), tidak dapat diterima ke stok`;
   else if (statusImltd !== "non_reaktif") alasan = `Status IMLTD ${statusImltd}, tidak dapat diterima ke stok`;
 
   return {
@@ -54,14 +104,15 @@ const validasiKantong = async (faskesUuid, koneksiUuid, permintaan, entri) => {
     alasan,
     statusValidasi: alasan ? "ditolak" : "menunggu",
     data: {
-      kode_komponen_utd: kodeKomponen || null,
+      kode_komponen_utd: kodeKomponen ? kodeKomponen.slice(0, 50) : null,
       komponen_uuid: komponenUuid,
-      golongan_abo: golonganKantong,
-      rhesus: rhesusKantong,
+      // Nilai di luar enum disimpan apa adanya (dipotong sesuai kolom) agar petugas dapat menelusuri alasan penolakan.
+      golongan_abo: golonganKantong || (golonganMentah ? golonganMentah.toUpperCase().slice(0, 5) : null),
+      rhesus: rhesusKantong || (rhesusMentah ? rhesusMentah.slice(0, 20) : null),
       volume_ml: angkaAtauNull(entri?.volume_ml),
-      tanggal_produksi: angkaAtauNull(entri?.tanggal_produksi),
-      tanggal_kedaluwarsa: tanggalKedaluwarsa,
-      imltd_mentah: imltdMentah ? String(imltdMentah).slice(0, 100) : null,
+      tanggal_produksi: bulatAtauNull(entri?.tanggal_produksi),
+      tanggal_kedaluwarsa: bulatAtauNull(entri?.tanggal_kedaluwarsa),
+      imltd_mentah: ada(imltdMentah) ? String(imltdMentah).slice(0, 100) : null,
       status_imltd: statusImltd,
       crossmatch_utd: entri?.crossmatch ?? null,
       peringatan_golongan: peringatanGolongan,
@@ -69,7 +120,7 @@ const validasiKantong = async (faskesUuid, koneksiUuid, permintaan, entri) => {
   };
 };
 
-const simpanKantong = async ({ faskesUuid, hasilUuid, kirimUuid, permintaanUuid, koneksiUuid, koneksiNama, noRegistrasi, hasilValidasi }) => {
+const simpanKantong = async ({ faskesUuid, hasilUuid, kirimUuid, permintaanUuid, koneksiNama, noRegistrasi, hasilValidasi, lama }) => {
   const { noKantong, alasan, statusValidasi, data } = hasilValidasi;
   if (!noKantong) return;
   const t = sekarang();
@@ -80,10 +131,18 @@ const simpanKantong = async ({ faskesUuid, hasilUuid, kirimUuid, permintaanUuid,
        crossmatch_utd, peringatan_golongan, status_validasi, alasan_tolak, created_at, updated_at
      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$20)
      ON CONFLICT (faskes_uuid, kirim_uuid, no_kantong) DO UPDATE SET
-       hasil_uuid = EXCLUDED.hasil_uuid, kode_komponen_utd = EXCLUDED.kode_komponen_utd, komponen_uuid = EXCLUDED.komponen_uuid,
-       golongan_abo = EXCLUDED.golongan_abo, rhesus = EXCLUDED.rhesus, volume_ml = EXCLUDED.volume_ml,
-       tanggal_produksi = EXCLUDED.tanggal_produksi, tanggal_kedaluwarsa = EXCLUDED.tanggal_kedaluwarsa,
-       imltd_mentah = EXCLUDED.imltd_mentah, status_imltd = EXCLUDED.status_imltd, crossmatch_utd = EXCLUDED.crossmatch_utd,
+       -- COALESCE: field yang tidak dikirim (null) pada push/tarik berikutnya tidak menimpa data kantong tersimpan.
+       hasil_uuid = EXCLUDED.hasil_uuid,
+       kode_komponen_utd = COALESCE(EXCLUDED.kode_komponen_utd, bdrs_utd_kantong.kode_komponen_utd),
+       komponen_uuid = COALESCE(EXCLUDED.komponen_uuid, bdrs_utd_kantong.komponen_uuid),
+       golongan_abo = COALESCE(EXCLUDED.golongan_abo, bdrs_utd_kantong.golongan_abo),
+       rhesus = COALESCE(EXCLUDED.rhesus, bdrs_utd_kantong.rhesus),
+       volume_ml = COALESCE(EXCLUDED.volume_ml, bdrs_utd_kantong.volume_ml),
+       tanggal_produksi = COALESCE(EXCLUDED.tanggal_produksi, bdrs_utd_kantong.tanggal_produksi),
+       tanggal_kedaluwarsa = COALESCE(EXCLUDED.tanggal_kedaluwarsa, bdrs_utd_kantong.tanggal_kedaluwarsa),
+       imltd_mentah = COALESCE(EXCLUDED.imltd_mentah, bdrs_utd_kantong.imltd_mentah),
+       status_imltd = CASE WHEN EXCLUDED.imltd_mentah IS NULL THEN bdrs_utd_kantong.status_imltd ELSE EXCLUDED.status_imltd END,
+       crossmatch_utd = COALESCE(EXCLUDED.crossmatch_utd, bdrs_utd_kantong.crossmatch_utd),
        peringatan_golongan = EXCLUDED.peringatan_golongan, updated_at = EXCLUDED.updated_at
        -- status_validasi/alasan_tolak TIDAK ditimpa bila kantong sudah 'diterima' (idempotensi KT-8/A10: push/tarik
        -- berulang tidak boleh membatalkan penerimaan yang sudah dilakukan petugas).
@@ -92,11 +151,13 @@ const simpanKantong = async ({ faskesUuid, hasilUuid, kirimUuid, permintaanUuid,
     [
       uuidv7(), faskesUuid, hasilUuid, kirimUuid, permintaanUuid, noKantong, data.kode_komponen_utd, data.komponen_uuid,
       data.golongan_abo, data.rhesus, data.volume_ml, data.tanggal_produksi, data.tanggal_kedaluwarsa, data.imltd_mentah,
-      data.status_imltd, JSON.stringify(data.crossmatch_utd), data.peringatan_golongan, statusValidasi, alasan, t,
+      data.status_imltd, ada(data.crossmatch_utd) ? JSON.stringify(data.crossmatch_utd) : null, data.peringatan_golongan, statusValidasi, alasan, t,
     ],
   );
-  // Audit penolakan IMLTD reaktif (KF-11/KT-10), hanya saat memang ditolak karena reaktif (bukan karena alasan lain).
-  if (data.status_imltd === "reaktif" && statusValidasi === "ditolak") {
+  // Audit penolakan IMLTD reaktif (KF-11/KT-10): dicatat SEKALI per kantong, yaitu saat pertama kali ditolak dengan
+  // IMLTD reaktif — push/tarik ulang kantong reaktif yang sama tidak menggandakan audit.
+  const sudahDicatat = lama?.status_validasi === "ditolak" && lama?.status_imltd === "reaktif";
+  if (data.status_imltd === "reaktif" && statusValidasi === "ditolak" && !sudahDicatat && lama?.status_validasi !== "diterima") {
     await catatAuditBdrs(faskesUuid, "tolak_imltd_reaktif", {
       permintaanUuid,
       data: { no_kantong: noKantong, koneksi: koneksiNama, no_registrasi: noRegistrasi },
@@ -128,8 +189,15 @@ export const terapkanHasilUtd = async (koneksi, body, sumber) => {
 
   const ringkasanDitolak = [];
   for (const entri of daftarKantong) {
-    const hasilValidasi = await validasiKantong(faskesUuid, koneksi.uuid, permintaan, entri);
-    await simpanKantong({ faskesUuid, hasilUuid, kirimUuid: kirim.uuid, permintaanUuid: permintaan.uuid, koneksiUuid: koneksi.uuid, koneksiNama: koneksi.nama, noRegistrasi, hasilValidasi });
+    // Entri tanpa no_kantong (atau melebihi kolom) tidak dapat disimpan — hanya dicantumkan di ringkasan ditolak.
+    const noKantong = String(entri?.no_kantong ?? "").trim();
+    if (!noKantong || noKantong.length > 100) {
+      ringkasanDitolak.push({ no_kantong: noKantong ? noKantong.slice(0, 100) : null, alasan: noKantong ? "no_kantong terlalu panjang (maks. 100 karakter)" : "no_kantong kosong" });
+      continue;
+    }
+    const lama = await satu(`SELECT * FROM bdrs_utd_kantong WHERE faskes_uuid = $1 AND kirim_uuid = $2 AND no_kantong = $3`, [faskesUuid, kirim.uuid, noKantong]);
+    const hasilValidasi = await validasiKantong(faskesUuid, koneksi.uuid, permintaan, gabungDenganTersimpan(entri, lama));
+    await simpanKantong({ faskesUuid, hasilUuid, kirimUuid: kirim.uuid, permintaanUuid: permintaan.uuid, koneksiNama: koneksi.nama, noRegistrasi, hasilValidasi, lama });
     if (hasilValidasi.alasan) ringkasanDitolak.push({ no_kantong: hasilValidasi.noKantong, alasan: hasilValidasi.alasan });
   }
   await query(`UPDATE bdrs_utd_hasil SET ringkasan_ditolak = $2 WHERE uuid = $1`, [hasilUuid, JSON.stringify(ringkasanDitolak)]);
@@ -148,6 +216,11 @@ export const terimaHasilPush = async (kunci, body) => {
   const koneksi = await satu(`SELECT * FROM bdrs_utd_koneksi WHERE kunci_masuk_hash = $1 AND deleted_at IS NULL`, [hashKunci(kunci)]);
   if (!koneksi) throw new Galat(401, "Kunci akses tidak valid");
   if (!koneksi.aktif) throw new Galat(403, "Koneksi UTD nonaktif di SIMRS");
+  // Push tidak membawa JWT: status fitur diperiksa per faskes pemilik koneksi (katalog Manajemen Modul di DB),
+  // sebelum data apa pun ditulis — fitur nonaktif berarti hasil UTD tidak boleh masuk sama sekali.
+  if (!(await fiturAktifFaskes(koneksi.faskes_uuid, "bdrs_bridging"))) {
+    throw new Galat(403, "Fitur Bridging Bank Darah (UTD) belum diaktifkan untuk faskes ini di SIMRS");
+  }
   return terapkanHasilUtd(koneksi, body, "push");
 };
 

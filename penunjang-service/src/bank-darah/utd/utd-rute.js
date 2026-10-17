@@ -6,6 +6,7 @@ import { daftarKoneksi, simpanKoneksi, jadikanBawaan, buatUlangKunciMasuk, hapus
 import { daftarMapping, simpanMapping } from "./utd-peta.js";
 import { cekStokBridging, kirimUlang, cekStatusTidakPasti, daftarPengiriman, detailPengiriman } from "./utd-service.js";
 import { daftarKantongPermintaan, terimaKantongUtd } from "./utd-hasil.js";
+import { jawabHasilKirim } from "./utd-permintaan-rute.js";
 
 // Bridging Bank Darah ke UTD — /api/v3/penunjang/bank-darah/utd/... (dipasang di bank-darah/rute.js). Dua aksi yang
 // menempel pada permintaan (kirim-utd, ambil-status-utd) ada di utd-permintaan-rute.js.
@@ -19,6 +20,8 @@ const bacaKoneksi = wajibSalahSatu([...INTEGRASI, "READ"], [BDRS, "Permintaan Da
 const ubahKoneksi = wajibSalahSatu([...INTEGRASI, "UPDATE KONFIGURASI LAINNYA"]);
 const peta = wajibSalahSatu([...INTEGRASI, "UPDATE KONFIGURASI LAINNYA"], [BDRS, "Datamaster", "UPDATE", "Komponen Darah"]);
 const bacaKirim = wajibSalahSatu([BDRS, "Permintaan Darah", "READ"], [...INTEGRASI, "READ"]);
+// Kirim ulang & Cek Status menulis status/hasil pengiriman → izin UPDATE Permintaan Darah.
+const ubahKirim = wajibSalahSatu([BDRS, "Permintaan Darah", "UPDATE"]);
 const terimaKantongIzin = wajibSalahSatu([BDRS, "Stok & Penerimaan", "TERIMA KANTONG"]);
 
 // ── Koneksi ──────────────────────────────────────────────────────────────────
@@ -66,10 +69,10 @@ rute.get(
 rute.get("/pengiriman/:uuid", bacaKirim, tangani(async (req, res) => kirim(res, await detailPengiriman(req.author.faskesUuid, req.params.uuid))));
 rute.post(
   "/pengiriman/:uuid/kirim-ulang",
-  wajibSalahSatu([BDRS, "Permintaan Darah", "UPDATE"]),
-  tangani(async (req, res) => kirim(res, await kirimUlang(req.author.faskesUuid, req.params.uuid, req.author.username ?? null), "Permintaan dikirim ulang ke UTD")),
+  ubahKirim,
+  tangani(async (req, res) => jawabHasilKirim(res, await kirimUlang(req.author.faskesUuid, req.params.uuid, req.author.username ?? null), "Permintaan dikirim ulang ke UTD")),
 );
-rute.post("/pengiriman/:uuid/cek-status", bacaKirim, tangani(async (req, res) => kirim(res, await cekStatusTidakPasti(req.author.faskesUuid, req.params.uuid))));
+rute.post("/pengiriman/:uuid/cek-status", ubahKirim, tangani(async (req, res) => kirim(res, await cekStatusTidakPasti(req.author.faskesUuid, req.params.uuid))));
 
 // ── Kantong bridging (KF-9/KF-10/KF-12) ─────────────────────────────────────
 rute.get("/permintaan/:uuid/kantong", wajibSalahSatu([BDRS, "Permintaan Darah", "READ"]), tangani(async (req, res) => kirim(res, await daftarKantongPermintaan(req.author.faskesUuid, req.params.uuid))));
