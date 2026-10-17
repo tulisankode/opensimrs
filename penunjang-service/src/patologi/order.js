@@ -104,7 +104,9 @@ export const segarkanStatusOrder = async (orderUuid, faskesUuid, k) => {
 
 // Susun item dari body: items = [uuid | { pemeriksaan_uuid, kasus_induk_uuid }]. IHK wajib merujuk kasus PA induk
 // (pasien sama, sudah bernomor PA) — kasus_induk_uuid per item atau di tingkat order.
-const susunItem = async (b, faskes, patientUuid, k) => {
+// Diekspor agar kamar-operasi/laporan.js dapat membuat order PA dari laporan operasi (KF-18) tanpa menduplikasi
+// validasi item/IHK di sini.
+export const susunItem = async (b, faskes, patientUuid, k) => {
   const daftar = b.items ?? b.pemeriksaan_uuids;
   if (daftar === undefined) return null;
   if (!Array.isArray(daftar) || !daftar.length) throw permintaanSalah("Pilih minimal satu pemeriksaan");
@@ -137,7 +139,7 @@ const susunItem = async (b, faskes, patientUuid, k) => {
   return hasil;
 };
 
-const sisipkanItem = async (orderUuid, faskes, items, k) => {
+export const sisipkanItem = async (orderUuid, faskes, items, k) => {
   for (const m of items) {
     await sisipkan(
       "pa_order_item",

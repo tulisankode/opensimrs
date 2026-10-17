@@ -918,6 +918,24 @@ export const mikrobiologiPermission = {
   ],
 };
 
+export const kamarOperasiPermission = {
+  module: "Kamar Operasi",
+  subModules: [
+    { name: "Order Operasi", allows: ["READ", "CREATE", "UPDATE", "KLARIFIKASI", "BATAL"] },
+    { name: "Jadwal OK", allows: ["READ", "CREATE", "UPDATE", "BATAL", "VALIDASI"] },
+    { name: "Pra-Operasi", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Checklist Keselamatan", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Laporan Operasi", allows: ["READ", "CREATE", "UPDATE", "FINALISASI"] },
+    { name: "Laporan Anestesi", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Pemakaian BHP", allows: ["READ", "CREATE"] },
+    {
+      name: "Datamaster",
+      features: [{ name: "Ruang OK", allows: ["READ", "CREATE", "UPDATE", "DELETE"] }],
+    },
+    { name: "Laporan Rekap", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
 export const giziPermission = {
   module: "Gizi",
   subModules: [
@@ -1431,6 +1449,7 @@ export function mapPermission(permissionList) {
     "program puskesmas": programPuskesmasPermission,
     "patologi anatomi": patologiAnatomiPermission,
     mikrobiologi: mikrobiologiPermission,
+    "kamar operasi": kamarOperasiPermission,
     gizi: giziPermission,
     utd: utdPermission,
     "bank darah rs (bdrs)": bankDarahPermission,

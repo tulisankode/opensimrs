@@ -394,10 +394,10 @@
       "nama": "Kamar Operasi",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
-      "deskripsi": "Jadwal operasi, laporan operasi & anestesi.",
-      "menu": [],
-      "rute": [],
+      "tersedia": true,
+      "deskripsi": "Order & jadwal operasi, checklist keselamatan bedah WHO, laporan operasi & anestesi.",
+      "menu": ["Kamar Operasi"],
+      "rute": ["/kamar-operasi"],
       "urutan": 19
     },
     {
@@ -1143,6 +1143,36 @@
       "wajib": false,
       "rute": [],
       "urutan": 54
+    },
+    {
+      "kode": "rme_order_operasi",
+      "modul": "kamar_operasi",
+      "nama": "Order Operasi dari RME",
+      "deskripsi": "Tab Order Operasi pada Plan asesmen Rajal/Ranap/IGD: diagnosis, rencana tindakan ICD-9-CM, jenis elektif/cito, perkiraan durasi.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 55
+    },
+    {
+      "kode": "ok_jadwal",
+      "modul": "kamar_operasi",
+      "nama": "Jadwal & Daftar Tunggu OK",
+      "deskripsi": "Daftar tunggu order operasi (cito diprioritaskan) dan penjadwalan ke ruang, waktu, serta tim operasi.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 56
+    },
+    {
+      "kode": "ok_checklist_keselamatan",
+      "modul": "kamar_operasi",
+      "nama": "Checklist Keselamatan Bedah (WHO)",
+      "deskripsi": "Sign in, time out, dan sign out; wajib lengkap sebelum laporan operasi dapat difinalkan.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 57
     },
     {
       "kode": "program_puskesmas_satusehat",

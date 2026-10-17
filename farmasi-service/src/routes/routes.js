@@ -28,18 +28,21 @@ const farmasiPermission = (submodule, action = "READ", feature = null) =>
   permissionSdk("Farmasi", submodule, action, feature);
 
 // Order alkes dari rekam medis pasien: izin Farmasi Ruangan ATAU izin "Alkes dan Penunjang" di RME
-// Rawat Jalan / Detail Pasien Rawat Inap & IGD (nama fitur & aksi di katalog berbeda per modul).
+// Rawat Jalan / Detail Pasien Rawat Inap & IGD, ATAU izin Pemakaian BHP di Kamar Operasi (depo OK — STD-0004;
+// nama fitur & aksi di katalog berbeda per modul).
 const AKSI_ALKES_RM = {
-  baca: { rj: ["READ"], ri: ["READ"] },
+  baca: { rj: ["READ"], ri: ["READ"], ok: ["READ"] },
   order: {
     rj: ["CREATE ALKES", "CREATE ALKES MULTIPLE", "SIMPAN ORDER"],
     ri: ["ORDER ALKES CREATE ALKES", "ORDER ALKES CREATE ALKES MULTIPLE", "ORDER ALKES CREATE OBAT MULTIPLE", "ORDER ALKES SIMPAN ORDER"],
+    ok: ["CREATE"],
   },
   hapusItem: {
     rj: ["DELETE LIST ALKES", "DELETE LIST ALKES MULTIPLE"],
     ri: ["ORDER ALKES DELETE ALKES", "ORDER ALKES DELETE MULTIPLE", "ORDER ALKES DELETE ALKES MULTIPLE"],
+    ok: [],
   },
-  batal: { rj: ["DELETE SEMUA"], ri: ["ORDER ALKES DELETE SEMUA"] },
+  batal: { rj: ["DELETE SEMUA"], ri: ["ORDER ALKES DELETE SEMUA"], ok: [] },
 };
 const alkesPermission = (aksiFarmasi, jenisRm) =>
   permissionAny([
@@ -48,6 +51,7 @@ const alkesPermission = (aksiFarmasi, jenisRm) =>
     { module: "Rawat Jalan", submodule: "RME", feature: "Alkes Dan Penunjang", action: AKSI_ALKES_RM[jenisRm].rj },
     { module: "Rawat Inap", submodule: "Detail Pasien", feature: "Alkes Dan Penunjang", action: AKSI_ALKES_RM[jenisRm].ri },
     { module: "IGD", submodule: "Detail Pasien", feature: "Alkes Dan Penunjang", action: AKSI_ALKES_RM[jenisRm].ri },
+    { module: "Kamar Operasi", submodule: "Pemakaian BHP", action: AKSI_ALKES_RM[jenisRm].ok },
   ]);
 
 // HEALTH CHECK

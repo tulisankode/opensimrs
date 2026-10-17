@@ -246,6 +246,11 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/mikrobiologi/laporan/kunjungan", permission: read("Mikrobiologi", "Laporan Mikrobiologi", "Kunjungan") },
   { path: "/mikrobiologi/laporan/antibiogram", permission: read("Mikrobiologi", "Laporan Mikrobiologi", "Antibiogram") },
   { path: "/mikrobiologi", mode: "prefix", permission: read("Mikrobiologi", null, null, null) },
+  { path: "/kamar-operasi/daftar-tunggu", permission: read("Kamar Operasi", "Order Operasi") },
+  { path: "/kamar-operasi/jadwal", permission: read("Kamar Operasi", "Jadwal OK") },
+  { path: "/kamar-operasi/datamaster/ruang", permission: read("Kamar Operasi", "Datamaster", "Ruang OK") },
+  { path: "/kamar-operasi/laporan/rekap", permission: read("Kamar Operasi", "Laporan Rekap") },
+  { path: "/kamar-operasi", mode: "prefix", permission: read("Kamar Operasi", null, null, null) },
   // Gizi (penunjang-service): skrining, asuhan gizi (PAGT), order diet, distribusi makan & rekap porsi.
   { path: "/gizi/skrining", permission: read("Gizi", "Skrining") },
   { path: "/gizi/asuhan", permission: read("Gizi", "Asesmen Gizi") },
