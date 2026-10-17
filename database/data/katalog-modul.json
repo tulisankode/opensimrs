@@ -831,6 +831,18 @@
       "urutan": 24
     },
     {
+      "kode": "bdrs_bridging",
+      "modul": "bank_darah",
+      "nama": "Bridging Bank Darah (UTD)",
+      "deskripsi": "Kirim permintaan darah ke UTD mitra & terima status, data kantong, serta hasil IMLTD secara otomatis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/bank-darah/mapping-utd"
+      ],
+      "urutan": 25
+    },
+    {
       "kode": "utd_donor",
       "modul": "utd",
       "nama": "Rekrutmen & Seleksi Donor",
@@ -1773,12 +1785,14 @@
       "rs_b": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "bdrs_bridging"
       ],
       "rs_a": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "bdrs_bridging"
       ]
     },
     "bagian_mati": {

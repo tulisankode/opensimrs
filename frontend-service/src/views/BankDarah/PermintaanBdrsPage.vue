@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useToast } from "primevue/usetoast";
+import { fiturAktif } from "@/stores/modulFaskes";
 import PageToolbar from "@/components/Base/PageToolbar.vue";
 import ToolbarFilterMenu from "@/components/Base/ToolbarFilterMenu.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
@@ -21,21 +23,26 @@ import {
   SKRINING_ANTIBODI,
   STATUS_PERMINTAAN_BDRS,
   SUMBER_KUNJUNGAN_BDRS,
+  ambilStatusUtdPermintaan,
   buatPermintaanBdrs,
   cariPasienBdrs,
   daftarDokterBdrs,
+  daftarKantongUtdPermintaan,
   daftarKomponenBdrs,
   daftarLokasiBdrs,
   daftarPermintaanBdrs,
   detailPermintaanBdrs,
   gayaPermintaanBdrs,
   gayaSerahTerimaBdrs,
+  gayaValidasiKantongUtd,
   golonganRh,
   izinBdrs,
   keTanggal,
+  kirimPermintaanKeUtd,
   lengkapiPermintaanBdrs,
   opsi,
   permintaanKunjunganBdrs,
+  terimaKantongUtd,
   ubahStatusPermintaanBdrs,
   umurBdrs,
   waktuBdrs,
@@ -45,6 +52,7 @@ import {
 // kunjungan pasien (No. Reg), serta tindakan proses/kembalikan/tolak/batalkan/lengkapi sesuai status & izin.
 // Alur: baru → diproses → (perlu_dilengkapi → diproses) → dipenuhi_sebagian/diserahkan, atau dibatalkan/ditolak.
 const storeUtils = utilsStore();
+const toast = useToast();
 const boleh = (aksi: string) => izinBdrs("Permintaan Darah", aksi);
 
 // ── Daftar & filter
@@ -112,6 +120,10 @@ const opsiKomponen = computed(() => komponen.value.map((k: any) => ({ value: k.u
 // ── Detail
 const detail = ref<any>(null);
 const dialogDetail = ref(false);
+const kantongUtd = ref<any[]>([]);
+const muatKantongUtd = async () => {
+  kantongUtd.value = detail.value && fiturAktif("bdrs_bridging") ? ((await daftarKantongUtdPermintaan(detail.value.uuid))?.payload ?? []) : [];
+};
 const bukaDetail = async (uuid: string) => {
   storeUtils.setLoading(true);
   try {
@@ -119,12 +131,49 @@ const bukaDetail = async (uuid: string) => {
     if (res?.payload) {
       detail.value = res.payload;
       dialogDetail.value = true;
+      await muatKantongUtd();
     }
   } finally {
     storeUtils.setLoading(false);
   }
 };
 const AKTIF = ["baru", "diproses", "perlu_dilengkapi", "dipenuhi_sebagian"];
+// ── Bridging UTD (STD-0017): kirim permintaan ke UTD mitra, ambil status/kantong, & teruskan kantong valid ke stok.
+const memprosesUtd = ref(false);
+const bisaKirimUtd = computed(() => fiturAktif("bdrs_bridging") && AKTIF.includes(detail.value?.status) && boleh("UPDATE"));
+const bisaAmbilStatusUtd = computed(() => fiturAktif("bdrs_bridging") && boleh("READ") && AKTIF.includes(detail.value?.status));
+const kirimKeUtd = async () => {
+  memprosesUtd.value = true;
+  try {
+    const res = await kirimPermintaanKeUtd(detail.value.uuid);
+    if (res?.payload) toast.add({ severity: "success", summary: res.message ?? "Dikirim ke UTD", life: 5000 });
+    else if (res?.payload?.koneksi) toast.add({ severity: "warn", summary: "Pilih koneksi UTD", detail: "Lebih dari satu koneksi UTD aktif", life: 6000 });
+    await muatKantongUtd();
+  } finally {
+    memprosesUtd.value = false;
+  }
+};
+const ambilStatusUtd = async () => {
+  memprosesUtd.value = true;
+  try {
+    await ambilStatusUtdPermintaan(detail.value.uuid);
+    await muatKantongUtd();
+    toast.add({ severity: "info", summary: "Status UTD diperbarui", life: 3000 });
+  } finally {
+    memprosesUtd.value = false;
+  }
+};
+const terimaKantong = async (k: any) => {
+  memprosesUtd.value = true;
+  try {
+    const res = await terimaKantongUtd(k.uuid);
+    if (res?.payload) toast.add({ severity: "success", summary: `Kantong ${k.noKantong} diterima ke stok`, life: 4000 });
+    await muatKantongUtd();
+    muat();
+  } finally {
+    memprosesUtd.value = false;
+  }
+};
 const bisaProses = computed(() => detail.value?.status === "baru" && boleh("UPDATE"));
 const bisaKembalikanTolak = computed(() => ["baru", "diproses"].includes(detail.value?.status) && boleh("UPDATE"));
 // Pembuat permintaan boleh membatalkan tanpa izin BATAL (diperiksa backend); tombol ditampilkan bagi pengaju & pemilik izin BATAL.
@@ -403,6 +452,41 @@ onMounted(muat);
             </DataTable>
           </div>
 
+          <div v-if="fiturAktif('bdrs_bridging') && kantongUtd.length">
+            <h3 class="mb-1 font-semibold">Kantong Bridging UTD</h3>
+            <DataTable :value="kantongUtd" stripedRows class="text-xs">
+              <Column field="noKantong" header="No. Kantong" headerClass="bg-opensimrs-50" />
+              <Column header="Gol." headerClass="bg-opensimrs-50">
+                <template #body="{ data: k }">
+                  {{ golonganRh(k.golonganAbo, k.rhesus) }}
+                  <span v-if="k.peringatanGolongan" class="ml-1 text-[10px] text-[#B54708]">(beda dari permintaan)</span>
+                </template>
+              </Column>
+              <Column header="IMLTD" headerClass="bg-opensimrs-50">
+                <template #body="{ data: k }">{{ k.statusImltd }}</template>
+              </Column>
+              <Column header="Status" headerClass="bg-opensimrs-50">
+                <template #body="{ data: k }">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold" :class="[gayaValidasiKantongUtd(k.statusValidasi)?.bg, gayaValidasiKantongUtd(k.statusValidasi)?.text]">
+                    {{ gayaValidasiKantongUtd(k.statusValidasi)?.label ?? k.statusValidasi }}
+                  </span>
+                  <div v-if="k.alasanTolak" class="mt-0.5 text-[#B42318]">{{ k.alasanTolak }}</div>
+                </template>
+              </Column>
+              <Column header="" headerClass="bg-opensimrs-50">
+                <template #body="{ data: k }">
+                  <CustomButton
+                    v-if="k.statusValidasi === 'menunggu' && izinBdrs('Stok & Penerimaan', 'TERIMA KANTONG')"
+                    label="Terima ke Stok"
+                    size="small"
+                    :disabled="memprosesUtd"
+                    @click="terimaKantong(k)"
+                  />
+                </template>
+              </Column>
+            </DataTable>
+          </div>
+
           <div v-if="detail.serahTerima?.length">
             <h3 class="mb-1 font-semibold">Serah Terima</h3>
             <DataTable :value="detail.serahTerima" stripedRows class="text-xs">
@@ -428,6 +512,8 @@ onMounted(muat);
       </template>
       <template #footer>
         <div v-if="detail" class="flex flex-wrap justify-end gap-2">
+          <CustomButton v-if="bisaAmbilStatusUtd" label="Ambil Status UTD" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" :disabled="memprosesUtd" @click="ambilStatusUtd" />
+          <CustomButton v-if="bisaKirimUtd" label="Kirim ke UTD" icon="PhPaperPlaneTilt" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" :disabled="memprosesUtd" @click="kirimKeUtd" />
           <CustomButton v-if="bisaBatalkan" label="Batalkan" icon="PhXCircle" outlined borderColor="border-danger-300" textColor="text-danger-300" @click="bukaAlasan('batalkan')" />
           <CustomButton v-if="bisaKembalikanTolak" label="Tolak" icon="PhProhibit" outlined borderColor="border-danger-300" textColor="text-danger-300" @click="bukaAlasan('tolak')" />
           <CustomButton v-if="bisaKembalikanTolak" label="Kembalikan" icon="PhArrowUUpLeft" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="bukaAlasan('kembalikan')" />

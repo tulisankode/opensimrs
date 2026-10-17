@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 1 berstatus Segera), **67 fitur** (4 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 1 berstatus Segera), **68 fitur** (4 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -468,6 +468,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `bdrs_permintaan` | Permintaan Darah | Permintaan darah dari ruangan/IGD/OK beserta golongan & jumlah kantong. | Tersedia | – | – | – |
 | `bdrs_crossmatch` | Uji Silang Serasi | Pemeriksaan golongan darah & crossmatch sebelum transfusi. | Tersedia | – | – | – |
 | `bdrs_stok` | Stok & Serah Terima Darah | Penerimaan dari UTD, penyimpanan, kedaluwarsa, serah terima & pemantauan reaksi transfusi. | Tersedia | – | – | – |
+| `bdrs_bridging` | Bridging Bank Darah (UTD) | Kirim permintaan darah ke UTD mitra & terima status, data kantong, serta hasil IMLTD secara otomatis. | Tersedia | – | – | RS B, RS A |
 
 #### UTD / UPTD Produksi Darah (`utd`)
 

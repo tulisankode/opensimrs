@@ -266,6 +266,7 @@ import TransfusiBdrsPage from "@/views/BankDarah/TransfusiBdrsPage.vue";
 import KomponenBdrsPage from "@/views/BankDarah/KomponenBdrsPage.vue";
 import PengaturanBdrsPage from "@/views/BankDarah/PengaturanBdrsPage.vue";
 import LaporanBdrsPage from "@/views/BankDarah/LaporanBdrsPage.vue";
+import MappingUtdPage from "@/views/BankDarah/MappingUtdPage.vue"; // Bridging Bank Darah ke UTD (STD-0017, fitur bdrs_bridging)
 
 // NOTE UTD / UPTD Produksi Darah — donor, aftap, uji saring IMLTD, komponen, distribusi & pelaporan (penunjang-service)
 import UtdView from "@/views/Utd/UtdView.vue";
@@ -1794,6 +1795,7 @@ const router = createRouter({
       ["/bank-darah/datamaster/komponen", "bank-darah-datamaster-komponen", KomponenBdrsPage],
       ["/bank-darah/pengaturan", "bank-darah-pengaturan", PengaturanBdrsPage],
       ["/bank-darah/laporan", "bank-darah-laporan", LaporanBdrsPage],
+      ["/bank-darah/mapping-utd", "bank-darah-mapping-utd", MappingUtdPage],
     ]),
     // !SECTION
 

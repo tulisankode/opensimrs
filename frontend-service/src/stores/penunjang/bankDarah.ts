@@ -206,6 +206,60 @@ export const cariPasienBdrs = (cari: string) => apiPenunjangGet(`/bank-darah/ref
 export const daftarDokterBdrs = () => apiPenunjangGet("/bank-darah/referensi/dokter");
 export const daftarLokasiBdrs = (params: { pelayanan?: string; cari?: string } = {}) => apiPenunjangGet(`/bank-darah/referensi/lokasi${qs(params)}`);
 
+// ── Bridging UTD (STD-0017) — fitur bdrs_bridging, aktif per faskes. Status validasi & transport pakai gaya yang
+// sama dengan modul BDRS lain di atas.
+export const STATUS_KIRIM_UTD: Record<string, Gaya> = {
+  sedang_dikirim: { label: "Sedang Dikirim", bg: "bg-[#FEF0C7]", text: "text-[#B54708]" },
+  terkirim: { label: "Terkirim", bg: "bg-[#D1FADF]", text: "text-[#027A48]" },
+  gagal: { label: "Gagal", bg: "bg-[#FDE2E1]", text: "text-[#B42318]" },
+  tidak_pasti: { label: "Tidak Pasti", bg: "bg-[#FEF0C7]", text: "text-[#B54708]" },
+  kantong_diterima: { label: "Kantong Diterima", bg: "bg-[#D1FADF]", text: "text-[#027A48]" },
+  diterima_sebagian: { label: "Diterima Sebagian", bg: "bg-[#EBE9FE]", text: "text-[#5925DC]" },
+};
+export const STATUS_VALIDASI_KANTONG_UTD: Record<string, Gaya> = {
+  menunggu: { label: "Menunggu", bg: "bg-[#FEF0C7]", text: "text-[#B54708]" },
+  diterima: { label: "Diterima", bg: "bg-[#D1FADF]", text: "text-[#027A48]" },
+  ditolak: { label: "Ditolak", bg: "bg-[#FDE2E1]", text: "text-[#B42318]" },
+};
+export const gayaKirimUtd = (s?: string) => STATUS_KIRIM_UTD[s as string];
+export const gayaValidasiKantongUtd = (s?: string) => STATUS_VALIDASI_KANTONG_UTD[s as string];
+export const JENIS_MAPPING_UTD: Record<string, string> = { komponen: "Komponen Darah", unit: "Unit Asal", dokter: "Dokter Peminta", penjamin: "Penjamin" };
+
+// Koneksi
+export const daftarKoneksiUtd = () => apiPenunjangGet("/bank-darah/utd/koneksi");
+export const simpanKoneksiUtd = (
+  data: {
+    nama: string; kodeRs?: string; urlRegistrasi: string; urlStatus?: string; urlStok?: string;
+    apiKey?: string; aktif?: boolean; bawaan?: boolean; maksParalel?: number; jedaMs?: number;
+  },
+  uuid?: string,
+) => (uuid ? apiPenunjangPut(`/bank-darah/utd/koneksi/${uuid}`, data) : apiPenunjangPost("/bank-darah/utd/koneksi", data));
+export const hapusKoneksiUtd = (uuid: string) => apiPenunjangDelete(`/bank-darah/utd/koneksi/${uuid}`);
+export const jadikanBawaanKoneksiUtd = (uuid: string) => apiPenunjangPost(`/bank-darah/utd/koneksi/${uuid}/bawaan`);
+export const buatKunciMasukUtd = (uuid: string) => apiPenunjangPost(`/bank-darah/utd/koneksi/${uuid}/kunci-masuk`);
+export const ujiKoneksiUtd = (uuid: string) => apiPenunjangPost(`/bank-darah/utd/koneksi/${uuid}/uji`);
+
+// Mapping — jenis: komponen | unit | dokter | penjamin
+export const daftarMappingUtd = (jenis: string, params: { koneksi_uuid: string; belum_dipetakan?: boolean }) => apiPenunjangGet(`/bank-darah/utd/peta/${jenis}${qs(params)}`);
+export const simpanMappingUtd = (jenis: string, data: { koneksiUuid: string; refUuid: string; kodeUtd: string }) => apiPenunjangPut(`/bank-darah/utd/peta/${jenis}`, data);
+
+// Cek stok UTD (opsional, hanya bila koneksi menyediakan url_stok)
+export const cekStokUtd = (params: { koneksi_uuid?: string; golongan_abo?: string; rhesus?: string; kode_komponen?: string } = {}) =>
+  apiPenunjangGet(`/bank-darah/utd/stok${qs(params)}`);
+
+// Aksi pada permintaan darah
+export const kirimPermintaanKeUtd = (permintaanUuid: string, koneksiUuid?: string) => apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/kirim-utd`, { koneksiUuid });
+export const ambilStatusUtdPermintaan = (permintaanUuid: string, koneksiUuid?: string) =>
+  apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/ambil-status-utd`, { koneksiUuid });
+export const daftarKantongUtdPermintaan = (permintaanUuid: string) => apiPenunjangGet(`/bank-darah/utd/permintaan/${permintaanUuid}/kantong`);
+export const terimaKantongUtd = (kantongUuid: string) => apiPenunjangPost(`/bank-darah/utd/kantong/${kantongUuid}/terima`);
+
+// Riwayat pengiriman (Setting › Konfigurasi Integrasi › Pengiriman Bank Darah)
+export const daftarPengirimanUtd = (params: Record<string, any> = {}) => apiPenunjangGet(`/bank-darah/utd/pengiriman${qs(params)}`);
+export const detailPengirimanUtd = (uuid: string) => apiPenunjangGet(`/bank-darah/utd/pengiriman/${uuid}`);
+export const kirimUlangUtd = (uuid: string) => apiPenunjangPost(`/bank-darah/utd/pengiriman/${uuid}/kirim-ulang`);
+export const cekStatusUtd = (uuid: string) => apiPenunjangPost(`/bank-darah/utd/pengiriman/${uuid}/cek-status`);
+
 // Epoch detik ⇄ Date untuk input waktu.
 export const keEpoch = (d?: Date | null) => (d ? Math.floor(d.getTime() / 1000) : undefined);
 export const dariEpoch = (n?: number | null) => (n ? new Date(Number(n) * 1000) : null);
