@@ -918,6 +918,28 @@ export const mikrobiologiPermission = {
   ],
 };
 
+// UTD / UPTD Produksi Darah (penunjang-service). "Lihat Hasil Reaktif" dipisah dari IMLTD READ (KF-18): hasil reaktif
+// & identitas donor terkait hanya tampil bagi peran yang diberi izin ini secara eksplisit.
+export const utdPermission = {
+  module: "UTD",
+  subModules: [
+    { name: "Donor", allows: ["READ", "CREATE", "UPDATE", "SELEKSI", "CETAK KARTU"] },
+    { name: "Aftap", allows: ["READ", "CREATE"] },
+    { name: "IMLTD", allows: ["READ", "INPUT HASIL", "PELEPASAN"] },
+    { name: "Lihat Hasil Reaktif", allows: ["READ"] },
+    { name: "Komponen", allows: ["READ", "CREATE"] },
+    {
+      name: "Distribusi",
+      features: [
+        { name: "Permintaan", allows: ["READ", "CREATE"] },
+        { name: "Distribusi", allows: ["READ", "CREATE"] },
+        { name: "Pemusnahan", allows: ["READ", "CREATE"] },
+      ],
+    },
+    { name: "Laporan UTD", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
 export const bankDarahPermission = {
   module: "Bank Darah RS (BDRS)",
   subModules: [
@@ -1390,6 +1412,7 @@ export function mapPermission(permissionList) {
     "program puskesmas": programPuskesmasPermission,
     "patologi anatomi": patologiAnatomiPermission,
     mikrobiologi: mikrobiologiPermission,
+    utd: utdPermission,
     "bank darah rs (bdrs)": bankDarahPermission,
     cssd: cssdPermission,
     training: trainingPermission,
