@@ -58,6 +58,7 @@ rute.get(
     const rows = await query(
       `SELECT i.uuid, i.order_uuid, i.pemeriksaan_uuid, i.nama, i.jenis, i.harga::float8 AS harga, i.status, i.no_pa, i.tat_hari,
               i.waktu_terima, i.target_selesai, i.waktu_selesai, i.kasus_induk_uuid, ki.no_pa AS no_pa_induk,
+              i.ditolak_eksternal_pada, i.ditolak_eksternal_alasan,
               (i.status NOT IN ('selesai', 'ditolak', 'menunggu') AND i.target_selesai < ${sekarang()}) AS terlambat,
               o.no_order, o.no_rm, o.no_reg, o.sumber, o.pelayanan, o.cito, o.klinis, o.lokasi_anatomi AS lokasi_anatomi_order,
               o.status AS status_order, o.created_at AS waktu_order, o.patient_uuid,

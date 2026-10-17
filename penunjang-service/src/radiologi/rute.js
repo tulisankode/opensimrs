@@ -10,6 +10,7 @@ import ruang from "./ruang.js";
 import jadwal from "./jadwal.js";
 import template from "./template.js";
 import petugas from "./petugas.js";
+import pacs from "../pacs/pacs-rute.js";
 
 // Radiologi — /api/v3/penunjang/radiologi/...
 //   /pemeriksaan              datamaster pemeriksaan (CRUD, ?modalitas=&cari=)
@@ -22,6 +23,7 @@ import petugas from "./petugas.js";
 //   /worklist, /item/:uuid    pemeriksaan radiografer & expertise dokter Sp.Rad
 //   /laporan/kunjungan        rekap kunjungan per modalitas & pemeriksaan
 //   /referensi/pasien|dokter|praktisi  pencarian pasien (order APS), daftar dokter, daftar praktisi (petugas)
+//   /pacs                     Bridging PACS/RIS: koneksi, mapping, validasi & kirim, pengiriman (fitur rad_bridging_pacs)
 const rute = express.Router();
 
 rute.use("/pemeriksaan", pemeriksaan);
@@ -32,6 +34,7 @@ rute.use("/ruang", ruang);
 rute.use("/jadwal", jadwal);
 rute.use("/template", template);
 rute.use("/petugas", petugas);
+rute.use("/pacs", pacs);
 
 // Pencarian pasien terdaftar untuk order APS (nama / No. RM / NIK).
 rute.get(
