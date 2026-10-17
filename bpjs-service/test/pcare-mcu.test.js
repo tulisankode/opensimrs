@@ -72,3 +72,14 @@ test("rute.js bpjs-service mendaftarkan /pcare/mcu", () => {
   const ada = rute.stack.some((l) => l.route?.path?.startsWith("/pcare/mcu"));
   assert.ok(ada, "/pcare/mcu belum terdaftar di bpjs-service/src/rute.js");
 });
+
+test("keTanggalPcare & buatMcu: tanggal 'YYYY-MM-DD' dan tanda_vital snake_case dari penunjang terisi", async () => {
+  const { keTanggalPcare, buatMcu } = await import("../src/pcare-peta.js");
+  assert.equal(keTanggalPcare("2026-10-17"), "17-10-2026");
+  const isi = buatMcu({ noKunjungan: "K1", kdProviderPeserta: "P1", tglPeriksa: "2026-10-17", tandaVital: { sistole: 120, diastole: 80, gula_darah: 98.6, kolesterol_total: 180 } });
+  assert.equal(isi.tglPeriksa, "17-10-2026");
+  assert.equal(isi.sistole, 120);
+  assert.equal(isi.diastole, 80);
+  assert.equal(isi.gulaDarah, 98.6);
+  assert.equal(isi.kolesterolTotal, 180);
+});

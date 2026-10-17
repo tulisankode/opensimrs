@@ -79,7 +79,18 @@ rute.get("/pcare/mcu/status/:pesertaUuid", tangani(async (req, res) => kirim(res
 rute.post(
   "/pcare/mcu/operasi",
   tangani(async (req, res) => {
-    const hasil = await operasiMcu(req.author.faskesUuid, { ...req.body, dikirimOleh: req.author.username ?? null });
+    // Kontrak penunjang-service → bpjs-service memakai snake_case (penunjang-service/src/mcu/pcare.js); dipetakan
+    // eksplisit ke parameter operasiMcu (camelCase) agar field tidak hilang diam-diam.
+    const b = req.body ?? {};
+    const hasil = await operasiMcu(req.author.faskesUuid, {
+      pesertaUuid: b.peserta_uuid,
+      rawatJalanUuid: b.rawat_jalan_uuid,
+      operasi: b.operasi,
+      payload: b.payload ?? {},
+      alasan: b.alasan,
+      konfirmasi: !!b.konfirmasi,
+      dikirimOleh: req.author.username ?? null,
+    });
     const berhasil = !["gagal", "tidak_pasti"].includes(hasil.status);
     res.status(berhasil ? 200 : 422).json({ message: berhasil ? "Laporan MCU PCare diproses" : hasil.pesan, payload: hasil });
   })

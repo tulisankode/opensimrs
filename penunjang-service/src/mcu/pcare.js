@@ -45,6 +45,12 @@ export const wajibFiturMcuPcareAktif = async (req, res, next) => {
 const CARI_GULA_DARAH = /glukosa darah|gula darah/i;
 const CARI_KOLESTEROL = /kolesterol total|^kolesterol$/i;
 
+// Angka di awal hasil lab ("120", "120,5", "120 mg/dL" → 120 / 120.5); selain itu null — tidak ditebak.
+export const angkaHasilLab = (hasil) => {
+  const m = String(hasil ?? "").trim().match(/^(\d+(?:[.,]\d+)?)(?!\d)/);
+  return m ? Number(m[1].replace(",", ".")) : null;
+};
+
 export const petakanNilaiMcu = (detail) => {
   const tv = detail.stasiun?.find((s) => s.kode === "tanda_vital")?.data ?? {};
   const hasilLab = detail.laboratorium?.hasil ?? [];
@@ -57,9 +63,9 @@ export const petakanNilaiMcu = (detail) => {
     berat_badan: tv.berat_badan ?? null,
     tinggi_badan: tv.tinggi_badan ?? null,
     lingkar_perut: tv.lingkar_perut ?? null,
-    gula_darah: gula ? Number(gula.hasil) || null : null,
+    gula_darah: gula ? angkaHasilLab(gula.hasil) : null,
     keterangan_gula_darah: gula?.nama ?? null,
-    kolesterol_total: kolesterol ? Number(kolesterol.hasil) || null : null,
+    kolesterol_total: kolesterol ? angkaHasilLab(kolesterol.hasil) : null,
   };
 };
 
