@@ -175,8 +175,12 @@ export function createHasilLabPdf(order: any) {
     const rujukan = String(row.itemPemeriksaan?.nilaiRujukan ?? "");
     const flag = (row.flag && !/^n(ormal)?$/i.test(row.flag) ? String(row.flag).toUpperCase() : "") || hitungFlag(row.result, rujukan);
     const warna = WARNA_FLAG[flag];
+    const namaItem: any[] = [{ text: row.itemPemeriksaan?.name ?? "-" }];
+    if (row.dirujuk) {
+      namaItem.push({ text: `\nRujukan - ${row.labRujukan?.name ?? "-"}`, italics: true, fontSize: 7, color: "#667085" });
+    }
     body.push([
-      { text: row.itemPemeriksaan?.name ?? "-", margin: [row.kelompok ? 12 : 6, 0, 0, 0] },
+      { stack: [{ text: namaItem }], margin: [row.kelompok ? 12 : 6, 0, 0, 0] },
       { text: row.result ?? "-", bold: true, alignment: "center", color: warna ?? "black" },
       { text: flag, bold: true, alignment: "center", color: warna ?? "black" },
       { text: (satuan ? rujukan.replace(new RegExp(`\\s*${escRegex(satuan)}\\s*$`), "") : rujukan) || "-", alignment: "center" },

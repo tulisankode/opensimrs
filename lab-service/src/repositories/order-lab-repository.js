@@ -456,6 +456,13 @@ export default class OrderLabRepository {
       //   required: false,
       //   where: { deleted_at: { [Op.is]: null } },
       // },
+      {
+        model: ObservationItemModel,
+        as: "observation_items",
+        attributes: ["uuid", "dirujuk", "status_rujukan"],
+        required: false,
+        where: { deleted_at: { [Op.is]: null } },
+      },
     ];
 
     // 8. Konfigurasi Query untuk Pagination Helper

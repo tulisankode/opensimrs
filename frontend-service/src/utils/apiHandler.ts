@@ -1106,10 +1106,10 @@ const apiStudioGet = (url: string, diam = false) => apiStudioKirim("get", url, {
 const apiStudioPost = (url: string, data: object = {}, diam = false) => apiStudioKirim("post", url, data, diam);
 const apiStudioPut = (url: string, data: object = {}, diam = false) => apiStudioKirim("put", url, data, diam);
 
-// PENUNJANG (penunjang-service: /fisioterapi, /radiologi, /mcu). Path relatif terhadap VITE_BASE_PENUNJANG,
-// mis. apiPenunjangGet("/radiologi/order?page=1"). Tulis (POST/PUT/DELETE) menampilkan toast sukses; galat
+// PENUNJANG (penunjang-service: /fisioterapi, /radiologi, /mcu, /bank-darah). Path relatif terhadap VITE_BASE_PENUNJANG,
+// mis. apiPenunjangGet("/radiologi/order?page=1"). Tulis (POST/PUT/PATCH/DELETE) menampilkan toast sukses; galat
 // ditampilkan errorApiHandler dan fungsi mengembalikan undefined.
-const apiPenunjangKirim = async (metode: "get" | "post" | "put" | "delete", url: string, data: object = {}, diam = false) => {
+const apiPenunjangKirim = async (metode: "get" | "post" | "put" | "patch" | "delete", url: string, data: object = {}, diam = false) => {
   url = cekHost(import.meta.env.VITE_BASE_PENUNJANG, url);
   try {
     const response = metode === "get" || metode === "delete"
@@ -1133,6 +1133,7 @@ const apiPenunjangKirim = async (metode: "get" | "post" | "put" | "delete", url:
 const apiPenunjangGet = (url: string) => apiPenunjangKirim("get", url);
 const apiPenunjangPost = (url: string, data: object = {}, diam = false) => apiPenunjangKirim("post", url, data, diam);
 const apiPenunjangPut = (url: string, data: object = {}, diam = false) => apiPenunjangKirim("put", url, data, diam);
+const apiPenunjangPatch = (url: string, data: object = {}, diam = false) => apiPenunjangKirim("patch", url, data, diam);
 const apiPenunjangDelete = (url: string) => apiPenunjangKirim("delete", url);
 
 // PROGRAM PUSKESMAS (program-puskesmas-service: KIA/KB, Imunisasi, MTBS/MTBM, Sasaran, UKM, Laporan Dinkes).
@@ -1197,6 +1198,7 @@ export {
   apiStudioPut,
   apiPenunjangPost,
   apiPenunjangPut,
+  apiPenunjangPatch,
   apiPenunjangDelete,
   apiProgramPuskesmasGet,
   apiProgramPuskesmasPost,

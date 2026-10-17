@@ -1,127 +1,102 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import type { MenuItem } from "primevue/menuitem";
-import { onBeforeRouteLeave, useRoute } from "vue-router";
-import CustomBreadCrumb from "@/components/Base/CustomBreadCrumb.vue";
 import HeaderFilterTraining from "../Layout/HeaderFilterTraining.vue";
-import CustomButton from "@/components/Base/CustomButton.vue";
+import TabelSlot from "../Komponen/TabelSlot.vue";
 import DataPasienBooking from "./DataPasienBooking.vue";
-import DetailBooking from "./DetailBooking.vue";
-const emit = defineEmits(["back"]);
-const dataBreadCrumb = ref<MenuItem[]>([]);
-const route = useRoute();
-const pageType = ref("");
-const updatePageType = (path: string) => {
-  // resetFilter();
-  let tempArrPath = path.split("/");
-  pageType.value = tempArrPath[2] ?? "";
-  dataBreadCrumb.value = [
-    {
-      label: pageType.value == "booking-kelas" ? "Cari Jadwal & Kelas" : "",
-    },
-  ];
+import { apiTraining, izinTraining, keIso, labelSesi, STATUS_ORDER, useTrainingStore, type OrderTraining, type SlotSesi } from "@/stores/penunjang/training";
+
+// Cari jadwal & kelas: pilih kelas + tanggal → ketersediaan slot per sesi (GET /slot) beserta peserta yang sudah
+// booking/terdaftar; tombol BOOK membuka form pasien (DataPasienBooking).
+const emit = defineEmits(["back", "selesai"]);
+const dataBreadCrumb = ref<MenuItem[]>([{ label: "Cari Jadwal & Kelas" }]);
+const store = useTrainingStore();
+
+const kelasUuid = ref<string | null>(null);
+const tanggal = ref<Date>(new Date());
+const tanggalIso = computed(() => keIso(tanggal.value));
+const kelas = computed(() => store.kelas.find((k) => k.uuid === kelasUuid.value));
+const refSlot = ref<InstanceType<typeof TabelSlot>>();
+
+// Peserta aktif pada kelas + tanggal. Daftar order (booking & terdaftar) butuh izin baca Daftar Kelas;
+// tanpa izin itu hanya booking yang ditampilkan.
+const peserta = ref<OrderTraining[]>([]);
+const muatPeserta = async () => {
+  peserta.value = [];
+  if (!kelasUuid.value) return;
+  const q = { kelas_uuid: kelasUuid.value, tanggal_mulai: tanggalIso.value, tanggal_selesai: tanggalIso.value, limit: 500 };
+  const r = izinTraining("Daftar Kelas", "READ") ? await apiTraining.daftarOrder({ ...q, status: "booking,order" }) : await apiTraining.daftarBooking(q);
+  peserta.value = r?.payload?.data ?? [];
+};
+watch([kelasUuid, tanggalIso], muatPeserta);
+const muatUlang = () => {
+  refSlot.value?.muat();
+  muatPeserta();
 };
 
-const changeSection = (label: string, data: any = null) => {
-  dataBreadCrumb.value = [{ label }]; // Pastikan ini direset
-  if (data) {
-    dataPasienBook.value = data; // Simpan data detail
-  }
+const jadwal = ref<{ kelasUuid: string; kelasNama: string; tanggalKelas: string; sesiUuid: string | null; namaSesi: string; tersedia: number } | null>(null);
+const book = (s: SlotSesi) => {
+  if (!kelas.value) return;
+  jadwal.value = {
+    kelasUuid: kelas.value.uuid,
+    kelasNama: kelas.value.nama,
+    tanggalKelas: tanggalIso.value,
+    sesiUuid: s.sesiUuid ?? null,
+    namaSesi: s.namaSesi ? labelSesi(s) : "-",
+    tersedia: s.tersedia,
+  };
 };
-onBeforeRouteLeave((to, from) => {
-  updatePageType(to.path);
-});
-onMounted(() => {
-  updatePageType(route.path);
-});
-const bookPayload = ref([
-  {
-    slot: "Slot 1",
-    nama: "Nama Lengkap",
-    status: true,
-  },
-  {
-    slot: "Slot 1",
-    nama: "Nama Lengkap",
-    status: false,
-  },
-]);
-const dataPasienBook = ref();
-
-
+const bookingTersimpan = () => {
+  jadwal.value = null;
+  emit("selesai");
+};
 </script>
 <template>
-  <Card
-    v-if="dataBreadCrumb[0]?.label == 'Cari Jadwal & Kelas'"
-    pt:body:class="h-full pt-0 overflow-auto"
-    pt:content:class="h-full overflow-auto"
-    class=""
-  >
+  <Card v-if="!jadwal" pt:body:class="h-full pt-0 overflow-auto" pt:content:class="h-full overflow-auto">
     <template #header>
       <HeaderFilterTraining
-        :page-type="pageType"
+        v-model:kelasUuid="kelasUuid"
+        v-model:tanggal="tanggal"
+        page-type="booking-kelas"
         :dataBreadCrumb="dataBreadCrumb"
+        @reload-data="muatUlang"
+        @search="muatUlang"
         @back="emit('back')"
       />
     </template>
     <template #content>
-      <DataTable
-        :value="bookPayload"
-        tableStyle="min-width: 50rem"
-        stripedRows
-        class="text-xs"
-        scrollable
-        scrollHeight="flex"
-      >
-        <Column headerClass="bg-opensimrs-50">
-          <template #header>
-            <div class="w-full font-semibold text-center">No.</div>
-          </template>
-          <template #body="slotProps">
-            <div class="flex items-center justify-center">
-              {{ slotProps.index + 1 }}
-            </div>
-          </template>
-        </Column>
-        <Column field="slot" header="Slot" headerClass="bg-opensimrs-50"></Column>
-        <Column
-          field="nama"
-          header="Nama Pasien"
-          class="w-1/2"
-          headerClass="bg-opensimrs-50"
-        ></Column>
-        <Column headerClass="bg-opensimrs-50">
-          <template #header>
-            <div
-              class="flex items-center justify-center w-full font-semibold text-SM"
-            >
-              Action
-            </div>
-          </template>
-          <template #body="slotProps">
-            <div class="flex items-center gap-2.5 justify-center">
-              <CustomButton
-                :label="slotProps.data.status ? 'BOOK' : 'BOOKED'"
-                :background-color="
-                  slotProps.data.status ? 'bg-opensimrs-300' : 'bg-transparent'
-                "
-                :text-color="
-                  slotProps.data.status ? 'text-white' : 'text-grey-300'
-                "
-                size="small"
-                class="px-2.5 h-[24px]"
-                @click="changeSection('Daftar')"
-              />
-            </div>
-          </template>
-        </Column>
-      </DataTable>
-      
+      <div class="flex flex-col gap-4 p-1">
+        <section>
+          <h2 class="mb-2 text-sm font-semibold">
+            Ketersediaan Slot{{ kelas ? ` — ${kelas.nama}` : "" }}{{ kelasUuid ? `, ${tanggalIso}` : "" }}
+          </h2>
+          <TabelSlot ref="refSlot" :kelasUuid="kelasUuid" :tanggal="tanggalIso" labelPilih="BOOK" @pilih="book" />
+        </section>
+        <section v-if="kelasUuid">
+          <h2 class="mb-2 text-sm font-semibold">Peserta ({{ peserta.length }})</h2>
+          <div v-if="!peserta.length" class="p-4 text-xs text-center text-grey-400">Belum ada peserta pada tanggal ini.</div>
+          <DataTable v-else :value="peserta" stripedRows class="text-xs" tableStyle="min-width: 40rem">
+            <Column header="No." headerClass="bg-opensimrs-50">
+              <template #body="{ index }">{{ index + 1 }}</template>
+            </Column>
+            <Column header="Sesi" headerClass="bg-opensimrs-50">
+              <template #body="{ data: o }">{{ o.namaSesi ? labelSesi(o) : "-" }}</template>
+            </Column>
+            <Column header="Nama Pasien" headerClass="bg-opensimrs-50">
+              <template #body="{ data: o }">
+                <div class="font-semibold">{{ o.namaPasien }}</div>
+                <div class="text-grey-400">{{ o.noRm }} · {{ o.noOrder }}</div>
+              </template>
+            </Column>
+            <Column header="Status" headerClass="bg-opensimrs-50">
+              <template #body="{ data: o }">
+                <span class="px-2 py-0.5 border rounded-full font-semibold" :class="STATUS_ORDER[o.status]?.kelas">{{ STATUS_ORDER[o.status]?.label ?? o.status }}</span>
+              </template>
+            </Column>
+          </DataTable>
+        </section>
+      </div>
     </template>
   </Card>
-  <DataPasienBooking
-    v-else-if="dataBreadCrumb[0]?.label == 'Daftar'"
-    :dataBreadCrumb="dataBreadCrumb"
-    @back="dataBreadCrumb[0].label = 'Cari Jadwal & Kelas'"
-  />
+  <DataPasienBooking v-else :jadwal="jadwal" @back="jadwal = null" @tersimpan="bookingTersimpan" />
 </template>

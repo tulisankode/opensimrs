@@ -64,6 +64,12 @@ const sidebarBodyList = ref<SidebarBody[]>([
             url: "/laboratorium/datamaster/spesimen",
           },
           {
+            name: "Laboratorium Rujukan",
+            icon: "",
+            type: linkType.LINK,
+            url: "/laboratorium/datamaster/laboratorium-rujukan",
+          },
+          {
             name: "Tarif Lab",
             icon: "",
             type: linkType.LINK,
@@ -136,9 +142,19 @@ const sidebarBodyList = ref<SidebarBody[]>([
     ],
   },
 ]);
-// Mapping LIS hanya untuk faskes yang mengaktifkan fitur Bridging LIS (Manajemen Modul).
+// Mapping LIS hanya untuk faskes yang mengaktifkan fitur Bridging LIS; Laboratorium Rujukan
+// hanya tampil bila fitur lab_rujukan aktif (Manajemen Modul).
 const sidebarTampil = computed(() =>
-  sidebarBodyList.value.filter((s) => s.name !== "mapping-lis" || fiturAktif("lab_bridging_lis"))
+  sidebarBodyList.value
+    .filter((s) => s.name !== "mapping-lis" || fiturAktif("lab_bridging_lis"))
+    .map((s) => ({
+      ...s,
+      child: s.child?.map((c: any) =>
+        c.name === "Datamaster"
+          ? { ...c, child: c.child.filter((d: any) => d.name !== "Laboratorium Rujukan" || fiturAktif("lab_rujukan")) }
+          : c
+      ),
+    }))
 );
 </script>
 

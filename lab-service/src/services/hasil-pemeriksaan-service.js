@@ -76,6 +76,7 @@ export default class HasilPemeriksaanService {
         jenis_input: observationItem.item_pemeriksaan.jenis_input,
         status_nilai_rujukan:
           observationItem.item_pemeriksaan.status_nilai_rujukan,
+        dirujuk: observationItem.dirujuk,
       };
     });
 
@@ -127,6 +128,7 @@ export default class HasilPemeriksaanService {
         item_pemeriksaan_uuid: item.item_pemeriksaan_uuid,
         result: item.result,
         flag: flagItem ? flagItem.flag : null,
+        dirujuk: item.dirujuk,
       };
     });
 
@@ -143,10 +145,14 @@ export default class HasilPemeriksaanService {
       }
 
       for (const observation of mergedDataHasilPemeriksaan) {
-        const data = observation;
+        const { dirujuk, ...data } = observation;
         data.waktu_periksa = toEpochDate(new Date());
         data.status_periksa =
           data.result && data.result.trim() !== "" ? true : false;
+
+        if (dirujuk && data.status_periksa) {
+          data.status_rujukan = "hasil_diterima";
+        }
 
         await ObservationItemRepository.updateResult(
           data.observation_item_uuid,

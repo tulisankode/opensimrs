@@ -7,8 +7,11 @@ import TarifLabController from "../controllers/tarif-lab-controller.js";
 import OrderLabController from "../controllers/order-lab-controller.js";
 import HasilPemeriksaanController from "../controllers/hasil-pemeriksaan-controller.js";
 import LaporanController from "../controllers/Laporan-controller.js";
+import LabRujukanController from "../controllers/lab-rujukan-controller.js";
+import RujukanController from "../controllers/rujukan-controller.js";
 import multer from "multer";
 import authorizationSdk from "@opensimrs/authorization-sdk";
+import uploadBerkasRujukan from "../configurations/multer-berkas-rujukan.js";
 
 const apiBase = process.env.API_BASE || "api";
 const apiVersion = process.env.API_VERSION || "v3";
@@ -187,6 +190,44 @@ routes.get(
 routes.get(
   `${baseUrl}/rekap-pemeriksaan`,
   LaporanController.getRekapPemeriksaan
+);
+
+routes.post(`${baseUrl}/lab-rujukan`, LabRujukanController.create);
+routes.get(`${baseUrl}/lab-rujukan`, LabRujukanController.getAll);
+routes.get(`${baseUrl}/lab-rujukan/active`, LabRujukanController.getAllActive);
+routes.get(`${baseUrl}/lab-rujukan/:uuid`, LabRujukanController.show);
+routes.put(`${baseUrl}/lab-rujukan/:uuid`, LabRujukanController.update);
+routes.delete(`${baseUrl}/lab-rujukan/:uuid`, LabRujukanController.delete);
+routes.post(
+  `${baseUrl}/lab-rujukan/import`,
+  upload.single("file"),
+  LabRujukanController.import
+);
+
+routes.put(
+  `${baseUrl}/observation-item/:uuid/tandai-rujukan`,
+  RujukanController.tandai
+);
+routes.put(
+  `${baseUrl}/observation-item/:uuid/batal-rujukan`,
+  RujukanController.batal
+);
+routes.put(
+  `${baseUrl}/observation-item/:uuid/kirim-rujukan`,
+  RujukanController.kirim
+);
+routes.post(
+  `${baseUrl}/observation-item/:uuid/berkas-rujukan`,
+  uploadBerkasRujukan.single("berkas"),
+  RujukanController.unggahBerkas
+);
+routes.get(
+  `${baseUrl}/observation-item/:uuid/berkas-rujukan`,
+  RujukanController.unduhBerkas
+);
+routes.delete(
+  `${baseUrl}/observation-item/:uuid/berkas-rujukan`,
+  RujukanController.hapusBerkas
 );
 
 export default routes;

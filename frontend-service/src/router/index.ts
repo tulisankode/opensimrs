@@ -130,6 +130,7 @@ import KategoriPemeriksaanPage from "@/views/Laboratorium/Masterdata/KategoriPem
 import KelompokPemeriksaanPage from "@/views/Laboratorium/Masterdata/KelompokPemeriksaan/KelompokPemeriksaanPage.vue";
 import ItemPemeriksaanLabPage from "@/views/Laboratorium/Masterdata/ItemPemeriksaan/ItemPemeriksaanLabPage.vue";
 import SpesimenPage from "@/views/Laboratorium/Masterdata/Spesimen/SpesimenPage.vue";
+import LabRujukanPage from "@/views/Laboratorium/Masterdata/LabRujukan/LabRujukanPage.vue";
 import KunjunganLabPage from "@/views/Laboratorium/Report/KunjunganLabPage.vue";
 import WaktuTungguLabPage from "@/views/Laboratorium/Report/WaktuTungguLabPage.vue";
 import RekapJumlahPemeriksaanLabPage from "@/views/Laboratorium/Report/RekapJumlahPemeriksaanLabPage.vue";
@@ -214,6 +215,19 @@ import MasterOrganismePage from "@/views/Mikrobiologi/MasterOrganismePage.vue";
 import MasterAntibiotikPage from "@/views/Mikrobiologi/MasterAntibiotikPage.vue";
 import LaporanKunjunganMikroPage from "@/views/Mikrobiologi/LaporanKunjunganMikroPage.vue";
 import LaporanAntibiogramPage from "@/views/Mikrobiologi/LaporanAntibiogramPage.vue";
+import MappingLisMikrobiologiPage from "@/views/Mikrobiologi/MappingLisMikrobiologiPage.vue";
+import KodingRmView from "@/views/KodingRM/KodingRmView.vue";
+import WorklistKodingPage from "@/views/KodingRM/WorklistKodingPage.vue";
+import KunjunganKodingPage from "@/views/KodingRM/KunjunganKodingPage.vue";
+import ChecklistKodingPage from "@/views/KodingRM/ChecklistKodingPage.vue";
+import PeminjamanBerkasPage from "@/views/KodingRM/PeminjamanBerkasPage.vue";
+import RetensiBerkasPage from "@/views/KodingRM/RetensiBerkasPage.vue";
+import LaporanKodingPage from "@/views/KodingRM/LaporanKodingPage.vue";
+import KamarOperasiView from "@/views/KamarOperasi/KamarOperasiView.vue";
+import DaftarTungguOkPage from "@/views/KamarOperasi/DaftarTungguPage.vue";
+import JadwalOkPage from "@/views/KamarOperasi/JadwalPage.vue";
+import MasterRuangOkPage from "@/views/KamarOperasi/MasterRuangOkPage.vue";
+import LaporanRekapOkPage from "@/views/KamarOperasi/LaporanRekapPage.vue";
 import ProgramPuskesmasView from "@/views/ProgramPuskesmas/ProgramPuskesmasView.vue";
 import KiaKohortPage from "@/views/ProgramPuskesmas/KiaKohortPage.vue";
 import KbPage from "@/views/ProgramPuskesmas/KbPage.vue";
@@ -241,6 +255,36 @@ import RecallCssdPage from "@/views/Cssd/RecallCssdPage.vue";
 import MasterSetCssdPage from "@/views/Cssd/MasterSetCssdPage.vue";
 import MasterMesinCssdPage from "@/views/Cssd/MasterMesinCssdPage.vue";
 import LaporanCssdPage from "@/views/Cssd/LaporanCssdPage.vue";
+
+// NOTE Bank Darah RS (BDRS) — permintaan darah, uji silang serasi, stok & serah terima (penunjang-service)
+import BankDarahView from "@/views/BankDarah/BankDarahView.vue";
+import PermintaanBdrsPage from "@/views/BankDarah/PermintaanBdrsPage.vue";
+import CrossmatchBdrsPage from "@/views/BankDarah/CrossmatchBdrsPage.vue";
+import StokBdrsPage from "@/views/BankDarah/StokBdrsPage.vue";
+import SerahTerimaBdrsPage from "@/views/BankDarah/SerahTerimaBdrsPage.vue";
+import TransfusiBdrsPage from "@/views/BankDarah/TransfusiBdrsPage.vue";
+import KomponenBdrsPage from "@/views/BankDarah/KomponenBdrsPage.vue";
+import PengaturanBdrsPage from "@/views/BankDarah/PengaturanBdrsPage.vue";
+import LaporanBdrsPage from "@/views/BankDarah/LaporanBdrsPage.vue";
+
+// NOTE UTD / UPTD Produksi Darah — donor, aftap, uji saring IMLTD, komponen, distribusi & pelaporan (penunjang-service)
+import UtdView from "@/views/Utd/UtdView.vue";
+import DonorUtdPage from "@/views/Utd/DonorUtdPage.vue";
+import AftapUtdPage from "@/views/Utd/AftapUtdPage.vue";
+import ImltdUtdPage from "@/views/Utd/ImltdUtdPage.vue";
+import KomponenUtdPage from "@/views/Utd/KomponenUtdPage.vue";
+import DistribusiUtdPage from "@/views/Utd/DistribusiUtdPage.vue";
+import PelaporanUtdPage from "@/views/Utd/PelaporanUtdPage.vue";
+import PengaturanUtdPage from "@/views/Utd/PengaturanUtdPage.vue";
+import GiziView from "@/views/Gizi/GiziView.vue";
+import SkriningGiziPage from "@/views/Gizi/SkriningPage.vue";
+import AsuhanGiziPage from "@/views/Gizi/AsuhanPage.vue";
+import OrderDietPage from "@/views/Gizi/OrderDietPage.vue";
+import DistribusiGiziPage from "@/views/Gizi/DistribusiPage.vue";
+import MasterDietPage from "@/views/Gizi/MasterDietPage.vue";
+import BentukMakananGiziPage from "@/views/Gizi/BentukMakananPage.vue";
+import StandarPorsiGiziPage from "@/views/Gizi/StandarPorsiPage.vue";
+import LaporanGiziPage from "@/views/Gizi/LaporanGiziPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
@@ -1030,6 +1074,12 @@ const router = createRouter({
       meta: { layout: SidebarLayout, page: TarifLabPage, requiresAuth: true },
       component: LaboratoriumView,
     },
+    {
+      path: "/laboratorium/datamaster/laboratorium-rujukan",
+      name: "laboratorium-datamaster/laboratorium-rujukan",
+      meta: { layout: SidebarLayout, page: LabRujukanPage, requiresAuth: true },
+      component: LaboratoriumView,
+    },
     ...halamanModul(LaboratoriumView, [
       ["/laboratorium/mapping/tindakan-lis", "laboratorium-mapping-tindakan-lis", MappingTindakanLisPage],
       ["/laboratorium/mapping/hasil-lis", "laboratorium-mapping-hasil-lis", MappingHasilLisPage],
@@ -1676,9 +1726,24 @@ const router = createRouter({
       ["/mikrobiologi/datamaster/pemeriksaan", "mikrobiologi-datamaster-pemeriksaan", MasterPemeriksaanMikroPage],
       ["/mikrobiologi/datamaster/organisme", "mikrobiologi-datamaster-organisme", MasterOrganismePage],
       ["/mikrobiologi/datamaster/antibiotik", "mikrobiologi-datamaster-antibiotik", MasterAntibiotikPage],
+      ["/mikrobiologi/mapping-lis", "mikrobiologi-mapping-lis", MappingLisMikrobiologiPage],
       ["/mikrobiologi/laporan/kunjungan", "mikrobiologi-laporan-kunjungan", LaporanKunjunganMikroPage],
       ["/mikrobiologi/laporan/antibiogram", "mikrobiologi-laporan-antibiogram", LaporanAntibiogramPage],
     ]),
+    // SECTION Gizi (penunjang-service)
+    { path: "/gizi", name: "gizi", redirect: "/gizi/skrining" },
+    ...halamanModul(GiziView, [
+      ["/gizi/skrining", "gizi-skrining", SkriningGiziPage],
+      ["/gizi/asuhan", "gizi-asuhan", AsuhanGiziPage],
+      ["/gizi/order", "gizi-order", OrderDietPage],
+      ["/gizi/distribusi", "gizi-distribusi", DistribusiGiziPage],
+      ["/gizi/master/diet", "gizi-master-diet", MasterDietPage],
+      ["/gizi/master/bentuk-makanan", "gizi-master-bentuk-makanan", BentukMakananGiziPage],
+      ["/gizi/master/standar-porsi", "gizi-master-standar-porsi", StandarPorsiGiziPage],
+      ["/gizi/laporan", "gizi-laporan", LaporanGiziPage],
+    ]),
+    // !SECTION
+
     // SECTION Program Puskesmas (program-puskesmas-service)
     { path: "/program-puskesmas", name: "program-puskesmas", redirect: "/program-puskesmas/kia" },
     ...halamanModul(ProgramPuskesmasView, [
@@ -1715,6 +1780,55 @@ const router = createRouter({
       ["/cssd/datamaster/master-set", "cssd-datamaster-master-set", MasterSetCssdPage],
       ["/cssd/datamaster/mesin", "cssd-datamaster-mesin", MasterMesinCssdPage],
       ["/cssd/laporan", "cssd-laporan", LaporanCssdPage],
+    ]),
+    // !SECTION
+
+    // SECTION Bank Darah RS (BDRS)
+    { path: "/bank-darah", name: "bank-darah", redirect: "/bank-darah/permintaan" },
+    ...halamanModul(BankDarahView, [
+      ["/bank-darah/permintaan", "bank-darah-permintaan", PermintaanBdrsPage],
+      ["/bank-darah/crossmatch", "bank-darah-crossmatch", CrossmatchBdrsPage],
+      ["/bank-darah/stok", "bank-darah-stok", StokBdrsPage],
+      ["/bank-darah/serah-terima", "bank-darah-serah-terima", SerahTerimaBdrsPage],
+      ["/bank-darah/transfusi", "bank-darah-transfusi", TransfusiBdrsPage],
+      ["/bank-darah/datamaster/komponen", "bank-darah-datamaster-komponen", KomponenBdrsPage],
+      ["/bank-darah/pengaturan", "bank-darah-pengaturan", PengaturanBdrsPage],
+      ["/bank-darah/laporan", "bank-darah-laporan", LaporanBdrsPage],
+    ]),
+    // !SECTION
+
+    // SECTION UTD / UPTD Produksi Darah
+    { path: "/utd", name: "utd", redirect: "/utd/donor" },
+    ...halamanModul(UtdView, [
+      ["/utd/donor", "utd-donor", DonorUtdPage],
+      ["/utd/aftap", "utd-aftap", AftapUtdPage],
+      ["/utd/imltd", "utd-imltd", ImltdUtdPage],
+      ["/utd/komponen", "utd-komponen", KomponenUtdPage],
+      ["/utd/distribusi", "utd-distribusi", DistribusiUtdPage],
+      ["/utd/pengaturan", "utd-pengaturan", PengaturanUtdPage],
+      ["/utd/laporan", "utd-laporan", PelaporanUtdPage],
+    ]),
+    // !SECTION
+
+    // SECTION Kamar Operasi (penunjang-service)
+    { path: "/kamar-operasi", name: "kamar-operasi", redirect: "/kamar-operasi/daftar-tunggu" },
+    ...halamanModul(KamarOperasiView, [
+      ["/kamar-operasi/daftar-tunggu", "kamar-operasi-daftar-tunggu", DaftarTungguOkPage],
+      ["/kamar-operasi/jadwal", "kamar-operasi-jadwal", JadwalOkPage],
+      ["/kamar-operasi/datamaster/ruang", "kamar-operasi-datamaster-ruang", MasterRuangOkPage],
+      ["/kamar-operasi/laporan/rekap", "kamar-operasi-laporan-rekap", LaporanRekapOkPage],
+    ]),
+    // !SECTION
+
+    // SECTION Koding Rekam Medis
+    { path: "/koding-rm", name: "koding-rm", redirect: "/koding-rm/worklist" },
+    ...halamanModul(KodingRmView, [
+      ["/koding-rm/worklist", "koding-rm-worklist", WorklistKodingPage],
+      ["/koding-rm/kunjungan/:tipe/:uuid", "koding-rm-kunjungan", KunjunganKodingPage],
+      ["/koding-rm/checklist", "koding-rm-checklist", ChecklistKodingPage],
+      ["/koding-rm/peminjaman", "koding-rm-peminjaman", PeminjamanBerkasPage],
+      ["/koding-rm/retensi", "koding-rm-retensi", RetensiBerkasPage],
+      ["/koding-rm/laporan", "koding-rm-laporan", LaporanKodingPage],
     ]),
     // !SECTION
 
@@ -1871,7 +1985,6 @@ const router = createRouter({
         layout: SidebarLayout,
         page: DaftarKelasPage,
         requiresAuth: true,
-        featureStatus: "stub",
       },
       component: TrainingView,
     },
@@ -1882,7 +1995,6 @@ const router = createRouter({
         layout: SidebarLayout,
         page: BookingKelasPage,
         requiresAuth: true,
-        featureStatus: "stub",
       },
       component: TrainingView,
     },
@@ -1893,7 +2005,6 @@ const router = createRouter({
         layout: SidebarLayout,
         page: SectionKelas,
         requiresAuth: true,
-        featureStatus: "stub",
       },
       component: TrainingView,
     },
@@ -1904,7 +2015,6 @@ const router = createRouter({
         layout: SidebarLayout,
         page: SectionRekapitulasi,
         requiresAuth: true,
-        featureStatus: "stub",
       },
       component: TrainingView,
     },

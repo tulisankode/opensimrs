@@ -394,10 +394,10 @@
       "nama": "Kamar Operasi",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
-      "deskripsi": "Jadwal operasi, laporan operasi & anestesi.",
-      "menu": [],
-      "rute": [],
+      "tersedia": true,
+      "deskripsi": "Order & jadwal operasi, checklist keselamatan bedah WHO, laporan operasi & anestesi.",
+      "menu": ["Kamar Operasi"],
+      "rute": ["/kamar-operasi"],
       "urutan": 19
     },
     {
@@ -420,10 +420,14 @@
       "nama": "Gizi",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
-      "deskripsi": "Diet & distribusi makan pasien rawat inap.",
-      "menu": [],
-      "rute": [],
+      "tersedia": true,
+      "deskripsi": "Skrining & asesmen gizi, order diet, serta distribusi makan pasien rawat inap.",
+      "menu": [
+        "Gizi"
+      ],
+      "rute": [
+        "/gizi"
+      ],
       "urutan": 21
     },
     {
@@ -431,10 +435,14 @@
       "nama": "Koding & Rekam Medis",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "Koding ICD untuk klaim, peminjaman & retensi berkas.",
-      "menu": [],
-      "rute": [],
+      "menu": [
+        "Koding Rekam Medis"
+      ],
+      "rute": [
+        "/koding-rm"
+      ],
       "urutan": 22
     },
     {
@@ -457,10 +465,14 @@
       "nama": "Bank Darah RS (BDRS)",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi.",
-      "menu": [],
-      "rute": [],
+      "menu": [
+        "Bank Darah RS (BDRS)"
+      ],
+      "rute": [
+        "/bank-darah"
+      ],
       "urutan": 24
     },
     {
@@ -468,10 +480,10 @@
       "nama": "UTD / UPTD Produksi Darah",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi.",
-      "menu": [],
-      "rute": [],
+      "menu": ["UTD"],
+      "rute": ["/utd"],
       "urutan": 25
     },
     {
@@ -490,7 +502,7 @@
       "nama": "Kelas Training",
       "kelompok": "Layanan",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "Kelas olahraga/edukasi berbayar (yoga, pilates, senam hamil): jadwal kelas, kuota slot, booking peserta.",
       "menu": [
         "Training"
@@ -785,9 +797,11 @@
       "modul": "bank_darah",
       "nama": "Permintaan Darah",
       "deskripsi": "Permintaan darah dari ruangan/IGD/OK beserta golongan & jumlah kantong.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/bank-darah/permintaan"
+      ],
       "urutan": 22
     },
     {
@@ -795,9 +809,11 @@
       "modul": "bank_darah",
       "nama": "Uji Silang Serasi",
       "deskripsi": "Pemeriksaan golongan darah & crossmatch sebelum transfusi.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/bank-darah/crossmatch"
+      ],
       "urutan": 23
     },
     {
@@ -805,9 +821,13 @@
       "modul": "bank_darah",
       "nama": "Stok & Serah Terima Darah",
       "deskripsi": "Penerimaan dari UTD, penyimpanan, kedaluwarsa, serah terima & pemantauan reaksi transfusi.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/bank-darah/stok",
+        "/bank-darah/serah-terima",
+        "/bank-darah/transfusi"
+      ],
       "urutan": 24
     },
     {
@@ -815,9 +835,9 @@
       "modul": "utd",
       "nama": "Rekrutmen & Seleksi Donor",
       "deskripsi": "Pendaftaran donor, kuesioner, pemeriksaan Hb/tekanan darah, riwayat & kartu donor.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/donor","/utd/pengaturan"],
       "urutan": 25
     },
     {
@@ -825,9 +845,9 @@
       "modul": "utd",
       "nama": "Pengambilan Darah (Aftap)",
       "deskripsi": "Pencatatan pengambilan darah, nomor kantong & reaksi donor; donor mobile/kegiatan.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/aftap"],
       "urutan": 26
     },
     {
@@ -835,9 +855,9 @@
       "modul": "utd",
       "nama": "Uji Saring IMLTD",
       "deskripsi": "Uji saring infeksi menular lewat transfusi darah (HIV, HBsAg, HCV, sifilis) & konfirmasi.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/imltd"],
       "urutan": 27
     },
     {
@@ -845,9 +865,9 @@
       "modul": "utd",
       "nama": "Pengolahan Komponen",
       "deskripsi": "Pemisahan whole blood menjadi PRC, TC, FFP, cryo; pelabelan & karantina.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/komponen"],
       "urutan": 28
     },
     {
@@ -855,9 +875,9 @@
       "modul": "utd",
       "nama": "Penyimpanan & Distribusi",
       "deskripsi": "Stok per golongan/komponen, distribusi ke BDRS/RS lain, pemusnahan kantong reaktif/kedaluwarsa.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/distribusi"],
       "urutan": 29
     },
     {
@@ -865,9 +885,9 @@
       "modul": "utd",
       "nama": "Pelaporan UTD",
       "deskripsi": "Laporan produksi, donor & distribusi untuk Dinkes/Kemenkes.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/laporan"],
       "urutan": 30
     },
     {
@@ -999,9 +1019,9 @@
       "modul": "laboratorium",
       "nama": "Lab Rujukan",
       "deskripsi": "Pemeriksaan yang dirujuk ke laboratorium luar beserta input hasilnya.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/laboratorium/datamaster/laboratorium-rujukan"],
       "urutan": 42
     },
     {
@@ -1127,6 +1147,48 @@
       "wajib": false,
       "rute": [],
       "urutan": 54
+    },
+    {
+      "kode": "mikro_bridging_lis",
+      "modul": "mikrobiologi",
+      "nama": "Bridging LIS Mikrobiologi",
+      "deskripsi": "Kirim order ke LIS mikrobiologi & terima hasil identifikasi/AST otomatis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/mikrobiologi/mapping-lis"
+      ],
+      "urutan": 55
+    },
+    {
+      "kode": "rme_order_operasi",
+      "modul": "kamar_operasi",
+      "nama": "Order Operasi dari RME",
+      "deskripsi": "Tab Order Operasi pada Plan asesmen Rajal/Ranap/IGD: diagnosis, rencana tindakan ICD-9-CM, jenis elektif/cito, perkiraan durasi.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 55
+    },
+    {
+      "kode": "ok_jadwal",
+      "modul": "kamar_operasi",
+      "nama": "Jadwal & Daftar Tunggu OK",
+      "deskripsi": "Daftar tunggu order operasi (cito diprioritaskan) dan penjadwalan ke ruang, waktu, serta tim operasi.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 56
+    },
+    {
+      "kode": "ok_checklist_keselamatan",
+      "modul": "kamar_operasi",
+      "nama": "Checklist Keselamatan Bedah (WHO)",
+      "deskripsi": "Sign in, time out, dan sign out; wajib lengkap sebelum laporan operasi dapat difinalkan.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 57
     },
     {
       "kode": "program_puskesmas_satusehat",

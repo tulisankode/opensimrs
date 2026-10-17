@@ -43,6 +43,35 @@ ObservationItemModel.init({
         type: DataTypes.BOOLEAN,
         allowNull: false
     },
+    dirujuk: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    lab_rujukan_uuid: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+    },
+    status_rujukan: {
+        type: DataTypes.STRING(20),
+        allowNull: true
+    },
+    waktu_kirim_rujukan: {
+        type: DataTypes.BIGINT,
+        allowNull: true
+    },
+    catatan_rujukan: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+    },
+    berkas_hasil_rujukan: {
+        type: DataTypes.BLOB,
+        allowNull: true
+    },
+    berkas_hasil_rujukan_info: {
+        type: DataTypes.JSONB,
+        allowNull: true
+    },
     ...fieldTime
 },{
     tableName: "observation_item",

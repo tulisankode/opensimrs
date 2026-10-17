@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 7 berstatus Segera), **63 fitur** (14 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 1 berstatus Segera), **67 fitur** (4 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -257,7 +257,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `inventory` | Gudang & Pengadaan | Gudang, pembelian, distribusi ke depo, stok opname. | Tersedia | Inventory |
 | `rawat_inap` | Rawat Inap | Bed & kamar, perpindahan bangsal, discharge, biaya kamar otomatis. | Tersedia | Rawat Inap |
 | `igd` | IGD | Pendaftaran & pelayanan gawat darurat, SPRI ke rawat inap. | Tersedia | IGD |
-| `training` | Kelas Training | Kelas olahraga/edukasi berbayar (yoga, pilates, senam hamil): jadwal kelas, kuota slot, booking peserta. | Segera | Training |
+| `training` | Kelas Training | Kelas olahraga/edukasi berbayar (yoga, pilates, senam hamil): jadwal kelas, kuota slot, booking peserta. | Tersedia | Training |
 | `mcu` | Medical Check Up (MCU) | Paket MCU perorangan & korporasi: pendaftaran rombongan, alur stasiun pemeriksaan, kesimpulan fit/unfit, laporan & tagihan perusahaan. | Tersedia | MCU |
 
 #### Penunjang
@@ -288,12 +288,12 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 
 | Kode | Nama | Deskripsi | Status | Nama izin (menu) |
 |---|---|---|---|---|
-| `kamar_operasi` | Kamar Operasi | Jadwal operasi, laporan operasi & anestesi. | Segera | – |
+| `kamar_operasi` | Kamar Operasi | Order & jadwal operasi, checklist keselamatan bedah WHO, laporan operasi & anestesi. | Tersedia | Kamar Operasi |
 | `icu` | ICU / Intensif | Pemantauan intensif & flowsheet. | Tersedia | ICU |
-| `gizi` | Gizi | Diet & distribusi makan pasien rawat inap. | Segera | – |
-| `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Segera | – |
-| `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Segera | – |
-| `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Segera | – |
+| `gizi` | Gizi | Skrining & asesmen gizi, order diet, serta distribusi makan pasien rawat inap. | Tersedia | Gizi |
+| `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Tersedia | Koding Rekam Medis |
+| `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Bank Darah RS (BDRS) |
+| `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Tersedia | UTD |
 | `akuntansi` | Akuntansi & Remunerasi | Jurnal, laporan keuangan, jasa pelayanan. | Segera | – |
 
 ### C. Matriks modul × segmen (preset bawaan)
@@ -320,15 +320,15 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | BPJS FKTP (PCare) (`bpjs_fktp`) | Tersedia | ✓ | ✓ | – | ✓ | – | – | – | – |
 | BPJS FKRTL (VClaim/SEP) (`bpjs_fkrtl`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 | Program Puskesmas (`program_puskesmas`) | Tersedia | – | – | – | ✓ | – | – | – | – |
-| Kamar Operasi (`kamar_operasi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
+| Kamar Operasi (`kamar_operasi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | ICU / Intensif (`icu`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
-| Gizi (`gizi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
-| Koding & Rekam Medis (`koding_rm`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
+| Gizi (`gizi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
+| Koding & Rekam Medis (`koding_rm`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | CSSD (`cssd`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
-| Bank Darah RS (BDRS) (`bank_darah`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
-| UTD / UPTD Produksi Darah (`utd`) | Segera | – | – | – | – | – | – | – | ✓ |
+| Bank Darah RS (BDRS) (`bank_darah`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
+| UTD / UPTD Produksi Darah (`utd`) | Tersedia | – | – | – | – | – | – | – | ✓ |
 | Akuntansi & Remunerasi (`akuntansi`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
-| Kelas Training (`training`) | Segera | – | – | – | – | – | – | – | – |
+| Kelas Training (`training`) | Tersedia | – | – | – | – | – | – | – | – |
 | Medical Check Up (MCU) (`mcu`) | Tersedia | – | ✓ | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 | Patologi Anatomi (`patologi_anatomi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | Mikrobiologi (`mikrobiologi`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
@@ -414,7 +414,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `rme_penunjang` | Order Penunjang dari RME | Tab Penunjang di RME: order laboratorium (dan fisioterapi). | Tersedia | – | – | – |
 | `lab_bridging_lis` | Bridging LIS (adamLIS) | Kirim order ke alat/LIS & terima hasil otomatis. | Tersedia | – | – | PM, KP |
 | `lab_expertise` | Expertise Dokter Lab | Interpretasi hasil oleh dokter spesialis patologi klinik. | Tersedia | – | – | PM, KP, PKM |
-| `lab_rujukan` | Lab Rujukan | Pemeriksaan yang dirujuk ke laboratorium luar beserta input hasilnya. | Segera | – | – | – |
+| `lab_rujukan` | Lab Rujukan | Pemeriksaan yang dirujuk ke laboratorium luar beserta input hasilnya. | Tersedia | – | – | – |
 
 #### Radiologi (`radiologi`)
 
@@ -442,6 +442,14 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 |---|---|---|---|---|---|---|
 | `program_puskesmas_satusehat` | Kirim Imunisasi ke SATUSEHAT | Mengirim resource Immunization ke SATUSEHAT setiap pelayanan imunisasi tersimpan. Butuh konfigurasi integrasi SATUSEHAT faskes. | Tersedia | – | SATUSEHAT (`satusehat`) | – |
 
+#### Kamar Operasi (`kamar_operasi`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `rme_order_operasi` | Order Operasi dari RME | Tab Order Operasi pada Plan asesmen Rajal/Ranap/IGD: diagnosis, rencana tindakan ICD-9-CM, jenis elektif/cito, perkiraan durasi. | Tersedia | – | – | – |
+| `ok_jadwal` | Jadwal & Daftar Tunggu OK | Daftar tunggu order operasi (cito diprioritaskan) dan penjadwalan ke ruang, waktu, serta tim operasi. | Tersedia | – | – | – |
+| `ok_checklist_keselamatan` | Checklist Keselamatan Bedah (WHO) | Sign in, time out, dan sign out; wajib lengkap sebelum laporan operasi dapat difinalkan. | Tersedia | Ya | – | – |
+
 #### ICU / Intensif (`icu`)
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
@@ -457,20 +465,20 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
-| `bdrs_permintaan` | Permintaan Darah | Permintaan darah dari ruangan/IGD/OK beserta golongan & jumlah kantong. | Segera | – | – | – |
-| `bdrs_crossmatch` | Uji Silang Serasi | Pemeriksaan golongan darah & crossmatch sebelum transfusi. | Segera | – | – | – |
-| `bdrs_stok` | Stok & Serah Terima Darah | Penerimaan dari UTD, penyimpanan, kedaluwarsa, serah terima & pemantauan reaksi transfusi. | Segera | – | – | – |
+| `bdrs_permintaan` | Permintaan Darah | Permintaan darah dari ruangan/IGD/OK beserta golongan & jumlah kantong. | Tersedia | – | – | – |
+| `bdrs_crossmatch` | Uji Silang Serasi | Pemeriksaan golongan darah & crossmatch sebelum transfusi. | Tersedia | – | – | – |
+| `bdrs_stok` | Stok & Serah Terima Darah | Penerimaan dari UTD, penyimpanan, kedaluwarsa, serah terima & pemantauan reaksi transfusi. | Tersedia | – | – | – |
 
 #### UTD / UPTD Produksi Darah (`utd`)
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
-| `utd_donor` | Rekrutmen & Seleksi Donor | Pendaftaran donor, kuesioner, pemeriksaan Hb/tekanan darah, riwayat & kartu donor. | Segera | – | – | – |
-| `utd_aftap` | Pengambilan Darah (Aftap) | Pencatatan pengambilan darah, nomor kantong & reaksi donor; donor mobile/kegiatan. | Segera | – | – | – |
-| `utd_imltd` | Uji Saring IMLTD | Uji saring infeksi menular lewat transfusi darah (HIV, HBsAg, HCV, sifilis) & konfirmasi. | Segera | – | – | – |
-| `utd_komponen` | Pengolahan Komponen | Pemisahan whole blood menjadi PRC, TC, FFP, cryo; pelabelan & karantina. | Segera | – | – | – |
-| `utd_distribusi` | Penyimpanan & Distribusi | Stok per golongan/komponen, distribusi ke BDRS/RS lain, pemusnahan kantong reaktif/kedaluwarsa. | Segera | – | – | – |
-| `utd_pelaporan` | Pelaporan UTD | Laporan produksi, donor & distribusi untuk Dinkes/Kemenkes. | Segera | – | – | – |
+| `utd_donor` | Rekrutmen & Seleksi Donor | Pendaftaran donor, kuesioner, pemeriksaan Hb/tekanan darah, riwayat & kartu donor. | Tersedia | – | – | – |
+| `utd_aftap` | Pengambilan Darah (Aftap) | Pencatatan pengambilan darah, nomor kantong & reaksi donor; donor mobile/kegiatan. | Tersedia | – | – | – |
+| `utd_imltd` | Uji Saring IMLTD | Uji saring infeksi menular lewat transfusi darah (HIV, HBsAg, HCV, sifilis) & konfirmasi. | Tersedia | – | – | – |
+| `utd_komponen` | Pengolahan Komponen | Pemisahan whole blood menjadi PRC, TC, FFP, cryo; pelabelan & karantina. | Tersedia | – | – | – |
+| `utd_distribusi` | Penyimpanan & Distribusi | Stok per golongan/komponen, distribusi ke BDRS/RS lain, pemusnahan kantong reaktif/kedaluwarsa. | Tersedia | – | – | – |
+| `utd_pelaporan` | Pelaporan UTD | Laporan produksi, donor & distribusi untuk Dinkes/Kemenkes. | Tersedia | – | – | – |
 
 #### Medical Check Up (MCU) (`mcu`)
 
@@ -489,6 +497,12 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
 | `pa_bridging_lis` | Bridging LIS Patologi Anatomi | Kirim order PA ke sistem patologi & terima diagnosis otomatis. | Tersedia | – | – | – |
+
+#### Mikrobiologi (`mikrobiologi`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `mikro_bridging_lis` | Bridging LIS Mikrobiologi | Kirim order ke LIS mikrobiologi & terima hasil identifikasi/AST otomatis. | Tersedia | – | – | – |
 
 ### E. Bagian (unit terkecil)
 

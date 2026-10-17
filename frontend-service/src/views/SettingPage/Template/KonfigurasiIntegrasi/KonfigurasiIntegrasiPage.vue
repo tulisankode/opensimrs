@@ -19,6 +19,8 @@ import KonfigurasiPacs from './KonfigurasiPacs.vue';
 import PengirimanPacs from './PengirimanPacs.vue';
 import KonfigurasiLisPa from './KonfigurasiLisPa.vue';
 import PengirimanLisPa from './PengirimanLisPa.vue';
+import KonfigurasiLisMikrobiologi from './KonfigurasiLisMikrobiologi.vue';
+import PengirimanLisMikrobiologi from './PengirimanLisMikrobiologi.vue';
 import KonfigurasiHelpdesk from './KonfigurasiHelpdesk.vue';
 import { useSettingStore } from '@/stores/setting';
 import { utilsStore } from "@/stores/utils";
@@ -132,6 +134,9 @@ const handleKonfigurasiSatuSehat = (updatedKonfigurasiSatuSehat: any) => {
                 <KonfigurasiLisPa />
                 <PengirimanLisPa />
             </template>
+            <!-- LIS Mikrobiologi (fitur mikro_bridging_lis): koneksi & kredensial terpisah dari LIS laboratorium. Mapping kode ada di Mikrobiologi › Mapping LIS -->
+            <KonfigurasiLisMikrobiologi />
+            <PengirimanLisMikrobiologi />
             <!-- Helpdesk AI: Gateway OpenClaw untuk tombol Bantuan (khusus superadmin; token terenkripsi) -->
             <KonfigurasiHelpdesk />
 
