@@ -141,13 +141,14 @@ const AKTIF = ["baru", "diproses", "perlu_dilengkapi", "dipenuhi_sebagian"];
 // ── Bridging UTD (STD-0017): kirim permintaan ke UTD mitra, ambil status/kantong, & teruskan kantong valid ke stok.
 const memprosesUtd = ref(false);
 const bisaKirimUtd = computed(() => fiturAktif("bdrs_bridging") && AKTIF.includes(detail.value?.status) && boleh("UPDATE"));
-const bisaAmbilStatusUtd = computed(() => fiturAktif("bdrs_bridging") && boleh("READ") && AKTIF.includes(detail.value?.status));
+// Ambil Status menulis hasil & kantong UTD → izin UPDATE (sama dengan backend).
+const bisaAmbilStatusUtd = computed(() => fiturAktif("bdrs_bridging") && boleh("UPDATE") && AKTIF.includes(detail.value?.status));
 const kirimKeUtd = async () => {
   memprosesUtd.value = true;
   try {
     const res = await kirimPermintaanKeUtd(detail.value.uuid);
-    if (res?.payload) toast.add({ severity: "success", summary: res.message ?? "Dikirim ke UTD", life: 5000 });
-    else if (res?.payload?.koneksi) toast.add({ severity: "warn", summary: "Pilih koneksi UTD", detail: "Lebih dari satu koneksi UTD aktif", life: 6000 });
+    // Galat (termasuk penolakan UTD → 502 dan >1 koneksi tanpa bawaan → 409) sudah ditampilkan apiHandler; res undefined.
+    if (res?.payload) toast.add({ severity: res.payload.status === "terkirim" ? "success" : "warn", summary: res.message ?? "Dikirim ke UTD", life: 6000 });
     await muatKantongUtd();
   } finally {
     memprosesUtd.value = false;

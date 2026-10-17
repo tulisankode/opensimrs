@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 1 berstatus Segera), **68 fitur** (3 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 1 berstatus Segera), **68 fitur** (2 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -491,7 +491,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `mcu_order_penunjang` | Order Penunjang Otomatis | Pemeriksaan lab/radiologi dalam paket langsung menjadi order penunjang. | Tersedia | – | – | – |
 | `mcu_kesimpulan` | Kesimpulan & Sertifikat MCU | Kesimpulan dokter (fit / fit dengan catatan / unfit), saran, cetak laporan & sertifikat MCU. | Tersedia | – | – | – |
 | `mcu_korporasi` | Rekap & Tagihan Korporasi | Invoice per perusahaan dan rekap hasil seluruh peserta. | Tersedia | – | – | – |
-| `mcu_pcare` | MCU PCare (BPJS) | Pelaporan MCU peserta BPJS ke PCare. | Segera | – | BPJS FKTP (PCare) (`bpjs_fktp`) | – |
+| `mcu_pcare` | MCU PCare (BPJS) | Pelaporan hasil MCU peserta JKN ke layanan MCU PCare (tambah/ubah/hapus, status & kirim ulang). | Tersedia | – | BPJS FKTP (PCare) (`bpjs_fktp`) | KP |
 
 #### Patologi Anatomi (`patologi_anatomi`)
 

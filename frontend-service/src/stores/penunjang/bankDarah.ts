@@ -247,8 +247,10 @@ export const simpanMappingUtd = (jenis: string, data: { koneksiUuid: string; ref
 export const cekStokUtd = (params: { koneksi_uuid?: string; golongan_abo?: string; rhesus?: string; kode_komponen?: string } = {}) =>
   apiPenunjangGet(`/bank-darah/utd/stok${qs(params)}`);
 
-// Aksi pada permintaan darah
-export const kirimPermintaanKeUtd = (permintaanUuid: string, koneksiUuid?: string) => apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/kirim-utd`, { koneksiUuid });
+// Aksi pada permintaan darah. Kirim/kirim ulang memakai mode diam: halaman menampilkan toast sesuai status pengiriman
+// (terkirim/tidak_pasti); penolakan UTD (status gagal) dijawab backend 502 sehingga tampil sebagai toast galat.
+export const kirimPermintaanKeUtd = (permintaanUuid: string, koneksiUuid?: string) =>
+  apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/kirim-utd`, { koneksiUuid }, true);
 export const ambilStatusUtdPermintaan = (permintaanUuid: string, koneksiUuid?: string) =>
   apiPenunjangPost(`/bank-darah/permintaan/${permintaanUuid}/ambil-status-utd`, { koneksiUuid });
 export const daftarKantongUtdPermintaan = (permintaanUuid: string) => apiPenunjangGet(`/bank-darah/utd/permintaan/${permintaanUuid}/kantong`);
@@ -257,7 +259,7 @@ export const terimaKantongUtd = (kantongUuid: string) => apiPenunjangPost(`/bank
 // Riwayat pengiriman (Setting › Konfigurasi Integrasi › Pengiriman Bank Darah)
 export const daftarPengirimanUtd = (params: Record<string, any> = {}) => apiPenunjangGet(`/bank-darah/utd/pengiriman${qs(params)}`);
 export const detailPengirimanUtd = (uuid: string) => apiPenunjangGet(`/bank-darah/utd/pengiriman/${uuid}`);
-export const kirimUlangUtd = (uuid: string) => apiPenunjangPost(`/bank-darah/utd/pengiriman/${uuid}/kirim-ulang`);
+export const kirimUlangUtd = (uuid: string) => apiPenunjangPost(`/bank-darah/utd/pengiriman/${uuid}/kirim-ulang`, {}, true);
 export const cekStatusUtd = (uuid: string) => apiPenunjangPost(`/bank-darah/utd/pengiriman/${uuid}/cek-status`);
 
 // Epoch detik ⇄ Date untuk input waktu.

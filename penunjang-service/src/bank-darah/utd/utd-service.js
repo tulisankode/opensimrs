@@ -3,7 +3,7 @@ import { Galat, tidakDitemukan } from "../../umum/respons.js";
 import { nomorBaru } from "../../umum/nomor.js";
 import { detailPermintaan } from "../permintaan.js";
 import { STATUS_PERMINTAAN_AKTIF } from "../bersama.js";
-import { koneksiUntukKirim, ambilKoneksi } from "./utd-koneksi.js";
+import { koneksiUntukKirim, ambilKoneksi, timeoutMs } from "./utd-koneksi.js";
 import { buatPayloadPermintaan, kirimKeUtd as kirimHttp, ambilStatusUtd, cekStokUtd, pesanGalat } from "./adapter-generik.js";
 import { terapkanHasilUtd } from "./utd-hasil.js";
 
@@ -18,25 +18,68 @@ const ambilKirim = async (faskesUuid, { kirimUuid, permintaanUuid, koneksiUuid }
     ? satu(`SELECT * FROM bdrs_utd_kirim WHERE uuid = $1 AND faskes_uuid = $2`, [kirimUuid, faskesUuid])
     : satu(`SELECT * FROM bdrs_utd_kirim WHERE faskes_uuid = $1 AND permintaan_uuid = $2 AND koneksi_uuid = $3`, [faskesUuid, permintaanUuid, koneksiUuid]);
 
+/**
+ * Kode RS untuk nomor registrasi: hanya huruf besar/angka/tanda hubung (maks. 30 karakter). Nomor dihitung per faskes,
+ * sehingga tanpa kode RS dua faskes yang memakai UTD yang sama bisa menghasilkan nomor yang persis sama.
+ */
+export const kodeRsNomor = (kode) =>
+  String(kode ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 30)
+    .replace(/-+$/, "");
+
+/** UTDREG-YYYYMMDD-NNNN (penghitung per faskes, umum/nomor.js) → UTDREG-<kode_rs>-YYYYMMDD-NNNN. */
+export const nomorRegistrasiUtd = (nomorDasar, kodeRs) => {
+  const kode = kodeRsNomor(kodeRs);
+  return kode ? String(nomorDasar).replace(/^UTDREG-/, `UTDREG-${kode}-`) : String(nomorDasar);
+};
+
+// Kode RS koneksi; bila kosong dipakai kode faskes agar nomor tetap unik antar faskes di UTD yang sama.
+const nomorRegistrasiBaru = async (faskesUuid, koneksi) => {
+  let kode = kodeRsNomor(koneksi.kode_rs);
+  if (!kode) kode = kodeRsNomor((await satu(`SELECT code FROM faskes WHERE uuid = $1`, [faskesUuid]))?.code);
+  return nomorRegistrasiUtd(await nomorBaru(faskesUuid, "UTDREG"), kode);
+};
+
+// Status pengiriman yang kantongnya sudah diterima ke stok: kirim ulang tidak boleh memundurkan status.
+const STATUS_SELESAI = ["kantong_diterima", "diterima_sebagian"];
+// Baris 'sedang_dikirim' dianggap macet (mis. proses mati di tengah) setelah melewati batas waktu HTTP + jeda.
+const BATAS_SEDANG_DIKIRIM_DETIK = Math.ceil(timeoutMs / 1000) + 30;
+const GALAT_SEDANG_DIKIRIM = "Permintaan ini sedang dikirim ke UTD oleh proses lain — tunggu sebentar lalu muat ulang status";
+
 /** Kirim (atau kirim ulang) satu permintaan ke UTD. Nomor registrasi & baris pengiriman dipakai ulang bila sudah ada. */
 const kirimSatuPermintaan = async (faskesUuid, permintaan, koneksi, pengguna) => {
   const existing = await ambilKirim(faskesUuid, { permintaanUuid: permintaan.uuid, koneksiUuid: koneksi.uuid });
   if (existing?.status === "tidak_pasti") throw new Galat(409, "Status pengiriman sebelumnya belum pasti — lakukan Cek Status sebelum mengirim ulang");
-  const noRegistrasi = existing?.no_registrasi ?? (await nomorBaru(faskesUuid, "UTDREG"));
+  if (STATUS_SELESAI.includes(existing?.status)) throw new Galat(409, `Pengiriman berstatus ${existing.status} (kantong UTD sudah diterima ke stok), tidak dapat dikirim ulang`);
+  if (existing?.status === "sedang_dikirim" && Number(existing.updated_at) > sekarang() - BATAS_SEDANG_DIKIRIM_DETIK) throw new Galat(409, GALAT_SEDANG_DIKIRIM);
+  const noRegistrasi = existing?.no_registrasi ?? (await nomorRegistrasiBaru(faskesUuid, koneksi));
   const payload = await buatPayloadPermintaan(faskesUuid, permintaan, koneksi, noRegistrasi);
   const t = sekarang();
   let kirimUuid = existing?.uuid;
   if (existing) {
-    await query(`UPDATE bdrs_utd_kirim SET status = 'sedang_dikirim', payload = $2, percobaan = percobaan + 1, dikirim_oleh = $3, updated_at = $4 WHERE uuid = $1`, [
-      existing.uuid, JSON.stringify(sanitisasiPayload(payload)), pengguna, t,
-    ]);
-  } else {
-    kirimUuid = uuidv7();
-    await query(
-      `INSERT INTO bdrs_utd_kirim (uuid, faskes_uuid, koneksi_uuid, permintaan_uuid, no_registrasi, status, payload, percobaan, dikirim_oleh, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,'sedang_dikirim',$6,1,$7,$8,$8)`,
-      [kirimUuid, faskesUuid, koneksi.uuid, permintaan.uuid, noRegistrasi, JSON.stringify(sanitisasiPayload(payload)), pengguna, t],
+    // Optimistik: hanya bila status belum diubah proses lain sejak dibaca (dua klik bersamaan → satu yang mengirim).
+    const diubah = await satu(
+      `UPDATE bdrs_utd_kirim SET status = 'sedang_dikirim', payload = $2, percobaan = percobaan + 1, dikirim_oleh = $3, updated_at = $4
+        WHERE uuid = $1 AND status = $5 AND updated_at IS NOT DISTINCT FROM $6 RETURNING uuid`,
+      [existing.uuid, JSON.stringify(sanitisasiPayload(payload)), pengguna, t, existing.status, existing.updated_at],
     );
+    if (!diubah) throw new Galat(409, GALAT_SEDANG_DIKIRIM);
+  } else {
+    // ON CONFLICT DO NOTHING: klik ganda bersamaan tidak memunculkan galat duplicate key (nama constraint tidak bocor);
+    // yang kalah balapan mendapat 409 dan tidak mengirim dua kali.
+    const baru = await satu(
+      `INSERT INTO bdrs_utd_kirim (uuid, faskes_uuid, koneksi_uuid, permintaan_uuid, no_registrasi, status, payload, percobaan, dikirim_oleh, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,'sedang_dikirim',$6,1,$7,$8,$8)
+       ON CONFLICT (faskes_uuid, permintaan_uuid, koneksi_uuid) DO NOTHING RETURNING uuid`,
+      [uuidv7(), faskesUuid, koneksi.uuid, permintaan.uuid, noRegistrasi, JSON.stringify(sanitisasiPayload(payload)), pengguna, t],
+    );
+    if (!baru) throw new Galat(409, GALAT_SEDANG_DIKIRIM);
+    kirimUuid = baru.uuid;
   }
 
   const { ok, status, json, pasti } = await kirimHttp(koneksi, payload);
@@ -71,6 +114,22 @@ export const kirimUlang = async (faskesUuid, kirimUuid, pengguna) => {
   return { ...hasil, koneksi: koneksi.nama };
 };
 
+/**
+ * Panggil URL Status UTD; waktu habis → 504, galat jaringan → 502 dengan pesan aman (tanpa 500), tanpa mengubah data.
+ * `akibat` menjelaskan dampaknya bagi petugas (mis. status tetap belum pasti).
+ */
+const ambilStatusAman = async (koneksi, noRegistrasi, akibat) => {
+  try {
+    return await ambilStatusUtd(koneksi, noRegistrasi);
+  } catch (error) {
+    if (error instanceof Galat) throw error;
+    const waktuHabis = error?.name === "TimeoutError" || error?.name === "AbortError";
+    if (waktuHabis) throw new Galat(504, `UTD ${koneksi.nama} tidak menjawab dalam batas waktu — ${akibat}`);
+    const kode = String(error?.cause?.code ?? error?.code ?? "galat jaringan").slice(0, 50);
+    throw new Galat(502, `UTD ${koneksi.nama} tidak dapat dihubungi (${kode}) — ${akibat}`);
+  }
+};
+
 /** Cek Status (khusus baris 'tidak_pasti', F6/A9/KT-7): tentukan status pasti sebelum pengiriman ulang diizinkan. */
 export const cekStatusTidakPasti = async (faskesUuid, kirimUuid) => {
   const kirim = await satu(`SELECT * FROM bdrs_utd_kirim WHERE uuid = $1 AND faskes_uuid = $2`, [kirimUuid, faskesUuid]);
@@ -78,7 +137,7 @@ export const cekStatusTidakPasti = async (faskesUuid, kirimUuid) => {
   if (kirim.status !== "tidak_pasti") return { status: "dilewati", pesan: `Status sudah pasti: ${kirim.status}` };
   const koneksi = await ambilKoneksi(faskesUuid, kirim.koneksi_uuid);
   if (!koneksi.url_status) return { status: "tidak_pasti", pesan: `URL Status koneksi ${koneksi.nama} belum diatur — cek manual di UTD` };
-  const { ok, status, json } = await ambilStatusUtd(koneksi, kirim.no_registrasi);
+  const { ok, status, json } = await ambilStatusAman(koneksi, kirim.no_registrasi, "status pengiriman tetap belum pasti, coba Cek Status lagi nanti");
   const t = sekarang();
   if (ok && json?.success !== false && json?.payload) {
     await query(`UPDATE bdrs_utd_kirim SET status = 'terkirim', pesan = 'Ditemukan di UTD (hasil Cek Status)', updated_at = $2 WHERE uuid = $1`, [kirim.uuid, t]);
@@ -99,7 +158,7 @@ export const tarikStatus = async (faskesUuid, kirimUuid) => {
   if (!["terkirim", "kantong_diterima", "diterima_sebagian"].includes(kirim.status)) throw new Galat(409, `Pengiriman berstatus ${kirim.status}, belum dapat diambil statusnya`);
   const koneksi = await ambilKoneksi(faskesUuid, kirim.koneksi_uuid);
   if (!koneksi.url_status) throw new Galat(422, `URL Status belum diatur di koneksi UTD ${koneksi.nama}`);
-  const { ok, status, json } = await ambilStatusUtd(koneksi, kirim.no_registrasi);
+  const { ok, status, json } = await ambilStatusAman(koneksi, kirim.no_registrasi, "status & data kantong tidak berubah, coba lagi nanti");
   if (!ok || json?.success === false || !json?.payload) throw new Galat(502, pesanGalat(json, status));
   return terapkanHasilUtd(koneksi, { no_registrasi: kirim.no_registrasi, ...json.payload }, "pull");
 };

@@ -47,7 +47,8 @@ const kirimUlang = async (row: any) => {
   memproses.value = row.uuid;
   try {
     const res = await kirimUlangUtd(row.uuid);
-    toast.add({ severity: res?.payload?.status === "terkirim" ? "success" : "error", summary: row.noPermintaan, detail: res?.payload?.pesan ?? res?.message, life: 6000 });
+    // Penolakan UTD (502) & galat lain sudah ditampilkan apiHandler (res undefined).
+    if (res?.payload) toast.add({ severity: res.payload.status === "terkirim" ? "success" : "warn", summary: row.noPermintaan, detail: res.payload.pesan ?? res.message, life: 6000 });
   } finally {
     memproses.value = null;
   }
