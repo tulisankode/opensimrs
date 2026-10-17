@@ -19,6 +19,24 @@ const JOIN = `LEFT JOIN bdrs_komponen_darah k ON k.uuid = s.komponen_uuid`;
 export const ambilStok = (uuid, faskes) => satu(`SELECT ${PILIH} FROM ${TABEL} s ${JOIN} WHERE s.uuid = $1 AND s.faskes_uuid = $2 AND s.deleted_at IS NULL`, [uuid, faskes]);
 const ambil = ambilStok;
 
+// Tanggal kantong WAJIB epoch DETIK. Nilai di luar rentang wajar (< 10^9 ≈ sebelum 2001, atau > 10^11 — mis. epoch
+// milidetik) ditolak dengan alasan spesifik dan TIDAK dikonversi diam-diam: salah satuan dapat meloloskan kantong
+// kedaluwarsa ke stok (milidetik terbaca sebagai tahun puluhan ribu). Mengembalikan null bila sah, atau alasan penolakan.
+export const EPOCH_DETIK_MIN = 1e9;
+export const EPOCH_DETIK_MAKS = 1e11;
+export const alasanEpochDetik = (nilai, nama) => {
+  if (nilai === undefined || nilai === null || nilai === "" || typeof nilai === "boolean") return `${nama} tidak valid`;
+  const n = Number(nilai);
+  if (!Number.isFinite(n)) return `${nama} tidak valid`;
+  if (!Number.isInteger(n) || n < EPOCH_DETIK_MIN || n > EPOCH_DETIK_MAKS) return `${nama} tidak valid: format tanggal harus epoch detik`;
+  return null;
+};
+const epochDetik = (nilai, nama) => {
+  const alasan = alasanEpochDetik(nilai, nama);
+  if (alasan) throw permintaanSalah(alasan);
+  return Number(nilai);
+};
+
 // Logika penerimaan kantong ke stok BDRS (KF-12/STD-0017): dipakai bersama oleh POST /penerimaan (manual, di bawah)
 // dan penerimaan kantong bridging UTD (bank-darah/utd/utd-hasil.js `terimaKantongUtd`), agar aturan IMLTD, validasi
 // kedaluwarsa, dan audit penolakan reaktif tidak menyimpang antara dua jalur tersebut.
@@ -26,9 +44,9 @@ export const terimaKantong = async (faskes, b, pengguna) => {
   wajib(b, ["no_kantong", "komponen_uuid", "golongan_abo", "rhesus", "tanggal_kedaluwarsa"]);
   const komponen = await satu(`SELECT uuid FROM bdrs_komponen_darah WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL AND status`, [b.komponen_uuid, faskes]);
   if (!komponen) throw permintaanSalah("Komponen darah tidak ditemukan atau tidak aktif");
-  const produksi = Number(b.tanggal_produksi) || Math.floor(Date.now() / 1000);
-  const kedaluwarsa = Number(b.tanggal_kedaluwarsa);
-  if (!Number.isFinite(kedaluwarsa)) throw permintaanSalah("tanggal_kedaluwarsa tidak valid");
+  const produksiKosong = b.tanggal_produksi === undefined || b.tanggal_produksi === null || b.tanggal_produksi === "";
+  const produksi = produksiKosong ? Math.floor(Date.now() / 1000) : epochDetik(b.tanggal_produksi, "tanggal_produksi");
+  const kedaluwarsa = epochDetik(b.tanggal_kedaluwarsa, "tanggal_kedaluwarsa");
   if (kedaluwarsa <= produksi) throw permintaanSalah("tanggal_kedaluwarsa harus setelah tanggal_produksi");
   if (kedaluwarsa <= Math.floor(Date.now() / 1000)) throw new Galat(409, "Kantong sudah kedaluwarsa, tidak dapat diterima ke stok");
   const sumber = cekPilihan(b.sumber || "utd_manual", SUMBER_STOK, "sumber");
