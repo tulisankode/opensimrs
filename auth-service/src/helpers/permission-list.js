@@ -897,7 +897,9 @@ export const trainingPermission = {
     },
     {
       name: "Datamaster",
-      allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT KELAS", "EKSPOR KELAS"],
+      features: [
+        { name: "Kelas", allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT KELAS", "EKSPOR KELAS"] },
+      ],
     },
     {
       name: "Laporan",

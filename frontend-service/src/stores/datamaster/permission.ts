@@ -1099,13 +1099,18 @@ export const usePermissionStore = defineStore('permission', () => {
         },
         {
           name: "Datamaster",
-          allows: [
-            "READ",
-            "CREATE",
-            "UPDATE",
-            "DELETE",
-            "IMPORT KELAS",
-            "EKSPOR KELAS",
+          features: [
+            {
+              name: "Kelas",
+              allows: [
+                "READ",
+                "CREATE",
+                "UPDATE",
+                "DELETE",
+                "IMPORT KELAS",
+                "EKSPOR KELAS",
+              ],
+            },
           ],
         },
         {
