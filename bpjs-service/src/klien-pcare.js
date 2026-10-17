@@ -97,6 +97,23 @@ const tiruan = (metode, jalur, body) => {
     if (!body?.kdDiag1) return { metaData: { code: 412, message: "kdDiag1 wajib diisi" }, response: null };
     return ok({ field: "noKunjungan", message: `0114U${Date.now().toString().slice(-9)}Y000001` }, 201, "CREATED");
   }
+  // STD-0020 — MCU PCare (draf, lihat pcare-peta.js#buatMcu): simulasi tambah/ubah selalu sukses selama noKunjungan
+  // terisi, kecuali noKunjungan berakhiran '0' (ditolak, meniru pola simulasi peserta/pendaftaran di atas).
+  // Simulasi hapus selalu sukses bila noKunjungan terisi.
+  if (metode === "POST" && s.startsWith("mcu/insert")) {
+    if (!body?.noKunjungan) return { metaData: { code: 412, message: "noKunjungan wajib diisi" }, response: null };
+    if (String(body.noKunjungan).endsWith("0")) return { metaData: { code: 400, message: "simulasi: data MCU ditolak PCare" }, response: null };
+    return ok({ field: "noMcu", message: `MCU${Date.now().toString().slice(-10)}` }, 201, "CREATED");
+  }
+  if (metode === "POST" && s.startsWith("mcu/update")) {
+    if (!body?.noKunjungan) return { metaData: { code: 412, message: "noKunjungan wajib diisi" }, response: null };
+    if (String(body.noKunjungan).endsWith("0")) return { metaData: { code: 400, message: "simulasi: pembaruan data MCU ditolak PCare" }, response: null };
+    return ok({ field: "noMcu", message: `MCU${Date.now().toString().slice(-10)}` }, 200, "UPDATED");
+  }
+  if (metode === "DELETE" && s.startsWith("mcu/delete")) {
+    if (!body?.noKunjungan) return { metaData: { code: 412, message: "noKunjungan wajib diisi" }, response: null };
+    return ok({ field: "noKunjungan", message: "Laporan MCU dihapus (simulasi)" }, 200, "DELETED");
+  }
   return { metaData: { code: 404, message: `simulasi: ${metode} ${s} tidak tersedia` }, response: null };
 };
 

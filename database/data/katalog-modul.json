@@ -1143,8 +1143,8 @@
       "kode": "mcu_pcare",
       "modul": "mcu",
       "nama": "MCU PCare (BPJS)",
-      "deskripsi": "Pelaporan MCU peserta BPJS ke PCare.",
-      "tersedia": false,
+      "deskripsi": "Pelaporan hasil MCU peserta JKN ke layanan MCU PCare (tambah/ubah/hapus, status & kirim ulang).",
+      "tersedia": true,
       "wajib": false,
       "rute": [],
       "modul_syarat": "bpjs_fktp",
@@ -1757,7 +1757,8 @@
         "lab_expertise",
         "farmasi_ruangan",
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "mcu_pcare"
       ],
       "klinik_utama": [
         "rme_soap_ringkas",

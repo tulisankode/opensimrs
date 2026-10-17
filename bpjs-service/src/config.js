@@ -25,6 +25,11 @@ export default {
 
   // mock = respons tiruan terenkripsi seperti BPJS (pengujian), tidak menulis kode BPJS ke database
   mode: process.env.BPJS_MODE || "nyata",
+  // STD-0020 — pemetaan field MCU PCare (bpjs-service/src/pcare-peta.js#buatMcu) masih berupa draf yang belum
+  // dikonfirmasi ke spesifikasi resmi PCare (field, satuan, nilai kosong). Di luar mode mock, pengiriman MCU PCare
+  // ditolak (DataBelumLengkap) sampai flag ini diaktifkan secara eksplisit setelah pemetaan dipastikan — lihat
+  // bpjs-service/src/pcare.js#operasiMcu dan Rancangan Teknis STD-0020 §"Keputusan desain".
+  mcuPcareDikonfirmasi: process.env.BPJS_MCU_PCARE_DIKONFIRMASI === "true",
   lingkungan,
   pcareUrl: process.env.BPJS_PCARE_URL || PCARE[lingkungan],
   // Katalog PCare: POST/PUT memakai Content-Type text/plain berisi JSON

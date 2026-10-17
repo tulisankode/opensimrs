@@ -1,7 +1,7 @@
 import config from "./config.js";
-import { query, satu, mongo, keObjectId, sekarang } from "./db.js";
+import { query, satu, mongo, keObjectId, sekarang, uuidv7 } from "./db.js";
 import { pcare, GalatBpjs } from "./klien-pcare.js";
-import { buatPendaftaran, buatKunjungan } from "./pcare-peta.js";
+import { buatPendaftaran, buatKunjungan, buatMcu } from "./pcare-peta.js";
 import { enkripsi, dekripsi, samarkan } from "./rahasia.js";
 
 const STATUS_RJ_SELESAI = 5;
@@ -317,4 +317,127 @@ export const jalankanPekerja = async (hanyaFaskes = null) => {
     ringkasan.push({ faskesUuid: faskes_uuid, diproses: antrean.length, berhasil: ok, gagal });
   }
   return ringkasan;
+};
+
+// --- MCU PCare (STD-0020): pelaporan hasil MCU peserta JKN ---------------------------------------
+// Satu-satunya jalur penulisan tabel mcu_pcare_kirim (penunjang-service hanya membaca untuk tampilan status —
+// lihat penunjang-service/src/mcu/peserta.js, laporan.js, sama dengan pola lab_lis_kirim pada lab-service).
+
+// Kandidat kunjungan PCare untuk seorang pasien: kunjungan yang pendaftaran & kunjungannya sudah terkirim
+// (punya no_kunjungan) sehingga layak ditautkan ke laporan MCU. Lebih dari satu baris → petugas harus memilih
+// secara eksplisit (use case "kunjungan ambigu"), bukan dipilih otomatis oleh sistem.
+export const kandidatKunjunganMcu = (faskesUuid, patientUuid) => {
+  if (!patientUuid) throw new DataBelumLengkap("patient_uuid wajib diisi");
+  return query(
+    `SELECT c.rawat_jalan_uuid, c.no_kunjungan, c.no_pelayanan, rj.tanggal_daftar, rj.discharge_date
+       FROM bpjs_pcare_kunjungan c JOIN rawat_jalans rj ON rj.uuid = c.rawat_jalan_uuid
+      WHERE c.faskes_uuid = $1 AND rj.patient_uuid = $2 AND rj.deleted_at IS NULL AND c.status_kunjungan = 'terkirim'
+      ORDER BY rj.tanggal_daftar DESC`,
+    [faskesUuid, patientUuid],
+  );
+};
+
+const ambilKirimMcu = (faskesUuid, pesertaUuid) =>
+  satu(`SELECT * FROM mcu_pcare_kirim WHERE faskes_uuid = $1 AND peserta_uuid = $2 AND deleted_at IS NULL`, [faskesUuid, pesertaUuid]);
+
+const simpanKirimMcu = async (uuid, perubahan) => {
+  const data = { ...perubahan, updated_at: sekarang() };
+  const kolom = Object.keys(data);
+  const nilai = kolom.map((c) => (data[c] !== null && typeof data[c] === "object" ? JSON.stringify(data[c]) : data[c]));
+  await query(`UPDATE mcu_pcare_kirim SET ${kolom.map((c, i) => `${c} = $${i + 1}`).join(", ")} WHERE uuid = $${kolom.length + 1}`, [...nilai, uuid]);
+};
+
+// Satu laporan MCU PCare per peserta (faskes_uuid + peserta_uuid unik, KF-6/KT-12). `operasi`: tambah | ubah | hapus.
+// `payload` = data MCU lokal yang sudah dipetakan peserta (sumber: penunjang-service, lihat mcu/pcare.js#petakanNilaiMcu).
+export const operasiMcu = async (faskesUuid, { pesertaUuid, rawatJalanUuid, operasi, payload = {}, alasan, konfirmasi, dikirimOleh }) => {
+  if (!pesertaUuid) throw new DataBelumLengkap("peserta_uuid wajib diisi");
+  if (!["tambah", "ubah", "hapus"].includes(operasi)) throw new DataBelumLengkap("operasi harus tambah, ubah, atau hapus");
+  let kirim = await ambilKirimMcu(faskesUuid, pesertaUuid);
+
+  let noKunjungan;
+  if (operasi === "tambah") {
+    if (!rawatJalanUuid) throw new DataBelumLengkap("Kunjungan PCare belum ditautkan untuk peserta ini");
+    const kand = await satu(
+      `SELECT no_kunjungan FROM bpjs_pcare_kunjungan WHERE faskes_uuid = $1 AND rawat_jalan_uuid = $2 AND status_kunjungan = 'terkirim'`,
+      [faskesUuid, rawatJalanUuid],
+    );
+    if (!kand?.no_kunjungan) throw new DataBelumLengkap("Kunjungan PCare yang dipilih belum memiliki nomor kunjungan (pendaftaran/kunjungan belum terkirim ke PCare)");
+    noKunjungan = kand.no_kunjungan;
+    if (kirim?.status === "tidak_pasti" && !konfirmasi) {
+      throw new DataBelumLengkap(
+        "Status pengiriman sebelumnya belum pasti — pastikan laporan belum diterima PCare (periksa manual) sebelum mengirim ulang, lalu centang konfirmasi",
+      );
+    }
+    const t = sekarang();
+    if (!kirim) {
+      kirim = { uuid: uuidv7(), percobaan: 0, no_referensi_pcare: null };
+      await query(
+        `INSERT INTO mcu_pcare_kirim (uuid, faskes_uuid, peserta_uuid, rawat_jalan_uuid, no_kunjungan, status, mode, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,'mengirim',$6,$7,$7)`,
+        [kirim.uuid, faskesUuid, pesertaUuid, rawatJalanUuid, noKunjungan, config.mode, t],
+      );
+    } else {
+      await simpanKirimMcu(kirim.uuid, { rawat_jalan_uuid: rawatJalanUuid, no_kunjungan: noKunjungan, status: "mengirim", mode: config.mode });
+    }
+  } else {
+    if (!kirim) throw new DataBelumLengkap("Laporan MCU PCare peserta ini belum pernah dikirim");
+    if (kirim.status !== "terkirim") throw new DataBelumLengkap(`Laporan berstatus ${kirim.status}, tindakan ${operasi} hanya untuk laporan yang sudah terkirim`);
+    if (!String(alasan ?? "").trim()) throw new DataBelumLengkap("Alasan wajib diisi");
+    noKunjungan = kirim.no_kunjungan;
+    await simpanKirimMcu(kirim.uuid, { status: "mengirim", mode: config.mode });
+  }
+
+  // Pemetaan field MCU PCare masih draf (belum dikonfirmasi spesifikasi resmi) — kirim nyata (bukan mock) ditolak
+  // sampai config.mcuPcareDikonfirmasi diaktifkan eksplisit (KF-3/KF-4: jangan kirim bila pemetaan belum dipastikan).
+  if (config.mode !== "mock" && !config.mcuPcareDikonfirmasi) {
+    const pesanTolak = "Pemetaan field MCU PCare belum dikonfirmasi dari spesifikasi resmi — pengiriman nyata belum diaktifkan (mode mock tetap tersedia untuk uji coba)";
+    await simpanKirimMcu(kirim.uuid, { status: "gagal", pesan: pesanTolak, operasi_terakhir: operasi, percobaan: (kirim.percobaan ?? 0) + 1, percobaan_pada: sekarang() });
+    return { peserta_uuid: pesertaUuid, status: "gagal", mode: config.mode, no_kunjungan: noKunjungan, no_referensi_pcare: kirim.no_referensi_pcare ?? null, pesan: pesanTolak, operasi_terakhir: operasi };
+  }
+
+  // kredensialSiap/buatMcu ikut masuk try/catch: baris sudah bersetatus 'mengirim' di atas, jadi kegagalan di sini
+  // pun harus disimpan sebagai status final (gagal), bukan dibiarkan tersangkut di 'mengirim'.
+  let statusBaru;
+  let pesan;
+  let referensi = kirim.no_referensi_pcare ?? null;
+  let body = null;
+  try {
+    const k = await kredensialSiap(faskesUuid);
+    body = buatMcu({ noKunjungan, kdProviderPeserta: k.kdProvider, ...payload });
+    const jalur = { tambah: "/mcu/insert", ubah: "/mcu/update", hapus: "/mcu/delete" }[operasi];
+    const metode = operasi === "hapus" ? "DELETE" : "POST";
+    const { response, pesan: pesanOk } = await pcare(k, metode, jalur, operasi === "hapus" ? { noKunjungan } : body);
+    statusBaru = operasi === "hapus" ? "belum" : "terkirim";
+    pesan = pesanOk || (operasi === "hapus" ? "Laporan MCU dihapus dari PCare" : "Laporan MCU diterima PCare");
+    referensi = operasi === "hapus" ? null : (response?.message ?? referensi);
+  } catch (error) {
+    // 502 (lihat klien-pcare.js#pcare) = masalah koneksi/respons, penerimaan oleh PCare tidak dapat dipastikan;
+    // kode lain (termasuk konfigurasi integrasi belum lengkap) = gagal, aman dikirim ulang setelah koreksi.
+    statusBaru = Number(error.status) === 502 ? "tidak_pasti" : "gagal";
+    pesan = error.message;
+  }
+
+  await simpanKirimMcu(kirim.uuid, {
+    status: statusBaru,
+    pesan,
+    no_referensi_pcare: referensi,
+    operasi_terakhir: operasi,
+    percobaan: (kirim.percobaan ?? 0) + 1,
+    percobaan_pada: sekarang(),
+    payload: body,
+    dikirim_oleh: dikirimOleh ?? null,
+  });
+
+  // Hasil dikembalikan apa adanya (bukan exception) untuk gagal/tidak_pasti — sama dengan pola sinkronKunjungan():
+  // rute yang menentukan status HTTP dari status bisnisnya.
+  return { peserta_uuid: pesertaUuid, status: statusBaru, mode: config.mode, no_kunjungan: noKunjungan, no_referensi_pcare: referensi, pesan, operasi_terakhir: operasi };
+};
+
+// Status pengiriman MCU PCare terakhir untuk satu peserta (baca saja; dipakai juga oleh penunjang-service bila
+// perlu konfirmasi status terbaru langsung dari bpjs-service, mis. setelah operasi gagal).
+export const statusMcu = async (faskesUuid, pesertaUuid) => {
+  const k = await ambilKirimMcu(faskesUuid, pesertaUuid);
+  return k
+    ? { peserta_uuid: pesertaUuid, status: k.status, mode: k.mode, no_kunjungan: k.no_kunjungan, no_referensi_pcare: k.no_referensi_pcare, pesan: k.pesan, operasi_terakhir: k.operasi_terakhir, percobaan: k.percobaan, percobaan_pada: k.percobaan_pada }
+    : { peserta_uuid: pesertaUuid, status: "belum", mode: null, no_kunjungan: null, no_referensi_pcare: null, pesan: null, operasi_terakhir: null, percobaan: 0, percobaan_pada: null };
 };
