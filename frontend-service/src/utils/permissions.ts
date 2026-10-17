@@ -50,7 +50,7 @@ type LegacyPermissionNode = {
 };
 
 const STORAGE_KEY = "permission";
-const STUB_MODULES = ["Training"];
+const STUB_MODULES: string[] = [];
 
 interface PermissionRouteEntry {
   path: string;
@@ -246,6 +246,11 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/mikrobiologi/laporan/kunjungan", permission: read("Mikrobiologi", "Laporan Mikrobiologi", "Kunjungan") },
   { path: "/mikrobiologi/laporan/antibiogram", permission: read("Mikrobiologi", "Laporan Mikrobiologi", "Antibiogram") },
   { path: "/mikrobiologi", mode: "prefix", permission: read("Mikrobiologi", null, null, null) },
+  { path: "/training/daftar-kelas", permission: read("Training", "Daftar Kelas") },
+  { path: "/training/booking-kelas", permission: read("Training", "Booking Kelas") },
+  { path: "/training/datamaster/kelas", permission: read("Training", "Datamaster", "Kelas") },
+  { path: "/training/laporan/rekapitulasi", permission: read("Training", "Laporan") },
+  { path: "/training", mode: "prefix", permission: read("Training", null, null, null) },
 
   { path: "/koding-rm/worklist", permission: read("Koding Rekam Medis", "Worklist") },
   { path: "/koding-rm/kunjungan", mode: "prefix", permission: read("Koding Rekam Medis", "Koding") },
@@ -307,11 +312,6 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/utd/laporan", permission: read("UTD", "Laporan UTD") },
   { path: "/utd", mode: "prefix", permission: read("UTD", null, null, null) },
 
-  { path: "/training/daftar-kelas", featureStatus: "stub", permission: read("Training", "Daftar Kelas") },
-  { path: "/training/booking-kelas", featureStatus: "stub", permission: read("Training", "Booking Kelas") },
-  { path: "/training/datamaster/kelas", featureStatus: "stub", permission: read("Training", "Datamaster") },
-  { path: "/training/laporan/rekapitulasi", featureStatus: "stub", permission: read("Training", "Laporan") },
-  { path: "/training", mode: "prefix", featureStatus: "stub", permission: read("Training", null, null, null) },
 
   { path: "/inventory/pengadaan-barang/pembelian-barang-supplier", permission: read("Inventory", "Pengadaan Barang", "Verifikasi Pembelian Barang Supplier") },
   { path: "/inventory/pengadaan-barang/verifikasi-pembelian-barang-supplier", permission: read("Inventory", "Verifikasi Pembelian Barang Supplier") },

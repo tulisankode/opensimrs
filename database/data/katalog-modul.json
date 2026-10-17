@@ -502,7 +502,7 @@
       "nama": "Kelas Training",
       "kelompok": "Layanan",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "Kelas olahraga/edukasi berbayar (yoga, pilates, senam hamil): jadwal kelas, kuota slot, booking peserta.",
       "menu": [
         "Training"

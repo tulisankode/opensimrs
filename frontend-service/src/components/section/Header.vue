@@ -410,11 +410,9 @@ const bukaSegera = (url: string) => {
 
 const NAMA_SEGERA: Record<string, string> = {
   akuntansi: "Akuntansi",
-  training: "Training",
 };
 const IKON_SEGERA: Record<string, string> = {
   akuntansi: "PhCalculator",
-  training: "TrainingIcon",
 };
 
 onMounted(async () => {
