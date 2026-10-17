@@ -5,7 +5,7 @@ import {
   tandaiBelumTerdaftar,
 } from "./lis-service.js";
 import { buatBatch, daftarBatch, detailBatch, hentikanBatch, itemUlang } from "./lis-batch.js";
-import { punyaIzin } from "./izin.js";
+import { punyaIzin, wajibSalahSatu } from "./izin.js";
 
 const apiBase = process.env.API_BASE || "api";
 const apiVersion = process.env.API_VERSION || "v3";
@@ -23,52 +23,66 @@ const fk = (req) => req.author?.faskesUuid;
 // --- Dengan login (dipasang setelah middleware otorisasi) ---------------------------------------------
 export const ruteLis = express.Router();
 
-ruteLis.get(`${baseUrl}/koneksi`, tangani(async (req, res) => kirim(res, await daftarKoneksi(fk(req)))));
-ruteLis.post(`${baseUrl}/koneksi`, tangani(async (req, res) => kirim(res, await simpanKoneksi(fk(req), null, req.body), "Koneksi LIS ditambahkan")));
-ruteLis.put(`${baseUrl}/koneksi/:uuid`, tangani(async (req, res) => kirim(res, await simpanKoneksi(fk(req), req.params.uuid, req.body), "Koneksi LIS disimpan")));
-ruteLis.put(`${baseUrl}/koneksi/:uuid/bawaan`, tangani(async (req, res) => {
+// Hak akses per rute (sama dengan izin halaman di frontend-service/src/utils/permissions.ts). Sebelumnya rute ini hanya
+// mewajibkan login: siapa pun di faskes dapat mengubah koneksi (API key, kunci masuk) dan mapping LIS.
+const INTEGRASI = ["Setting", "Konfigurasi Integrasi"];
+const bacaKoneksi = wajibSalahSatu([...INTEGRASI, "READ"], ["Laboratorium", "Order Lab", "READ"], ["Laboratorium", "Hasil Pemeriksaan", "READ"]);
+const ubahKoneksi = wajibSalahSatu([...INTEGRASI, "UPDATE KONFIGURASI LAINNYA"]);
+const petaItem = (aksi) => wajibSalahSatu(["Laboratorium", "Datamaster", aksi, "Item Pemeriksaan"], [...INTEGRASI, "UPDATE KONFIGURASI LAINNYA"]);
+const petaTarif = (aksi) => wajibSalahSatu(["Laboratorium", "Datamaster", aksi, "Tarif Lab"], [...INTEGRASI, "UPDATE KONFIGURASI LAINNYA"]);
+const bacaKirim = wajibSalahSatu(["Laboratorium", "Order Lab", "READ"], ["Laboratorium", "Hasil Pemeriksaan", "READ"], [...INTEGRASI, "READ"]);
+
+ruteLis.get(`${baseUrl}/koneksi`, bacaKoneksi, tangani(async (req, res) => kirim(res, await daftarKoneksi(fk(req)))));
+ruteLis.post(`${baseUrl}/koneksi`, ubahKoneksi, tangani(async (req, res) => kirim(res, await simpanKoneksi(fk(req), null, req.body), "Koneksi LIS ditambahkan")));
+ruteLis.put(`${baseUrl}/koneksi/:uuid`, ubahKoneksi, tangani(async (req, res) => kirim(res, await simpanKoneksi(fk(req), req.params.uuid, req.body), "Koneksi LIS disimpan")));
+ruteLis.put(`${baseUrl}/koneksi/:uuid/bawaan`, ubahKoneksi, tangani(async (req, res) => {
   await jadikanBawaan(fk(req), req.params.uuid);
   kirim(res, await daftarKoneksi(fk(req)), "LIS bawaan diubah");
 }));
-ruteLis.post(`${baseUrl}/koneksi/:uuid/kunci-masuk`, tangani(async (req, res) => kirim(res, await buatUlangKunciMasuk(fk(req), req.params.uuid), "Kunci masuk baru dibuat")));
-ruteLis.delete(`${baseUrl}/koneksi/:uuid`, tangani(async (req, res) => kirim(res, await hapusKoneksi(fk(req), req.params.uuid), "Koneksi LIS dihapus")));
+ruteLis.post(`${baseUrl}/koneksi/:uuid/kunci-masuk`, ubahKoneksi, tangani(async (req, res) => kirim(res, await buatUlangKunciMasuk(fk(req), req.params.uuid), "Kunci masuk baru dibuat")));
+ruteLis.delete(`${baseUrl}/koneksi/:uuid`, ubahKoneksi, tangani(async (req, res) => kirim(res, await hapusKoneksi(fk(req), req.params.uuid), "Koneksi LIS dihapus")));
 
-ruteLis.get(`${baseUrl}/pemetaan-item`, tangani(async (req, res) => kirim(res, await daftarPemetaanItem(fk(req)))));
-ruteLis.put(`${baseUrl}/pemetaan-item`, tangani(async (req, res) => kirim(res, await simpanPemetaanItem(fk(req), req.body?.items ?? []), "Pemetaan kode LIS disimpan")));
-ruteLis.get(`${baseUrl}/pemetaan-tarif`, tangani(async (req, res) => kirim(res, await daftarPemetaanTarif(fk(req)))));
-ruteLis.put(`${baseUrl}/pemetaan-tarif`, tangani(async (req, res) => kirim(res, await simpanPemetaanTarif(fk(req), req.body?.items ?? []), "Pemetaan kode tindakan LIS disimpan")));
-ruteLis.get(`${baseUrl}/pemetaan-ref`, tangani(async (req, res) => kirim(res, await daftarPemetaanRef(fk(req)))));
-ruteLis.put(`${baseUrl}/pemetaan-ref`, tangani(async (req, res) => kirim(res, await simpanPemetaanRef(fk(req), req.body?.items ?? []), "Pemetaan unit, dokter & penjamin LIS disimpan")));
+ruteLis.get(`${baseUrl}/pemetaan-item`, petaItem("READ"), tangani(async (req, res) => kirim(res, await daftarPemetaanItem(fk(req)))));
+ruteLis.put(`${baseUrl}/pemetaan-item`, petaItem("UPDATE"), tangani(async (req, res) => kirim(res, await simpanPemetaanItem(fk(req), req.body?.items ?? []), "Pemetaan kode LIS disimpan")));
+ruteLis.get(`${baseUrl}/pemetaan-tarif`, petaTarif("READ"), tangani(async (req, res) => kirim(res, await daftarPemetaanTarif(fk(req)))));
+ruteLis.put(`${baseUrl}/pemetaan-tarif`, petaTarif("UPDATE"), tangani(async (req, res) => kirim(res, await simpanPemetaanTarif(fk(req), req.body?.items ?? []), "Pemetaan kode tindakan LIS disimpan")));
+ruteLis.get(`${baseUrl}/pemetaan-ref`, petaTarif("READ"), tangani(async (req, res) => kirim(res, await daftarPemetaanRef(fk(req)))));
+ruteLis.put(`${baseUrl}/pemetaan-ref`, petaTarif("UPDATE"), tangani(async (req, res) => kirim(res, await simpanPemetaanRef(fk(req), req.body?.items ?? []), "Pemetaan unit, dokter & penjamin LIS disimpan")));
 
-ruteLis.get(`${baseUrl}/kirim`, tangani(async (req, res) => {
+ruteLis.get(`${baseUrl}/kirim`, bacaKirim, tangani(async (req, res) => {
   const { data, pagination } = await daftarKirim(fk(req), req.query);
   res.json({ message: "Data berhasil ditampilkan", payload: data, pagination });
 }));
-ruteLis.get(`${baseUrl}/kirim/:orderUuid`, tangani(async (req, res) => kirim(res, await statusKirimOrder(fk(req), req.params.orderUuid))));
-ruteLis.get(`${baseUrl}/kirim/:orderUuid/pratinjau`, tangani(async (req, res) => kirim(res, await pratinjauOrder(fk(req), req.params.orderUuid, { koneksiUuid: req.query.koneksi_uuid || null }))));
+ruteLis.get(`${baseUrl}/kirim/:orderUuid`, bacaKirim, tangani(async (req, res) => kirim(res, await statusKirimOrder(fk(req), req.params.orderUuid))));
+ruteLis.get(`${baseUrl}/kirim/:orderUuid/pratinjau`, bacaKirim, tangani(async (req, res) => kirim(res, await pratinjauOrder(fk(req), req.params.orderUuid, { koneksiUuid: req.query.koneksi_uuid || null }))));
 // Ambil hasil dari LIS (GET url_hasil koneksi) untuk satu order yang sudah terkirim
-ruteLis.post(`${baseUrl}/tarik/:orderUuid`, tangani(async (req, res) => {
+ruteLis.post(`${baseUrl}/tarik/:orderUuid`, wajibSalahSatu(["Laboratorium", "Hasil Pemeriksaan", "SIMPAN HASIL"]), tangani(async (req, res) => {
   const hasil = await tarikHasil(fk(req), req.params.orderUuid);
   kirim(res, hasil, `Hasil LIS: ${hasil.pesan}`);
 }));
-ruteLis.post(`${baseUrl}/kirim/:orderUuid`, tangani(async (req, res) => {
+ruteLis.post(`${baseUrl}/kirim/:orderUuid`, wajibSalahSatu(["Laboratorium", "Order Lab", "VALIDASI ORDER"]), tangani(async (req, res) => {
   const hasil = await kirimOrder(fk(req), req.params.orderUuid, { koneksiUuid: req.body?.koneksi_uuid, pengguna: req.author?.username });
   res.status(hasil.status === "terkirim" ? 200 : 502).json({ message: hasil.pesan, payload: hasil });
 }));
 
 // --- Kirim / ambil hasil / cek status massal (batch diproses asinkron di server) ------------------------------
-// Batch sumber 'mcu' (dipanggil penunjang-service atas nama pengguna) wajib izin MCU › Peserta › KIRIM LIS.
+// Batch sumber 'mcu' (dipanggil penunjang-service atas nama pengguna) wajib izin MCU › Peserta › KIRIM LIS;
+// sumber 'lab' wajib Laboratorium › Order Lab › VALIDASI ORDER (sama dengan kirim per order).
 const SUMBER = ["mcu", "lab"];
 const wajibIzinSumber = async (req, sumber) => {
   if (sumber === "mcu" && !(await punyaIzin(req.author, "MCU", "Peserta", "KIRIM LIS"))) {
     throw new GalatLis("Akses ditolak: Anda tidak memiliki hak MCU › Peserta › KIRIM LIS", 403);
   }
+  if (sumber === "lab" && !(await punyaIzin(req.author, "Laboratorium", "Order Lab", "VALIDASI ORDER"))) {
+    throw new GalatLis("Akses ditolak: Anda tidak memiliki hak Laboratorium › Order Lab › VALIDASI ORDER", 403);
+  }
 };
-ruteLis.get(`${baseUrl}/batch`, tangani(async (req, res) => {
+const bacaBatch = wajibSalahSatu(["MCU", "Peserta", "READ"], ["Laboratorium", "Order Lab", "READ"]);
+ruteLis.get(`${baseUrl}/batch`, bacaBatch, tangani(async (req, res) => {
   const { data, pagination } = await daftarBatch(fk(req), req.query);
   res.json({ message: "Data berhasil ditampilkan", payload: data, pagination });
 }));
-ruteLis.get(`${baseUrl}/batch/:uuid`, tangani(async (req, res) => kirim(res, await detailBatch(fk(req), req.params.uuid, { denganItem: req.query.item !== "0" }))));
+ruteLis.get(`${baseUrl}/batch/:uuid`, bacaBatch, tangani(async (req, res) => kirim(res, await detailBatch(fk(req), req.params.uuid, { denganItem: req.query.item !== "0" }))));
 // Body: { sumber: 'mcu', jenis: 'kirim'|'hasil'|'cek', items: [{ order_lab_uuid, ref_uuid }], koneksi_uuid?, opsi: { periksa_now }, judul? }
 ruteLis.post(`${baseUrl}/batch`, tangani(async (req, res) => {
   const b = req.body ?? {};

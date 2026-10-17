@@ -30,12 +30,25 @@ const izinPengguna = async (username) => {
   return izin;
 };
 
-export const punyaIzin = async (author, modul, submodul, aksi) => {
+// fitur (opsional): izin tingkat fitur di dalam submodul, mis. Datamaster › Item Pemeriksaan.
+export const punyaIzin = async (author, modul, submodul, aksi, fitur = null) => {
   const izin = await izinPengguna(author?.username);
   if (!izin.length && teks(author?.role) === "super admin") return true;
   const m = izin.find((x) => teks(x?.module) === teks(modul));
   if (!m) return false;
-  return daftar(m.subModules ?? m.submodules).some(
-    (s) => teks(s?.name) === teks(submodul) && daftar(s.allows).some((a) => teks(typeof a === "string" ? a : a?.name) === teks(aksi)),
-  );
+  return daftar(m.subModules ?? m.submodules).some((s) => {
+    if (teks(s?.name) !== teks(submodul)) return false;
+    const allows = fitur ? daftar(s.features).find((f) => teks(f?.name) === teks(fitur))?.allows : s.allows;
+    return daftar(allows).some((a) => teks(typeof a === "string" ? a : a?.name) === teks(aksi));
+  });
+};
+
+// Middleware: lolos bila pengguna punya SALAH SATU syarat [modul, submodul, aksi, fitur?]; selain itu 403.
+export const wajibSalahSatu = (...syarat) => async (req, res, next) => {
+  try {
+    for (const [modul, submodul, aksi, fitur] of syarat) if (await punyaIzin(req.author, modul, submodul, aksi, fitur)) return next();
+    res.status(403).json({ message: `Akses ditolak: butuh hak ${syarat.map((s) => s.filter(Boolean).join(" › ")).join(" atau ")}` });
+  } catch (e) {
+    next(e);
+  }
 };
