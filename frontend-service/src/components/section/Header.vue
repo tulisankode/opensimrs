@@ -87,6 +87,11 @@ const templistMenu = ref<ListMenu[]>([
     url: "/igd",
   },
   {
+    title: "Gizi",
+    icon: "PhBowlFood",
+    url: "/gizi",
+  },
+  {
     title: "Farmasi",
     icon: "PhAsclepius",
     iconWeight: "bold",
@@ -394,12 +399,12 @@ const bukaSegera = (url: string) => {
 };
 
 const NAMA_SEGERA: Record<string, string> = {
-  kamar_operasi: "Kamar Operasi", gizi: "Gizi",
+  kamar_operasi: "Kamar Operasi",
   koding_rm: "Koding RM", akuntansi: "Akuntansi",
   training: "Training",
 };
 const IKON_SEGERA: Record<string, string> = {
-  kamar_operasi: "PhKnife", gizi: "PhBowlFood",
+  kamar_operasi: "PhKnife",
   koding_rm: "PhFileCode", akuntansi: "PhCalculator",
   training: "TrainingIcon",
 };

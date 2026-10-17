@@ -263,6 +263,15 @@ import KomponenUtdPage from "@/views/Utd/KomponenUtdPage.vue";
 import DistribusiUtdPage from "@/views/Utd/DistribusiUtdPage.vue";
 import PelaporanUtdPage from "@/views/Utd/PelaporanUtdPage.vue";
 import PengaturanUtdPage from "@/views/Utd/PengaturanUtdPage.vue";
+import GiziView from "@/views/Gizi/GiziView.vue";
+import SkriningGiziPage from "@/views/Gizi/SkriningPage.vue";
+import AsuhanGiziPage from "@/views/Gizi/AsuhanPage.vue";
+import OrderDietPage from "@/views/Gizi/OrderDietPage.vue";
+import DistribusiGiziPage from "@/views/Gizi/DistribusiPage.vue";
+import MasterDietPage from "@/views/Gizi/MasterDietPage.vue";
+import BentukMakananGiziPage from "@/views/Gizi/BentukMakananPage.vue";
+import StandarPorsiGiziPage from "@/views/Gizi/StandarPorsiPage.vue";
+import LaporanGiziPage from "@/views/Gizi/LaporanGiziPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
@@ -1707,6 +1716,20 @@ const router = createRouter({
       ["/mikrobiologi/laporan/kunjungan", "mikrobiologi-laporan-kunjungan", LaporanKunjunganMikroPage],
       ["/mikrobiologi/laporan/antibiogram", "mikrobiologi-laporan-antibiogram", LaporanAntibiogramPage],
     ]),
+    // SECTION Gizi (penunjang-service)
+    { path: "/gizi", name: "gizi", redirect: "/gizi/skrining" },
+    ...halamanModul(GiziView, [
+      ["/gizi/skrining", "gizi-skrining", SkriningGiziPage],
+      ["/gizi/asuhan", "gizi-asuhan", AsuhanGiziPage],
+      ["/gizi/order", "gizi-order", OrderDietPage],
+      ["/gizi/distribusi", "gizi-distribusi", DistribusiGiziPage],
+      ["/gizi/master/diet", "gizi-master-diet", MasterDietPage],
+      ["/gizi/master/bentuk-makanan", "gizi-master-bentuk-makanan", BentukMakananGiziPage],
+      ["/gizi/master/standar-porsi", "gizi-master-standar-porsi", StandarPorsiGiziPage],
+      ["/gizi/laporan", "gizi-laporan", LaporanGiziPage],
+    ]),
+    // !SECTION
+
     // SECTION Program Puskesmas (program-puskesmas-service)
     { path: "/program-puskesmas", name: "program-puskesmas", redirect: "/program-puskesmas/kia" },
     ...halamanModul(ProgramPuskesmasView, [

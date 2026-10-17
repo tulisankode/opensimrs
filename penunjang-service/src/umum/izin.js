@@ -71,3 +71,4 @@ export const izinUtd = (submodul, aksi, fitur = null) => wajibIzin("UTD", submod
 
 // Hasil IMLTD reaktif & identitas donor terkait (KF-18): izin terpisah dari "IMLTD" › READ.
 export const bolehLihatReaktif = (req) => punyaIzin(req, "UTD", "Lihat Hasil Reaktif", "READ");
+export const izinGizi = (submodul, aksi, fitur = null) => wajibIzin("Gizi", submodul, aksi, fitur);

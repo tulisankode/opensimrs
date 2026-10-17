@@ -918,6 +918,25 @@ export const mikrobiologiPermission = {
   ],
 };
 
+export const giziPermission = {
+  module: "Gizi",
+  subModules: [
+    { name: "Skrining", allows: ["READ", "CREATE"] },
+    { name: "Asesmen Gizi", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Order Diet", allows: ["READ", "CREATE", "UPDATE", "BATAL"] },
+    { name: "Distribusi", allows: ["READ", "CREATE", "CETAK"] },
+    {
+      name: "Datamaster",
+      features: [
+        { name: "Master Diet", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+        { name: "Bentuk Makanan", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+        { name: "Standar Porsi", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+      ],
+    },
+    { name: "Laporan Gizi", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
 // UTD / UPTD Produksi Darah (penunjang-service). "Lihat Hasil Reaktif" dipisah dari IMLTD READ (KF-18): hasil reaktif
 // & identitas donor terkait hanya tampil bagi peran yang diberi izin ini secara eksplisit.
 export const utdPermission = {
@@ -1412,6 +1431,7 @@ export function mapPermission(permissionList) {
     "program puskesmas": programPuskesmasPermission,
     "patologi anatomi": patologiAnatomiPermission,
     mikrobiologi: mikrobiologiPermission,
+    gizi: giziPermission,
     utd: utdPermission,
     "bank darah rs (bdrs)": bankDarahPermission,
     cssd: cssdPermission,

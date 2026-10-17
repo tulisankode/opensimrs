@@ -420,10 +420,14 @@
       "nama": "Gizi",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
-      "deskripsi": "Diet & distribusi makan pasien rawat inap.",
-      "menu": [],
-      "rute": [],
+      "tersedia": true,
+      "deskripsi": "Skrining & asesmen gizi, order diet, serta distribusi makan pasien rawat inap.",
+      "menu": [
+        "Gizi"
+      ],
+      "rute": [
+        "/gizi"
+      ],
       "urutan": 21
     },
     {
