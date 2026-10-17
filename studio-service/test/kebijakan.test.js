@@ -88,3 +88,32 @@ test("import @/utils/aplikasi lolos; main.ts sendiri dan baris dihapus tidak dip
   assert.equal(cek(h, "Import melingkar").lulus, true);
   assert.equal(h.lulus, true);
 });
+
+// Kriptografi: berkas enkripsi baru buatan agen wajib salinan baku lab-service/src/lis/rahasia.js.
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+const RAHASIA_LIS = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../../lab-service/src/lis/rahasia.js"), "utf8");
+const sebagaiPatch = (isi) => isi.replace(/\r\n/g, "\n").split("\n").map((b) => `+${b}`).join("\n");
+
+test("kriptografi: salinan baku (komentar & nama variabel kunci berbeda) lolos", () => {
+  const salinan = RAHASIA_LIS.replace(/LIS_KUNCI_RAHASIA/g, "RAD_PACS_KUNCI_RAHASIA").replace(/^\/\/.*$/gm, "// Enkripsi rahasia PACS/RIS");
+  const h = periksaKebijakan([{ path: "penunjang-service/src/pacs/kripto.js", status: "??", patch: sebagaiPatch(salinan) }, changelog], { kriptoBaku: [RAHASIA_LIS] });
+  assert.equal(cek(h, "Kriptografi").lulus, true);
+  assert.equal(h.lulus, true);
+});
+
+test("kriptografi: kode enkripsi buatan sendiri ditolak, kecuali risiko kritis", () => {
+  const ubahan = RAHASIA_LIS.replace("aes-256-gcm", "aes-128-cbc");
+  const berkas = [{ path: "penunjang-service/src/x/kunci.js", status: "??", patch: sebagaiPatch(ubahan) }, changelog];
+  const h = periksaKebijakan(berkas, { kriptoBaku: [RAHASIA_LIS] });
+  assert.equal(h.lulus, false);
+  assert.match(cek(h, "Kriptografi").pesan, /x\/kunci\.js/);
+  assert.equal(cek(periksaKebijakan(berkas, { risiko: "kritis", kriptoBaku: [RAHASIA_LIS] }), "Kriptografi").lulus, true);
+});
+
+test("kriptografi: menambah createCipheriv ke berkas lama ditolak; tanpa kriptografi tidak muncul", () => {
+  const h = periksaKebijakan([{ path: "lab-service/src/services/x.js", status: "M", patch: '+const c = crypto.createCipheriv("aes-256-gcm", k, iv);' }, changelog], { kriptoBaku: [RAHASIA_LIS] });
+  assert.equal(cek(h, "Kriptografi").lulus, false);
+  assert.equal(cek(periksaKebijakan([changelog]), "Kriptografi"), undefined);
+});
