@@ -97,6 +97,36 @@ const tiruan = (metode, jalur, body) => {
   }
   if (metode === "DELETE" && s === "SEP/2.0/delete") return ok(body?.request?.t_sep?.noSep ?? "");
   if (metode === "GET" && bagian[0] === "SEP") return ok({ noSep: bagian[1], tglSep: new Date().toISOString().slice(0, 10), jnsPelayanan: "Rawat Jalan" });
+
+  // Rencana Kontrol (STD-0021)
+  if (metode === "POST" && s === "RencanaKontrol/insert") {
+    const t = body?.request?.t_rencontrol;
+    if (!t?.noKartu || !t?.kodeDokter || !t?.poliKontrol || !t?.tglRencanaKontrol) {
+      return { metaData: { code: "201", message: "noKartu / kodeDokter / poliKontrol / tglRencanaKontrol wajib diisi" }, response: null };
+    }
+    return ok({ noSuratKontrol: `RK${String(t.noKartu).slice(-6)}${String(Date.now()).slice(-8)}` });
+  }
+  if (metode === "PUT" && s === "RencanaKontrol/update") {
+    const t = body?.request?.t_rencontrol;
+    if (!t?.noSuratKontrol) return { metaData: { code: "201", message: "noSuratKontrol wajib diisi" }, response: null };
+    return ok({ noSuratKontrol: t.noSuratKontrol });
+  }
+  if (metode === "DELETE" && s === "RencanaKontrol/delete") return ok(body?.request?.t_rencontrol?.noSuratKontrol ?? "");
+  if (metode === "GET" && s.startsWith("RencanaKontrol/")) return ok({ list: [] });
+
+  // SPRI (STD-0021)
+  if (metode === "POST" && s === "SPRI/insert") {
+    const t = body?.request?.t_sprirawat;
+    if (!t?.noKartu || !t?.tglRencana) return { metaData: { code: "201", message: "noKartu / tglRencana wajib diisi" }, response: null };
+    return ok({ noSuratSPRI: `SPRI${String(t.noKartu).slice(-6)}${String(Date.now()).slice(-8)}` });
+  }
+  if (metode === "PUT" && s === "SPRI/update") {
+    const t = body?.request?.t_sprirawat;
+    if (!t?.noSuratSPRI) return { metaData: { code: "201", message: "noSuratSPRI wajib diisi" }, response: null };
+    return ok({ noSuratSPRI: t.noSuratSPRI });
+  }
+  if (metode === "GET" && s.startsWith("SPRI/")) return ok({ list: [] });
+
   return { metaData: { code: "404", message: `simulasi: ${metode} ${s} tidak tersedia` }, response: null };
 };
 

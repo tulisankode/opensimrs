@@ -81,3 +81,61 @@ export const buatSep = ({
 };
 
 export const hapusSep = ({ noSep, user = "OpenSIMRS" }) => ({ request: { t_sep: { noSep, user: String(user).slice(0, 30) } } });
+
+// --- Rencana Kontrol & SPRI (STD-0021) ---------------------------------------------------------------
+// Katalog "Rencana Kontrol" dan "SPRI" VClaim 2.0 belum diverifikasi terhadap sandbox BPJS (lihat desain
+// teknis STD-0021); struktur payload berikut mengikuti pola penamaan request.t_sep yang sudah ada dan
+// perlu dicocokkan ulang sebelum dipakai di lingkungan produksi (config.lingkungan === "production").
+
+/**
+ * @param {object} p
+ * @param {string} p.noKartu
+ * @param {string} p.kodeDokter      kode dokter DPJP VClaim
+ * @param {string} p.poliKontrol     kode poli spesialistik VClaim
+ * @param {string} p.tglRencanaKontrol  yyyy-mm-dd
+ * @param {string} p.user
+ */
+export const buatRencanaKontrol = ({ noKartu, kodeDokter, poliKontrol, tglRencanaKontrol, user = "OpenSIMRS" }) => ({
+  request: {
+    t_rencontrol: {
+      noKartu,
+      kodeDokter,
+      poliKontrol,
+      tglRencanaKontrol: keTanggalVclaim(tglRencanaKontrol),
+      user: String(user ?? "OpenSIMRS").slice(0, 30),
+    },
+  },
+});
+
+export const ubahRencanaKontrol = ({ noSuratKontrol, noKartu, kodeDokter, poliKontrol, tglRencanaKontrol, user = "OpenSIMRS" }) => ({
+  request: {
+    t_rencontrol: {
+      noSuratKontrol,
+      noKartu,
+      kodeDokter,
+      poliKontrol,
+      tglRencanaKontrol: keTanggalVclaim(tglRencanaKontrol),
+      user: String(user ?? "OpenSIMRS").slice(0, 30),
+    },
+  },
+});
+
+export const hapusRencanaKontrol = ({ noSuratKontrol, user = "OpenSIMRS" }) => ({
+  request: { t_rencontrol: { noSuratKontrol, user: String(user ?? "OpenSIMRS").slice(0, 30) } },
+});
+
+/**
+ * @param {object} p
+ * @param {string} p.noKartu
+ * @param {string} p.tglRencana   yyyy-mm-dd, tanggal rencana rawat inap
+ * @param {string} p.user
+ */
+export const buatSpri = ({ noKartu, tglRencana, user = "OpenSIMRS" }) => ({
+  request: { t_sprirawat: { noKartu, tglRencana: keTanggalVclaim(tglRencana), user: String(user ?? "OpenSIMRS").slice(0, 30) } },
+});
+
+export const ubahSpri = ({ noSuratSPRI, noKartu, tglRencana, user = "OpenSIMRS" }) => ({
+  request: {
+    t_sprirawat: { noSuratSPRI, noKartu, tglRencana: keTanggalVclaim(tglRencana), user: String(user ?? "OpenSIMRS").slice(0, 30) },
+  },
+});

@@ -72,6 +72,11 @@ export const admisiPermission = {
       allows: ["READ", "CREATE SEP", "CREATE SEP MANUAL", "DELETE", "SIMPAN SEP MANUAL", "DELETE PASIEN"],
     },
     {
+      // Rencana Kontrol & SPRI via VClaim (fitur vclaim_rencana_kontrol, modul bpjs_fkrtl) — STD-0021
+      name: "Rencana Kontrol & SPRI",
+      allows: ["READ", "CREATE RENCANA KONTROL", "UPDATE RENCANA KONTROL", "DELETE RENCANA KONTROL", "CREATE SPRI", "UPDATE SPRI", "PILIH SURAT SEP"],
+    },
+    {
       name: "Data Pasien",
       allows: [
         "READ",
