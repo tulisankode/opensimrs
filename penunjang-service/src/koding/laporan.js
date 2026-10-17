@@ -16,11 +16,14 @@ const rentang = (q) => {
 };
 
 // Diagnosis/tindakan terverifikasi (versi terbaru kunjungan yang sudah siap_klaim) dalam rentang finalisasi.
-const DASAR_FINAL = `
+// Bagian FROM/JOIN dan WHERE dipisah agar laporan yang menambah JOIN (RL) tetap menghasilkan SQL yang sah.
+const DARI_FINAL = `
   FROM koding_kunjungan kk
-  JOIN koding_diagnosis kd ON kd.koding_kunjungan_uuid = kk.uuid AND kd.versi = kk.versi_terakhir
+  JOIN koding_diagnosis kd ON kd.koding_kunjungan_uuid = kk.uuid AND kd.versi = kk.versi_terakhir`;
+const SYARAT_FINAL = `
   WHERE kk.faskes_uuid = $1 AND kk.deleted_at IS NULL AND kk.status = 'siap_klaim'
     AND ${tglLokal("kk.finalisasi_at")} BETWEEN $2 AND $3`;
+const DASAR_FINAL = `${DARI_FINAL}${SYARAT_FINAL}`;
 
 rute.get(
   "/laporan/indeks",
@@ -93,17 +96,17 @@ rute.get(
     const [morbiditas, mortalitas] = await Promise.all([
       query(
         `SELECT kk.kunjungan_tipe, kd.kode, kd.nama, s.gender, COUNT(*)::int AS jumlah
-           ${DASAR_FINAL}
+           ${DARI_FINAL}
            JOIN (${sumber}) s ON s.kunjungan_tipe = kk.kunjungan_tipe AND s.kunjungan_uuid = kk.kunjungan_uuid
-          WHERE kd.peran = 'utama'
+          ${SYARAT_FINAL} AND kd.peran = 'utama'
           GROUP BY kk.kunjungan_tipe, kd.kode, kd.nama, s.gender ORDER BY jumlah DESC`,
         p,
       ),
       query(
         `SELECT kd.kode, kd.nama, COUNT(*)::int AS jumlah
-           ${DASAR_FINAL}
+           ${DARI_FINAL}
            JOIN (${sumber}) s ON s.kunjungan_tipe = kk.kunjungan_tipe AND s.kunjungan_uuid = kk.kunjungan_uuid
-          WHERE kd.peran = 'utama' AND s.kondisi_pasien_pulang ILIKE '%meninggal%'
+          ${SYARAT_FINAL} AND kd.peran = 'utama' AND s.kondisi_pasien_pulang ILIKE '%meninggal%'
           GROUP BY kd.kode, kd.nama ORDER BY jumlah DESC`,
         p,
       ),
