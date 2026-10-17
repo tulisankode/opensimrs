@@ -142,6 +142,9 @@ export const tetapkanRisiko = async (item, { risiko, alasan }, oleh, superadmin 
 
 // ---------- Konteks tambahan prompt (aturan area, tambahan tahap, pengetahuan, lampiran) ----------
 
+const BATAS_LAMPIRAN = 60_000; // karakter per lampiran teks yang disisipkan ke prompt
+const BATAS_LAMPIRAN_TOTAL = 150_000;
+
 const konteksTambahan = async (item, tahap) => {
   const aturan = await query(`SELECT lapis, kunci, judul, isi FROM studio_aturan WHERE deleted_at IS NULL AND aktif ORDER BY lapis, kunci`);
   const berkas = (item.berkas ?? []).map((b) => b.path);
@@ -155,7 +158,24 @@ const konteksTambahan = async (item, tahap) => {
   const aturanArea = aturan.filter((a) => a.lapis === "area" && cocokArea(a.kunci)).map((a) => `### ${a.judul} (${a.kunci})\n${a.isi}`).join("\n\n");
   const tambahanTahap = aturan.filter((a) => a.lapis === "tahap" && a.kunci === tahap).map((a) => a.isi).join("\n\n");
   const pengetahuan = (await query(`SELECT judul, isi FROM studio_pengetahuan WHERE deleted_at IS NULL AND aktif ORDER BY judul`)).map((p) => `### ${p.judul}\n${p.isi}`).join("\n\n");
-  const lampiran = (await query(`SELECT nama, lokasi FROM studio_lampiran WHERE item_uuid = $1 AND deleted_at IS NULL ORDER BY created_at`, [item.uuid]));
+  const lampiran = await query(`SELECT nama, lokasi, mime FROM studio_lampiran WHERE item_uuid = $1 AND deleted_at IS NULL ORDER BY created_at`, [item.uuid]);
+  // Hanya Claude Code yang diberi akses folder lampiran (--add-dir). Codex & konektor API bekerja di sandbox folder kerja,
+  // dan folder lampiran diabaikan git sehingga tidak terlihat oleh pencarian berkas: isi lampiran teks disisipkan ke prompt.
+  const { nilai } = await bacaSemua();
+  if ((nilai.konektor_tahap?.[tahap] || "claude_code") !== "claude_code") {
+    let sisa = BATAS_LAMPIRAN_TOTAL;
+    for (const l of lampiran) {
+      if (!MIME_TEKS.test(String(l.mime)) || sisa <= 0) continue;
+      try {
+        const isi = fs.readFileSync(l.lokasi, "utf8");
+        l.isi = isi.length > Math.min(BATAS_LAMPIRAN, sisa) ? `${isi.slice(0, Math.min(BATAS_LAMPIRAN, sisa))}
+… (dipotong)` : isi;
+        sisa -= l.isi.length;
+      } catch {
+        /* berkas lampiran hilang: tetap dicantumkan nama & lokasinya */
+      }
+    }
+  }
   return { aturanArea, tambahanTahap, pengetahuan, lampiran };
 };
 

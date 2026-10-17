@@ -80,9 +80,15 @@ const teksPermintaan = (item) => {
 };
 
 // Konteks: permintaan + artefak terbaru tahap-tahap sebelumnya + diskusi tahap ini.
-const teksLampiran = (lampiran = []) =>
+// Lampiran dengan `isi` (teks yang disisipkan untuk agen tanpa akses folder lampiran) ditulis utuh di prompt.
+export const teksLampiran = (lampiran = []) =>
   lampiran.length
-    ? [...lampiran.map((l) => `- ${l.nama}: ${l.lokasi}`), "Baca lampiran dengan alat baca berkas bila relevan. Bila lampiran memuat data pasien yang tampak asli, hentikan dan minta pengguna mengganti dengan data fiktif."].join("\n")
+    ? [
+        ...lampiran.map((l) => (l.isi != null ? `- ${l.nama} (isi di bawah)` : `- ${l.nama}: ${l.lokasi}`)),
+        lampiran.some((l) => l.isi == null) ? "Baca lampiran dengan alat baca berkas bila relevan." : null,
+        "Bila lampiran memuat data pasien yang tampak asli, hentikan dan minta pengguna mengganti dengan data fiktif.",
+        ...lampiran.filter((l) => l.isi != null).map((l) => `\n#### Lampiran: ${l.nama}\n<lampiran nama="${l.nama}">\n${l.isi}\n</lampiran>`),
+      ].filter(Boolean).join("\n")
     : null;
 
 // konteks tambahan (semua opsional): aturanArea, tambahanTahap, pengetahuan, lampiran
