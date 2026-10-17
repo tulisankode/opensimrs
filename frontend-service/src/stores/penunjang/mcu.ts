@@ -190,7 +190,7 @@ export const petunjukGalatLis = (pesan?: string | null): { teks: string; rute?: 
   if (/tidak boleh kosong|harus/i.test(p)) return { teks: "Lengkapi data pasien/peserta yang wajib diisi LIS, lalu kirim ulang." };
   if (/belum pasti|cek status|waktu habis|terputus|bad gateway/i.test(p)) return { teks: "Respons LIS tidak diterima. Jalankan Cek Status sebelum mengirim ulang agar tidak terdaftar dua kali." };
   if (/coba lagi setelah|sibuk/i.test(p)) return { teks: "LIS sedang gagal memproses. Kirim ulang beberapa menit lagi." };
-  if (/tidak dapat dihubungi|koneksi lis|x-api-key|kode rs|kode lab/i.test(p)) return { teks: "Periksa koneksi LIS (URL, API key, Kode RS/Lab).", rute: "/setting/konfigurasi-integrasi", label: "Konfigurasi LIS" };
+  if (/tidak dapat dihubungi|koneksi lis|x-api-key|kode rs|kode lab/i.test(p)) return { teks: "Periksa koneksi LIS (URL, API key, Kode RS/Lab).", rute: "/setting/konfigurasi-integrasi/lis-pk", label: "Konfigurasi LIS" };
   if (/tidak ditemukan di LIS|aman dikirim ulang/i.test(p)) return { teks: "Belum terdaftar di LIS — aman dikirim ulang." };
   return null;
 };
