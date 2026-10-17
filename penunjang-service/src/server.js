@@ -4,6 +4,7 @@ import rute from "./rute.js";
 import { ruteMasuk as ruteMasukLisMikro } from "./mikrobiologi/lis-rute.js";
 import { ruteMasuk as ruteMasukLisPa } from "./patologi/lis-pa/lis-pa-rute.js";
 import { ruteMasuk as ruteMasukPacs } from "./pacs/pacs-rute.js";
+import { ruteMasuk as ruteMasukBdrsUtd } from "./bank-darah/utd/utd-push-rute.js";
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use(express.json({ limit: "5mb" }));
 app.use(ruteMasukPacs);
 app.use(ruteMasukLisPa);
 app.use(ruteMasukLisMikro);
+app.use(ruteMasukBdrsUtd);
 app.use(config.basePath, rute);
 
 app.listen(config.port, config.host, () => {

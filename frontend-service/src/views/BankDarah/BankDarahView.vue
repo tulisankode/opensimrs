@@ -2,7 +2,8 @@
 import Sidebar from "@/components/section/Sidebar.vue";
 import { linkType } from "@/utils/Enum";
 import type { SidebarBody } from "@/utils/Interface";
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import { fiturAktif } from "@/stores/modulFaskes";
 
 const sidebarBodyList = ref<SidebarBody[]>([
   {
@@ -30,16 +31,23 @@ const sidebarBodyList = ref<SidebarBody[]>([
     ],
   },
   {
+    name: "mapping-utd",
+    type: linkType.SECTION,
+    child: [{ name: "Mapping UTD", icon: "PhArrowsLeftRight", type: linkType.LINK, url: "/bank-darah/mapping-utd" }],
+  },
+  {
     name: "3",
     type: linkType.SECTION,
     child: [{ name: "Laporan", icon: "FileReportIcon", type: linkType.LINK, url: "/bank-darah/laporan" }],
   },
 ]);
+// Mapping UTD hanya tampil untuk faskes yang mengaktifkan fitur Bridging Bank Darah (UTD) (Manajemen Modul).
+const sidebarTampil = computed(() => sidebarBodyList.value.filter((s) => s.name !== "mapping-utd" || fiturAktif("bdrs_bridging")));
 </script>
 
 <template>
   <div class="flex h-full gap-3">
-    <Sidebar sidebarTitle="Bank Darah RS (BDRS)" sidebarTitleUrl="/bank-darah" class="flex-none" :sidebar-body-list="sidebarBodyList" />
+    <Sidebar sidebarTitle="Bank Darah RS (BDRS)" sidebarTitleUrl="/bank-darah" class="flex-none" :sidebar-body-list="sidebarTampil" />
     <component class="max-h-full overflow-auto grow" :is="$route.meta.page || 'div'"></component>
   </div>
 </template>

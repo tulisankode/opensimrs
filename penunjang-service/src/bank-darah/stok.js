@@ -16,7 +16,53 @@ const PILIH = `
   s.sumber, s.utd_referensi_uuid, s.status, s.status_imltd, s.alasan_keluar, s.diterima_oleh, s.created_at, s.updated_at`;
 const JOIN = `LEFT JOIN bdrs_komponen_darah k ON k.uuid = s.komponen_uuid`;
 
-const ambil = (uuid, faskes) => satu(`SELECT ${PILIH} FROM ${TABEL} s ${JOIN} WHERE s.uuid = $1 AND s.faskes_uuid = $2 AND s.deleted_at IS NULL`, [uuid, faskes]);
+export const ambilStok = (uuid, faskes) => satu(`SELECT ${PILIH} FROM ${TABEL} s ${JOIN} WHERE s.uuid = $1 AND s.faskes_uuid = $2 AND s.deleted_at IS NULL`, [uuid, faskes]);
+const ambil = ambilStok;
+
+// Logika penerimaan kantong ke stok BDRS (KF-12/STD-0017): dipakai bersama oleh POST /penerimaan (manual, di bawah)
+// dan penerimaan kantong bridging UTD (bank-darah/utd/utd-hasil.js `terimaKantongUtd`), agar aturan IMLTD, validasi
+// kedaluwarsa, dan audit penolakan reaktif tidak menyimpang antara dua jalur tersebut.
+export const terimaKantong = async (faskes, b, pengguna) => {
+  wajib(b, ["no_kantong", "komponen_uuid", "golongan_abo", "rhesus", "tanggal_kedaluwarsa"]);
+  const komponen = await satu(`SELECT uuid FROM bdrs_komponen_darah WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL AND status`, [b.komponen_uuid, faskes]);
+  if (!komponen) throw permintaanSalah("Komponen darah tidak ditemukan atau tidak aktif");
+  const produksi = Number(b.tanggal_produksi) || Math.floor(Date.now() / 1000);
+  const kedaluwarsa = Number(b.tanggal_kedaluwarsa);
+  if (!Number.isFinite(kedaluwarsa)) throw permintaanSalah("tanggal_kedaluwarsa tidak valid");
+  if (kedaluwarsa <= produksi) throw permintaanSalah("tanggal_kedaluwarsa harus setelah tanggal_produksi");
+  if (kedaluwarsa <= Math.floor(Date.now() / 1000)) throw new Galat(409, "Kantong sudah kedaluwarsa, tidak dapat diterima ke stok");
+  const sumber = cekPilihan(b.sumber || "utd_manual", SUMBER_STOK, "sumber");
+  const volume = b.volume_ml === undefined || b.volume_ml === null || b.volume_ml === "" ? null : Number(b.volume_ml);
+  if (volume !== null && (!Number.isFinite(volume) || volume <= 0)) throw permintaanSalah("volume_ml tidak valid");
+  const noKantong = String(b.no_kantong).trim();
+  const statusImltd = cekPilihan(b.status_imltd || "belum_diperiksa", STATUS_IMLTD, "status_imltd");
+
+  // Kantong IMLTD reaktif ditolak dari stok (tidak disimpan) & penolakannya dicatat (KF-12/F3).
+  if (statusImltd === "reaktif") {
+    await catatAuditBdrs(faskes, "tolak_imltd_reaktif", {
+      pengguna: pengguna ?? null,
+      data: { no_kantong: noKantong, komponen_uuid: b.komponen_uuid, golongan_abo: b.golongan_abo, rhesus: b.rhesus },
+    });
+    throw new Galat(409, `Kantong ${noKantong} berstatus IMLTD reaktif, tidak dapat diterima sebagai stok`);
+  }
+
+  return sisipkan(TABEL, {
+    faskes_uuid: faskes,
+    no_kantong: noKantong,
+    komponen_uuid: b.komponen_uuid,
+    golongan_abo: cekPilihan(b.golongan_abo, GOLONGAN_ABO, "golongan_abo"),
+    rhesus: cekPilihan(b.rhesus, RHESUS, "rhesus"),
+    volume_ml: volume,
+    tanggal_produksi: produksi,
+    tanggal_kedaluwarsa: kedaluwarsa,
+    lokasi_penyimpanan: teks(b.lokasi_penyimpanan),
+    sumber,
+    utd_referensi_uuid: teks(b.utd_referensi_uuid),
+    status: "tersedia",
+    status_imltd: statusImltd,
+    diterima_oleh: pengguna ?? null,
+  }).catch((e) => ramah(e, `No. kantong ${b.no_kantong} sudah terdaftar`));
+};
 
 rute.get(
   "/",
@@ -81,50 +127,8 @@ rute.post(
   "/penerimaan",
   izinBdrs("Stok & Penerimaan", "TERIMA KANTONG"),
   tangani(async (req, res) => {
-    const b = req.body ?? {};
     const faskes = req.author.faskesUuid;
-    wajib(b, ["no_kantong", "komponen_uuid", "golongan_abo", "rhesus", "tanggal_kedaluwarsa"]);
-    const komponen = await satu(`SELECT uuid FROM bdrs_komponen_darah WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL AND status`, [b.komponen_uuid, faskes]);
-    if (!komponen) throw permintaanSalah("Komponen darah tidak ditemukan atau tidak aktif");
-    const produksi = Number(b.tanggal_produksi) || Math.floor(Date.now() / 1000);
-    const kedaluwarsa = Number(b.tanggal_kedaluwarsa);
-    if (!Number.isFinite(kedaluwarsa)) throw permintaanSalah("tanggal_kedaluwarsa tidak valid");
-    if (kedaluwarsa <= produksi) throw permintaanSalah("tanggal_kedaluwarsa harus setelah tanggal_produksi");
-    if (kedaluwarsa <= Math.floor(Date.now() / 1000)) throw new Galat(409, "Kantong sudah kedaluwarsa, tidak dapat diterima ke stok");
-    const sumber = cekPilihan(b.sumber || "utd_manual", SUMBER_STOK, "sumber");
-    const volume = b.volume_ml === undefined || b.volume_ml === null || b.volume_ml === "" ? null : Number(b.volume_ml);
-    if (volume !== null && (!Number.isFinite(volume) || volume <= 0)) throw permintaanSalah("volume_ml tidak valid");
-    const noKantong = String(b.no_kantong).trim();
-    const statusImltd = cekPilihan(b.status_imltd || "belum_diperiksa", STATUS_IMLTD, "status_imltd");
-
-    // Kantong IMLTD reaktif ditolak dari stok (tidak disimpan) & penolakannya dicatat (KF-12/F3).
-    if (statusImltd === "reaktif") {
-      await catatAuditBdrs(faskes, "tolak_imltd_reaktif", {
-        pengguna: req.author.username ?? null,
-        data: { no_kantong: noKantong, komponen_uuid: b.komponen_uuid, golongan_abo: b.golongan_abo, rhesus: b.rhesus },
-      });
-      throw new Galat(409, `Kantong ${noKantong} berstatus IMLTD reaktif, tidak dapat diterima sebagai stok`);
-    }
-
-    const kantong = await sisipkan(
-      TABEL,
-      {
-        faskes_uuid: faskes,
-        no_kantong: noKantong,
-        komponen_uuid: b.komponen_uuid,
-        golongan_abo: cekPilihan(b.golongan_abo, GOLONGAN_ABO, "golongan_abo"),
-        rhesus: cekPilihan(b.rhesus, RHESUS, "rhesus"),
-        volume_ml: volume,
-        tanggal_produksi: produksi,
-        tanggal_kedaluwarsa: kedaluwarsa,
-        lokasi_penyimpanan: teks(b.lokasi_penyimpanan),
-        sumber,
-        utd_referensi_uuid: teks(b.utd_referensi_uuid),
-        status: "tersedia",
-        status_imltd: statusImltd,
-        diterima_oleh: req.author.username ?? null,
-      },
-    ).catch((e) => ramah(e, `No. kantong ${b.no_kantong} sudah terdaftar`));
+    const kantong = await terimaKantong(faskes, req.body ?? {}, req.author.username ?? null);
     kirim(res, await ambil(kantong.uuid, faskes), `Kantong ${kantong.no_kantong} berhasil diterima`);
   }),
 );

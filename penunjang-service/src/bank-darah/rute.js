@@ -13,6 +13,8 @@ import laporan from "./laporan.js";
 import { GOLONGAN_ABO, HASIL_UJI, RHESUS, STATUS_IMLTD, STATUS_PERMINTAAN, STATUS_STOK, SUMBER_KUNJUNGAN, SUMBER_STOK, pilihan } from "./bersama.js";
 import { KELOMPOK_KOMPONEN } from "./kompatibilitas.js";
 import { wajibSalahSatu } from "../umum/izin.js";
+import utd from "./utd/utd-rute.js";
+import utdPermintaan from "./utd/utd-permintaan-rute.js";
 
 // Bank Darah RS (BDRS) — /api/v3/penunjang/bank-darah/...
 //   /komponen                       datamaster komponen darah (PRC/WB/TC/FFP, dapat ditambah faskes)
@@ -52,10 +54,12 @@ rute.use("/pengaturan", pengaturan);
 rute.use("/permintaan/:uuid/pemeriksaan", pemeriksaan);
 rute.use("/permintaan/:uuid/crossmatch", crossmatch);
 rute.use("/permintaan/:uuid/serah-terima", buatSerahTerima);
+rute.use("/permintaan/:uuid", utdPermintaan); // /permintaan/:uuid/kirim-utd, /ambil-status-utd (STD-0017)
 rute.use("/permintaan", permintaan);
 rute.use("/stok", stok);
 rute.use("/serah-terima", serahTerima);
 rute.use("/laporan", laporan);
+rute.use("/utd", utd); // Bridging Bank Darah ke UTD eksternal (STD-0017), fitur bdrs_bridging
 rute.use("/", transfusi);
 
 // Daftar pilihan (enum) untuk form frontend.

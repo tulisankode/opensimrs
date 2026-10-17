@@ -22,6 +22,8 @@ import PengirimanLisPa from './PengirimanLisPa.vue';
 import KonfigurasiLisMikrobiologi from './KonfigurasiLisMikrobiologi.vue';
 import PengirimanLisMikrobiologi from './PengirimanLisMikrobiologi.vue';
 import KonfigurasiHelpdesk from './KonfigurasiHelpdesk.vue';
+import KonfigurasiBdrsUtd from './KonfigurasiBdrsUtd.vue';
+import PengirimanBdrs from './PengirimanBdrs.vue';
 import { useSettingStore } from '@/stores/setting';
 import { utilsStore } from "@/stores/utils";
 import { fiturAktif } from "@/stores/modulFaskes";
@@ -137,6 +139,11 @@ const handleKonfigurasiSatuSehat = (updatedKonfigurasiSatuSehat: any) => {
             <!-- LIS Mikrobiologi (fitur mikro_bridging_lis): koneksi & kredensial terpisah dari LIS laboratorium. Mapping kode ada di Mikrobiologi › Mapping LIS -->
             <KonfigurasiLisMikrobiologi />
             <PengirimanLisMikrobiologi />
+            <!-- Bridging Bank Darah ke UTD (fitur bdrs_bridging): koneksi & kredensial + riwayat pengiriman. Mapping kode ada di Bank Darah › Mapping UTD -->
+            <template v-if="fiturAktif('bdrs_bridging')">
+                <KonfigurasiBdrsUtd />
+                <PengirimanBdrs />
+            </template>
             <!-- Helpdesk AI: Gateway OpenClaw untuk tombol Bantuan (khusus superadmin; token terenkripsi) -->
             <KonfigurasiHelpdesk />
 
