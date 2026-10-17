@@ -184,6 +184,9 @@ import PenjadwalanRadiologiPage from "@/views/Radiologi/PenjadwalanRadiologiPage
 import MasterRuangRadiologiPage from "@/views/Radiologi/MasterRuangRadiologiPage.vue";
 import MasterTemplateRadiologiPage from "@/views/Radiologi/MasterTemplateRadiologiPage.vue";
 import MasterPetugasRadiologiPage from "@/views/Radiologi/MasterPetugasRadiologiPage.vue";
+import MappingTindakanPacsPage from "@/views/Radiologi/Mapping/MappingTindakanPacsPage.vue";
+import MappingRefPacsPage from "@/views/Radiologi/Mapping/MappingRefPacsPage.vue";
+import MappingRuangPacsPage from "@/views/Radiologi/Mapping/MappingRuangPacsPage.vue";
 
 // NOTE MEDICAL CHECK UP (penunjang-service)
 import McuView from "@/views/MCU/McuView.vue";
@@ -202,6 +205,7 @@ import ArsipPaPage from "@/views/PatologiAnatomi/ArsipPaPage.vue";
 import MasterPemeriksaanPaPage from "@/views/PatologiAnatomi/MasterPemeriksaanPaPage.vue";
 import MasterTemplatePaPage from "@/views/PatologiAnatomi/MasterTemplatePaPage.vue";
 import LaporanKunjunganPaPage from "@/views/PatologiAnatomi/LaporanKunjunganPaPage.vue";
+import MappingLisPaPage from "@/views/PatologiAnatomi/MappingLisPaPage.vue";
 import MikrobiologiView from "@/views/Mikrobiologi/MikrobiologiView.vue";
 import OrderMikroPage from "@/views/Mikrobiologi/OrderMikroPage.vue";
 import PemeriksaanMikroPage from "@/views/Mikrobiologi/PemeriksaanMikroPage.vue";
@@ -1634,6 +1638,9 @@ const router = createRouter({
       ["/radiologi/datamaster/ruang", "radiologi-datamaster-ruang", MasterRuangRadiologiPage],
       ["/radiologi/datamaster/template", "radiologi-datamaster-template", MasterTemplateRadiologiPage],
       ["/radiologi/datamaster/petugas", "radiologi-datamaster-petugas", MasterPetugasRadiologiPage],
+      ["/radiologi/mapping/tindakan-pacs", "radiologi-mapping-tindakan-pacs", MappingTindakanPacsPage],
+      ["/radiologi/mapping/referensi-pacs", "radiologi-mapping-referensi-pacs", MappingRefPacsPage],
+      ["/radiologi/mapping/ruang-pacs", "radiologi-mapping-ruang-pacs", MappingRuangPacsPage],
       ["/radiologi/laporan/kunjungan", "radiologi-laporan-kunjungan", LaporanKunjunganRadiologiPage],
     ]),
     // !SECTION
@@ -1659,6 +1666,7 @@ const router = createRouter({
       ["/patologi-anatomi/datamaster/pemeriksaan", "patologi-anatomi-datamaster-pemeriksaan", MasterPemeriksaanPaPage],
       ["/patologi-anatomi/datamaster/template", "patologi-anatomi-datamaster-template", MasterTemplatePaPage],
       ["/patologi-anatomi/laporan/kunjungan", "patologi-anatomi-laporan-kunjungan", LaporanKunjunganPaPage],
+      ["/patologi-anatomi/mapping/lis", "patologi-anatomi-mapping-lis", MappingLisPaPage],
     ]),
     // SECTION Mikrobiologi
     { path: "/mikrobiologi", name: "mikrobiologi", redirect: "/mikrobiologi/order" },

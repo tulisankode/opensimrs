@@ -13,6 +13,7 @@ import CustomPaginator from "@/components/Base/CustomPaginator.vue";
 import NoData from "@/components/section/NoData.vue";
 import PilihPemeriksaanPa from "@/components/RekamMedis/OrderPA/PilihPemeriksaanPa.vue";
 import { utilsStore } from "@/stores/utils";
+import { fiturAktif } from "@/stores/modulFaskes";
 import {
   JENIS_PA,
   JK_PA,
@@ -24,6 +25,7 @@ import {
   buatOrderPa,
   cariPasienPa,
   daftarDokterPa,
+  daftarKoneksiLisPa,
   daftarOrderPa,
   detailOrderPa,
   gayaKasusPa,
@@ -114,11 +116,23 @@ const bukaDetail = async (uuid: string) => {
     storeUtils.setLoading(false);
   }
 };
-const validasi = async () => {
+// Validasi order: pilihan "Validasi Saja" atau "Validasi & Kirim ke LIS PA" (Bridging LIS PA, pola sama lab).
+// Validasi tetap sah walau pengiriman gagal/ditolak dibatalkan di backend; lihat kriteria penerimaan.
+const dialogValidasi = ref(false);
+const koneksiLisPa = ref<any[]>([]);
+const koneksiLisPaDipilih = ref("");
+const bukaDialogValidasi = async () => {
+  dialogValidasi.value = true;
+  const res = await daftarKoneksiLisPa();
+  koneksiLisPa.value = (res?.payload ?? []).filter((k: any) => k.aktif);
+  koneksiLisPaDipilih.value = (koneksiLisPa.value.find((k: any) => k.bawaan) ?? koneksiLisPa.value[0])?.uuid ?? "";
+};
+const validasi = async (kirimLisPa = false) => {
   if (!detail.value) return;
+  dialogValidasi.value = false;
   storeUtils.setLoading(true);
   try {
-    const res = await validasiOrderPa(detail.value.uuid);
+    const res = await validasiOrderPa(detail.value.uuid, kirimLisPa ? { kirimLisPa: true, koneksiUuid: koneksiLisPaDipilih.value || null } : {});
     if (res?.payload) {
       detail.value = res.payload;
       muat();
@@ -363,6 +377,7 @@ onMounted(muat);
                 <span v-if="detail.status === 'batal'" class="font-semibold text-grey-400">Dibatalkan</span>
                 <span v-else class="font-semibold" :class="gayaKasusPa(i.status)?.text">{{ gayaKasusPa(i.status)?.label ?? i.status }}</span>
                 <div v-if="i.status === 'ditolak'" class="text-danger-300">{{ i.alasanTolak }}</div>
+                <div v-if="i.ditolakEksternalPada" class="text-danger-300">Spesimen ditolak sistem PA tujuan: {{ i.ditolakEksternalAlasan }}</div>
               </template>
             </Column>
             <Column header="Kesimpulan" headerClass="bg-opensimrs-50">
@@ -387,10 +402,25 @@ onMounted(muat);
             textColor="text-opensimrs-300"
             @click="createHasilPaPdf(detail)"
           />
-          <CustomButton v-if="detail.status === 'order' && boleh('VALIDASI')" label="Validasi & Kirim Tagihan" icon="PhCheckCircle" @click="validasi" />
+          <CustomButton v-if="detail.status === 'order' && boleh('VALIDASI')" label="Validasi & Kirim Tagihan" icon="PhCheckCircle" @click="bukaDialogValidasi" />
         </div>
       </template>
     </CustomDialog>
+
+    <!-- Validasi: saja / & kirim ke LIS PA -->
+    <Dialog v-model:visible="dialogValidasi" modal header="Validasi Order PA" :style="{ width: '520px' }">
+      <div class="flex flex-col gap-3 text-sm">
+        <div>Validasi order <b>{{ detail?.noOrder }}</b> atas nama <b>{{ detail?.pasien?.name ?? detail?.namaPasien ?? "-" }}</b>? Tagihan dikirim ke Pembayaran.</div>
+        <CustomSelect v-if="koneksiLisPa.length > 1" v-model="koneksiLisPaDipilih" label="Kirim ke LIS PA" :options="koneksiLisPa" optionValue="uuid" optionLabel="nama" />
+        <div v-else-if="koneksiLisPa.length === 1" class="text-grey-400">LIS PA tujuan: {{ koneksiLisPa[0].nama }}</div>
+        <div v-else class="p-3 rounded-md bg-[#FEF0C7] text-[#B54708]">Belum ada koneksi LIS PA aktif. Atur di Setting › Konfigurasi Integrasi › Konfigurasi LIS PA.</div>
+      </div>
+      <template #footer>
+        <CustomButton label="Batal" textColor="text-[#9DA4B1]" backgroundColor="bg-transparent" borderColor="border-2 border-[#9DA4B1]" @click="dialogValidasi = false" />
+        <CustomButton label="Validasi Saja" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="validasi(false)" />
+        <CustomButton v-if="fiturAktif('pa_bridging_lis')" label="Validasi & Kirim ke LIS PA" icon="PhPaperPlaneTilt" :disabled="!koneksiLisPa.length" @click="validasi(true)" />
+      </template>
+    </Dialog>
 
     <!-- Batal -->
     <CustomDialog v-model:visible="dialogBatal" width="460px" headerBg="bg-danger-300">

@@ -1198,6 +1198,28 @@
       "wajib": false,
       "rute": ["/icu/laporan"],
       "urutan": 60
+    },
+    {
+      "kode": "rad_bridging_pacs",
+      "modul": "radiologi",
+      "nama": "Bridging PACS/RIS",
+      "deskripsi": "Kirim order ke PACS/RIS dan terima hasil, expertise, serta tautan citra.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 55
+    },
+    {
+      "kode": "pa_bridging_lis",
+      "modul": "patologi_anatomi",
+      "nama": "Bridging LIS Patologi Anatomi",
+      "deskripsi": "Kirim order PA ke sistem patologi & terima diagnosis otomatis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/patologi-anatomi/mapping/lis"
+      ],
+      "urutan": 55
     }
   ],
   "bagian": [
@@ -1665,7 +1687,8 @@
       ],
       "klinik_utama": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ],
       "puskesmas": [
         "bayar_diskon_voucher",
@@ -1677,19 +1700,23 @@
       ],
       "rs_d": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ],
       "rs_c": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ],
       "rs_b": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ],
       "rs_a": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ]
     },
     "bagian_mati": {
