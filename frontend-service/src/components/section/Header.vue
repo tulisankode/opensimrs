@@ -82,6 +82,11 @@ const templistMenu = ref<ListMenu[]>([
     url: "/igd",
   },
   {
+    title: "Kamar Operasi",
+    icon: "PhKnife",
+    url: "/kamar-operasi",
+  },
+  {
     title: "Farmasi",
     icon: "PhAsclepius",
     iconWeight: "bold",
@@ -369,13 +374,13 @@ const bukaSegera = (url: string) => {
 };
 
 const NAMA_SEGERA: Record<string, string> = {
-  fisioterapi: "Fisioterapi", radiologi: "Radiologi", kamar_operasi: "Kamar Operasi", icu: "ICU", gizi: "Gizi",
+  fisioterapi: "Fisioterapi", radiologi: "Radiologi", icu: "ICU", gizi: "Gizi",
   koding_rm: "Koding RM", cssd: "CSSD", bank_darah: "Bank Darah", utd: "UTD", akuntansi: "Akuntansi",
   program_puskesmas: "Program Puskesmas", training: "Training", mcu: "MCU",
   patologi_anatomi: "Patologi Anatomi", mikrobiologi: "Mikrobiologi",
 };
 const IKON_SEGERA: Record<string, string> = {
-  fisioterapi: "FisioIcon", radiologi: "PhScan", kamar_operasi: "PhKnife", icu: "PhHeartbeat", gizi: "PhBowlFood",
+  fisioterapi: "FisioIcon", radiologi: "PhScan", icu: "PhHeartbeat", gizi: "PhBowlFood",
   koding_rm: "PhFileCode", cssd: "PhSprayBottle", bank_darah: "PhDrop", utd: "PhDropHalf", akuntansi: "PhCalculator",
   mcu: "PhClipboardText", patologi_anatomi: "PhMicroscope", mikrobiologi: "PhBug",
   program_puskesmas: "PhUsersThree", training: "TrainingIcon",

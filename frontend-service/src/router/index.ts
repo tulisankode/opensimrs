@@ -211,6 +211,11 @@ import MasterOrganismePage from "@/views/Mikrobiologi/MasterOrganismePage.vue";
 import MasterAntibiotikPage from "@/views/Mikrobiologi/MasterAntibiotikPage.vue";
 import LaporanKunjunganMikroPage from "@/views/Mikrobiologi/LaporanKunjunganMikroPage.vue";
 import LaporanAntibiogramPage from "@/views/Mikrobiologi/LaporanAntibiogramPage.vue";
+import KamarOperasiView from "@/views/KamarOperasi/KamarOperasiView.vue";
+import DaftarTungguOkPage from "@/views/KamarOperasi/DaftarTungguPage.vue";
+import JadwalOkPage from "@/views/KamarOperasi/JadwalPage.vue";
+import MasterRuangOkPage from "@/views/KamarOperasi/MasterRuangOkPage.vue";
+import LaporanRekapOkPage from "@/views/KamarOperasi/LaporanRekapPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
@@ -1650,6 +1655,16 @@ const router = createRouter({
       ["/mikrobiologi/datamaster/antibiotik", "mikrobiologi-datamaster-antibiotik", MasterAntibiotikPage],
       ["/mikrobiologi/laporan/kunjungan", "mikrobiologi-laporan-kunjungan", LaporanKunjunganMikroPage],
       ["/mikrobiologi/laporan/antibiogram", "mikrobiologi-laporan-antibiogram", LaporanAntibiogramPage],
+    ]),
+    // !SECTION
+
+    // SECTION Kamar Operasi (penunjang-service)
+    { path: "/kamar-operasi", name: "kamar-operasi", redirect: "/kamar-operasi/daftar-tunggu" },
+    ...halamanModul(KamarOperasiView, [
+      ["/kamar-operasi/daftar-tunggu", "kamar-operasi-daftar-tunggu", DaftarTungguOkPage],
+      ["/kamar-operasi/jadwal", "kamar-operasi-jadwal", JadwalOkPage],
+      ["/kamar-operasi/datamaster/ruang", "kamar-operasi-datamaster-ruang", MasterRuangOkPage],
+      ["/kamar-operasi/laporan/rekap", "kamar-operasi-laporan-rekap", LaporanRekapOkPage],
     ]),
     // !SECTION
 

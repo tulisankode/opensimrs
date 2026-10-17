@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 10 berstatus Segera), **54 fitur** (13 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 9 berstatus Segera), **57 fitur** (13 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -287,7 +287,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 
 | Kode | Nama | Deskripsi | Status | Nama izin (menu) |
 |---|---|---|---|---|
-| `kamar_operasi` | Kamar Operasi | Jadwal operasi, laporan operasi & anestesi. | Segera | – |
+| `kamar_operasi` | Kamar Operasi | Order & jadwal operasi, checklist keselamatan bedah WHO, laporan operasi & anestesi. | Tersedia | Kamar Operasi |
 | `icu` | ICU / Intensif | Pemantauan intensif & flowsheet. | Segera | – |
 | `gizi` | Gizi | Diet & distribusi makan pasien rawat inap. | Segera | – |
 | `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Segera | – |
@@ -320,7 +320,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | BPJS FKTP (PCare) (`bpjs_fktp`) | Tersedia | ✓ | ✓ | – | ✓ | – | – | – | – |
 | BPJS FKRTL (VClaim/SEP) (`bpjs_fkrtl`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 | Program Puskesmas (`program_puskesmas`) | Segera | – | – | – | ✓ | – | – | – | – |
-| Kamar Operasi (`kamar_operasi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
+| Kamar Operasi (`kamar_operasi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | ICU / Intensif (`icu`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
 | Gizi (`gizi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
 | Koding & Rekam Medis (`koding_rm`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
@@ -429,6 +429,14 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
 | `vclaim_rencana_kontrol` | Rencana Kontrol & SPRI | Pembuatan surat kontrol dan SPRI lewat VClaim. | Segera | – | – | – |
+
+#### Kamar Operasi (`kamar_operasi`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `rme_order_operasi` | Order Operasi dari RME | Tab Order Operasi pada Plan asesmen Rajal/Ranap/IGD: diagnosis, rencana tindakan ICD-9-CM, jenis elektif/cito, perkiraan durasi. | Tersedia | – | – | – |
+| `ok_jadwal` | Jadwal & Daftar Tunggu OK | Daftar tunggu order operasi (cito diprioritaskan) dan penjadwalan ke ruang, waktu, serta tim operasi. | Tersedia | – | – | – |
+| `ok_checklist_keselamatan` | Checklist Keselamatan Bedah (WHO) | Sign in, time out, dan sign out; wajib lengkap sebelum laporan operasi dapat difinalkan. | Tersedia | Ya | – | – |
 
 #### Bank Darah RS (BDRS) (`bank_darah`)
 

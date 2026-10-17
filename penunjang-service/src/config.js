@@ -11,6 +11,8 @@ export default {
   // Laboratorium PK (order lab MCU) & Admisi (pendaftaran pasien baru dari impor rombongan MCU).
   labUrl: (process.env.BASE_URL_API_LAB || "http://localhost:8087/api/v3/lab").replace(/\/$/, ""),
   admisiUrl: (process.env.BASE_URL_API_ADMISI || "http://localhost:8081/api/v3/admisi").replace(/\/$/, ""),
+  // Farmasi: pemakaian BHP/obat depo Kamar Operasi memakai alur order alkes (stok otoritatif) yang sudah ada.
+  farmasiUrl: (process.env.BASE_URL_API_FARMASI || "http://localhost:8084/api/v3/farmasi").replace(/\/$/, ""),
   pg: {
     host: process.env.DB_HOST || "localhost",
     port: angka(process.env.DB_PORT, 5432),
