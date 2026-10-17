@@ -881,6 +881,9 @@ export const mikrobiologiPermission = {
         { name: "Antibiogram", allows: ["READ", "CETAK LAPORAN"] },
       ],
     },
+    { name: "Konfigurasi LIS Mikrobiologi", allows: ["LIHAT", "KELOLA"] },
+    { name: "Mapping LIS Mikrobiologi", allows: ["LIHAT", "KELOLA"] },
+    { name: "Pengiriman LIS Mikrobiologi", allows: ["LIHAT", "KIRIM ULANG", "CEK STATUS"] },
   ],
 };
 

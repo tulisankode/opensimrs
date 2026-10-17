@@ -15,6 +15,8 @@ import KonfigurasiBpjsVclaim from './KonfigurasiBpjsVclaim.vue';
 import PemetaanVclaim from './PemetaanVclaim.vue';
 import KonfigurasiLis from './KonfigurasiLis.vue';
 import PengirimanLis from './PengirimanLis.vue';
+import KonfigurasiLisMikrobiologi from './KonfigurasiLisMikrobiologi.vue';
+import PengirimanLisMikrobiologi from './PengirimanLisMikrobiologi.vue';
 import KonfigurasiHelpdesk from './KonfigurasiHelpdesk.vue';
 import { useSettingStore } from '@/stores/setting';
 import { utilsStore } from "@/stores/utils";
@@ -117,6 +119,9 @@ const handleKonfigurasiSatuSehat = (updatedKonfigurasiSatuSehat: any) => {
             <!-- LIS laboratorium (adamLIS): koneksi/endpoint & kredensial + riwayat pengiriman. Mapping kode ada di Laboratorium › Mapping LIS -->
             <KonfigurasiLis />
             <PengirimanLis />
+            <!-- LIS Mikrobiologi (fitur mikro_bridging_lis): koneksi & kredensial terpisah dari LIS laboratorium. Mapping kode ada di Mikrobiologi › Mapping LIS -->
+            <KonfigurasiLisMikrobiologi />
+            <PengirimanLisMikrobiologi />
             <!-- Helpdesk AI: Gateway OpenClaw untuk tombol Bantuan (khusus superadmin; token terenkripsi) -->
             <KonfigurasiHelpdesk />
 

@@ -6,7 +6,9 @@ import CustomDatePicker from "@/components/Base/CustomDatePicker.vue";
 import CustomSelect from "@/components/Base/CustomSelect.vue";
 import CustomTextArea from "@/components/Base/CustomTextArea.vue";
 import CustomTextfield from "@/components/Base/CustomTextfield.vue";
+import { useToast } from "primevue/usetoast";
 import { utilsStore } from "@/stores/utils";
+import { fiturAktif } from "@/stores/modulFaskes";
 import {
   BENTUK_MIKRO,
   GRAM_MIKRO,
@@ -33,6 +35,7 @@ import {
   opsi,
   panelOrganismeMikro,
   simpanHasilMikro,
+  tarikHasilLisMikro,
   terimaSpesimenMikro,
   tolakSpesimenMikro,
   umurMikro,
@@ -44,13 +47,17 @@ import { createHasilMikroPdf } from "@/utils/pdf/pdfMikrobiologi/cetakMikrobiolo
 // Lembar kerja satu spesimen: Penerimaan → Pewarnaan → Kultur → Isolat & Uji Kepekaan → Laporan (sementara/final).
 // Tahap yang tampil mengikuti master pemeriksaan (dengan_pewarnaan / dengan_kultur / dengan_ast). Panel antibiotik
 // terisi otomatis sesuai kelompok organisme; interpretasi S/I/R terisi otomatis dari breakpoint bila tersedia
-// (tetap dapat diubah manual). Hasil diinput manual (sumber 'manual'); integrasi LIS/alat menyusul.
+// (tetap dapat diubah manual). Hasil dapat diinput manual (sumber 'manual') atau masuk otomatis dari LIS Mikrobiologi
+// (sumber 'lis', fitur mikro_bridging_lis — STD-0014); isolat/antibiotik yang belum dipetakan tetap tersimpan dan
+// tampil lewat catatan isolat "Tidak cocok dengan item" (lihat Mikrobiologi › Mapping LIS).
 const visible = defineModel<boolean>("visible", { default: false });
 const props = defineProps<{ itemUuid: string }>();
 const emit = defineEmits<{ berubah: [] }>();
 const storeUtils = utilsStore();
+const toast = useToast();
 
 const boleh = (aksi: string) => izinMikro("Pemeriksaan", aksi);
+const bridgingLisAktif = computed(() => fiturAktif("mikro_bridging_lis"));
 const item = ref<any>(null);
 const tab = ref("penerimaan");
 const organisme = ref<any[]>([]);
@@ -206,6 +213,21 @@ watch(visible, (v) => {
     muat();
   }
 });
+
+// Ambil Hasil LIS (tarik manual): memanggil URL Ambil Hasil koneksi aktif. Hasil yang masuk (laporan sementara,
+// isolat, kepekaan) diterapkan idempoten oleh backend; organisme/antibiotik yang belum dipetakan tetap tersimpan
+// dan tampil via catatan isolat "Tidak cocok dengan item" setelah form dimuat ulang.
+const ambilHasilLis = async () => {
+  if (!item.value?.orderUuid) return;
+  storeUtils.setLoading(true);
+  try {
+    const res = await tarikHasilLisMikro(item.value.orderUuid);
+    if (res?.payload) toast.add({ severity: "success", summary: "Ambil Hasil LIS Mikrobiologi", detail: res.payload.pesan, life: 6000 });
+    await muat();
+  } finally {
+    storeUtils.setLoading(false);
+  }
+};
 
 // ── Penerimaan / penolakan spesimen
 const terimaForm = ref<any>({});
@@ -749,6 +771,15 @@ const o = computed(() => item.value?.order ?? {});
           <span v-if="galatSimpan" class="ml-2 font-semibold text-danger-300">{{ galatSimpan }}</span>
         </span>
         <div class="flex flex-wrap gap-2">
+          <CustomButton
+            v-if="bridgingLisAktif && !final && boleh('INPUT HASIL')"
+            label="Ambil Hasil LIS"
+            icon="PhArrowsClockwise"
+            outlined
+            borderColor="border-opensimrs-300"
+            textColor="text-opensimrs-300"
+            @click="ambilHasilLis"
+          />
           <CustomButton v-if="final && boleh('VERIFIKASI')" label="Buka Verifikasi" icon="PhLockOpen" outlined borderColor="border-danger-300" textColor="text-danger-300" @click="dialogBuka = true" />
           <CustomButton
             v-if="item.hasil && ['sementara', 'final'].includes(item.hasil.status) && boleh('CETAK HASIL')"

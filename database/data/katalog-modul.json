@@ -1115,6 +1115,18 @@
       "wajib": false,
       "rute": [],
       "urutan": 54
+    },
+    {
+      "kode": "mikro_bridging_lis",
+      "modul": "mikrobiologi",
+      "nama": "Bridging LIS Mikrobiologi",
+      "deskripsi": "Kirim order ke LIS mikrobiologi & terima hasil identifikasi/AST otomatis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/mikrobiologi/mapping-lis"
+      ],
+      "urutan": 55
     }
   ],
   "bagian": [

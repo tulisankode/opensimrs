@@ -211,6 +211,7 @@ import MasterOrganismePage from "@/views/Mikrobiologi/MasterOrganismePage.vue";
 import MasterAntibiotikPage from "@/views/Mikrobiologi/MasterAntibiotikPage.vue";
 import LaporanKunjunganMikroPage from "@/views/Mikrobiologi/LaporanKunjunganMikroPage.vue";
 import LaporanAntibiogramPage from "@/views/Mikrobiologi/LaporanAntibiogramPage.vue";
+import MappingLisMikrobiologiPage from "@/views/Mikrobiologi/MappingLisMikrobiologiPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
@@ -1648,6 +1649,7 @@ const router = createRouter({
       ["/mikrobiologi/datamaster/pemeriksaan", "mikrobiologi-datamaster-pemeriksaan", MasterPemeriksaanMikroPage],
       ["/mikrobiologi/datamaster/organisme", "mikrobiologi-datamaster-organisme", MasterOrganismePage],
       ["/mikrobiologi/datamaster/antibiotik", "mikrobiologi-datamaster-antibiotik", MasterAntibiotikPage],
+      ["/mikrobiologi/mapping-lis", "mikrobiologi-mapping-lis", MappingLisMikrobiologiPage],
       ["/mikrobiologi/laporan/kunjungan", "mikrobiologi-laporan-kunjungan", LaporanKunjunganMikroPage],
       ["/mikrobiologi/laporan/antibiogram", "mikrobiologi-laporan-antibiogram", LaporanAntibiogramPage],
     ]),

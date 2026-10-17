@@ -4,7 +4,7 @@
 
 **Dipakai oleh:** petugas administrasi dan analis laboratorium mikrobiologi, dokter spesialis mikrobiologi klinik (Sp.MK), admin data master mikrobiologi
 **Menu:** Penunjang › Mikrobiologi › Order Mikrobiologi / Pemeriksaan & Hasil / Datamaster / Laporan
-**Hak akses yang dibutuhkan:** Mikrobiologi › Order Mikrobiologi (READ, CREATE, VALIDASI, BATAL, CETAK) · Mikrobiologi › Pemeriksaan (READ, INPUT HASIL, LAPORAN SEMENTARA, VERIFIKASI, CETAK HASIL) · Mikrobiologi › Datamaster › Pemeriksaan Mikrobiologi / Organisme / Antibiotik (READ, CREATE, UPDATE, DELETE) · Mikrobiologi › Laporan Mikrobiologi › Kunjungan / Antibiogram (READ, CETAK LAPORAN)
+**Hak akses yang dibutuhkan:** Mikrobiologi › Order Mikrobiologi (READ, CREATE, VALIDASI, BATAL, CETAK) · Mikrobiologi › Pemeriksaan (READ, INPUT HASIL, LAPORAN SEMENTARA, VERIFIKASI, CETAK HASIL) · Mikrobiologi › Datamaster › Pemeriksaan Mikrobiologi / Organisme / Antibiotik (READ, CREATE, UPDATE, DELETE) · Mikrobiologi › Laporan Mikrobiologi › Kunjungan / Antibiogram (READ, CETAK LAPORAN) · Mikrobiologi › Konfigurasi LIS Mikrobiologi / Mapping LIS Mikrobiologi (LIHAT, KELOLA) · Mikrobiologi › Pengiriman LIS Mikrobiologi (LIHAT, KIRIM ULANG, CEK STATUS) — khusus faskes yang mengaktifkan fitur **Bridging LIS Mikrobiologi**
 
 ## Untuk apa
 Modul Mikrobiologi mencatat pemeriksaan mikrobiologi dari order sampai hasil final. Alurnya mencakup penerimaan spesimen, pewarnaan, kultur, identifikasi organisme, uji kepekaan antibiotik (S/I/R), laporan sementara, dan verifikasi dokter. Modul ini juga menyusun laporan kunjungan dan antibiogram.
@@ -118,7 +118,32 @@ Status order: **Order** → **Valid** → **Diproses** → **Selesai**, atau **B
 
 **Kenapa isolat tidak masuk antibiogram?** Antibiogram hanya menghitung isolat dengan hasil final pada periode dan saringan yang dipilih. Secara bawaan, hanya isolat pertama yang dihitung.
 
-**Apakah hasil mikrobiologi bisa diambil dari alat/LIS?** Kolom **Kode LIS / Alat (opsional)** disiapkan untuk integrasi kelak. Saat ini hasil diisi manual.
+**Apakah hasil mikrobiologi bisa diambil dari alat/LIS?** Bisa, bila faskes mengaktifkan fitur **Bridging LIS Mikrobiologi** (lihat bagian [Bridging LIS Mikrobiologi](#bridging-lis-mikrobiologi) di bawah). Tanpa fitur ini, hasil tetap diisi manual seperti biasa.
+
+## Bridging LIS Mikrobiologi
+Fitur opsional per faskes (superadmin mengaktifkannya di **Setting › Manajemen Modul** untuk modul Mikrobiologi) yang mengirim order ke LIS mikrobiologi dan menerima kembali hasil identifikasi organisme serta uji kepekaan antibiotik secara otomatis, tanpa input ulang.
+
+### Menyiapkan koneksi & mapping (admin/IT)
+1. Buka **Setting › Konfigurasi Integrasi › Konfigurasi LIS Mikrobiologi**. Tambah koneksi: **Nama**, **Kode RS**, **URL Registrasi**, **URL Ambil Hasil** (boleh memuat `{no_registrasi}`), **API Key**, batas paralel, dan jeda. Faskes boleh memiliki lebih dari satu koneksi; satu ditandai **Bawaan**.
+2. Klik **Kunci Masuk Baru** untuk membuat kunci yang dipasang di sisi LIS sebagai kredensial pengiriman hasil (`x-api-key`). Kunci hanya ditampilkan utuh sekali.
+3. Klik **Uji koneksi** untuk memastikan URL Registrasi dapat dihubungi.
+4. Buka **Mikrobiologi › Mapping LIS** dan lengkapi kode LIS untuk **Pemeriksaan**, **Jenis Spesimen**, **Organisme**, **Antibiotik**, serta **Unit, Dokter & Penjamin**. Gunakan saringan **Belum dipetakan** pada tiap tab untuk melengkapi mapping yang kosong. Kode WHONET organisme (bila diisi) terpisah dari kode LIS vendor.
+
+### Mengirim order & memantau kiriman
+1. Pada order mikrobiologi yang siap divalidasi, pilih **Validasi & Kirim ke LIS Mikrobiologi** (bukan **Validasi Saja**) bila ingin order langsung terkirim.
+2. Bila pengiriman gagal (koneksi nonaktif, pemeriksaan belum dipetakan, atau LIS menolak), validasi ikut dibatalkan dan sistem menampilkan penyebabnya — order tetap berstatus **Order**, siap diperbaiki dan dicoba lagi.
+3. Pantau status di **Setting › Konfigurasi Integrasi › Pengiriman LIS Mikrobiologi**: **Terkirim**, **Gagal**, **Sedang dikirim**, atau **Tidak pasti**. Order **Tidak pasti** sebaiknya dicek dulu lewat **Cek Status** sebelum memilih **Kirim Ulang**, agar tidak terdaftar dobel di LIS.
+
+### Menerima hasil
+- Hasil normalnya masuk otomatis (LIS mengirim/push ke SIMRS). Bila belum masuk, petugas dapat menekan **Ambil Hasil LIS** di halaman **Pemeriksaan & Hasil** untuk menariknya secara manual.
+- Laporan sementara dari LIS langsung tampil berlabel **Laporan Sementara** begitu diterima, termasuk untuk dokter pengirim.
+- Isolat jamak (polimikrobial) dari satu spesimen tersimpan sebagai beberapa baris isolat, masing-masing dengan kepekaan antibiotiknya sendiri.
+- Organisme atau antibiotik yang belum dipetakan tetap tersimpan dan ditandai **Tidak cocok dengan item** — lengkapi mapping lalu minta LIS mengirim ulang, atau koreksi manual bila diperlukan.
+- Hasil final dari LIS tetap menunggu pemeriksaan dan **verifikasi Sp.MK** seperti alur manual; hasil yang sudah diverifikasi tidak tertimpa otomatis oleh kiriman LIS berikutnya — gunakan **Buka Verifikasi** lebih dulu bila LIS mengirim koreksi.
+- Hasil S/I/R yang masuk lewat bridging otomatis ikut terhitung di laporan **Antibiogram** tanpa langkah tambahan.
+
+### Menguji tanpa LIS sungguhan
+Gunakan server tiruan `scripts/lis-tiruan-mikro.mjs` (lihat `scripts/README-lis-tiruan-mikro.md`) untuk mensimulasikan registrasi, laporan sementara, hasil final, isolat ganda, dan antibiotik tak dikenal pada lingkungan pengembangan.
 
 ## Bila menu tidak muncul
 - Modul belum aktif untuk faskes: superadmin › **Setting › Manajemen Modul**.
@@ -126,9 +151,10 @@ Status order: **Order** → **Valid** → **Diproses** → **Selesai**, atau **B
 - Menu Mikrobiologi ada di dalam menu **Penunjang**. Pada layar sempit, menu bisa berpindah ke tombol **Lainnya**.
 - Tab **Order Mikrobiologi** di RME hanya muncul bila modul Mikrobiologi aktif.
 - Tombol tambah data master hanya muncul bila peran memiliki izin CREATE.
+- Menu **Mikrobiologi › Mapping LIS** serta **Konfigurasi LIS Mikrobiologi**/**Pengiriman LIS Mikrobiologi** di Setting hanya tampil bila fitur **Bridging LIS Mikrobiologi** (`mikro_bridging_lis`) aktif untuk faskes.
 
 ## Catatan untuk peninjau
-- Jendela pemeriksaan menampilkan "Sumber data: LIS / alat" bila hasil berasal dari LIS, tetapi tidak ditemukan tombol atau menu bridging LIS untuk mikrobiologi. Panduan menyatakan hasil diisi manual.
+- Bagian Bridging LIS Mikrobiologi ditambahkan bersamaan dengan fiturnya (STD-0014); mohon tinjau ulang istilah dan langkah setelah pengujian end-to-end dengan `scripts/lis-tiruan-mikro.mjs`.
 - Panduan tidak menyebut nilai breakpoint atau standar tertentu. Isian data master antibiotik menjadi tanggung jawab faskes.
 - Tidak dipastikan apakah **No. Mikro** terbit saat spesimen diterima atau saat order divalidasi. Panduan menulis "saat diterima".
 - Isi pilihan **Status**/**Sumber** di toolbar dan skala **Leukosit (PMN)** tidak dituliskan. Mohon disesuaikan dengan layar.
