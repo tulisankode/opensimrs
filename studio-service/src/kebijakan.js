@@ -78,6 +78,7 @@ export const pathDiubahDalamDesain = (teks = "") => {
 };
 
 const POLA_MIGRASI =/^database\/migrations\/(\d{14})-[a-z0-9_-]+\.cjs$/i;
+const POLA_IMPORT_MAIN = /\bfrom\s*["'](?:@\/main|(?:\.\.?\/)+main)(?:\.ts)?["']|\bimport\s*\(\s*["']@\/main(?:\.ts)?["']\s*\)/;
 
 export const periksaKebijakan = (berkas, { risiko = "sedang", migrasiTerakhir = null } = {}) => {
   const temuan = [];
@@ -135,6 +136,15 @@ export const periksaKebijakan = (berkas, { risiko = "sedang", migrasiTerakhir = 
   const katalog = berkas.some((b) => b.path === "database/data/katalog-modul.json");
   const dokKatalog = berkas.some((b) => b.path.startsWith("docs/") && /katalog|MANAJEMEN-MODUL/i.test(b.path));
   tambah("Katalog modul", !katalog || dokKatalog, !katalog ? "Katalog tidak diubah" : dokKatalog ? "Katalog & dokumennya diperbarui" : "Katalog diubah tanpa menjalankan npm run docs:katalog");
+
+  // 4b. Frontend: import "@/main" membuat import melingkar (main → router → halaman → main) → layar putih setelah diterapkan.
+  const impMain = berkas
+    .filter((b) => b.path.startsWith("frontend-service/src/") && !b.path.endsWith("/main.ts"))
+    .filter((b) => barisTambahan(b.patch).some((baris) => POLA_IMPORT_MAIN.test(baris)))
+    .map((b) => b.path);
+  if (berkas.some((b) => b.path.startsWith("frontend-service/"))) {
+    tambah("Import melingkar", !impMain.length, impMain.length ? `Mengimpor "@/main" (pakai "@/utils/aplikasi"): ${impMain.join(", ")}` : 'Tidak ada import "@/main"');
+  }
 
   // 5. Uji & CHANGELOG
   const logika = berkas.filter((b) => /-service\/src\/.+\.(js|cjs|mjs|ts)$/.test(b.path) && !b.path.startsWith("frontend-service/"));

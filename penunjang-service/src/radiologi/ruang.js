@@ -7,7 +7,7 @@ import { MODALITAS, HARI, ramah, daftarNilai, keMenit, dariMenit, hariIni } from
 // durasi slot penjadwalan. Ruang nonaktif tidak muncul di papan jadwal; jadwal lama tetap tersimpan.
 const rute = express.Router();
 
-export const PILIH_RUANG = `uuid, faskes_uuid, kode, nama, modalitas, nama_alat, lokasi_uuid,
+export const PILIH_RUANG = `uuid, faskes_uuid, kode, nama, modalitas, nama_alat, lokasi_uuid, ae_title,
   to_char(jam_buka, 'HH24:MI') AS jam_buka, to_char(jam_tutup, 'HH24:MI') AS jam_tutup,
   hari_operasional, durasi_slot, keterangan, status, created_at, updated_at`;
 
@@ -37,6 +37,7 @@ const KOLOM = (b, baru = false) => {
   }
   const teks = (v) => (v === undefined ? undefined : String(v ?? "").trim() || null);
   k.nama_alat = teks(b.nama_alat);
+  k.ae_title = teks(b.ae_title);
   k.keterangan = teks(b.keterangan);
   k.lokasi_uuid = b.lokasi_uuid === undefined ? undefined : b.lokasi_uuid || null;
   if (b.status !== undefined) k.status = Boolean(b.status);

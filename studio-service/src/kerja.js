@@ -59,6 +59,19 @@ const fetchDasar = async (dasar) => {
   if (dasar.startsWith("origin/")) await git(["fetch", "origin", dasar.slice(7)], { izinkanGagal: true });
 };
 
+// Folder tempat branch sedang terbuka (repo utama atau worktree), dari `git worktree list --porcelain`.
+export const folderBranchTerbuka = (porcelain, branch) =>
+  porcelain.split(/\n\n+/).find((b) => b.split("\n").includes(`branch refs/heads/${branch}`))?.match(/^worktree (.+)$/m)?.[1] ?? null;
+
+// git menulis "D:/a/b", config "D:\a\b"; Windows tidak membedakan huruf besar/kecil.
+const samaFolder = (a, b) => {
+  const [x, y] = [path.resolve(a), path.resolve(b)];
+  return process.platform === "win32" ? x.toLowerCase() === y.toLowerCase() : x === y;
+};
+
+const branchTerbukaDi = async (branch) =>
+  folderBranchTerbuka((await git(["worktree", "list", "--porcelain"], { izinkanGagal: true })).keluaran, branch);
+
 export const modeLokal = (nilai) => ["lokal", "keduanya"].includes(nilai.mode_rilis ?? "lokal");
 
 // Branch lokal yang dipakai aplikasi RS: pengaturan, atau branch aktif di repo (bila bukan branch item STD-…).
@@ -84,6 +97,14 @@ export const siapkanKerja = async (item) => {
     fs.mkdirSync(path.dirname(lokasi), { recursive: true });
     await fetchDasar(dasar);
     const ada = (await git(["rev-parse", "--verify", "--quiet", `refs/heads/${nama}`], { izinkanGagal: true })).ok;
+    // Satu branch hanya boleh terbuka di satu folder. Branch item yang masih terbuka di repo utama (sisa mode workspace)
+    // atau worktree lain → jelaskan caranya alih-alih galat mentah git.
+    const terbukaDi = ada ? await branchTerbukaDi(nama) : null;
+    if (terbukaDi) {
+      throw new Galat(409, samaFolder(terbukaDi, config.repoDir)
+        ? `Branch ${nama} masih terbuka di repo utama (${terbukaDi}). Pindahkan repo utama ke branch lain dulu (tombol "Pindahkan aplikasi ke …", atau "Buka branch item" pada item yang kodenya ada di repo utama), lalu ulangi.`
+        : `Branch ${nama} masih terbuka di worktree ${terbukaDi}. Tutup dulu worktree itu (git worktree remove "${terbukaDi}"), lalu ulangi.`);
+    }
     try {
       if (ada) await git(["worktree", "add", lokasi, nama]);
       else await git(["worktree", "add", "--no-track", "-b", nama, lokasi, dasar]);

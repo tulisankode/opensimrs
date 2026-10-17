@@ -145,7 +145,7 @@ export function createHasilRadPdf(order: any, itemUuid?: string) {
         margin: [0, n ? 14 : 10, 0, 4],
         table: {
           widths: ["*"],
-          body: [[{ text: `${i.nama}${i.kode ? ` (${i.kode})` : ""} — ${MODALITAS_RAD[i.modalitas] ?? i.modalitas ?? ""}`, bold: true, fillColor: warnaTema("50") }]],
+          body: [[{ text: `${i.nama}${i.kode ? ` (${i.kode})` : ""} — ${MODALITAS_RAD[i.modalitas] ?? i.modalitas ?? ""}${i.accessionNumber ? ` · Acc: ${i.accessionNumber}` : ""}`, bold: true, fillColor: warnaTema("50") }]],
         },
         layout: "noBorders",
       },

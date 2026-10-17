@@ -352,6 +352,19 @@ export const rawatInapPermission = {
   ],
 };
 
+export const icuPermission = {
+  module: "ICU",
+  subModules: [
+    { name: "Dasbor", allows: ["READ"] },
+    { name: "Perawatan", allows: ["READ"] },
+    { name: "Serah Terima", allows: ["READ", "KELOLA"] },
+    { name: "Flowsheet Observasi", allows: ["READ", "CREATE", "KOREKSI"] },
+    { name: "Balance Cairan", allows: ["READ", "CREATE"] },
+    { name: "Skor SOFA", allows: ["READ", "CREATE"] },
+    { name: "Laporan ICU", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
 export const igdPermission = {
   module: "IGD",
   subModules: [
@@ -820,6 +833,7 @@ export const radiologiPermission = {
         { name: "Ruang & Alat", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
         { name: "Template Expertise", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
         { name: "Petugas Radiologi", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+        { name: "Mapping PACS", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
       ],
     },
     { name: "Laporan Radiologi", features: [{ name: "Kunjungan", allows: ["READ", "CETAK LAPORAN"] }] },
@@ -840,6 +854,26 @@ export const mcuPermission = {
     },
     { name: "Tagihan Korporasi", allows: ["READ", "CREATE", "UPDATE", "PEMBAYARAN", "CETAK"] },
     { name: "Laporan MCU", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
+export const programPuskesmasPermission = {
+  module: "Program Puskesmas",
+  subModules: [
+    { name: "KIA", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "KB", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "Imunisasi", allows: ["READ", "CREATE", "UPDATE", "DELETE", "KIRIM SATUSEHAT"] },
+    { name: "MTBS/MTBM", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "Sasaran Program", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Kegiatan UKM", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    {
+      name: "Datamaster",
+      features: [
+        { name: "Jenis Vaksin & Jadwal", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+        { name: "Format Laporan Dinkes", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+      ],
+    },
+    { name: "Laporan Dinkes", allows: ["READ", "CETAK LAPORAN", "EKSPOR EXCEL"] },
   ],
 };
 
@@ -900,6 +934,62 @@ export const giziPermission = {
       ],
     },
     { name: "Laporan Gizi", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
+// UTD / UPTD Produksi Darah (penunjang-service). "Lihat Hasil Reaktif" dipisah dari IMLTD READ (KF-18): hasil reaktif
+// & identitas donor terkait hanya tampil bagi peran yang diberi izin ini secara eksplisit.
+export const utdPermission = {
+  module: "UTD",
+  subModules: [
+    { name: "Donor", allows: ["READ", "CREATE", "UPDATE", "SELEKSI", "CETAK KARTU"] },
+    { name: "Aftap", allows: ["READ", "CREATE"] },
+    { name: "IMLTD", allows: ["READ", "INPUT HASIL", "PELEPASAN"] },
+    { name: "Lihat Hasil Reaktif", allows: ["READ"] },
+    { name: "Komponen", allows: ["READ", "CREATE"] },
+    {
+      name: "Distribusi",
+      features: [
+        { name: "Permintaan", allows: ["READ", "CREATE"] },
+        { name: "Distribusi", allows: ["READ", "CREATE"] },
+        { name: "Pemusnahan", allows: ["READ", "CREATE"] },
+      ],
+    },
+    { name: "Laporan UTD", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
+export const bankDarahPermission = {
+  module: "Bank Darah RS (BDRS)",
+  subModules: [
+    { name: "Permintaan Darah", allows: ["READ", "CREATE", "UPDATE", "LENGKAPI", "BATAL"] },
+    { name: "Uji Silang Serasi", allows: ["READ", "CATAT PEMERIKSAAN", "CATAT CROSSMATCH"] },
+    { name: "Stok & Penerimaan", allows: ["READ", "TERIMA KANTONG", "MUSNAHKAN", "KEMBALIKAN"] },
+    { name: "Serah Terima", allows: ["READ", "KONFIRMASI PENYERAH", "KONFIRMASI PENERIMA"] },
+    { name: "Pemantauan Transfusi", allows: ["READ", "CATAT TRANSFUSI", "LAPOR REAKSI"] },
+    { name: "Pengaturan", allows: ["READ", "UPDATE"] },
+    { name: "Datamaster", features: [{ name: "Komponen Darah", allows: ["READ", "CREATE", "UPDATE", "DELETE"] }] },
+    {
+      name: "Laporan BDRS",
+      features: [
+        { name: "Pemakaian Darah", allows: ["READ", "CETAK LAPORAN"] },
+        { name: "Rasio Crossmatch-Transfusi", allows: ["READ", "CETAK LAPORAN"] },
+        { name: "Hemovigilans", allows: ["READ", "CETAK LAPORAN"] },
+      ],
+    },
+  ],
+};
+
+export const cssdPermission = {
+  module: "CSSD",
+  subModules: [
+    { name: "Master Set & Mesin", allows: ["READ", "CREATE", "UPDATE", "DELETE", "CETAK LABEL"] },
+    { name: "Penerimaan & Dekontaminasi", allows: ["READ", "CREATE"] },
+    { name: "Siklus Sterilisasi", allows: ["READ", "CREATE", "UPDATE", "INPUT HASIL", "BOWIE DICK"] },
+    { name: "Penyimpanan & Distribusi", allows: ["READ", "CREATE", "UPDATE", "KONFIRMASI", "UPDATE STATUS"] },
+    { name: "Pemakaian Pasien", allows: ["READ", "CREATE"] },
+    { name: "Recall", allows: ["READ", "TINDAK LANJUT"] },
+    { name: "Laporan CSSD", allows: ["READ", "CETAK LAPORAN"] },
   ],
 };
 
@@ -1331,15 +1421,20 @@ export function mapPermission(permissionList) {
     admisi: admisiPermission,
     "rawat jalan": rawatJalanPermission,
     "rawat inap": rawatInapPermission,
+    icu: icuPermission,
     igd: igdPermission,
     farmasi: farmasiPermission,
     laboratorium: laboraturiumPermission,
     fisioterapi: fisioTerapiPermission,
     radiologi: radiologiPermission,
     mcu: mcuPermission,
+    "program puskesmas": programPuskesmasPermission,
     "patologi anatomi": patologiAnatomiPermission,
     mikrobiologi: mikrobiologiPermission,
     gizi: giziPermission,
+    utd: utdPermission,
+    "bank darah rs (bdrs)": bankDarahPermission,
+    cssd: cssdPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,
     stok: stokPermission,

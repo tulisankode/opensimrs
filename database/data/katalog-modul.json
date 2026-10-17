@@ -379,10 +379,14 @@
       "nama": "Program Puskesmas",
       "kelompok": "Puskesmas",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "KIA/KB, imunisasi, MTBS, UKM, laporan LB1 & dinkes.",
-      "menu": [],
-      "rute": [],
+      "menu": [
+        "Program Puskesmas"
+      ],
+      "rute": [
+        "/program-puskesmas"
+      ],
       "urutan": 18
     },
     {
@@ -401,10 +405,14 @@
       "nama": "ICU / Intensif",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "Pemantauan intensif & flowsheet.",
-      "menu": [],
-      "rute": [],
+      "menu": [
+        "ICU"
+      ],
+      "rute": [
+        "/icu"
+      ],
       "urutan": 20
     },
     {
@@ -436,12 +444,16 @@
     {
       "kode": "cssd",
       "nama": "CSSD",
-      "kelompok": "Rumah Sakit",
+      "kelompok": "Penunjang",
       "inti": false,
-      "tersedia": false,
-      "deskripsi": "Sterilisasi alat.",
-      "menu": [],
-      "rute": [],
+      "tersedia": true,
+      "deskripsi": "Sterilisasi alat & pelacakan set instrumen: master set, penerimaan, dekontaminasi, load sterilisasi, penyimpanan & distribusi, pemakaian pasien, recall.",
+      "menu": [
+        "CSSD"
+      ],
+      "rute": [
+        "/cssd"
+      ],
       "urutan": 23
     },
     {
@@ -449,10 +461,14 @@
       "nama": "Bank Darah RS (BDRS)",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi.",
-      "menu": [],
-      "rute": [],
+      "menu": [
+        "Bank Darah RS (BDRS)"
+      ],
+      "rute": [
+        "/bank-darah"
+      ],
       "urutan": 24
     },
     {
@@ -460,10 +476,10 @@
       "nama": "UTD / UPTD Produksi Darah",
       "kelompok": "Rumah Sakit",
       "inti": false,
-      "tersedia": false,
+      "tersedia": true,
       "deskripsi": "Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi.",
-      "menu": [],
-      "rute": [],
+      "menu": ["UTD"],
+      "rute": ["/utd"],
       "urutan": 25
     },
     {
@@ -777,9 +793,11 @@
       "modul": "bank_darah",
       "nama": "Permintaan Darah",
       "deskripsi": "Permintaan darah dari ruangan/IGD/OK beserta golongan & jumlah kantong.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/bank-darah/permintaan"
+      ],
       "urutan": 22
     },
     {
@@ -787,9 +805,11 @@
       "modul": "bank_darah",
       "nama": "Uji Silang Serasi",
       "deskripsi": "Pemeriksaan golongan darah & crossmatch sebelum transfusi.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/bank-darah/crossmatch"
+      ],
       "urutan": 23
     },
     {
@@ -797,9 +817,13 @@
       "modul": "bank_darah",
       "nama": "Stok & Serah Terima Darah",
       "deskripsi": "Penerimaan dari UTD, penyimpanan, kedaluwarsa, serah terima & pemantauan reaksi transfusi.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/bank-darah/stok",
+        "/bank-darah/serah-terima",
+        "/bank-darah/transfusi"
+      ],
       "urutan": 24
     },
     {
@@ -807,9 +831,9 @@
       "modul": "utd",
       "nama": "Rekrutmen & Seleksi Donor",
       "deskripsi": "Pendaftaran donor, kuesioner, pemeriksaan Hb/tekanan darah, riwayat & kartu donor.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/donor","/utd/pengaturan"],
       "urutan": 25
     },
     {
@@ -817,9 +841,9 @@
       "modul": "utd",
       "nama": "Pengambilan Darah (Aftap)",
       "deskripsi": "Pencatatan pengambilan darah, nomor kantong & reaksi donor; donor mobile/kegiatan.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/aftap"],
       "urutan": 26
     },
     {
@@ -827,9 +851,9 @@
       "modul": "utd",
       "nama": "Uji Saring IMLTD",
       "deskripsi": "Uji saring infeksi menular lewat transfusi darah (HIV, HBsAg, HCV, sifilis) & konfirmasi.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/imltd"],
       "urutan": 27
     },
     {
@@ -837,9 +861,9 @@
       "modul": "utd",
       "nama": "Pengolahan Komponen",
       "deskripsi": "Pemisahan whole blood menjadi PRC, TC, FFP, cryo; pelabelan & karantina.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/komponen"],
       "urutan": 28
     },
     {
@@ -847,9 +871,9 @@
       "modul": "utd",
       "nama": "Penyimpanan & Distribusi",
       "deskripsi": "Stok per golongan/komponen, distribusi ke BDRS/RS lain, pemusnahan kantong reaktif/kedaluwarsa.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/distribusi"],
       "urutan": 29
     },
     {
@@ -857,9 +881,9 @@
       "modul": "utd",
       "nama": "Pelaporan UTD",
       "deskripsi": "Laporan produksi, donor & distribusi untuk Dinkes/Kemenkes.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/utd/laporan"],
       "urutan": 30
     },
     {
@@ -1119,6 +1143,99 @@
       "wajib": false,
       "rute": [],
       "urutan": 54
+    },
+    {
+      "kode": "program_puskesmas_satusehat",
+      "modul": "program_puskesmas",
+      "nama": "Kirim Imunisasi ke SATUSEHAT",
+      "deskripsi": "Mengirim resource Immunization ke SATUSEHAT setiap pelayanan imunisasi tersimpan. Butuh konfigurasi integrasi SATUSEHAT faskes.",
+      "tersedia": true,
+      "wajib": false,
+      "modul_syarat": "satusehat",
+      "rute": [],
+      "urutan": 55
+    },
+    {
+      "kode": "icu_dashboard",
+      "modul": "icu",
+      "nama": "Dasbor ICU",
+      "deskripsi": "Ringkasan bed terisi di ruang intensif: diagnosis, hari rawat, status ventilator & peringatan nilai kritis.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/icu/dashboard"],
+      "urutan": 55
+    },
+    {
+      "kode": "icu_serah_terima",
+      "modul": "icu",
+      "nama": "Serah Terima ICU",
+      "deskripsi": "Kriteria masuk/keluar & serah terima terstruktur, tertaut ke perpindahan bangsal (ri_perpindahan).",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 56
+    },
+    {
+      "kode": "icu_flowsheet",
+      "modul": "icu",
+      "nama": "Flowsheet Observasi",
+      "deskripsi": "Observasi per jam/interval: tanda vital, SpO2, GCS, nyeri, parameter ventilator & tren.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 57
+    },
+    {
+      "kode": "icu_balance_cairan",
+      "modul": "icu",
+      "nama": "Balance Cairan",
+      "deskripsi": "Intake-output & balance otomatis per shift dan 24 jam.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 58
+    },
+    {
+      "kode": "icu_skor_sofa",
+      "modul": "icu",
+      "nama": "Skor SOFA",
+      "deskripsi": "Skor keparahan SOFA saat masuk & harian, beserta riwayat penilaian.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 59
+    },
+    {
+      "kode": "icu_laporan",
+      "modul": "icu",
+      "nama": "Laporan ICU",
+      "deskripsi": "BOR, ALOS, angka kematian & hari ventilator ruang intensif.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/icu/laporan"],
+      "urutan": 60
+    },
+    {
+      "kode": "rad_bridging_pacs",
+      "modul": "radiologi",
+      "nama": "Bridging PACS/RIS",
+      "deskripsi": "Kirim order ke PACS/RIS dan terima hasil, expertise, serta tautan citra.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 55
+    },
+    {
+      "kode": "pa_bridging_lis",
+      "modul": "patologi_anatomi",
+      "nama": "Bridging LIS Patologi Anatomi",
+      "deskripsi": "Kirim order PA ke sistem patologi & terima diagnosis otomatis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/patologi-anatomi/mapping/lis"
+      ],
+      "urutan": 55
     }
   ],
   "bagian": [
@@ -1586,7 +1703,8 @@
       ],
       "klinik_utama": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ],
       "puskesmas": [
         "bayar_diskon_voucher",
@@ -1598,19 +1716,23 @@
       ],
       "rs_d": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ],
       "rs_c": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ],
       "rs_b": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ],
       "rs_a": [
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "rad_bridging_pacs"
       ]
     },
     "bagian_mati": {
