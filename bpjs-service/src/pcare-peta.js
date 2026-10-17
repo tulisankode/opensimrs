@@ -7,6 +7,9 @@ const OFFSET_WIB_DETIK = 7 * 3600;
 
 // epoch (detik/ms) → dd-mm-yyyy (tanggal WIB), format tanggal PCare
 export const keTanggalPcare = (epoch) => {
+  // Tanggal kalender 'YYYY-MM-DD' (mis. tanggal MCU dari penunjang-service) langsung diubah tanpa geser zona waktu.
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(epoch ?? "").trim());
+  if (iso) return `${iso[3]}-${iso[2]}-${iso[1]}`;
   const n = Number(epoch);
   if (!n) return null;
   const d = new Date((n > 1e12 ? n : n * 1000) + OFFSET_WIB_DETIK * 1000);

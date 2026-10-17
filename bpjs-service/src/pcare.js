@@ -349,6 +349,24 @@ const simpanKirimMcu = async (uuid, perubahan) => {
 
 // Satu laporan MCU PCare per peserta (faskes_uuid + peserta_uuid unik, KF-6/KT-12). `operasi`: tambah | ubah | hapus.
 // `payload` = data MCU lokal yang sudah dipetakan peserta (sumber: penunjang-service, lihat mcu/pcare.js#petakanNilaiMcu).
+// Klaim atomik baris kirim → 'mengirim' hanya dari status yang diizinkan (cegah kirim ganda/bersamaan ke PCare).
+// Baris 'mengirim' yang tersangkut > 5 menit (mis. proses mati di tengah kirim) boleh diklaim ulang.
+const BATAS_TERSANGKUT_DETIK = 5 * 60;
+const klaimKirimMcu = async (uuid, statusBoleh, perubahan = {}) => {
+  const t = sekarang();
+  const data = { ...perubahan, status: "mengirim", mode: config.mode, updated_at: t };
+  const kolom = Object.keys(data);
+  const nilai = kolom.map((c) => data[c]);
+  const baris = await satu(
+    `UPDATE mcu_pcare_kirim SET ${kolom.map((c, i) => `${c} = $${i + 1}`).join(", ")}
+      WHERE uuid = $${kolom.length + 1} AND deleted_at IS NULL
+        AND (status = ANY($${kolom.length + 2}) OR (status = 'mengirim' AND updated_at < $${kolom.length + 3}))
+      RETURNING uuid`,
+    [...nilai, uuid, statusBoleh, t - BATAS_TERSANGKUT_DETIK],
+  );
+  if (!baris) throw new DataBelumLengkap("Laporan MCU PCare peserta ini sedang diproses atau statusnya sudah berubah — muat ulang lalu coba lagi");
+};
+
 export const operasiMcu = async (faskesUuid, { pesertaUuid, rawatJalanUuid, operasi, payload = {}, alasan, konfirmasi, dikirimOleh }) => {
   if (!pesertaUuid) throw new DataBelumLengkap("peserta_uuid wajib diisi");
   if (!["tambah", "ubah", "hapus"].includes(operasi)) throw new DataBelumLengkap("operasi harus tambah, ubah, atau hapus");
@@ -368,23 +386,29 @@ export const operasiMcu = async (faskesUuid, { pesertaUuid, rawatJalanUuid, oper
         "Status pengiriman sebelumnya belum pasti — pastikan laporan belum diterima PCare (periksa manual) sebelum mengirim ulang, lalu centang konfirmasi",
       );
     }
+    // Laporan yang sudah diterima PCare tidak boleh di-insert ulang (data MCU ganda di PCare) — gunakan Ubah/Hapus.
+    if (kirim?.status === "terkirim") throw new DataBelumLengkap("Laporan MCU sudah terkirim ke PCare — gunakan Ubah untuk memperbarui atau Hapus untuk menarik laporan");
     const t = sekarang();
     if (!kirim) {
-      kirim = { uuid: uuidv7(), percobaan: 0, no_referensi_pcare: null };
-      await query(
+      const baru = { uuid: uuidv7(), percobaan: 0, no_referensi_pcare: null };
+      const masuk = await satu(
         `INSERT INTO mcu_pcare_kirim (uuid, faskes_uuid, peserta_uuid, rawat_jalan_uuid, no_kunjungan, status, mode, created_at, updated_at)
-         VALUES ($1,$2,$3,$4,$5,'mengirim',$6,$7,$7)`,
-        [kirim.uuid, faskesUuid, pesertaUuid, rawatJalanUuid, noKunjungan, config.mode, t],
+         VALUES ($1,$2,$3,$4,$5,'mengirim',$6,$7,$7)
+         ON CONFLICT (faskes_uuid, peserta_uuid) WHERE deleted_at IS NULL DO NOTHING
+         RETURNING uuid`,
+        [baru.uuid, faskesUuid, pesertaUuid, rawatJalanUuid, noKunjungan, config.mode, t],
       );
+      if (!masuk) throw new DataBelumLengkap("Laporan MCU PCare peserta ini sedang diproses — muat ulang lalu coba lagi");
+      kirim = baru;
     } else {
-      await simpanKirimMcu(kirim.uuid, { rawat_jalan_uuid: rawatJalanUuid, no_kunjungan: noKunjungan, status: "mengirim", mode: config.mode });
+      await klaimKirimMcu(kirim.uuid, ["belum", "gagal", "tidak_pasti"], { rawat_jalan_uuid: rawatJalanUuid, no_kunjungan: noKunjungan });
     }
   } else {
     if (!kirim) throw new DataBelumLengkap("Laporan MCU PCare peserta ini belum pernah dikirim");
     if (kirim.status !== "terkirim") throw new DataBelumLengkap(`Laporan berstatus ${kirim.status}, tindakan ${operasi} hanya untuk laporan yang sudah terkirim`);
     if (!String(alasan ?? "").trim()) throw new DataBelumLengkap("Alasan wajib diisi");
     noKunjungan = kirim.no_kunjungan;
-    await simpanKirimMcu(kirim.uuid, { status: "mengirim", mode: config.mode });
+    await klaimKirimMcu(kirim.uuid, ["terkirim"]);
   }
 
   // Pemetaan field MCU PCare masih draf (belum dikonfirmasi spesifikasi resmi) — kirim nyata (bukan mock) ditolak
@@ -403,7 +427,14 @@ export const operasiMcu = async (faskesUuid, { pesertaUuid, rawatJalanUuid, oper
   let body = null;
   try {
     const k = await kredensialSiap(faskesUuid);
-    body = buatMcu({ noKunjungan, kdProviderPeserta: k.kdProvider, ...payload });
+    // payload dari penunjang-service memakai snake_case (tgl_periksa 'YYYY-MM-DD', tanda_vital); camelCase tetap diterima.
+    body = buatMcu({
+      noKunjungan,
+      kdProviderPeserta: k.kdProvider,
+      tglPeriksa: payload.tgl_periksa ?? payload.tglPeriksa,
+      tandaVital: payload.tanda_vital ?? payload.tandaVital ?? null,
+      kesimpulan: payload.kesimpulan ?? null,
+    });
     const jalur = { tambah: "/mcu/insert", ubah: "/mcu/update", hapus: "/mcu/delete" }[operasi];
     const metode = operasi === "hapus" ? "DELETE" : "POST";
     const { response, pesan: pesanOk } = await pcare(k, metode, jalur, operasi === "hapus" ? { noKunjungan } : body);

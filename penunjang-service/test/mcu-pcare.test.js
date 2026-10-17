@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import rute from "../src/rute.js";
 import mcu from "../src/mcu/rute.js";
-import { petakanNilaiMcu, validasiRentangMcu } from "../src/mcu/pcare.js";
+import { petakanNilaiMcu, validasiRentangMcu, angkaHasilLab } from "../src/mcu/pcare.js";
 
 // STD-0020 — MCU PCare (BPJS): memastikan router termuat tanpa membuka koneksi database (sama dengan pola
 // smoke test modul lain, mis. test/utd-rute.test.js) dan terpasang di bawah mcu/rute.js.
@@ -55,4 +55,14 @@ test("validasiRentangMcu: nilai di luar rentang dilaporkan per field", () => {
   assert.equal(masalah.length, 2);
   assert.match(masalah[0], /sistole/);
   assert.match(masalah[1], /gula_darah/);
+});
+
+test("angkaHasilLab: koma desimal & satuan dibaca, teks non-angka tetap null", () => {
+  assert.equal(angkaHasilLab("120"), 120);
+  assert.equal(angkaHasilLab("120,5"), 120.5);
+  assert.equal(angkaHasilLab("98.6 mg/dL"), 98.6);
+  assert.equal(angkaHasilLab(" 200 "), 200);
+  assert.equal(angkaHasilLab("negatif"), null);
+  assert.equal(angkaHasilLab(""), null);
+  assert.equal(angkaHasilLab(null), null);
 });
