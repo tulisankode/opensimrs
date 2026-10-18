@@ -319,6 +319,17 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/sarpras/laporan", permission: read("Sarana dan Prasarana (IPSRS)", "Laporan Sarpras") },
   { path: "/sarpras", mode: "prefix", permission: read("Sarana dan Prasarana (IPSRS)", null, null, null) },
 
+  // Unit Hemodialisa — penunjang-service (STD-0033)
+  { path: "/hemodialisa/jadwal", permission: read("Hemodialisa", "Registrasi & Jadwal") },
+  { path: "/hemodialisa/registrasi", permission: read("Hemodialisa", "Registrasi & Jadwal") },
+  { path: "/hemodialisa/resep", permission: read("Hemodialisa", "Resep HD") },
+  { path: "/hemodialisa/sesi", permission: read("Hemodialisa", "Sesi HD") },
+  { path: "/hemodialisa/dializer", permission: read("Hemodialisa", "Pemakaian BHP") },
+  { path: "/hemodialisa/datamaster/mesin-shift", permission: read("Hemodialisa", "Datamaster", "Mesin & Shift") },
+  { path: "/hemodialisa/datamaster/aturan-reuse", permission: read("Hemodialisa", "Datamaster", "Aturan Reuse Dializer") },
+  { path: "/hemodialisa/datamaster/mapping-hdis", permission: read("Hemodialisa", "Datamaster", "Mapping HDIS") },
+  { path: "/hemodialisa/laporan", permission: read("Hemodialisa", "Laporan Hemodialisa") },
+  { path: "/hemodialisa", mode: "prefix", permission: read("Hemodialisa", null, null, null) },
   // Mutu & Akreditasi — penunjang-service (STD-0028: dokumen akreditasi & kredensial staf)
   { path: "/mutu/dasbor", permission: read("Mutu & Akreditasi", "Dasbor Kesiapan") },
   { path: "/mutu/instrumen", permission: read("Mutu & Akreditasi", "Instrumen Akreditasi") },

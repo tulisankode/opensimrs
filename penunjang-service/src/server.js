@@ -5,6 +5,7 @@ import { ruteMasuk as ruteMasukLisMikro } from "./mikrobiologi/lis-rute.js";
 import { ruteMasuk as ruteMasukLisPa } from "./patologi/lis-pa/lis-pa-rute.js";
 import { ruteMasuk as ruteMasukPacs } from "./pacs/pacs-rute.js";
 import { ruteMasuk as ruteMasukBdrsUtd } from "./bank-darah/utd/utd-push-rute.js";
+import { ruteMasuk as ruteMasukHdis } from "./hemodialisa/hdis/push-rute.js";
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use(ruteMasukPacs);
 app.use(ruteMasukLisPa);
 app.use(ruteMasukLisMikro);
 app.use(ruteMasukBdrsUtd);
+app.use(ruteMasukHdis);
 app.use(config.basePath, rute);
 // Galat pembaca badan JSON (terlalu besar / JSON rusak) → JSON { message } dengan status aslinya (413/400), bukan halaman HTML.
 app.use((err, req, res, next) => {

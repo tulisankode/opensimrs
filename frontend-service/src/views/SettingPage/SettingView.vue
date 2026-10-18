@@ -36,6 +36,7 @@ const menuKonfigurasiIntegrasi = (): SidebarBody => ({
     },
     ...(fiturAktif("rad_bridging_pacs") ? [{ name: "Radiologi", type: linkType.DROPDOWN, child: [tautan("PACS/RIS", "pacs")] }] : []),
     ...(fiturAktif("bdrs_bridging") ? [{ name: "Bank Darah", type: linkType.DROPDOWN, child: [tautan("UTD", "bdrs-utd")] }] : []),
+    ...(fiturAktif("hd_bridging_hdis") ? [{ name: "Hemodialisa", type: linkType.DROPDOWN, child: [tautan("HDIS", "hdis")] }] : []),
     tautan("Helpdesk AI", "helpdesk"),
     tautan("Lainnya", "lainnya"),
   ],

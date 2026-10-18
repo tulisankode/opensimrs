@@ -15,10 +15,11 @@ import bankDarah from "./bank-darah/rute.js";
 import laundry from "./laundry/rute.js";
 import ambulans from "./ambulans/rute.js";
 import sarpras from "./sarpras/rute.js";
+import hemodialisa from "./hemodialisa/rute.js";
 import mutu from "./mutu/rute.js";
 import hr from "./hr/rute.js";
 
-// /api/v3/penunjang/{fisioterapi|radiologi|mcu|patologi|mikrobiologi|cssd|bank-darah|utd|gizi|ambulans}/...
+// /api/v3/penunjang/{fisioterapi|radiologi|mcu|patologi|mikrobiologi|cssd|bank-darah|utd|gizi|ambulans|hemodialisa}/...
 const rute = express.Router();
 rute.get("/health", (req, res) => res.json({ message: "OK" }));
 rute.use(wajibLogin);
@@ -33,6 +34,7 @@ rute.use("/utd", utd);
 rute.use("/gizi", gizi);
 rute.use("/ambulans", ambulans);
 rute.use("/sarpras", sarpras);
+rute.use("/hemodialisa", hemodialisa);
 rute.use("/kamar-operasi", kamarOperasi);
 rute.use("/koding", koding);
 rute.use("/laundry", laundry);
