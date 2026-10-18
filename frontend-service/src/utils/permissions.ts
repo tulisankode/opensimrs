@@ -316,6 +316,9 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/sarpras/laporan", permission: read("Sarana dan Prasarana (IPSRS)", "Laporan Sarpras") },
   { path: "/sarpras", mode: "prefix", permission: read("Sarana dan Prasarana (IPSRS)", null, null, null) },
 
+  // Dashboard Eksekutif — laporan-service (STD-0034)
+  { path: "/dashboard/eksekutif", permission: read("Dashboard", "Eksekutif") },
+
   // Mutu & Akreditasi — penunjang-service (STD-0028: dokumen akreditasi & kredensial staf)
   { path: "/mutu/dasbor", permission: read("Mutu & Akreditasi", "Dasbor Kesiapan") },
   { path: "/mutu/instrumen", permission: read("Mutu & Akreditasi", "Instrumen Akreditasi") },

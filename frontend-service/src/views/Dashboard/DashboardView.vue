@@ -15,8 +15,13 @@ import CardGrafik from './Grafik/CardGrafik.vue';
 import { useDashboardStore } from '@/stores/dashboard';
 import { formatPrice } from '@/utils/Helpers';
 import { warnaTema } from '@/utils/tema';
+import { hasPermission } from '@/utils/permissions';
+import { fiturAktif } from '@/stores/modulFaskes';
 
 const dashboardStore = useDashboardStore()
+
+// Tautan Dashboard Eksekutif (STD-0034): hanya bila fitur aktif untuk faskes dan pengguna berizin Dashboard › Eksekutif.
+const bolehEksekutif = fiturAktif('dashboard_eksekutif') && hasPermission('Dashboard', 'Eksekutif', 'READ')
 
 // Default: 30 hari terakhir
 const endDateFilter = ref<Date>(new Date())
@@ -36,7 +41,6 @@ const gender = ref<any>({})
 const pendapatan = ref<any[]>([])
 const topPoli = ref<any[]>([])
 const topDpjp = ref<any[]>([])
-const dashboardEksekutif = ref<any>(null)
 
 const fetchDashboard = async () => {
   if (!startDateFilter.value || !endDateFilter.value) return
@@ -45,7 +49,7 @@ const fetchDashboard = async () => {
   const end = toParam(endDateFilter.value)
   loading.value = true
   try {
-    const [r, rj, sr, g, p, poli, dpjp, eksekutif] = await Promise.all([
+    const [r, rj, sr, g, p, poli, dpjp] = await Promise.all([
       dashboardStore.getRekap('', start, end),
       dashboardStore.getRekap('rawat-jalan', start, end),
       dashboardStore.getRekap('status-rawat', start, end),
@@ -53,7 +57,6 @@ const fetchDashboard = async () => {
       dashboardStore.getRekap('pendapatan', start, end),
       dashboardStore.getRekap('poli', start, end),
       dashboardStore.getRekap('dpjp', start, end),
-      dashboardStore.getDashboardEksekutif(start, end),
     ])
     rekap.value = r?.payload ?? {}
     rawatJalan.value = rj?.payload?.[0] ?? {}
@@ -62,7 +65,6 @@ const fetchDashboard = async () => {
     pendapatan.value = p?.payload ?? []
     topPoli.value = poli?.payload ?? []
     topDpjp.value = dpjp?.payload ?? []
-    dashboardEksekutif.value = eksekutif?.payload ?? null
   } finally {
     loading.value = false
   }
@@ -142,46 +144,16 @@ const WARNA_DONAT = ['#F28B82', '#C1E1C1', '#A7C7E7', '#AFE1E1', '#FFE0B2']
 
 <template>
   <div class="flex flex-col max-h-full gap-5 overflow-auto grow">
-    <section class="p-5 bg-white rounded-lg shadow-sm">
-      <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
-        <div>
-          <h1 class="text-lg font-semibold text-opensimrs-300">Ringkasan Eksekutif</h1>
-          <p class="mt-1 text-sm text-grey-300">Agregat fasilitas untuk periode terpilih. Data yang belum memiliki sumber terverifikasi tidak ditampilkan sebagai angka.</p>
-        </div>
-        <p v-if="dashboardEksekutif?.diperbarui_pada" class="text-xs text-grey-300">
-          Data diambil {{ new Date(dashboardEksekutif.diperbarui_pada * 1000).toLocaleString('id-ID') }}
-        </p>
-      </div>
-      <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <article v-for="item in [
-          { label: 'Kunjungan', data: dashboardEksekutif?.indikator?.kunjungan },
-          { label: 'Pendapatan tagihan', data: dashboardEksekutif?.indikator?.pendapatan },
-          { label: 'Mutu', data: dashboardEksekutif?.indikator?.mutu },
-          { label: 'SDM', data: dashboardEksekutif?.indikator?.sdm },
-          { label: 'Klaim dan piutang', data: dashboardEksekutif?.indikator?.klaim_dan_piutang },
-          { label: 'Target KPI', data: dashboardEksekutif?.indikator?.target_kpi },
-          { label: 'Rawat inap', data: dashboardEksekutif?.indikator?.rawat_inap },
-          { label: 'Ekspor PDF', data: dashboardEksekutif?.indikator?.ekspor_pdf },
-        ]" :key="item.label" class="p-4 border rounded-lg border-grey-100">
-          <h2 class="font-medium">{{ item.label }}</h2>
-          <p class="mt-2 text-sm" :class="item.data?.status_data === 'tersedia' ? 'text-green-700' : 'text-grey-300'">
-            {{ item.data?.status_data === 'tersedia' ? 'Tersedia' : item.data?.status_data === 'gagal' ? 'Gagal dimuat' : 'Belum tersedia' }}
-          </p>
-          <p v-if="item.data?.status_data === 'tersedia' && item.label === 'Kunjungan'" class="mt-1 text-xl font-semibold">
-            {{ toNumber(item.data.nilai?.[0]?.total).toLocaleString('id-ID') }}
-          </p>
-          <p v-else-if="item.data?.status_data === 'tersedia' && item.label === 'Pendapatan tagihan'" class="mt-1 text-xl font-semibold">
-            {{ formatPrice(Math.round(toNumber(item.data.nilai?.[0]?.total))) }}
-          </p>
-        </article>
-      </div>
-    </section>
     <div class="flex items-center gap-2.5 p-5 bg-white rounded-lg">
       <div class="p-2 text-white rounded-lg bg-opensimrs-300">
         <img :src="IconDashboard" alt="Icon Kegiatan" width="20px">
       </div>
       <div class="flex items-center justify-between w-full font-semibold text-opensimrs-300 text-subTitle ">Dashboard
         <div class="flex items-center">
+          <RouterLink v-if="bolehEksekutif" to="/dashboard/eksekutif"
+            class="mr-4 px-3 py-1.5 text-xs font-medium rounded-lg border border-opensimrs-300 text-opensimrs-300 hover:bg-opensimrs-50">
+            Dashboard Eksekutif
+          </RouterLink>
           <span v-if="loading" class="mr-3 text-xs font-normal text-grey-300">Memuat…</span>
           <CustomDatePicker v-model="startDateFilter" label="" class="w-[150px]" />
           <PhMinus class="mt-auto mb-2 mx-[10px] text-black" />

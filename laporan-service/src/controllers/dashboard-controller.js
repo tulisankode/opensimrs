@@ -1,19 +1,6 @@
 import DashboardService from "../services/dashboard-service.js"
 
 export default class DashboardController {
-  static async getDashboardEksekutif(request, response, nextFunction) {
-    try {
-      const { author, query } = request
-      const result = await DashboardService.getDashboardEksekutif(author, query)
-      return response.status(200).json({
-        message: 'Data dashboard eksekutif berhasil didapat',
-        payload: result
-      })
-    } catch (error) {
-      nextFunction(error)
-    }
-  }
-
   static async getRekapDashboard(request, response, nextFunction) {
     try {
       const { author, query } = request
