@@ -26,6 +26,7 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 ## [Belum dirilis]
 
 ### Ditambahkan
+- **Dashboard eksekutif (STD-0034, laporan-service dan frontend-service):** endpoint ringkasan agregat dengan filter periode dan pembatasan faskes dari token, status ketersediaan per sumber, serta waktu pengambilan data; indikator tanpa sumber siap pakai ditandai belum tersedia.
 - **Mutu & Akreditasi – Dokumen Akreditasi & Kredensial Staf** (modul baru `mutu`, fitur `mutu_dokumen_kredensial`, STD-0028, penunjang-service `/mutu`):
   - Instrumen akreditasi milik faskes (bab → standar → elemen penilaian; sistem tidak menyediakan isi instrumen), diisi manual atau impor CSV dengan laporan baris yang ditolak (elemen tanpa bab/standar induk) dan mode validasi saja.
   - Dokumen akreditasi (kebijakan, pedoman, SPO, program, bukti) dengan berkas PDF, status manual draf → disahkan → kedaluwarsa/dicabut, revisi berversi (versi lama beserta berkas & pemetaannya tetap utuh), pemetaan ke elemen penilaian, catatan tinjauan, dan penanda "perlu ditinjau" yang tidak mengubah status.

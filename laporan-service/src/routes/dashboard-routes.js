@@ -2,6 +2,7 @@ import express from "express"
 import DashboardController from "../controllers/dashboard-controller.js"
 
 const dashboardRoutes = express.Router()
+dashboardRoutes.get("/dashboard/eksekutif", DashboardController.getDashboardEksekutif)
 dashboardRoutes.get("/dashboard/rekap", DashboardController.getRekapDashboard)
 dashboardRoutes.get("/dashboard/rekap/rawat-jalan", DashboardController.getTotalKunjunganRawatJalan)
 dashboardRoutes.get("/dashboard/rekap/status-rawat", DashboardController.getTotalKunjunganStatusRawat)
