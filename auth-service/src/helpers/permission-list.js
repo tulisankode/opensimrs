@@ -1073,6 +1073,20 @@ export const ambulansPermission = {
   ],
 };
 
+// Mutu & Akreditasi (penunjang-service /mutu). Submodul fitur Dokumen Akreditasi & Kredensial Staf (STD-0028); fitur mutu
+// berikutnya (indikator mutu, IKP, PPI) menambah submodul baru di modul yang sama. "Akses Surveior" terpisah dari
+// "Dokumen Akreditasi" › READ: surveior hanya membaca dokumen yang dibagikan & belum lewat batas waktunya.
+export const mutuPermission = {
+  module: "Mutu & Akreditasi",
+  subModules: [
+    { name: "Dasbor Kesiapan", allows: ["READ"] },
+    { name: "Instrumen Akreditasi", allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT"] },
+    { name: "Dokumen Akreditasi", allows: ["READ", "CREATE", "UPDATE", "REVISI", "UBAH STATUS", "TINJAU", "PETAKAN ELEMEN", "BAGIKAN SURVEIOR", "DELETE"] },
+    { name: "Kredensial Staf", allows: ["READ", "CREATE", "UPDATE", "CABUT", "DELETE"] },
+    { name: "Akses Surveior", allows: ["READ"] },
+  ],
+};
+
 export const sarprasPermission = {
   module: "Sarana dan Prasarana (IPSRS)",
   subModules: [
@@ -1557,6 +1571,7 @@ export function mapPermission(permissionList) {
     "bank darah rs (bdrs)": bankDarahPermission,
     cssd: cssdPermission,
     "manajemen ambulans": ambulansPermission,
+    "mutu & akreditasi": mutuPermission,
     "sarana dan prasarana (ipsrs)": sarprasPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,
