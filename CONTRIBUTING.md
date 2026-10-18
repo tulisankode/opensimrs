@@ -77,7 +77,7 @@ git push origin fix/b-22-kode-status-dirujuk
 - Cara menguji: akun demo dan segmen yang dipakai, langkah, hasil yang diharapkan.
 - Tangkapan layar untuk perubahan tampilan (pakai data demo, bukan data pasien).
 - Migrasi baru (bila ada) dan dampaknya ke data lama.
-- Entri [CHANGELOG](./CHANGELOG.md) bagian *Belum dirilis*.
+- Fragmen CHANGELOG `changelog.d/<nama-branch>.md` ([bagian 7](#7-changelog)).
 
 **Aturan PR:**
 - Satu PR = satu tujuan. Pisahkan perbaikan yang tidak berhubungan.
@@ -228,11 +228,19 @@ CI menguji hal yang sama pada database kosong.
 
 ## 7. Changelog
 
-Setiap PR yang mengubah perilaku untuk pengguna atau implementator menambahkan satu baris di [CHANGELOG.md](./CHANGELOG.md) bagian **[Belum dirilis]**, pada kategori yang sesuai:
+Setiap PR yang mengubah perilaku untuk pengguna atau implementator menulis catatan perubahannya di **berkas fragmen sendiri**, `changelog.d/<nama-branch>.md` (`/` diganti `-`, mis. `changelog.d/feat-b-44-rincian-tagihan.md`). Jangan mengedit [CHANGELOG.md](./CHANGELOG.md) langsung: bila banyak PR menambah baris di tempat yang sama, setiap penggabungan akan konflik. Item SIMRS Studio memakai `changelog.d/STD-<nomor>.md`.
+
+Isi fragmen sama dengan bagian *[Belum dirilis]*, tanpa judul versi. Pakai judul `### <Kategori>` dengan kategori:
 
 - **Ditambahkan** – fitur baru · **Diubah** – perubahan perilaku · **Usang** · **Dihapus** · **Diperbaiki** – bug · **Keamanan**
 
-Tulis dari sudut pandang pengguna, mis. *"Kasir: rincian tagihan menampilkan biaya penunjang (B-44)."* Sebut migrasi baru bila ada. Maintainer memindahkan entri ke nomor versi saat rilis.
+```markdown
+### Diperbaiki
+- Kasir: rincian tagihan menampilkan biaya penunjang (B-44).
+  - **Migrasi baru:** `20261019090000-tagihan_penunjang`.
+```
+
+Tulis dari sudut pandang pengguna dan sebut migrasi baru bila ada. Format fragmen diperiksa `node scripts/cek-integritas.mjs` (juga di CI). Saat rilis, maintainer menjalankan `node scripts/gabung-changelog.mjs` untuk memindahkan semua fragmen ke CHANGELOG lalu menghapusnya. Panduan lengkap: [changelog.d/README.md](./changelog.d/README.md).
 
 ---
 

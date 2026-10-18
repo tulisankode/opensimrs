@@ -229,7 +229,7 @@ const PRESET_KONEKTOR = [
   { kode: "mistral", nama: "Mistral", penyedia: "openai_kompatibel", endpoint: "https://api.mistral.ai/v1", model: ["mistral-large-latest", "codestral-latest"], kunci: "https://console.mistral.ai/api-keys" },
   { kode: "openrouter", nama: "OpenRouter (banyak model)", penyedia: "openai_kompatibel", endpoint: "https://openrouter.ai/api/v1", model: ["deepseek/deepseek-chat", "qwen/qwen3-coder", "x-ai/grok-4"], kunci: "https://openrouter.ai/keys" },
   { kode: "groq", nama: "Groq (inferensi cepat)", penyedia: "openai_kompatibel", endpoint: "https://api.groq.com/openai/v1", model: ["llama-3.3-70b-versatile", "qwen/qwen3-32b"], kunci: "https://console.groq.com/keys" },
-  { kode: "ollama", nama: "Ollama (model lokal di RS)", penyedia: "openai_kompatibel", endpoint: "http://localhost:11434/v1", model: ["qwen2.5-coder", "deepseek-coder-v2", "llama3.1"], kunci: "" },
+  { kode: "ollama", nama: "Ollama (model lokal di RS)", penyedia: "openai_kompatibel", endpoint: "http://localhost:11434/v1", model: ["qwen3:8b", "gpt-oss:20b", "qwen3-coder:30b"], kunci: "" },
 ];
 const presetDipilih = ref("");
 const presetKonektor = computed(() => PRESET_KONEKTOR.find((p) => p.kode === presetDipilih.value) ?? null);
@@ -565,7 +565,7 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
                 <select v-model="nilai.gitPenyedia" class="rounded border border-grey-200 bg-white px-2 py-1"><option value="">Tanpa (tautan compare)</option><option value="github">GitHub</option><option value="gitea">Gitea / Forgejo</option></select></label>
               <label v-if="nilai.gitPenyedia === 'gitea'" class="col-span-2 flex flex-col gap-1 text-XS"><span class="font-semibold">URL Gitea/Forgejo</span><input v-model="nilai.gitApiUrl" class="rounded border border-grey-200 bg-white px-2 py-1 font-mono" placeholder="https://git.rs-contoh.id" /></label>
               <label v-if="nilai.gitPenyedia" class="flex flex-col gap-1 text-XS"><span class="font-semibold">Repo (owner/nama)</span><input v-model="nilai.gitRepo" class="rounded border border-grey-200 bg-white px-2 py-1 font-mono" placeholder="dari remote origin" /></label>
-              <label v-if="nilai.gitPenyedia" class="flex flex-col gap-1 text-XS"><span class="font-semibold">Token (izin PR saja)</span><input v-model="nilai.gitToken" type="password" class="rounded border border-grey-200 bg-white px-2 py-1 font-mono" placeholder="tidak diubah" /></label>
+              <label v-if="nilai.gitPenyedia" class="flex flex-col gap-1 text-XS"><span class="font-semibold">Token (izin PR saja)</span><input v-model="nilai.gitToken" type="password" autocomplete="new-password" class="rounded border border-grey-200 bg-white px-2 py-1 font-mono" placeholder="tidak diubah" /></label>
             </div>
             <label class="flex flex-col gap-1 text-XS"><span class="font-semibold">Baris atribusi commit</span><input v-model="nilai.atribusiCommit" class="rounded border border-grey-200 bg-white px-2 py-1 font-mono" /></label>
             <label class="flex items-center gap-2 text-XS"><input v-model="nilai.cekBuildFrontend" type="checkbox" /> Cek otomatis menjalankan build frontend bila berkas frontend berubah</label>
@@ -656,17 +656,18 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
         </select></label>
       <div v-if="presetKonektor" class="rounded bg-opensimrs-50 p-2 text-XS text-grey-500">
         <template v-if="presetKonektor.kunci">Kunci API: <a :href="presetKonektor.kunci" target="_blank" rel="noopener" class="text-opensimrs-300 underline">{{ presetKonektor.kunci }}</a>. </template>
-        <template v-else>Tanpa kunci API; data tidak keluar dari jaringan RS. Pastikan Ollama berjalan dan modelnya sudah di-<code>pull</code>. </template>
-        Dibayar per pemakaian API (bukan langganan). Nama model bisa berubah; cek nama terbaru di situs penyedia. Kemampuan memakai alat (membaca/menyunting berkas) berbeda tiap model, jadi uji dulu sebelum dipakai untuk tahap Coding.
+        <template v-if="presetKonektor.kunci">Dibayar per pemakaian API (bukan langganan). Nama model bisa berubah; cek nama terbaru di situs penyedia. </template>
+        <template v-else>Tanpa kunci API dan tanpa biaya per token; data tidak keluar dari jaringan RS. Pastikan Ollama berjalan dan modelnya sudah di-<code>pull</code> (tulis nama model persis dengan tag, mis. <code>qwen3:8b</code>). Model lokal kecil cocok untuk tahap dokumen atau cadangan terakhir, belum untuk coding modul utuh. </template>
+        Kemampuan memakai alat (membaca/menyunting berkas) berbeda tiap model, jadi uji dulu sebelum dipakai untuk tahap Coding.
       </div>
       <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Nama</span><input v-model="formKonektor.nama" class="rounded border border-grey-200 px-2 py-1.5" placeholder="Anthropic API kantor" /></label>
       <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Penyedia</span>
         <select v-model="formKonektor.penyedia" class="rounded border border-grey-200 px-2 py-1.5"><option v-for="(n, k) in PENYEDIA" :key="k" :value="k">{{ n }}</option></select></label>
       <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Endpoint {{ formKonektor.penyedia === "openai_kompatibel" ? "(wajib)" : "(opsional)" }}</span>
         <input v-model="formKonektor.endpoint" class="rounded border border-grey-200 px-2 py-1.5 font-mono text-XS" :placeholder="formKonektor.penyedia === 'openai_kompatibel' ? 'http://localhost:11434/v1' : 'bawaan penyedia'" /></label>
-      <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Model</span><input v-model="formKonektor.model" list="saran-model-konektor" class="rounded border border-grey-200 px-2 py-1.5 font-mono text-XS" placeholder="claude-opus-5-5 / gpt-… / qwen2.5-coder" /></label>
+      <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Model</span><input v-model="formKonektor.model" list="saran-model-konektor" class="rounded border border-grey-200 px-2 py-1.5 font-mono text-XS" placeholder="claude-opus-5-5 / gpt-… / qwen3:8b" /></label>
       <datalist id="saran-model-konektor"><option v-for="m in presetKonektor?.model ?? []" :key="m" :value="m" /></datalist>
-      <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Kunci API (disimpan terenkripsi)</span><input v-model="formKonektor.kunciApi" type="password" class="rounded border border-grey-200 px-2 py-1.5 font-mono text-XS" placeholder="kosongkan untuk model lokal" /></label>
+      <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Kunci API (disimpan terenkripsi)</span><input v-model="formKonektor.kunciApi" type="password" autocomplete="new-password" class="rounded border border-grey-200 px-2 py-1.5 font-mono text-XS" placeholder="kosongkan untuk model lokal" /></label>
       <div class="grid grid-cols-2 gap-2">
         <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Harga masuk / 1 jt token (US$)</span><input v-model="formKonektor.hargaMasuk" type="number" min="0" step="0.01" class="rounded border border-grey-200 px-2 py-1.5" /></label>
         <label class="flex flex-col gap-1"><span class="text-XS font-semibold">Harga keluar / 1 jt token (US$)</span><input v-model="formKonektor.hargaKeluar" type="number" min="0" step="0.01" class="rounded border border-grey-200 px-2 py-1.5" /></label>

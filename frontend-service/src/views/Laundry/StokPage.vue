@@ -124,6 +124,9 @@ const bukaRiwayat = async (baris: any, lokasiTipe: string) => {
                 <Column header="Saldo" headerClass="bg-opensimrs-50">
                   <template #body="{ data: d }">{{ d.saldo }} {{ d.satuan }}</template>
                 </Column>
+                <Column header="Unit Berlabel" headerClass="bg-opensimrs-50">
+                  <template #body="{ data: d }">{{ d.caraPencatatan === "per_unit" ? `${d.unitTerlacak} unit · ${d.saldoTanpaUnit} tanpa label` : "-" }}</template>
+                </Column>
                 <Column field="parLevel" header="Par Level" headerClass="bg-opensimrs-50" />
                 <Column header="Selisih Par" headerClass="bg-opensimrs-50">
                   <template #body="{ data: d }">
@@ -148,6 +151,9 @@ const bukaRiwayat = async (baris: any, lokasiTipe: string) => {
                 </Column>
                 <Column header="Stok Bersih" headerClass="bg-opensimrs-50">
                   <template #body="{ data: d }">{{ d.saldo }} {{ d.satuan }}</template>
+                </Column>
+                <Column header="Unit Berlabel" headerClass="bg-opensimrs-50">
+                  <template #body="{ data: d }">{{ d.caraPencatatan === "per_unit" ? `${d.unitTerlacak} unit · ${d.saldoTanpaUnit} tanpa label` : "-" }}</template>
                 </Column>
                 <Column field="kotorMenunggu" header="Kotor Belum Dicuci" headerClass="bg-opensimrs-50" />
                 <Column field="dalamProses" header="Dalam Proses Batch" headerClass="bg-opensimrs-50" />

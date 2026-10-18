@@ -10,12 +10,15 @@
 //   3. Migrasi: stempel waktu nama berkas tidak boleh kembar.
 //   4. Frontend: tidak boleh ada import "@/main" (import melingkar main → router → halaman → main membuat layar
 //      putih "Cannot access 'router' before initialization" saat Vite memuat main.ts dua kali).
+//   5. Fragmen CHANGELOG (changelog.d/*.md): nama berkas & format bagian "### <Kategori>" valid, agar
+//      scripts/gabung-changelog.mjs tidak gagal saat rilis.
 //
 //   node scripts/cek-integritas.mjs           # keluar dengan kode 1 bila ada pelanggaran
 //   node scripts/cek-integritas.mjs --json    # keluaran JSON { lulus, temuan[] } (dipakai SIMRS Studio)
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { FOLDER_FRAGMEN, namaFragmenSah, uraiFragmen } from "./lib/changelog.mjs";
 
 const AKAR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const baca = (rel) => fs.readFileSync(path.join(AKAR, rel), "utf8").replace(/\r\n/g, "\n");
@@ -84,6 +87,14 @@ const telusur = (dir) => {
   }
 };
 telusur(path.join(AKAR, "frontend-service/src"));
+
+// ---------- 5. Fragmen CHANGELOG ----------
+if (fs.existsSync(path.join(AKAR, FOLDER_FRAGMEN))) {
+  for (const nama of fs.readdirSync(path.join(AKAR, FOLDER_FRAGMEN)).filter((n) => n.endsWith(".md") && n.toLowerCase() !== "readme.md")) {
+    if (!namaFragmenSah(nama)) salah("Fragmen CHANGELOG", `${FOLDER_FRAGMEN}/${nama}: nama berkas hanya boleh huruf, angka, titik, minus, dan garis bawah`);
+    for (const g of uraiFragmen(baca(`${FOLDER_FRAGMEN}/${nama}`)).galat) salah("Fragmen CHANGELOG", `${FOLDER_FRAGMEN}/${nama}: ${g}`);
+  }
+}
 
 // ---------- hasil ----------
 const lulus = temuan.length === 0;

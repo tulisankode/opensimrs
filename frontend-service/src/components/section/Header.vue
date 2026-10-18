@@ -91,6 +91,7 @@ const templistMenu = ref<ListMenu[]>([
     icon: "PhKnife",
     url: "/kamar-operasi",
   },
+  { title: "Hemodialisa", icon: "PhDrop", url: "/hemodialisa" },
   {
     title: "Gizi",
     icon: "PhBowlFood",
@@ -165,9 +166,19 @@ const templistMenu = ref<ListMenu[]>([
     url: "/ambulans",
   },
   {
+    title: "Mutu & Akreditasi",
+    icon: "PhSealCheck",
+    url: "/mutu",
+  },
+  {
     title: "Sarana dan Prasarana (IPSRS)",
     icon: "PhWrench",
     url: "/sarpras",
+  },
+  {
+    title: "HR / SDM",
+    icon: "PhUsersThree",
+    url: "/sdm",
   },
   {
     title: "Training",

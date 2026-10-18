@@ -676,6 +676,45 @@
       "menu": ["Sarana dan Prasarana (IPSRS)"],
       "rute": ["/sarpras"],
       "urutan": 33
+    },
+    {
+      "kode": "hemodialisa",
+      "nama": "Unit Hemodialisa",
+      "kelompok": "Rumah Sakit",
+      "bidang": "Pelayanan Medis & Keperawatan",
+      "instalasi": "Unit Hemodialisa",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Registrasi HD akut/kronis, jadwal per mesin & shift, resep HD, asesmen pra-HD, pemantauan intradialitik, Kt/V & URR, pemakaian BHP & reuse dializer, tagihan tindakan, dan laporan unit.",
+      "menu": ["Hemodialisa"],
+      "rute": ["/hemodialisa"],
+      "urutan": 35
+    },
+    {
+      "kode": "mutu",
+      "nama": "Mutu & Akreditasi",
+      "kelompok": "Penunjang",
+      "bidang": "Manajemen & Mutu",
+      "instalasi": "Manajemen Mutu",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dasbor kesiapan akreditasi, dan indikator mutu (INM, IMP-RS, IMPU) dengan validasi data, capaian, dan tindak lanjut.",
+      "menu": ["Mutu & Akreditasi"],
+      "rute": ["/mutu"],
+      "urutan": 34
+    },
+    {
+      "kode": "sdm",
+      "nama": "HR / SDM",
+      "kelompok": "Penunjang",
+      "bidang": "Keuangan & Administrasi",
+      "instalasi": "SDM & Kepegawaian",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Kepegawaian tertaut pegawai Data Master (status, unit, jabatan, golongan, pendidikan, riwayat bertanggal berlaku) dan kredensial pegawai yang satu sumber dengan Kredensial Staf Mutu & Akreditasi. Jadwal dinas, kehadiran/cuti, pelatihan, dan penggajian menyusul.",
+      "menu": ["HR / SDM"],
+      "rute": ["/sdm"],
+      "urutan": 36
     }
   ],
   "fitur": [
@@ -1491,6 +1530,36 @@
       "urutan": 76
     },
     {
+      "kode": "laundry_unit",
+      "modul": "laundry",
+      "nama": "Unit Linen & Label",
+      "deskripsi": "Cara pencatatan per jenis (per jumlah/per unit) dan batas umur pakai, registrasi unit berkode unik, label QR/barcode, koreksi status/lokasi, dan tautan bed/kamar.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/unit"],
+      "urutan": 77
+    },
+    {
+      "kode": "laundry_pemindaian_unit",
+      "modul": "laundry",
+      "nama": "Pemindaian Unit",
+      "deskripsi": "Pindai unit (kamera peramban/scanner USB) di setiap titik alur: serah terima kotor, masuk batch, selesai cuci, distribusi, dan penerimaan ruangan; stok ikut dihitung dari hasil pindai.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/pemindaian-unit"],
+      "urutan": 78
+    },
+    {
+      "kode": "laundry_laporan_unit",
+      "modul": "laundry",
+      "nama": "Laporan Unit Linen",
+      "deskripsi": "Riwayat perjalanan per unit, unit hilang/rusak per ruangan, unit mendekati/mencapai batas umur pakai, dan perputaran.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/laporan-unit"],
+      "urutan": 79
+    },
+    {
       "kode": "ambulans_armada",
       "modul": "ambulans",
       "nama": "Master Armada & Servis",
@@ -1619,6 +1688,106 @@
       "wajib": true,
       "rute": ["/sarpras/laporan"],
       "urutan": 81
+    },
+    {
+      "kode": "hd_bridging_hdis",
+      "modul": "hemodialisa",
+      "nama": "Bridging HDIS",
+      "deskripsi": "Kirim jadwal & data pasien minimum ke HDIS dan terima parameter mesin per sesi secara idempoten (kontrak REST generik).",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/hemodialisa/datamaster/mapping-hdis"],
+      "urutan": 101
+    },
+    {
+      "kode": "mutu_dokumen_kredensial",
+      "modul": "mutu",
+      "nama": "Dokumen Akreditasi & Kredensial Staf",
+      "deskripsi": "Instrumen akreditasi milik faskes (bab/standar/elemen, impor CSV), dokumen akreditasi berversi dengan pemetaan bukti & pengingat tinjau ulang, kredensial staf (STR/SIP/sertifikat/RKK/SPK) dengan peringatan 90/30 hari, dasbor kesiapan, dan akses baca surveior.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/mutu/dasbor", "/mutu/instrumen", "/mutu/dokumen", "/mutu/kredensial", "/mutu/surveior"],
+      "urutan": 82
+    },
+    {
+      "kode": "mutu_indikator",
+      "modul": "mutu",
+      "nama": "Indikator Mutu (INM, IMP-RS, IMPU)",
+      "deskripsi": "Profil indikator dengan set INM bawaan (perlu disahkan Komite Mutu) dan IMP-RS/IMPU buatan faskes, pengumpulan data per tanggal & unit (manual; waktu tunggu rawat jalan dapat dihitung otomatis), validasi pengumpul → validator, capaian & tren bulanan/triwulanan terhadap target, tindak lanjut, dan ekspor laporan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/mutu/indikator"],
+      "urutan": 102
+    },
+    {
+      "kode": "dashboard_eksekutif",
+      "modul": "dashboard",
+      "nama": "Dashboard Eksekutif",
+      "deskripsi": "Indikator pimpinan lintas modul: kunjungan RJ/RI/IGD, BOR/ALOS/TOI/BTO/NDR/GDR, waktu tunggu, pendapatan/kas/piutang, SEP BPJS, kesiapan akreditasi, kredensial & SDM; target KPI per faskes dengan warna status, tren, rincian agregat, dan ekspor PDF tanpa identitas pasien.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/dashboard/eksekutif"],
+      "urutan": 83
+    },
+    {
+      "kode": "sdm_kepegawaian",
+      "modul": "sdm",
+      "nama": "Kepegawaian",
+      "deskripsi": "Data kepegawaian tertaut pegawai Data Master: status, unit kerja, jabatan, golongan, pendidikan, riwayat perubahan bertanggal berlaku (riwayat lama tidak ditimpa), dan tautan akun login.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/sdm/kepegawaian"],
+      "urutan": 83
+    },
+    {
+      "kode": "sdm_kredensial",
+      "modul": "sdm",
+      "nama": "Kredensial Pegawai",
+      "deskripsi": "STR, SIP, sertifikat pelatihan/kompetensi, RKK, SPK dengan berkas, verifikasi, pencabutan, dan peringatan 90/30 hari — satu sumber data dengan Kredensial Staf Mutu & Akreditasi.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/sdm/kredensial"],
+      "urutan": 84
+    },
+    {
+      "kode": "sdm_jadwal_dinas",
+      "modul": "sdm",
+      "nama": "Jadwal Dinas",
+      "deskripsi": "Pola shift, jadwal dinas unit dengan validasi benturan & istirahat minimum, persetujuan, dan tukar dinas.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 85
+    },
+    {
+      "kode": "sdm_kehadiran",
+      "modul": "sdm",
+      "nama": "Kehadiran, Cuti & Izin",
+      "deskripsi": "Impor/pencatatan kehadiran serta pengajuan cuti & izin dengan persetujuan berjenjang.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 86
+    },
+    {
+      "kode": "sdm_pelatihan",
+      "modul": "sdm",
+      "nama": "Pelatihan",
+      "deskripsi": "Riwayat pelatihan & jam diklat pegawai dengan verifikasi.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 87
+    },
+    {
+      "kode": "sdm_penggajian",
+      "modul": "sdm",
+      "nama": "Penggajian",
+      "deskripsi": "Komponen gaji, rancangan & pengesahan penggajian per periode, slip gaji, serta integrasi jaspel/jurnal.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 88
     }
   ],
   "bagian": [
