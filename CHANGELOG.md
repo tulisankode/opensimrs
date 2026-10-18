@@ -128,6 +128,8 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
   - **Status Menunggu kuota (`tunda_kuota`)**: bila semua konektor habis, tugas ditunda sampai jam reset paling awal yang terbaca, lalu penjadwal studio-service (±60 detik, klaim atomik) melanjutkannya otomatis dengan tahap/instruksi yang sama. Tugas yang menunggu bisa dibatalkan, dan tidak dilanjutkan bila item sudah pindah tahap atau dibatalkan.
   - **Henti di kuota (%)** kini memakai cadangan atau menunda tugas sampai kuota reset, bukan menolak permintaan dengan galat 429. Batas biaya tetap menolak.
   - **Saldo kredit konektor API habis** (mis. Anthropic "credit balance is too low", HTTP 402) juga memicu peralihan ke konektor berikutnya; bila semua habis, tugas ditunda 60 menit karena saldo perlu diisi admin.
+  - **Galat jaringan sementara** (`fetch failed`, `Connection lost mid-response`, `ECONNRESET`, dll.) juga memicu peralihan ke konektor berikutnya; bila semua gagal, tugas ditunda 5 menit.
+  - **Codex sebagai agen coding di Windows** kini memakai sandbox Windows Codex (`windows.sandbox="unelevated"`); sebelumnya folder kerja menjadi hanya-baca sehingga coding selesai tanpa perubahan.
   - **Maksimal agen bersamaan** (bawaan 2): tugas berikutnya berstatus **Menunggu slot agen** dan dimulai otomatis saat ada agen yang selesai.
   - **Migrasi baru:** `20261018020000-studio_tugas_tahan_kuota` (kolom `lanjut_pada`, `lanjutan_dari`, `lanjutan_ke`, `menunggu_slot` di `studio_tugas`).
 
