@@ -1080,6 +1080,20 @@ export const ambulansPermission = {
   ],
 };
 
+// Mutu & Akreditasi (penunjang-service /mutu). Submodul fitur Dokumen Akreditasi & Kredensial Staf (STD-0028); fitur mutu
+// berikutnya (indikator mutu, IKP, PPI) menambah submodul baru di modul yang sama. "Akses Surveior" terpisah dari
+// "Dokumen Akreditasi" › READ: surveior hanya membaca dokumen yang dibagikan & belum lewat batas waktunya.
+export const mutuPermission = {
+  module: "Mutu & Akreditasi",
+  subModules: [
+    { name: "Dasbor Kesiapan", allows: ["READ"] },
+    { name: "Instrumen Akreditasi", allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT"] },
+    { name: "Dokumen Akreditasi", allows: ["READ", "CREATE", "UPDATE", "REVISI", "UBAH STATUS", "TINJAU", "PETAKAN ELEMEN", "BAGIKAN SURVEIOR", "DELETE"] },
+    { name: "Kredensial Staf", allows: ["READ", "CREATE", "UPDATE", "CABUT", "DELETE"] },
+    { name: "Akses Surveior", allows: ["READ"] },
+  ],
+};
+
 export const sarprasPermission = {
   module: "Sarana dan Prasarana (IPSRS)",
   subModules: [
@@ -1092,6 +1106,26 @@ export const sarprasPermission = {
     { name: "Utilitas", allows: ["READ", "CREATE"] },
     { name: "Laporan Sarpras", allows: ["READ", "EKSPOR"] },
     { name: "Pengaturan", allows: ["READ", "UPDATE"] },
+  ],
+};
+
+// HR / SDM (STD-0035): izin dipisah per area agar akses data kepegawaian dan penggajian dapat diberikan minimum.
+export const sdmPermission = {
+  module: "HR / SDM",
+  subModules: [
+    { name: "Kepegawaian", allows: ["READ", "CREATE", "UPDATE", "TAUTKAN AKUN"] },
+    { name: "Kredensial", allows: ["READ", "CREATE", "UPDATE", "VERIFIKASI", "UNGGAH DOKUMEN"] },
+    { name: "Pola Shift", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Jadwal Dinas", allows: ["READ", "CREATE", "UPDATE", "AJUKAN", "SETUJUI", "TERBITKAN"] },
+    { name: "Kehadiran", allows: ["READ", "IMPOR", "KOREKSI"] },
+    { name: "Cuti & Izin", allows: ["READ", "AJUKAN", "SETUJUI"] },
+    { name: "Tukar Dinas", allows: ["READ", "AJUKAN", "KONFIRMASI", "SETUJUI"] },
+    { name: "Pelatihan", allows: ["READ", "CREATE", "UPDATE", "VERIFIKASI"] },
+    { name: "Penggajian", allows: ["READ", "KELOLA KOMPONEN", "TINJAU", "SAHKAN", "KOREKSI"] },
+    { name: "Slip Gaji", allows: ["READ", "TERBITKAN"] },
+    { name: "Integrasi", allows: ["READ", "REKONSILIASI", "KIRIM ULANG"] },
+    { name: "Pengaturan", allows: ["READ", "UPDATE"] },
+    { name: "Laporan SDM", allows: ["READ", "EKSPOR"] },
   ],
 };
 
@@ -1564,6 +1598,8 @@ export function mapPermission(permissionList) {
     "bank darah rs (bdrs)": bankDarahPermission,
     cssd: cssdPermission,
     "manajemen ambulans": ambulansPermission,
+    "mutu & akreditasi": mutuPermission,
+    "hr / sdm": sdmPermission,
     "sarana dan prasarana (ipsrs)": sarprasPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,

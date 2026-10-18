@@ -319,6 +319,14 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/sarpras/laporan", permission: read("Sarana dan Prasarana (IPSRS)", "Laporan Sarpras") },
   { path: "/sarpras", mode: "prefix", permission: read("Sarana dan Prasarana (IPSRS)", null, null, null) },
 
+  // Mutu & Akreditasi — penunjang-service (STD-0028: dokumen akreditasi & kredensial staf)
+  { path: "/mutu/dasbor", permission: read("Mutu & Akreditasi", "Dasbor Kesiapan") },
+  { path: "/mutu/instrumen", permission: read("Mutu & Akreditasi", "Instrumen Akreditasi") },
+  { path: "/mutu/dokumen", permission: read("Mutu & Akreditasi", "Dokumen Akreditasi") },
+  { path: "/mutu/kredensial", permission: read("Mutu & Akreditasi", "Kredensial Staf") },
+  { path: "/mutu/surveior", permission: read("Mutu & Akreditasi", "Akses Surveior") },
+  { path: "/mutu", mode: "prefix", permission: read("Mutu & Akreditasi", null, null, null) },
+
   // Bank Darah RS (BDRS) — penunjang-service
   { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },
   { path: "/bank-darah/crossmatch", permission: read("Bank Darah RS (BDRS)", "Uji Silang Serasi") },

@@ -676,6 +676,32 @@
       "menu": ["Sarana dan Prasarana (IPSRS)"],
       "rute": ["/sarpras"],
       "urutan": 33
+    },
+    {
+      "kode": "mutu",
+      "nama": "Mutu & Akreditasi",
+      "kelompok": "Penunjang",
+      "bidang": "Manajemen & Mutu",
+      "instalasi": "Manajemen Mutu",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dan dasbor kesiapan akreditasi.",
+      "menu": ["Mutu & Akreditasi"],
+      "rute": ["/mutu"],
+      "urutan": 34
+    },
+    {
+      "kode": "sdm",
+      "nama": "HR / SDM",
+      "kelompok": "Penunjang",
+      "bidang": "Keuangan & Administrasi",
+      "instalasi": "SDM & Kepegawaian",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Data kepegawaian, kredensial, jadwal dinas, kehadiran, pelatihan, dan penggajian dasar.",
+      "menu": ["HR / SDM"],
+      "rute": ["/sdm"],
+      "urutan": 35
     }
   ],
   "fitur": [
@@ -1649,6 +1675,36 @@
       "wajib": true,
       "rute": ["/sarpras/laporan"],
       "urutan": 81
+    },
+    {
+      "kode": "mutu_dokumen_kredensial",
+      "modul": "mutu",
+      "nama": "Dokumen Akreditasi & Kredensial Staf",
+      "deskripsi": "Instrumen akreditasi milik faskes (bab/standar/elemen, impor CSV), dokumen akreditasi berversi dengan pemetaan bukti & pengingat tinjau ulang, kredensial staf (STR/SIP/sertifikat/RKK/SPK) dengan peringatan 90/30 hari, dasbor kesiapan, dan akses baca surveior.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/mutu/dasbor", "/mutu/instrumen", "/mutu/dokumen", "/mutu/kredensial", "/mutu/surveior"],
+      "urutan": 82
+    },
+    {
+      "kode": "sdm_kepegawaian",
+      "modul": "sdm",
+      "nama": "Kepegawaian",
+      "deskripsi": "Data status, unit, jabatan, golongan, pendidikan, dan riwayat kepegawaian.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/sdm/kepegawaian"],
+      "urutan": 83
+    },
+    {
+      "kode": "sdm_kredensial",
+      "modul": "sdm",
+      "nama": "Kredensial Pegawai",
+      "deskripsi": "Pencatatan STR, SIP, sertifikat kompetensi, verifikasi, dan masa berlaku.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/sdm/kredensial"],
+      "urutan": 84
     }
   ],
   "bagian": [

@@ -165,9 +165,19 @@ const templistMenu = ref<ListMenu[]>([
     url: "/ambulans",
   },
   {
+    title: "Mutu & Akreditasi",
+    icon: "PhSealCheck",
+    url: "/mutu",
+  },
+  {
     title: "Sarana dan Prasarana (IPSRS)",
     icon: "PhWrench",
     url: "/sarpras",
+  },
+  {
+    title: "HR / SDM",
+    icon: "PhUsersThree",
+    url: "/sdm",
   },
   {
     title: "Training",
