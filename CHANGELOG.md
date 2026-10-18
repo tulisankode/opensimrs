@@ -134,6 +134,7 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
   - **Migrasi baru:** `20261018020000-studio_tugas_tahan_kuota` (kolom `lanjut_pada`, `lanjutan_dari`, `lanjutan_ke`, `menunggu_slot` di `studio_tugas`).
 
 ### Diperbaiki
+- **SIMRS Studio › Pindai perubahan manual** kini membuang berkas yang sudah di-commit dari daftar "berkas belum di-commit". Sebelumnya daftar lama dipertahankan, sehingga tombol **Terapkan** tetap terkunci setelah programmer meng-commit perubahan sendiri di worktree item.
 - **SIMRS Studio › lampiran tidak terbaca agen Codex/konektor API.** Hanya Claude Code yang diberi akses folder lampiran (`--add-dir`). Codex bekerja di sandbox folder kerja, dan folder lampiran diabaikan git sehingga tidak terlihat oleh pencarian berkas. Akibatnya agen menyusun dokumen tanpa membaca lampiran, misalnya dokumen PRD/Desain yang dilampirkan ke STD-0017. Untuk tahap yang memakai Codex atau konektor API, isi lampiran teks (Markdown, teks, CSV, JSON) kini disisipkan langsung ke prompt, maksimal 60 ribu karakter per lampiran dan 150 ribu total.
 - **Koding RM › Laporan RL** gagal dengan `syntax error at or near "JOIN"`: query menyambung JOIN data kunjungan setelah klausa WHERE. Bagian FROM/JOIN dan WHERE kini dipisah.
 - **Kelas Training**: rekapitulasi tidak lagi menghitung booking yang belum didaftarkan sebagai kunjungan & tarif (hanya order), dan ubah booking tanpa mengganti tanggal kini tetap menolak tanggal kelas yang sudah lewat (sebelumnya kolom DATE dibandingkan sebagai objek `Date` dengan teks).

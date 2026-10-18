@@ -25,6 +25,10 @@ export const statusBerkas = async (cwd = config.repoDir) => {
   return hasil;
 };
 
+// Daftar berkas item yang masih belum di-commit menurut `git status` (hasil statusBerkas). Berkas yang sudah di-commit
+// manual atau dikembalikan dibuang dari daftar, agar tombol Terapkan tidak terkunci oleh daftar basi.
+export const saringBerkasKotor = (daftar, status) => (daftar ?? []).filter((b) => Object.hasOwn(status ?? {}, b.path));
+
 // Sidik isi berkas kotor (hash-object) untuk membedakan perubahan agen dari perubahan lain yang sudah ada.
 // Dipecah per 100 berkas agar baris perintah tidak melampaui batas panjang di Windows.
 export const sidikBerkas = async (daftar, cwd = config.repoDir) => {
