@@ -290,6 +290,17 @@ import BentukMakananGiziPage from "@/views/Gizi/BentukMakananPage.vue";
 import StandarPorsiGiziPage from "@/views/Gizi/StandarPorsiPage.vue";
 import LaporanGiziPage from "@/views/Gizi/LaporanGiziPage.vue";
 
+// NOTE Manajemen Ambulans — permintaan & penugasan, perjalanan, armada & kru, tarif, biaya/kuitansi (STD-0024, penunjang-service)
+import AmbulansView from "@/views/Ambulans/AmbulansView.vue";
+import PermintaanAmbulansPage from "@/views/Ambulans/PermintaanPage.vue";
+import PenugasanAmbulansPage from "@/views/Ambulans/PenugasanPage.vue";
+import PerjalananAmbulansPage from "@/views/Ambulans/PerjalananPage.vue";
+import ArmadaAmbulansPage from "@/views/Ambulans/ArmadaPage.vue";
+import KruAmbulansPage from "@/views/Ambulans/KruPage.vue";
+import TarifAmbulansPage from "@/views/Ambulans/TarifPage.vue";
+import KuitansiAmbulansPage from "@/views/Ambulans/KuitansiPage.vue";
+import LaporanAmbulansPage from "@/views/Ambulans/LaporanPage.vue";
+
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
   daftar.map(([path, name, page]) => ({ path, name, meta: { layout: SidebarLayout, page, requiresAuth: true }, component: view }));
@@ -1770,6 +1781,20 @@ const router = createRouter({
       ["/gizi/master/bentuk-makanan", "gizi-master-bentuk-makanan", BentukMakananGiziPage],
       ["/gizi/master/standar-porsi", "gizi-master-standar-porsi", StandarPorsiGiziPage],
       ["/gizi/laporan", "gizi-laporan", LaporanGiziPage],
+    ]),
+    // !SECTION
+
+    // SECTION Manajemen Ambulans (STD-0024, penunjang-service)
+    { path: "/ambulans", name: "ambulans", redirect: "/ambulans/permintaan" },
+    ...halamanModul(AmbulansView, [
+      ["/ambulans/permintaan", "ambulans-permintaan", PermintaanAmbulansPage],
+      ["/ambulans/penugasan", "ambulans-penugasan", PenugasanAmbulansPage],
+      ["/ambulans/perjalanan", "ambulans-perjalanan", PerjalananAmbulansPage],
+      ["/ambulans/master/armada", "ambulans-master-armada", ArmadaAmbulansPage],
+      ["/ambulans/master/kru", "ambulans-master-kru", KruAmbulansPage],
+      ["/ambulans/tarif", "ambulans-tarif", TarifAmbulansPage],
+      ["/ambulans/kuitansi", "ambulans-kuitansi", KuitansiAmbulansPage],
+      ["/ambulans/laporan", "ambulans-laporan", LaporanAmbulansPage],
     ]),
     // !SECTION
 

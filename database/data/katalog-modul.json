@@ -567,6 +567,21 @@
         "/mikrobiologi"
       ],
       "urutan": 30
+    },
+    {
+      "kode": "ambulans",
+      "nama": "Manajemen Ambulans",
+      "kelompok": "Penunjang",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Permintaan & penugasan ambulans, perjalanan (jarak/BBM/catatan pendamping), armada & kru, tarif, serta penerusan biaya ke tagihan kunjungan/kuitansi umum.",
+      "menu": [
+        "Manajemen Ambulans"
+      ],
+      "rute": [
+        "/ambulans"
+      ],
+      "urutan": 31
     }
   ],
   "fitur": [
@@ -1310,6 +1325,86 @@
         "/patologi-anatomi/mapping/lis"
       ],
       "urutan": 55
+    },
+    {
+      "kode": "ambulans_armada",
+      "modul": "ambulans",
+      "nama": "Master Armada & Servis",
+      "deskripsi": "Data armada (nomor polisi, jenis, kelengkapan, status), jadwal servis & pajak/STNK, serta riwayat servis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/master/armada", "/ambulans/servis"],
+      "urutan": 56
+    },
+    {
+      "kode": "ambulans_kru",
+      "modul": "ambulans",
+      "nama": "Master Kru & Jadwal Jaga",
+      "deskripsi": "Data kru (sopir/perawat pendamping) beserta jadwal jaga.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/master/kru", "/ambulans/master/jadwal"],
+      "urutan": 57
+    },
+    {
+      "kode": "ambulans_permintaan",
+      "modul": "ambulans",
+      "nama": "Permintaan Layanan",
+      "deskripsi": "Pencatatan permintaan ambulans (jemputan gawat darurat, rujukan, pemulangan, jenazah) & pembatalan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/permintaan"],
+      "urutan": 58
+    },
+    {
+      "kode": "ambulans_penugasan",
+      "modul": "ambulans",
+      "nama": "Penugasan Armada & Kru",
+      "deskripsi": "Penetapan armada & kru untuk permintaan, serta pembatalan penugasan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/penugasan"],
+      "urutan": 59
+    },
+    {
+      "kode": "ambulans_perjalanan",
+      "modul": "ambulans",
+      "nama": "Perjalanan",
+      "deskripsi": "Pencatatan tahapan perjalanan, kilometer, BBM, dan catatan pendamping (akses terbatas).",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/perjalanan"],
+      "urutan": 60
+    },
+    {
+      "kode": "ambulans_tarif",
+      "modul": "ambulans",
+      "nama": "Tarif",
+      "deskripsi": "Tarif layanan ambulans per jenis layanan, kilometer, atau zona beserta masa berlaku.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/tarif"],
+      "urutan": 61
+    },
+    {
+      "kode": "ambulans_pembiayaan",
+      "modul": "ambulans",
+      "nama": "Biaya & Kuitansi",
+      "deskripsi": "Perhitungan biaya, penerusan tagihan ke kunjungan pasien, dan kuitansi untuk pengguna umum.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/kuitansi"],
+      "urutan": 62
+    },
+    {
+      "kode": "ambulans_laporan",
+      "modul": "ambulans",
+      "nama": "Laporan Ambulans",
+      "deskripsi": "Jumlah layanan per jenis, waktu respons, jarak & BBM per armada, serta pendapatan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/laporan"],
+      "urutan": 63
     }
   ],
   "bagian": [
