@@ -42,6 +42,10 @@ const opsiJenis = computed(() =>
     }),
 );
 
+// Jenis per unit (STD-0030) dikirim lewat Pemindaian Unit (kode unit wajib), bukan form jumlah.
+const opsiJenisJumlah = computed(() => opsiJenis.value.filter((o) => jenis.value.find((j) => j.uuid === o.value)?.caraPencatatan !== "per_unit"));
+const adaJenisUnit = computed(() => opsiJenisJumlah.value.length !== opsiJenis.value.length);
+
 const filterPermintaan = ref("");
 const permintaan = ref<any[]>([]);
 const filterDistribusi = ref("menunggu_konfirmasi");
@@ -297,8 +301,9 @@ const konfirmasi = async () => {
       <template #body>
         <div class="flex flex-col gap-3 pt-4">
           <CustomSelect v-model="formKirim.lokasiTujuanUuid" label="Ruangan Tujuan" :options="opsiRuangan" optionValue="value" optionLabel="label" placeHolder="Pilih ruangan" :disabled="!!formKirim.permintaanUuid" />
+          <div v-if="adaJenisUnit" class="text-xs text-grey-400">Jenis linen yang dilacak per unit dicatat lewat menu <b>Pemindaian Unit</b>.</div>
           <div v-for="(x, i) in formKirim.rincian" :key="i" class="grid grid-cols-[2fr_1fr_auto] items-end gap-2">
-            <CustomSelect v-model="x.jenisLinenUuid" label="Jenis Linen" :options="opsiJenis" optionValue="value" optionLabel="label" placeHolder="Pilih" />
+            <CustomSelect v-model="x.jenisLinenUuid" label="Jenis Linen" :options="opsiJenisJumlah" optionValue="value" optionLabel="label" placeHolder="Pilih" />
             <CustomInputNumber v-model="x.jumlahDikirim" label="Jumlah" :min="1" />
             <CustomButton icon="PhTrash" outlined borderColor="border-danger-300" textColor="text-danger-300" :disabled="formKirim.rincian.length === 1" @click="formKirim.rincian.splice(i, 1)" />
           </div>

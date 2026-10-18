@@ -220,7 +220,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **35 modul** (8 inti, 1 berstatus Segera), **89 fitur** (0 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 1 berstatus Segera), **95 fitur** (0 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -278,6 +278,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `laundry` | Laundry & Linen | Siklus linen kotor–bersih: serah terima linen kotor dua petugas, batch cuci bertahap, distribusi linen bersih, stok & par level per ruangan, koreksi, rekonsiliasi, dan laporan beban cucian. | Tersedia | Penunjang Umum › Instalasi Laundry | Laundry |
 | `sarpras` | Sarana dan Prasarana (IPSRS) | Register aset medis & nonmedis, laporan kerusakan dan perbaikan (work order), pemeliharaan preventif, serta kalibrasi dan uji fungsi alat untuk Instalasi Pemeliharaan Sarana RS (IPSRS). | Tersedia | Penunjang Umum › IPSRS | Sarana dan Prasarana (IPSRS) |
 | `mutu` | Mutu & Akreditasi | Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dan dasbor kesiapan akreditasi. | Tersedia | Manajemen & Mutu › Manajemen Mutu | Mutu & Akreditasi |
+| `sdm` | HR / SDM | Data kepegawaian, kredensial, jadwal dinas, kehadiran, pelatihan, dan penggajian dasar. | Tersedia | Keuangan & Administrasi › SDM & Kepegawaian | HR / SDM |
 
 #### Penjaminan
 
@@ -303,6 +304,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Penunjang Medis › Pelayanan Darah | Bank Darah RS (BDRS) |
 | `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Tersedia | Penunjang Medis › Pelayanan Darah | UTD |
 | `akuntansi` | Akuntansi & Remunerasi | Jurnal, laporan keuangan, jasa pelayanan. | Segera | Keuangan & Administrasi › Akuntansi & Remunerasi | – |
+| `hemodialisa` | Unit Hemodialisa | Registrasi HD akut/kronis, jadwal per mesin & shift, resep HD, asesmen pra-HD, pemantauan intradialitik, Kt/V & URR, pemakaian BHP & reuse dializer, tagihan tindakan, dan laporan unit. | Tersedia | Pelayanan Medis & Keperawatan › Unit Hemodialisa | Hemodialisa |
 
 ### C. Matriks modul × segmen (preset bawaan)
 
@@ -345,6 +347,8 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Laundry & Linen (`laundry`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 | Sarana dan Prasarana (IPSRS) (`sarpras`) | Tersedia | – | – | – | – | – | – | – | – |
 | Mutu & Akreditasi (`mutu`) | Tersedia | – | – | – | – | – | – | – | – |
+| Unit Hemodialisa (`hemodialisa`) | Tersedia | – | – | – | – | – | – | – | – |
+| HR / SDM (`sdm`) | Tersedia | – | – | – | – | – | – | – | – |
 
 ### D. Fitur per modul
 
@@ -542,6 +546,9 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `laundry_koreksi` | Koreksi Stok | Pencatatan linen hilang, rusak, dan afkir dengan alasan serta pelaku. | Tersedia | – | – | – |
 | `laundry_master` | Master Jenis Linen | Datamaster jenis linen, kode, dan satuan hitung. | Tersedia | – | – | – |
 | `laundry_laporan` | Laporan Laundry | Beban cucian kg per ruangan, perputaran, selisih, pemisahan kategori, rekonsiliasi, dan ekspor Excel. | Tersedia | – | – | – |
+| `laundry_unit` | Unit Linen & Label | Cara pencatatan per jenis (per jumlah/per unit) dan batas umur pakai, registrasi unit berkode unik, label QR/barcode, koreksi status/lokasi, dan tautan bed/kamar. | Tersedia | – | – | – |
+| `laundry_pemindaian_unit` | Pemindaian Unit | Pindai unit (kamera peramban/scanner USB) di setiap titik alur: serah terima kotor, masuk batch, selesai cuci, distribusi, dan penerimaan ruangan; stok ikut dihitung dari hasil pindai. | Tersedia | – | – | – |
+| `laundry_laporan_unit` | Laporan Unit Linen | Riwayat perjalanan per unit, unit hilang/rusak per ruangan, unit mendekati/mencapai batas umur pakai, dan perputaran. | Tersedia | – | – | – |
 
 #### Sarana dan Prasarana (IPSRS) (`sarpras`)
 
@@ -558,6 +565,19 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
 | `mutu_dokumen_kredensial` | Dokumen Akreditasi & Kredensial Staf | Instrumen akreditasi milik faskes (bab/standar/elemen, impor CSV), dokumen akreditasi berversi dengan pemetaan bukti & pengingat tinjau ulang, kredensial staf (STR/SIP/sertifikat/RKK/SPK) dengan peringatan 90/30 hari, dasbor kesiapan, dan akses baca surveior. | Tersedia | – | – | – |
+
+#### Unit Hemodialisa (`hemodialisa`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `hd_bridging_hdis` | Bridging HDIS | Kirim jadwal & data pasien minimum ke HDIS dan terima parameter mesin per sesi secara idempoten (kontrak REST generik). | Tersedia | – | – | – |
+
+#### HR / SDM (`sdm`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `sdm_kepegawaian` | Kepegawaian | Data status, unit, jabatan, golongan, pendidikan, dan riwayat kepegawaian. | Tersedia | Ya | – | – |
+| `sdm_kredensial` | Kredensial Pegawai | Pencatatan STR, SIP, sertifikat kompetensi, verifikasi, dan masa berlaku. | Tersedia | – | – | – |
 
 ### E. Bagian (unit terkecil)
 
@@ -637,6 +657,7 @@ Field `bidang` dan `instalasi` menempatkan menu modul di panel **Lainnya** pada 
 | Pelayanan Medis & Keperawatan | Instalasi Bedah Sentral | Kamar Operasi (`kamar_operasi`) |
 | Pelayanan Medis & Keperawatan | Instalasi Perawatan Intensif | ICU / Intensif (`icu`) |
 | Pelayanan Medis & Keperawatan | Medical Check Up | Medical Check Up (MCU) (`mcu`) |
+| Pelayanan Medis & Keperawatan | Unit Hemodialisa | Unit Hemodialisa (`hemodialisa`) |
 | Penunjang Medis | Instalasi Farmasi | Farmasi (`farmasi`) |
 | Penunjang Medis | Instalasi Laboratorium | Laboratorium (`laboratorium`), Patologi Anatomi (`patologi_anatomi`), Mikrobiologi (`mikrobiologi`) |
 | Penunjang Medis | Instalasi Rehabilitasi Medik | Fisioterapi / Rehabilitasi Medik (`fisioterapi`) |
@@ -652,6 +673,7 @@ Field `bidang` dan `instalasi` menempatkan menu modul di panel **Lainnya** pada 
 | Keuangan & Administrasi | Pendaftaran & Admisi | Pendaftaran Pasien (`pendaftaran`), Antrian & Layar Panggil (`antrian`) |
 | Keuangan & Administrasi | Kasir & Penjaminan | Kasir & Pembayaran (`pembayaran`), BPJS FKTP (PCare) (`bpjs_fktp`), BPJS FKRTL (VClaim/SEP) (`bpjs_fkrtl`) |
 | Keuangan & Administrasi | Akuntansi & Remunerasi | Akuntansi & Remunerasi (`akuntansi`) |
+| Keuangan & Administrasi | SDM & Kepegawaian | HR / SDM (`sdm`) |
 | Manajemen & Mutu | Pelaporan | Dashboard (`dashboard`), Laporan (`laporan`) |
 | Manajemen & Mutu | Audit Trail | Audit Trail (`audit_trail`) |
 | Manajemen & Mutu | Manajemen Mutu | Mutu & Akreditasi (`mutu`) |

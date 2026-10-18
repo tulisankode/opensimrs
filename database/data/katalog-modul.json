@@ -678,6 +678,19 @@
       "urutan": 33
     },
     {
+      "kode": "hemodialisa",
+      "nama": "Unit Hemodialisa",
+      "kelompok": "Rumah Sakit",
+      "bidang": "Pelayanan Medis & Keperawatan",
+      "instalasi": "Unit Hemodialisa",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Registrasi HD akut/kronis, jadwal per mesin & shift, resep HD, asesmen pra-HD, pemantauan intradialitik, Kt/V & URR, pemakaian BHP & reuse dializer, tagihan tindakan, dan laporan unit.",
+      "menu": ["Hemodialisa"],
+      "rute": ["/hemodialisa"],
+      "urutan": 35
+    },
+    {
       "kode": "mutu",
       "nama": "Mutu & Akreditasi",
       "kelompok": "Penunjang",
@@ -689,6 +702,19 @@
       "menu": ["Mutu & Akreditasi"],
       "rute": ["/mutu"],
       "urutan": 34
+    },
+    {
+      "kode": "sdm",
+      "nama": "HR / SDM",
+      "kelompok": "Penunjang",
+      "bidang": "Keuangan & Administrasi",
+      "instalasi": "SDM & Kepegawaian",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Data kepegawaian, kredensial, jadwal dinas, kehadiran, pelatihan, dan penggajian dasar.",
+      "menu": ["HR / SDM"],
+      "rute": ["/sdm"],
+      "urutan": 35
     }
   ],
   "fitur": [
@@ -1504,6 +1530,36 @@
       "urutan": 76
     },
     {
+      "kode": "laundry_unit",
+      "modul": "laundry",
+      "nama": "Unit Linen & Label",
+      "deskripsi": "Cara pencatatan per jenis (per jumlah/per unit) dan batas umur pakai, registrasi unit berkode unik, label QR/barcode, koreksi status/lokasi, dan tautan bed/kamar.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/unit"],
+      "urutan": 77
+    },
+    {
+      "kode": "laundry_pemindaian_unit",
+      "modul": "laundry",
+      "nama": "Pemindaian Unit",
+      "deskripsi": "Pindai unit (kamera peramban/scanner USB) di setiap titik alur: serah terima kotor, masuk batch, selesai cuci, distribusi, dan penerimaan ruangan; stok ikut dihitung dari hasil pindai.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/pemindaian-unit"],
+      "urutan": 78
+    },
+    {
+      "kode": "laundry_laporan_unit",
+      "modul": "laundry",
+      "nama": "Laporan Unit Linen",
+      "deskripsi": "Riwayat perjalanan per unit, unit hilang/rusak per ruangan, unit mendekati/mencapai batas umur pakai, dan perputaran.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/laporan-unit"],
+      "urutan": 79
+    },
+    {
       "kode": "ambulans_armada",
       "modul": "ambulans",
       "nama": "Master Armada & Servis",
@@ -1634,6 +1690,16 @@
       "urutan": 81
     },
     {
+      "kode": "hd_bridging_hdis",
+      "modul": "hemodialisa",
+      "nama": "Bridging HDIS",
+      "deskripsi": "Kirim jadwal & data pasien minimum ke HDIS dan terima parameter mesin per sesi secara idempoten (kontrak REST generik).",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/hemodialisa/datamaster/mapping-hdis"],
+      "urutan": 101
+    },
+    {
       "kode": "mutu_dokumen_kredensial",
       "modul": "mutu",
       "nama": "Dokumen Akreditasi & Kredensial Staf",
@@ -1642,6 +1708,26 @@
       "wajib": false,
       "rute": ["/mutu/dasbor", "/mutu/instrumen", "/mutu/dokumen", "/mutu/kredensial", "/mutu/surveior"],
       "urutan": 82
+    },
+    {
+      "kode": "sdm_kepegawaian",
+      "modul": "sdm",
+      "nama": "Kepegawaian",
+      "deskripsi": "Data status, unit, jabatan, golongan, pendidikan, dan riwayat kepegawaian.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/sdm/kepegawaian"],
+      "urutan": 83
+    },
+    {
+      "kode": "sdm_kredensial",
+      "modul": "sdm",
+      "nama": "Kredensial Pegawai",
+      "deskripsi": "Pencatatan STR, SIP, sertifikat kompetensi, verifikasi, dan masa berlaku.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/sdm/kredensial"],
+      "urutan": 84
     }
   ],
   "bagian": [
