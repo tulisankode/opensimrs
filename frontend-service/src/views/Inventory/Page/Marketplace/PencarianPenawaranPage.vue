@@ -166,7 +166,7 @@ const konfigurasiForm = ref({
   akunAfiliasi: "",
   supplierUuid: "",
   modeMock: true,
-  aktif: false,
+  aktif: true,
   apiKey: "",
 });
 
@@ -179,7 +179,7 @@ const bukaDialogKonfigurasi = async () => {
   const ada = semuaKoneksi.value.find((k: any) => k.mitraKode === mitraKode.value) || semuaKoneksi.value[0];
   konfigurasiForm.value = ada
     ? { mitraKode: ada.mitraKode, namaMitra: ada.namaMitra, baseUrl: ada.baseUrl, akunAfiliasi: ada.akunAfiliasi || "", supplierUuid: ada.supplierUuid, modeMock: ada.modeMock, aktif: ada.aktif, apiKey: "" }
-    : { mitraKode: "", namaMitra: "", baseUrl: "", akunAfiliasi: "", supplierUuid: "", modeMock: true, aktif: false, apiKey: "" };
+    : { mitraKode: "", namaMitra: "", baseUrl: "", akunAfiliasi: "", supplierUuid: "", modeMock: true, aktif: true, apiKey: "" };
   apiKeySamaran.value = ada?.apiKeySamaran || "";
   dialogKonfigurasiTampil.value = true;
 };
@@ -242,6 +242,11 @@ onMounted(() => {
       <div v-if="!semuaKoneksi.length" class="flex flex-col items-center gap-3 py-16 text-center">
         <NoData title="Belum ada koneksi marketplace mitra." />
         <div class="max-w-xl text-SM text-grey-400">Tambahkan koneksi mitra (URL, API key, supplier) lewat <b>Konfigurasi Koneksi</b>. Untuk uji coba, jalankan <code>node scripts/marketplace-tiruan.mjs</code> lalu isi URL <code>http://localhost:2414</code> dan API key <code>kunci-uji-marketplace</code>.</div>
+        <CustomButton label="Konfigurasi Koneksi" icon="PhGear" @click="bukaDialogKonfigurasi" />
+      </div>
+      <div v-else-if="!daftarKoneksi.length" class="flex flex-col items-center gap-3 py-16 text-center">
+        <NoData title="Belum ada koneksi marketplace yang aktif." />
+        <div class="max-w-xl text-SM text-grey-400">Koneksi <b>{{ semuaKoneksi.map((k) => k.namaMitra).join(", ") }}</b> tersimpan tetapi nonaktif. Buka <b>Konfigurasi Koneksi</b>, ubah <b>Aktif</b> menjadi Iya, lalu simpan.</div>
         <CustomButton label="Konfigurasi Koneksi" icon="PhGear" @click="bukaDialogKonfigurasi" />
       </div>
       <NoData v-else-if="!hasilPenawaran.length" title="Belum ada hasil pencarian. Pilih koneksi lalu cari produk." />
