@@ -434,9 +434,34 @@ const menuAktif = (m: ListMenu) =>
   m.anak ? m.anak.some((a) => checkActiveTab(a.url)) : checkActiveTab(m.url) || route.path === m.url;
 const popupGrup = ref();
 const grupTerbuka = ref<ListMenu[]>([]);
+// Isi dropdown grup tersusun per bidang (subjudul) → instalasi. Instalasi dengan >1 menu (mis. Laboratorium: PK,
+// PA, Mikrobiologi) menjadi submenu yang bisa dibuka-tutup; instalasi bermenu tunggal tampil sebagai item biasa.
+const JUDUL_DI_SUBMENU: Record<string, string> = { Laboratorium: "Patologi Klinik" };
+const instalasiTerbuka = ref<string[]>([]);
+const grupTersusun = computed(() =>
+  kelompokkanBidang(grupTerbuka.value).map((b) => ({
+    bidang: b.bidang,
+    // Tanpa data instalasi (katalog lama di cache) setiap menu berdiri sendiri, bukan satu submenu tanpa nama.
+    instalasi: b.instalasi.flatMap((i) =>
+      i.nama
+        ? [{ ...i, label: i.nama.replace(/^Instalasi\s+/, "") }]
+        : i.menu.map((m) => ({ nama: `menu:${m.url}`, menu: [m], label: m.title }))
+    ),
+  }))
+);
+const toggleInstalasi = (nama: string) => {
+  instalasiTerbuka.value = instalasiTerbuka.value.includes(nama)
+    ? instalasiTerbuka.value.filter((x) => x !== nama)
+    : [...instalasiTerbuka.value, nama];
+};
 const klikMenu = (m: ListMenu, e: Event) => {
   if (!m.anak) return goToPage(m.url);
   grupTerbuka.value = m.anak;
+  // Submenu yang memuat halaman aktif langsung terbuka.
+  instalasiTerbuka.value = kelompokkanBidang(m.anak)
+    .flatMap((b) => b.instalasi)
+    .filter((i) => i.menu.length > 1 && i.menu.some((x) => checkActiveTab(x.url)))
+    .map((i) => i.nama);
   popupGrup.value?.toggle(e);
 };
 const bukaGrup = (url: string) => {
@@ -701,19 +726,63 @@ const isSuperAdmin = getUserRole() === "super admin";
       </div>
       <!-- Dropdown grup menu (mis. Penunjang). -->
       <Popover ref="popupGrup">
-        <div class="flex min-w-[200px] flex-col gap-1" role="menu">
-          <button
-            v-for="menu in grupTerbuka"
-            :key="menu.url"
-            type="button"
-            role="menuitem"
-            class="flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
-            :class="{ 'bg-opensimrs-50 font-semibold text-opensimrs-300': checkActiveTab(menu.url) }"
-            @click="bukaGrup(menu.url)"
-          >
-            <component :is="menu.icon" weight="fill" class="shrink-0 text-opensimrs-300" aria-hidden="true" />
-            <span class="grow">{{ menu.title }}</span>
-          </button>
+        <div class="flex min-w-[220px] flex-col gap-1" role="menu">
+          <template v-for="(b, bi) in grupTersusun" :key="b.bidang">
+            <div
+              v-if="grupTersusun.length > 1"
+              class="px-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-grey-300"
+              :class="{ 'mt-1 border-t border-grey-100 pt-2': bi > 0 }"
+            >
+              {{ b.bidang }}
+            </div>
+            <template v-for="ins in b.instalasi" :key="ins.nama">
+              <!-- Instalasi bermenu tunggal: item biasa. -->
+              <button
+                v-if="ins.menu.length === 1"
+                type="button"
+                role="menuitem"
+                class="flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
+                :class="{ 'bg-opensimrs-50 font-semibold text-opensimrs-300': checkActiveTab(ins.menu[0].url) }"
+                @click="bukaGrup(ins.menu[0].url)"
+              >
+                <component :is="ins.menu[0].icon" weight="fill" class="shrink-0 text-opensimrs-300" aria-hidden="true" />
+                <span class="grow">{{ ins.menu[0].title }}</span>
+              </button>
+              <!-- Instalasi dengan beberapa menu: submenu yang bisa dibuka-tutup. -->
+              <template v-else>
+                <button
+                  type="button"
+                  role="menuitem"
+                  :aria-expanded="instalasiTerbuka.includes(ins.nama)"
+                  class="flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
+                  :class="{ 'font-semibold text-opensimrs-300': ins.menu.some((x) => checkActiveTab(x.url)) }"
+                  @click="toggleInstalasi(ins.nama)"
+                >
+                  <component :is="ins.menu[0].icon" weight="fill" class="shrink-0 text-opensimrs-300" aria-hidden="true" />
+                  <span class="grow">{{ ins.label }}</span>
+                  <PhCaretDown
+                    :size="12"
+                    class="transition-transform"
+                    :class="{ 'rotate-180': instalasiTerbuka.includes(ins.nama) }"
+                    aria-hidden="true"
+                  />
+                </button>
+                <div v-if="instalasiTerbuka.includes(ins.nama)" class="ml-4 flex flex-col gap-0.5 border-l border-grey-100 pl-2" role="group" :aria-label="ins.label">
+                  <button
+                    v-for="sub in ins.menu"
+                    :key="sub.url"
+                    type="button"
+                    role="menuitem"
+                    class="rounded-md px-2 py-1.5 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
+                    :class="{ 'bg-opensimrs-50 font-semibold text-opensimrs-300': checkActiveTab(sub.url) }"
+                    @click="bukaGrup(sub.url)"
+                  >
+                    {{ JUDUL_DI_SUBMENU[sub.title] ?? namaRingkas(sub.title) }}
+                  </button>
+                </div>
+              </template>
+            </template>
+          </template>
         </div>
       </Popover>
       <!-- Panel "Lainnya": kolom per bidang, subjudul instalasi, kotak cari; SIMRS Studio terpisah di bawah. -->
