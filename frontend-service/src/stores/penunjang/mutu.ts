@@ -14,7 +14,15 @@ const abu = { bg: "bg-[#F2F4F7]", text: "text-[#344054]" };
 
 export const MODUL_MUTU = "Mutu & Akreditasi";
 export const JENIS_DOKUMEN: Record<string, string> = { kebijakan: "Kebijakan", pedoman: "Pedoman", spo: "SPO", program: "Program", bukti: "Bukti" };
-export const JENIS_KREDENSIAL: Record<string, string> = { str: "STR", sip: "SIP", sertifikat: "Sertifikat Pelatihan", rkk: "RKK", spk: "SPK" };
+export const JENIS_KREDENSIAL: Record<string, string> = {
+  str: "STR",
+  sip: "SIP",
+  sertifikat: "Sertifikat Pelatihan",
+  sertifikat_kompetensi: "Sertifikat Kompetensi",
+  rkk: "RKK",
+  spk: "SPK",
+  lainnya: "Lainnya",
+};
 export const STATUS_DOKUMEN: Record<string, Gaya> = {
   draf: { label: "Draf", ...abu },
   disahkan: { label: "Disahkan", ...hijau },
@@ -30,10 +38,16 @@ export const MASA_BERLAKU: Record<string, Gaya> = {
   kedaluwarsa: { label: "Kedaluwarsa", ...merah },
 };
 export const STATUS_KREDENSIAL: Record<string, Gaya> = { aktif: { label: "Aktif", ...biru }, dicabut: { label: "Dicabut", ...abu } };
+export const STATUS_VERIFIKASI: Record<string, Gaya> = {
+  belum_diverifikasi: { label: "Belum Diverifikasi", ...abu },
+  terverifikasi: { label: "Terverifikasi", ...hijau },
+  ditolak: { label: "Ditolak", ...merah },
+};
 const gaya = (daftar: Record<string, Gaya>) => (k?: string | null) => daftar[k ?? ""] ?? { label: k ?? "-", ...abu };
 export const gayaStatusDokumen = gaya(STATUS_DOKUMEN);
 export const gayaMasaBerlaku = gaya(MASA_BERLAKU);
 export const gayaStatusKredensial = gaya(STATUS_KREDENSIAL);
+export const gayaVerifikasi = gaya(STATUS_VERIFIKASI);
 export const opsi = (obj: Record<string, string | Gaya>) => Object.entries(obj).map(([value, v]) => ({ value, label: typeof v === "string" ? v : v.label }));
 
 // Izin aksi (tanpa daftar izin = super admin → boleh; backend tetap memeriksa izin).
@@ -84,14 +98,20 @@ export const bagikanSurveior = (uuid: string, dibagikan: boolean, sampai?: numbe
 export const unduhBerkasDokumen = (uuid: string) => apiPenunjangGet(`/mutu/dokumen/${uuid}/berkas`);
 export const hapusDokumen = (uuid: string) => apiPenunjangDelete(`/mutu/dokumen/${uuid}`);
 
-// ── Kredensial staf
-export const daftarKredensial = (params: Record<string, any> = {}) => apiPenunjangGet(`/mutu/kredensial${qs(params)}`);
-export const detailKredensial = (uuid: string) => apiPenunjangGet(`/mutu/kredensial/${uuid}`);
-export const simpanKredensial = (data: Record<string, any>, uuid?: string) => (uuid ? apiPenunjangPut(`/mutu/kredensial/${uuid}`, data) : apiPenunjangPost("/mutu/kredensial", data));
-export const unggahBerkasKredensial = (uuid: string, berkas: Record<string, any>) => apiPenunjangPost(`/mutu/kredensial/${uuid}/berkas`, { berkas });
-export const unduhBerkasKredensial = (uuid: string) => apiPenunjangGet(`/mutu/kredensial/${uuid}/berkas`);
-export const cabutKredensial = (uuid: string, alasan: string) => apiPenunjangPatch(`/mutu/kredensial/${uuid}/cabut`, { alasan });
-export const hapusKredensial = (uuid: string) => apiPenunjangDelete(`/mutu/kredensial/${uuid}`);
+// ── Kredensial staf — SATU sumber data (mutu_kredensial) yang juga dipakai HR / SDM › Kredensial (STD-0035). basis
+// "/mutu" (izin Mutu & Akreditasi › Kredensial Staf) atau "/hr" (izin HR / SDM › Kredensial); isi & perilaku sama.
+export type BasisKredensial = "/mutu" | "/hr";
+export const daftarKredensial = (params: Record<string, any> = {}, basis: BasisKredensial = "/mutu") => apiPenunjangGet(`${basis}/kredensial${qs(params)}`);
+export const detailKredensial = (uuid: string, basis: BasisKredensial = "/mutu") => apiPenunjangGet(`${basis}/kredensial/${uuid}`);
+export const simpanKredensial = (data: Record<string, any>, uuid?: string, basis: BasisKredensial = "/mutu") =>
+  uuid ? apiPenunjangPut(`${basis}/kredensial/${uuid}`, data) : apiPenunjangPost(`${basis}/kredensial`, data);
+export const unggahBerkasKredensial = (uuid: string, berkas: Record<string, any>, basis: BasisKredensial = "/mutu") =>
+  apiPenunjangPost(`${basis}/kredensial/${uuid}/berkas`, { berkas });
+export const unduhBerkasKredensial = (uuid: string, basis: BasisKredensial = "/mutu") => apiPenunjangGet(`${basis}/kredensial/${uuid}/berkas`);
+export const verifikasiKredensial = (uuid: string, statusVerifikasi: string, catatanVerifikasi: string, basis: BasisKredensial = "/mutu") =>
+  apiPenunjangPatch(`${basis}/kredensial/${uuid}/verifikasi`, { statusVerifikasi, catatanVerifikasi });
+export const cabutKredensial = (uuid: string, alasan: string, basis: BasisKredensial = "/mutu") => apiPenunjangPatch(`${basis}/kredensial/${uuid}/cabut`, { alasan });
+export const hapusKredensial = (uuid: string, basis: BasisKredensial = "/mutu") => apiPenunjangDelete(`${basis}/kredensial/${uuid}`);
 
 // ── Surveior (baca saja)
 export const daftarDokumenSurveior = (params: Record<string, any> = {}) => apiPenunjangGet(`/mutu/surveior/dokumen${qs(params)}`);

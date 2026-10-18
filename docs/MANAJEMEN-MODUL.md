@@ -220,7 +220,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 1 berstatus Segera), **92 fitur** (0 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 1 berstatus Segera), **96 fitur** (4 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -278,7 +278,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `laundry` | Laundry & Linen | Siklus linen kotor–bersih: serah terima linen kotor dua petugas, batch cuci bertahap, distribusi linen bersih, stok & par level per ruangan, koreksi, rekonsiliasi, dan laporan beban cucian. | Tersedia | Penunjang Umum › Instalasi Laundry | Laundry |
 | `sarpras` | Sarana dan Prasarana (IPSRS) | Register aset medis & nonmedis, laporan kerusakan dan perbaikan (work order), pemeliharaan preventif, serta kalibrasi dan uji fungsi alat untuk Instalasi Pemeliharaan Sarana RS (IPSRS). | Tersedia | Penunjang Umum › IPSRS | Sarana dan Prasarana (IPSRS) |
 | `mutu` | Mutu & Akreditasi | Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dan dasbor kesiapan akreditasi. | Tersedia | Manajemen & Mutu › Manajemen Mutu | Mutu & Akreditasi |
-| `sdm` | HR / SDM | Data kepegawaian, kredensial, jadwal dinas, kehadiran, pelatihan, dan penggajian dasar. | Tersedia | Keuangan & Administrasi › SDM & Kepegawaian | HR / SDM |
+| `sdm` | HR / SDM | Kepegawaian tertaut pegawai Data Master (status, unit, jabatan, golongan, pendidikan, riwayat bertanggal berlaku) dan kredensial pegawai yang satu sumber dengan Kredensial Staf Mutu & Akreditasi. Jadwal dinas, kehadiran/cuti, pelatihan, dan penggajian menyusul. | Tersedia | Keuangan & Administrasi › SDM & Kepegawaian | HR / SDM |
 
 #### Penjaminan
 
@@ -573,8 +573,12 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
-| `sdm_kepegawaian` | Kepegawaian | Data status, unit, jabatan, golongan, pendidikan, dan riwayat kepegawaian. | Tersedia | Ya | – | – |
-| `sdm_kredensial` | Kredensial Pegawai | Pencatatan STR, SIP, sertifikat kompetensi, verifikasi, dan masa berlaku. | Tersedia | – | – | – |
+| `sdm_kepegawaian` | Kepegawaian | Data kepegawaian tertaut pegawai Data Master: status, unit kerja, jabatan, golongan, pendidikan, riwayat perubahan bertanggal berlaku (riwayat lama tidak ditimpa), dan tautan akun login. | Tersedia | Ya | – | – |
+| `sdm_kredensial` | Kredensial Pegawai | STR, SIP, sertifikat pelatihan/kompetensi, RKK, SPK dengan berkas, verifikasi, pencabutan, dan peringatan 90/30 hari — satu sumber data dengan Kredensial Staf Mutu & Akreditasi. | Tersedia | – | – | – |
+| `sdm_jadwal_dinas` | Jadwal Dinas | Pola shift, jadwal dinas unit dengan validasi benturan & istirahat minimum, persetujuan, dan tukar dinas. | Segera | – | – | – |
+| `sdm_kehadiran` | Kehadiran, Cuti & Izin | Impor/pencatatan kehadiran serta pengajuan cuti & izin dengan persetujuan berjenjang. | Segera | – | – | – |
+| `sdm_pelatihan` | Pelatihan | Riwayat pelatihan & jam diklat pegawai dengan verifikasi. | Segera | – | – | – |
+| `sdm_penggajian` | Penggajian | Komponen gaji, rancangan & pengesahan penggajian per periode, slip gaji, serta integrasi jaspel/jurnal. | Segera | – | – | – |
 
 ### E. Bagian (unit terkecil)
 

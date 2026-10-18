@@ -711,10 +711,10 @@
       "instalasi": "SDM & Kepegawaian",
       "inti": false,
       "tersedia": true,
-      "deskripsi": "Data kepegawaian, kredensial, jadwal dinas, kehadiran, pelatihan, dan penggajian dasar.",
+      "deskripsi": "Kepegawaian tertaut pegawai Data Master (status, unit, jabatan, golongan, pendidikan, riwayat bertanggal berlaku) dan kredensial pegawai yang satu sumber dengan Kredensial Staf Mutu & Akreditasi. Jadwal dinas, kehadiran/cuti, pelatihan, dan penggajian menyusul.",
       "menu": ["HR / SDM"],
       "rute": ["/sdm"],
-      "urutan": 35
+      "urutan": 36
     }
   ],
   "fitur": [
@@ -1683,7 +1683,7 @@
       "kode": "sdm_kepegawaian",
       "modul": "sdm",
       "nama": "Kepegawaian",
-      "deskripsi": "Data status, unit, jabatan, golongan, pendidikan, dan riwayat kepegawaian.",
+      "deskripsi": "Data kepegawaian tertaut pegawai Data Master: status, unit kerja, jabatan, golongan, pendidikan, riwayat perubahan bertanggal berlaku (riwayat lama tidak ditimpa), dan tautan akun login.",
       "tersedia": true,
       "wajib": true,
       "rute": ["/sdm/kepegawaian"],
@@ -1693,11 +1693,51 @@
       "kode": "sdm_kredensial",
       "modul": "sdm",
       "nama": "Kredensial Pegawai",
-      "deskripsi": "Pencatatan STR, SIP, sertifikat kompetensi, verifikasi, dan masa berlaku.",
+      "deskripsi": "STR, SIP, sertifikat pelatihan/kompetensi, RKK, SPK dengan berkas, verifikasi, pencabutan, dan peringatan 90/30 hari — satu sumber data dengan Kredensial Staf Mutu & Akreditasi.",
       "tersedia": true,
       "wajib": false,
       "rute": ["/sdm/kredensial"],
       "urutan": 84
+    },
+    {
+      "kode": "sdm_jadwal_dinas",
+      "modul": "sdm",
+      "nama": "Jadwal Dinas",
+      "deskripsi": "Pola shift, jadwal dinas unit dengan validasi benturan & istirahat minimum, persetujuan, dan tukar dinas.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 85
+    },
+    {
+      "kode": "sdm_kehadiran",
+      "modul": "sdm",
+      "nama": "Kehadiran, Cuti & Izin",
+      "deskripsi": "Impor/pencatatan kehadiran serta pengajuan cuti & izin dengan persetujuan berjenjang.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 86
+    },
+    {
+      "kode": "sdm_pelatihan",
+      "modul": "sdm",
+      "nama": "Pelatihan",
+      "deskripsi": "Riwayat pelatihan & jam diklat pegawai dengan verifikasi.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 87
+    },
+    {
+      "kode": "sdm_penggajian",
+      "modul": "sdm",
+      "nama": "Penggajian",
+      "deskripsi": "Komponen gaji, rancangan & pengesahan penggajian per periode, slip gaji, serta integrasi jaspel/jurnal.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [],
+      "urutan": 88
     }
   ],
   "bagian": [

@@ -335,6 +335,11 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/mutu/surveior", permission: read("Mutu & Akreditasi", "Akses Surveior") },
   { path: "/mutu", mode: "prefix", permission: read("Mutu & Akreditasi", null, null, null) },
 
+  // HR / SDM — penunjang-service (STD-0035 fase 1: kepegawaian & kredensial pegawai; kredensial satu sumber dengan Mutu)
+  { path: "/sdm/kepegawaian", permission: read("HR / SDM", "Kepegawaian") },
+  { path: "/sdm/kredensial", permission: read("HR / SDM", "Kredensial") },
+  { path: "/sdm", mode: "prefix", permission: read("HR / SDM", null, null, null) },
+
   // Bank Darah RS (BDRS) — penunjang-service
   { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },
   { path: "/bank-darah/crossmatch", permission: read("Bank Darah RS (BDRS)", "Uji Silang Serasi") },

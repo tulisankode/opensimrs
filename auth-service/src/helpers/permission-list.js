@@ -1082,7 +1082,7 @@ export const mutuPermission = {
     { name: "Dasbor Kesiapan", allows: ["READ"] },
     { name: "Instrumen Akreditasi", allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT"] },
     { name: "Dokumen Akreditasi", allows: ["READ", "CREATE", "UPDATE", "REVISI", "UBAH STATUS", "TINJAU", "PETAKAN ELEMEN", "BAGIKAN SURVEIOR", "DELETE"] },
-    { name: "Kredensial Staf", allows: ["READ", "CREATE", "UPDATE", "CABUT", "DELETE"] },
+    { name: "Kredensial Staf", allows: ["READ", "CREATE", "UPDATE", "VERIFIKASI", "CABUT", "DELETE"] },
     { name: "Akses Surveior", allows: ["READ"] },
   ],
 };
@@ -1120,23 +1120,15 @@ export const hemodialisaPermission = {
   ],
 };
 
-// HR / SDM (STD-0035): izin dipisah per area agar akses data kepegawaian dan penggajian dapat diberikan minimum.
+// HR / SDM (STD-0035, penunjang-service /hr). Fase 1: kepegawaian & kredensial pegawai. Kredensial adalah data yang sama
+// dengan Mutu & Akreditasi › Kredensial Staf (satu tabel), tetapi diatur izin modul ini. Submodul fase berikutnya
+// (jadwal dinas, kehadiran/cuti, pelatihan, penggajian) ditambahkan bersama fiturnya agar Hak Akses tidak menjanjikan
+// fitur yang belum ada.
 export const sdmPermission = {
   module: "HR / SDM",
   subModules: [
-    { name: "Kepegawaian", allows: ["READ", "CREATE", "UPDATE", "TAUTKAN AKUN"] },
-    { name: "Kredensial", allows: ["READ", "CREATE", "UPDATE", "VERIFIKASI", "UNGGAH DOKUMEN"] },
-    { name: "Pola Shift", allows: ["READ", "CREATE", "UPDATE"] },
-    { name: "Jadwal Dinas", allows: ["READ", "CREATE", "UPDATE", "AJUKAN", "SETUJUI", "TERBITKAN"] },
-    { name: "Kehadiran", allows: ["READ", "IMPOR", "KOREKSI"] },
-    { name: "Cuti & Izin", allows: ["READ", "AJUKAN", "SETUJUI"] },
-    { name: "Tukar Dinas", allows: ["READ", "AJUKAN", "KONFIRMASI", "SETUJUI"] },
-    { name: "Pelatihan", allows: ["READ", "CREATE", "UPDATE", "VERIFIKASI"] },
-    { name: "Penggajian", allows: ["READ", "KELOLA KOMPONEN", "TINJAU", "SAHKAN", "KOREKSI"] },
-    { name: "Slip Gaji", allows: ["READ", "TERBITKAN"] },
-    { name: "Integrasi", allows: ["READ", "REKONSILIASI", "KIRIM ULANG"] },
-    { name: "Pengaturan", allows: ["READ", "UPDATE"] },
-    { name: "Laporan SDM", allows: ["READ", "EKSPOR"] },
+    { name: "Kepegawaian", allows: ["READ", "CREATE", "UPDATE", "DELETE", "TAUTKAN AKUN"] },
+    { name: "Kredensial", allows: ["READ", "CREATE", "UPDATE", "UNGGAH DOKUMEN", "VERIFIKASI", "CABUT", "DELETE"] },
   ],
 };
 

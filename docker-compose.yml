@@ -201,8 +201,8 @@ services:
     container_name: penunjang-service
     image: opensimrs/penunjang-service:v1.0.0
     build:
-      context: ./penunjang-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: penunjang-service/Dockerfile
     env_file:
       - .env
     networks: [opensimrs]
