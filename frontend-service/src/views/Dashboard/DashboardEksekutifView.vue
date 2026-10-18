@@ -3,14 +3,12 @@ import { computed, onMounted, ref, watch } from 'vue'
 import CustomDatePicker from '@/components/Base/CustomDatePicker.vue'
 import CustomButton from '@/components/Base/CustomButton.vue'
 import CustomDialog from '@/components/Base/CustomDialog.vue'
-import LineChartDashboard from './Grafik/LineChartDashboard.vue'
-import CardGrafik from './Grafik/CardGrafik.vue'
+import GrafikIndikator from './Grafik/GrafikIndikator.vue'
 import IconDashboard from '../../assets/icons/icon_returnDashboard.svg'
 import { useDashboardStore } from '@/stores/dashboard'
 import { useFaskesStore } from '@/stores/datamaster/faskes'
 import { isSuperadmin } from '@/stores/simrsStudio'
 import { getStoredPermissions, hasPermission } from '@/utils/permissions'
-import { warnaTema } from '@/utils/tema'
 import { KELOMPOK_EKSEKUTIF, cetakDashboardEksekutif, formatNilaiIndikator, formatTarget } from '@/utils/pdf/pdfDashboardEksekutif'
 
 // Dashboard Eksekutif (STD-0034): indikator agregat layanan, keuangan, mutu & SDM untuk pimpinan. Semua angka dihitung
@@ -69,37 +67,26 @@ const kelompok = computed(() =>
   }))
 )
 
+// Kelompok ditampilkan sebagai tab (Layanan · Keuangan · Mutu · SDM)
+const tabAktif = ref('layanan')
+const kelompokAktif = computed(() => kelompok.value.find((k) => k.kode === tabAktif.value) ?? kelompok.value[0])
+
 const GAYA_STATUS: Record<string, { garis: string; teks: string; label: string }> = {
-  hijau: { garis: 'border-l-[#12B76A]', teks: 'text-[#0E7840]', label: 'Sesuai target' },
-  kuning: { garis: 'border-l-[#F79009]', teks: 'text-[#B7791F]', label: 'Perlu perhatian' },
-  merah: { garis: 'border-l-[#F04438]', teks: 'text-[#A33E35]', label: 'Di luar target' },
+  hijau: { garis: 'border-t-[#12B76A]', teks: 'text-[#0E7840]', label: 'Sesuai target' },
+  kuning: { garis: 'border-t-[#F79009]', teks: 'text-[#B7791F]', label: 'Perlu perhatian' },
+  merah: { garis: 'border-t-[#F04438]', teks: 'text-[#A33E35]', label: 'Di luar target' },
 }
-const gayaKartu = (i: any) => GAYA_STATUS[i.statusTarget]?.garis ?? 'border-l-grey-100'
-const teksStatusData = (i: any) =>
-  i.statusData === 'gagal' ? 'Gagal dimuat' : i.statusData === 'belum_dapat_dihitung' ? 'Belum dapat dihitung' : 'Belum tersedia'
+const gayaKartu = (i: any) => GAYA_STATUS[i.statusTarget]?.garis ?? 'border-t-grey-100'
 const teksPerubahan = (p: number | null | undefined) => (p === null || p === undefined ? null : `${p > 0 ? '▲ +' : p < 0 ? '▼ ' : ''}${p.toLocaleString('id-ID')}%`)
 const waktu = (epoch?: number | null) => (epoch ? new Date(epoch * 1000).toLocaleString('id-ID') : '-')
 
-// Tren kunjungan & pendapatan
-const tren = computed(() => data.value?.tren?.data ?? [])
-const labelTren = computed(() => [...new Set(tren.value.map((r: any) => r.periode))].sort())
-const garis = (label: string, kode: string, warna: string, titik: string) => ({
-  label,
-  data: labelTren.value.map((p) => tren.value.filter((r: any) => r.periode === p && r.kode === kode).reduce((a: number, r: any) => a + Number(r.nilai || 0), 0)),
-  fill: false,
-  borderColor: warna,
-  tension: 0.4,
-  pointBackgroundColor: titik,
-  pointBorderColor: titik,
-  pointRadius: 4,
-})
-const trenKunjungan = computed(() => [
-  garis('Rawat Jalan', 'kunjungan_rj', '#8EB8F0', '#2B5CA0'),
-  garis('Rawat Inap (masuk)', 'kunjungan_ri', '#77CFA0', '#0E7840'),
-  garis('IGD', 'kunjungan_igd', '#F29F97', '#A33E35'),
-])
-const trenPendapatan = computed(() => [garis('Pendapatan (tagihan)', 'pendapatan', warnaTema('100'), warnaTema('400'))])
-const judulTren = computed(() => (data.value?.tren?.satuan === 'bulan' ? 'Bulan' : 'Tanggal'))
+// Deret tren per indikator (kunjungan RJ/RI/IGD, pendapatan) untuk grafik garis
+const tren = computed(() => (data.value?.tren?.statusData === 'tersedia' ? data.value?.tren?.data ?? [] : []))
+const labelTren = computed(() => [...new Set(tren.value.map((r: any) => r.periode))].sort() as string[])
+const nilaiTren = (kode: string) => {
+  if (!tren.value.some((r: any) => r.kode === kode)) return []
+  return labelTren.value.map((p) => tren.value.filter((r: any) => r.periode === p && r.kode === kode).reduce((a: number, r: any) => a + Number(r.nilai || 0), 0))
+}
 
 // Rincian agregat (drill-down)
 const NAMA_DIMENSI: Record<string, string> = {
@@ -176,32 +163,28 @@ const simpanTarget = async () => {
 </script>
 
 <template>
-  <div class="flex flex-col max-h-full gap-5 overflow-auto grow">
-    <div class="flex flex-wrap items-center gap-2.5 p-5 bg-white rounded-lg">
-      <div class="p-2 text-white rounded-lg bg-opensimrs-300">
+  <div class="flex flex-col max-h-full gap-4 overflow-auto grow">
+    <!-- Header satu baris: judul + keterangan, filter faskes & periode, aksi -->
+    <div class="flex items-center gap-2.5 px-5 py-3 overflow-x-auto bg-white rounded-lg whitespace-nowrap">
+      <div class="p-2 text-white rounded-lg shrink-0 bg-opensimrs-300">
         <img :src="IconDashboard" alt="Ikon Dashboard" width="20px">
       </div>
-      <div class="flex flex-wrap items-center justify-between w-full gap-3 font-semibold text-opensimrs-300 text-subTitle">
-        <div>
-          Dashboard Eksekutif
-          <p class="text-xs font-normal text-grey-300">
-            Agregat tanpa identitas pasien · zona waktu {{ data?.periode?.zonaWaktu ?? 'Asia/Jakarta' }}
-            <template v-if="data"> · data diambil {{ waktu(data.diperbaruiPada) }}</template>
-          </p>
-        </div>
-        <div class="flex flex-wrap items-end gap-2">
-          <span v-if="loading" class="mb-2 mr-1 text-xs font-normal text-grey-300">Memuat…</span>
-          <MultiSelect v-if="superadmin" v-model="faskesDipilih" :options="opsiFaskes" optionLabel="label" optionValue="value"
-            placeholder="Faskes aktif" filter display="chip" :maxSelectedLabels="2" class="w-[260px] text-sm font-normal" />
-          <CustomDatePicker v-model="mulai" label="" class="w-[150px]" />
-          <PhMinus class="mt-auto mb-2 mx-[6px] text-black" />
-          <CustomDatePicker v-model="selesai" :showLabel="false" class="mt-auto w-[150px]" />
-          <CustomButton icon="PhArrowClockwise" @click="muat" />
-          <CustomButton v-if="boleh('ATUR TARGET') && !faskesDipilih.length" icon="PhTarget" label="Target KPI" outlined
-            borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="bukaTarget" />
-          <CustomButton v-if="boleh('EKSPOR PDF')" icon="PhFilePdf" label="Ekspor PDF" :disabled="!data || mengekspor" @click="ekspor" />
-        </div>
+      <div class="flex items-baseline min-w-0 gap-2 mr-auto">
+        <h1 class="font-semibold text-opensimrs-300 text-subTitle">Dashboard Eksekutif</h1>
+        <span class="text-xs truncate text-grey-300" :title="`Agregat tanpa identitas pasien · zona waktu ${data?.periode?.zonaWaktu ?? 'Asia/Jakarta'}`">
+          <template v-if="loading">Memuat…</template>
+          <template v-else-if="data">data {{ waktu(data.diperbaruiPada) }}</template>
+        </span>
       </div>
+      <MultiSelect v-if="superadmin" v-model="faskesDipilih" :options="opsiFaskes" optionLabel="label" optionValue="value"
+        placeholder="Faskes aktif" filter :maxSelectedLabels="1" class="w-[200px] shrink-0 text-sm font-normal" />
+      <CustomDatePicker v-model="mulai" :showLabel="false" class="w-[140px] shrink-0" />
+      <PhMinus class="shrink-0 text-black" />
+      <CustomDatePicker v-model="selesai" :showLabel="false" class="w-[140px] shrink-0" />
+      <CustomButton icon="PhArrowClockwise" title="Muat ulang" @click="muat" />
+      <CustomButton v-if="boleh('ATUR TARGET') && !faskesDipilih.length" icon="PhTarget" label="Target KPI" outlined
+        borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="bukaTarget" />
+      <CustomButton v-if="boleh('EKSPOR PDF')" icon="PhFilePdf" label="Ekspor PDF" :disabled="!data || mengekspor" @click="ekspor" />
     </div>
 
     <div v-if="ditolak && !loading" class="p-5 text-sm bg-white rounded-lg text-grey-300">
@@ -209,61 +192,51 @@ const simpanTarget = async () => {
     </div>
 
     <template v-if="data">
-      <p v-if="!data.targetBerlaku" class="px-1 text-xs text-grey-300">
-        Target KPI hanya dibandingkan bila satu faskes dipilih (target diatur per faskes).
-      </p>
-
-      <section v-for="k in kelompok" :key="k.kode" class="p-5 bg-white rounded-lg shadow-sm">
-        <h2 class="mb-3 font-semibold text-opensimrs-300">{{ k.judul }}</h2>
-        <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <article v-for="i in k.indikator" :key="i.kode" class="flex flex-col gap-1 p-4 border border-l-4 rounded-lg border-grey-100"
-            :class="gayaKartu(i)">
-            <div class="flex items-start justify-between gap-2">
-              <h3 class="text-sm font-medium" :title="i.rumus">{{ i.nama }}</h3>
-              <span v-if="i.statusTarget" class="text-[11px] font-semibold" :class="GAYA_STATUS[i.statusTarget].teks">
-                {{ GAYA_STATUS[i.statusTarget].label }}
-              </span>
-            </div>
-            <p v-if="i.statusData === 'tersedia'" class="text-xl font-semibold">{{ formatNilaiIndikator(i.nilai, i.satuan) }}</p>
-            <p v-else class="text-sm" :class="i.statusData === 'gagal' ? 'text-danger-300' : 'text-grey-300'">
-              {{ teksStatusData(i) }}<span v-if="i.keterangan" class="block text-xs">{{ i.keterangan }}</span>
-            </p>
-            <p class="text-xs text-grey-300">
-              <template v-if="data.targetBerlaku">Target: {{ formatTarget(i.target, i.satuan) }}</template>
-              <template v-if="i.periode?.posisiSaatIni"> · posisi saat ini</template>
-              <template v-else-if="teksPerubahan(i.perubahanPersen)"> · {{ teksPerubahan(i.perubahanPersen) }} vs periode lalu</template>
-            </p>
-            <p v-if="i.kode === 'waktu_tunggu_rj' && i.komponen" class="text-xs text-grey-300">
-              Median {{ i.komponen.median ?? '-' }} menit · ≤ 60 menit {{ i.komponen.persenDalam60Menit ?? '-' }}% · {{ i.komponen.sampel }} kunjungan
-            </p>
-            <p v-if="['bor', 'alos', 'toi', 'bto', 'gdr', 'ndr'].includes(i.kode) && i.komponen" class="text-xs text-grey-300">
-              TT {{ i.komponen.tempatTidur }} · HP {{ i.komponen.hariPerawatan }} · keluar {{ i.komponen.keluar }} (mati {{ i.komponen.mati }})
-            </p>
-            <div v-if="boleh('RINCIAN') && i.statusData === 'tersedia' && i.dimensiRincian?.length" class="flex flex-wrap gap-1 mt-1">
-              <button v-for="d in i.dimensiRincian" :key="d" type="button"
-                class="px-2 py-0.5 text-[11px] rounded border border-grey-100 text-opensimrs-300 hover:bg-opensimrs-50"
-                @click="muatRincian(i, d)">
-                per {{ NAMA_DIMENSI[d] ?? d }}
-              </button>
-            </div>
-            <p class="mt-auto text-[10px] text-grey-200">Diperbarui {{ waktu(i.diperbaruiPada) }}</p>
-          </article>
-          <article v-for="b in k.belumTersedia" :key="b.kode" class="p-4 border border-dashed rounded-lg border-grey-100">
-            <h3 class="text-sm font-medium">{{ b.nama }}</h3>
-            <p class="text-sm text-grey-300">Belum tersedia</p>
-            <p class="text-xs text-grey-300">{{ b.alasan }}</p>
-          </article>
-        </div>
-      </section>
-
-      <div class="w-full bg-white rounded-lg shadow-md">
-        <CardGrafik headerGrafik="Tren Kunjungan" />
-        <p v-if="data.tren?.statusData !== 'tersedia'" class="p-5 text-sm text-danger-300">Data tren gagal dimuat.</p>
-        <LineChartDashboard v-else :labels="labelTren" :datasets="trenKunjungan" showLegend legendPosition="bottom" :title="judulTren" />
+      <!-- Tab kelompok indikator -->
+      <div class="flex items-center gap-1 px-2 bg-white rounded-lg" role="tablist" aria-label="Kelompok indikator">
+        <button v-for="k in kelompok" :key="k.kode" type="button" role="tab" :aria-selected="tabAktif === k.kode"
+          class="px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors"
+          :class="tabAktif === k.kode ? 'border-opensimrs-300 text-opensimrs-300' : 'border-transparent text-grey-300 hover:text-opensimrs-300'"
+          @click="tabAktif = k.kode">
+          {{ k.judul }}
+          <span class="ml-1 text-xs text-grey-200">{{ k.indikator.length }}</span>
+        </button>
+        <span v-if="!data.targetBerlaku" class="ml-auto pr-3 text-xs text-grey-300">Target KPI dibandingkan bila satu faskes dipilih</span>
       </div>
-      <div class="w-full bg-white rounded-lg shadow-md">
-        <CardGrafik headerGrafik="Tren Pendapatan (tagihan)" />
-        <LineChartDashboard v-if="data.tren?.statusData === 'tersedia'" :labels="labelTren" :datasets="trenPendapatan" showLegend legendPosition="bottom" :title="judulTren" />
+
+      <!-- Grafik per indikator sesuai konteks data -->
+      <div v-if="kelompokAktif" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <article v-for="i in kelompokAktif.indikator" :key="i.kode"
+          class="flex flex-col gap-2 p-4 bg-white border-t-4 rounded-lg shadow-sm" :class="gayaKartu(i)">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <h3 class="text-sm font-medium truncate" :title="i.rumus">{{ i.nama }}</h3>
+              <p class="text-xs text-grey-300">
+                <span v-if="i.statusData === 'tersedia' && i.satuan !== '%'" class="font-semibold text-grey-500">{{ formatNilaiIndikator(i.nilai, i.satuan) }}</span>
+                <template v-if="data.targetBerlaku"> · target {{ formatTarget(i.target, i.satuan) }}</template>
+                <template v-if="i.periode?.posisiSaatIni"> · posisi saat ini</template>
+                <template v-else-if="teksPerubahan(i.perubahanPersen)"> · {{ teksPerubahan(i.perubahanPersen) }}</template>
+              </p>
+            </div>
+            <span v-if="i.statusTarget" class="text-[11px] font-semibold shrink-0" :class="GAYA_STATUS[i.statusTarget].teks">
+              {{ GAYA_STATUS[i.statusTarget].label }}
+            </span>
+          </div>
+          <GrafikIndikator :indikator="i" :labelTren="labelTren" :nilaiTren="nilaiTren(i.kode)" :targetBerlaku="data.targetBerlaku" />
+          <div v-if="boleh('RINCIAN') && i.statusData === 'tersedia' && i.dimensiRincian?.length" class="flex flex-wrap gap-1">
+            <button v-for="d in i.dimensiRincian" :key="d" type="button"
+              class="px-2 py-0.5 text-[11px] rounded border border-grey-100 text-opensimrs-300 hover:bg-opensimrs-50"
+              @click="muatRincian(i, d)">
+              per {{ NAMA_DIMENSI[d] ?? d }}
+            </button>
+          </div>
+        </article>
+        <article v-for="b in kelompokAktif.belumTersedia" :key="b.kode"
+          class="flex flex-col justify-center gap-1 p-4 border border-dashed rounded-lg bg-white/60 border-grey-100">
+          <h3 class="text-sm font-medium">{{ b.nama }}</h3>
+          <p class="text-sm text-grey-300">Belum tersedia</p>
+          <p class="text-xs text-grey-300">{{ b.alasan }}</p>
+        </article>
       </div>
     </template>
 
