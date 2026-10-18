@@ -295,6 +295,17 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/cssd/laporan", permission: read("CSSD", "Laporan CSSD") },
   { path: "/cssd", mode: "prefix", permission: read("CSSD", null, null, null) },
 
+  // Laundry & Linen (penunjang-service). Halaman distribusi memuat tab Permintaan (petugas ruangan) & Distribusi
+  // (petugas laundry), jadi cukup izin modul; tiap tab/aksi diperiksa di halaman dan backend.
+  { path: "/laundry/stok", permission: read("Laundry", "Stok & Par Level") },
+  { path: "/laundry/penerimaan", permission: read("Laundry", "Penerimaan") },
+  { path: "/laundry/batch", permission: read("Laundry", "Batch") },
+  { path: "/laundry/distribusi", permission: read("Laundry", null, null, null) },
+  { path: "/laundry/koreksi", permission: any("Laundry", "Koreksi Stok", ["READ", "CREATE"]) },
+  { path: "/laundry/master", permission: read("Laundry", "Datamaster", "Jenis Linen") },
+  { path: "/laundry/laporan", permission: read("Laundry", "Laporan Laundry") },
+  { path: "/laundry", mode: "prefix", permission: read("Laundry", null, null, null) },
+
   // Bank Darah RS (BDRS) — penunjang-service
   { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },
   { path: "/bank-darah/crossmatch", permission: read("Bank Darah RS (BDRS)", "Uji Silang Serasi") },

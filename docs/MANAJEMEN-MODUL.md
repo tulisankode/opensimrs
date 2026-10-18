@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **32 modul** (8 inti, 1 berstatus Segera), **76 fitur** (0 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **33 modul** (8 inti, 1 berstatus Segera), **83 fitur** (0 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -225,12 +225,12 @@ Ringkasan katalog saat ini: **8 segmen**, **32 modul** (8 inti, 1 berstatus Sege
 |---|---|---|---|---|---|
 | 1 | PM | `praktik_mandiri` | Dokter Praktik Mandiri | 1 dokter, rawat jalan; daftar–periksa–resep–bayar sederhana. | 9 |
 | 2 | KP | `klinik_pratama` | Klinik Pratama | Pelayanan dasar, apotek & lab sederhana; FKTP BPJS. | 13 |
-| 3 | KU | `klinik_utama` | Klinik Utama | Pelayanan spesialistik, penunjang, rawat inap terbatas; FKRTL BPJS. | 16 |
+| 3 | KU | `klinik_utama` | Klinik Utama | Pelayanan spesialistik, penunjang, rawat inap terbatas; FKRTL BPJS. | 17 |
 | 4 | PKM | `puskesmas` | Puskesmas | FKTP pemerintah: banyak poli, program, laporan dinkes. | 13 |
-| 5 | RS D | `rs_d` | Rumah Sakit Kelas D | Pelayanan dasar RS: rawat jalan, IGD, rawat inap, penunjang. | 16 |
-| 6 | RS C | `rs_c` | Rumah Sakit Kelas C | Kelas D + kamar operasi, gizi, koding rekam medis. | 21 |
-| 7 | RS B | `rs_b` | Rumah Sakit Kelas B | Kelas C + ICU, CSSD, bank darah, akuntansi. | 26 |
-| 8 | RS A | `rs_a` | Rumah Sakit Kelas A | Pelayanan paripurna & rujukan nasional/provinsi, termasuk UTD. | 27 |
+| 5 | RS D | `rs_d` | Rumah Sakit Kelas D | Pelayanan dasar RS: rawat jalan, IGD, rawat inap, penunjang. | 17 |
+| 6 | RS C | `rs_c` | Rumah Sakit Kelas C | Kelas D + kamar operasi, gizi, koding rekam medis. | 22 |
+| 7 | RS B | `rs_b` | Rumah Sakit Kelas B | Kelas C + ICU, CSSD, bank darah, akuntansi. | 27 |
+| 8 | RS A | `rs_a` | Rumah Sakit Kelas A | Pelayanan paripurna & rujukan nasional/provinsi, termasuk UTD. | 28 |
 
 ### B. Daftar modul per kelompok
 
@@ -272,6 +272,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `patologi_anatomi` | Patologi Anatomi | Histopatologi, sitologi & potong beku: order, penerimaan jaringan, makroskopis, mikroskopis, diagnosis (ICD-O), arsip blok & slide. | Tersedia | Patologi Anatomi |
 | `mikrobiologi` | Mikrobiologi | Pewarnaan, kultur, identifikasi kuman & uji kepekaan antibiotik (S/I/R), laporan sementara & antibiogram. | Tersedia | Mikrobiologi |
 | `ambulans` | Manajemen Ambulans | Permintaan & penugasan ambulans, perjalanan (jarak/BBM/catatan pendamping), armada & kru, tarif, serta penerusan biaya ke tagihan kunjungan/kuitansi umum. | Tersedia | Manajemen Ambulans |
+| `laundry` | Laundry & Linen | Siklus linen kotor–bersih: serah terima linen kotor dua petugas, batch cuci bertahap, distribusi linen bersih, stok & par level per ruangan, koreksi, rekonsiliasi, dan laporan beban cucian. | Tersedia | Laundry |
 
 #### Penjaminan
 
@@ -336,6 +337,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Patologi Anatomi (`patologi_anatomi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | Mikrobiologi (`mikrobiologi`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | Manajemen Ambulans (`ambulans`) | Tersedia | – | – | – | – | – | – | – | – |
+| Laundry & Linen (`laundry`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 
 ### D. Fitur per modul
 
@@ -521,6 +523,18 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `ambulans_tarif` | Tarif | Tarif layanan ambulans per jenis layanan, kilometer, atau zona beserta masa berlaku. | Tersedia | – | – | – |
 | `ambulans_pembiayaan` | Biaya & Kuitansi | Perhitungan biaya, penerusan tagihan ke kunjungan pasien, dan kuitansi untuk pengguna umum. | Tersedia | – | – | – |
 | `ambulans_laporan` | Laporan Ambulans | Jumlah layanan per jenis, waktu respons, jarak & BBM per armada, serta pendapatan. | Tersedia | – | – | – |
+
+#### Laundry & Linen (`laundry`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `laundry_stok` | Stok & Par Level | Saldo linen per ruangan dari buku transaksi, par level, saldo awal, dan stok bersih laundry. | Tersedia | – | – | – |
+| `laundry_penerimaan` | Serah Terima Linen Kotor | Serah terima linen kotor per kategori (biasa/infeksius/bernoda berat) dengan konfirmasi petugas laundry dan alasan selisih. | Tersedia | – | – | – |
+| `laundry_batch` | Pemrosesan Batch | Batch cuci per kategori dengan berat kg serta tahapan pencucian, pengeringan, dan setrika/lipat. | Tersedia | – | – | – |
+| `laundry_distribusi` | Permintaan & Distribusi | Permintaan linen bersih dari ruangan, distribusi dari stok bersih laundry, dan konfirmasi penerimaan ruangan. | Tersedia | – | – | – |
+| `laundry_koreksi` | Koreksi Stok | Pencatatan linen hilang, rusak, dan afkir dengan alasan serta pelaku. | Tersedia | – | – | – |
+| `laundry_master` | Master Jenis Linen | Datamaster jenis linen, kode, dan satuan hitung. | Tersedia | – | – | – |
+| `laundry_laporan` | Laporan Laundry | Beban cucian kg per ruangan, perputaran, selisih, pemisahan kategori, rekonsiliasi, dan ekspor Excel. | Tersedia | – | – | – |
 
 ### E. Bagian (unit terkecil)
 
