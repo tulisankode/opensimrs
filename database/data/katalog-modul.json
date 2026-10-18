@@ -556,6 +556,21 @@
         "/mikrobiologi"
       ],
       "urutan": 30
+    },
+    {
+      "kode": "laundry",
+      "nama": "Laundry & Linen",
+      "kelompok": "Penunjang",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Siklus linen kotor–bersih: serah terima linen kotor dua petugas, batch cuci bertahap, distribusi linen bersih, stok & par level per ruangan, koreksi, rekonsiliasi, dan laporan beban cucian.",
+      "menu": [
+        "Laundry"
+      ],
+      "rute": [
+        "/laundry"
+      ],
+      "urutan": 32
     }
   ],
   "fitur": [
@@ -1299,6 +1314,76 @@
         "/patologi-anatomi/mapping/lis"
       ],
       "urutan": 55
+    },
+    {
+      "kode": "laundry_stok",
+      "modul": "laundry",
+      "nama": "Stok & Par Level",
+      "deskripsi": "Saldo linen per ruangan dari buku transaksi, par level, saldo awal, dan stok bersih laundry.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/stok"],
+      "urutan": 70
+    },
+    {
+      "kode": "laundry_penerimaan",
+      "modul": "laundry",
+      "nama": "Serah Terima Linen Kotor",
+      "deskripsi": "Serah terima linen kotor per kategori (biasa/infeksius/bernoda berat) dengan konfirmasi petugas laundry dan alasan selisih.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/penerimaan"],
+      "urutan": 71
+    },
+    {
+      "kode": "laundry_batch",
+      "modul": "laundry",
+      "nama": "Pemrosesan Batch",
+      "deskripsi": "Batch cuci per kategori dengan berat kg serta tahapan pencucian, pengeringan, dan setrika/lipat.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/batch"],
+      "urutan": 72
+    },
+    {
+      "kode": "laundry_distribusi",
+      "modul": "laundry",
+      "nama": "Permintaan & Distribusi",
+      "deskripsi": "Permintaan linen bersih dari ruangan, distribusi dari stok bersih laundry, dan konfirmasi penerimaan ruangan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/distribusi"],
+      "urutan": 73
+    },
+    {
+      "kode": "laundry_koreksi",
+      "modul": "laundry",
+      "nama": "Koreksi Stok",
+      "deskripsi": "Pencatatan linen hilang, rusak, dan afkir dengan alasan serta pelaku.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/koreksi"],
+      "urutan": 74
+    },
+    {
+      "kode": "laundry_master",
+      "modul": "laundry",
+      "nama": "Master Jenis Linen",
+      "deskripsi": "Datamaster jenis linen, kode, dan satuan hitung.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/master"],
+      "urutan": 75
+    },
+    {
+      "kode": "laundry_laporan",
+      "modul": "laundry",
+      "nama": "Laporan Laundry",
+      "deskripsi": "Beban cucian kg per ruangan, perputaran, selisih, pemisahan kategori, rekonsiliasi, dan ekspor Excel.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/laporan"],
+      "urutan": 76
     }
   ],
   "bagian": [
@@ -1623,7 +1708,8 @@
         "fisioterapi",
         "rawat_inap",
         "bpjs_fkrtl",
-        "mcu"
+        "mcu",
+        "laundry"
       ],
       "puskesmas": [
         "dashboard",
@@ -1656,7 +1742,8 @@
         "rawat_inap",
         "igd",
         "bpjs_fkrtl",
-        "mcu"
+        "mcu",
+        "laundry"
       ],
       "rs_c": [
         "dashboard",
@@ -1679,7 +1766,8 @@
         "gizi",
         "koding_rm",
         "mcu",
-        "patologi_anatomi"
+        "patologi_anatomi",
+        "laundry"
       ],
       "rs_b": [
         "dashboard",
@@ -1707,7 +1795,8 @@
         "akuntansi",
         "mcu",
         "patologi_anatomi",
-        "mikrobiologi"
+        "mikrobiologi",
+        "laundry"
       ],
       "rs_a": [
         "dashboard",
@@ -1736,7 +1825,8 @@
         "akuntansi",
         "mcu",
         "patologi_anatomi",
-        "mikrobiologi"
+        "mikrobiologi",
+        "laundry"
       ]
     },
     "fitur_mati": {
