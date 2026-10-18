@@ -8,7 +8,7 @@ import config from "./config.js";
 import { audit, query, satu, sekarang, sisipkan, transaksi, ubah, uuidv7 } from "./db.js";
 import { Galat, permintaanSalah, tidakDitemukan } from "./respons.js";
 import { bacaSemua } from "./pengaturan.js";
-import { berkasBerubah, branchSekarang, git, patchBerkas, potretKerja, statusBerkas, urlRepo } from "./git.js";
+import { berkasBerubah, branchSekarang, git, patchBerkas, potretKerja, saringBerkasKotor, statusBerkas, urlRepo } from "./git.js";
 import { branchDasar, branchLokal, direktoriKerja, hapusWorktree, modeLokal, pastikanDiBranch, siapkanKerja } from "./kerja.js";
 import { pathDiubahDalamDesain, periksaKebijakan, temukanDataPribadi, zonaTersentuh } from "./kebijakan.js";
 import { FOLDER_LAMPIRAN, estimasiBiaya, jalankanAgen, periksaBatas } from "./agen/index.js";
@@ -667,14 +667,16 @@ export const pindaiManual = async (item, oleh) => {
     riwayat.push({ sha, pesan: subjek, berkas: keluaran.split("\n").filter(Boolean), pada: sekarang(), manual: true });
   }
   const head = (await git(["rev-parse", "HEAD"], { cwd: base })).keluaran;
+  // Hanya berkas yang masih belum di-commit yang dipertahankan; yang sudah di-commit manual tercatat di riwayat commit.
+  const masihKotor = saringBerkasKotor([...peta.values()], await statusBerkas(base));
   let baru = await ubah("studio_item", item.uuid, {
-    berkas: [...peta.values()],
+    berkas: masihKotor,
     riwayat_commit: riwayat,
     commit_sha: head !== dasarRef && riwayat.length ? head : item.commit_sha,
   });
   const semua = [...new Set([...peta.keys(), ...riwayat.flatMap((c) => c.berkas)])];
   if (zonaTersentuh(semua) === "kuning") baru = await naikkanRisiko(baru, "tinggi", "kode menyentuh layanan klinis/keuangan");
-  await pesan(baru, item.tahap, "sistem", `Pindai perubahan manual: ${kotor.length} berkas belum di-commit, ${commitBaru.length} commit baru di ${item.branch}.`, oleh);
+  await pesan(baru, item.tahap, "sistem", `Pindai perubahan manual: ${masihKotor.length} berkas belum di-commit, ${commitBaru.length} commit baru di ${item.branch}.`, oleh);
   await audit(oleh, "Memindai perubahan manual", item.uuid, { berkas: kotor.length, commit: commitBaru.length });
   return baru;
 };
