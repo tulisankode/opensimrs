@@ -59,6 +59,17 @@ const sidebarBodyList = ref<SidebarBody[]>([
           { name: "Penerimaan Retur Unit", type: linkType.LINK, url: "/inventory/penerimaan-barang/penerimaan-retur-unit" },
         ],
       },
+      {
+        // STD-0019 — fitur "inv_marketplace" (nonaktif bawaan); otomatis tersembunyi bila fitur/izin tidak aktif.
+        name: "Pembelian via Marketplace",
+        type: linkType.DROPDOWN,
+        icon: "BoxPlusIcon",
+        child: [
+          { name: "Pencarian & Penawaran", type: linkType.LINK, url: "/inventory/marketplace/pencarian" },
+          { name: "Pemetaan Produk", type: linkType.LINK, url: "/inventory/marketplace/pemetaan" },
+          { name: "Permintaan & Pesanan", type: linkType.LINK, url: "/inventory/marketplace/permintaan" },
+        ],
+      },
     ],
   },
   {

@@ -26,6 +26,10 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 ## [Belum dirilis]
 
 ### Ditambahkan
+- **Pembelian BMHP via Marketplace mitra** (Inventory, fitur `inv_marketplace`): konfigurasi koneksi per faskes, pencarian penawaran, pemetaan produk dan satuan, pengajuan serta persetujuan permintaan, checkout idempoten, pembaruan status/webhook berkunci, catatan tagihan, laporan, dan server marketplace tiruan. Penerimaan barang tetap memakai PO dan alur Penerimaan Pembelian Inventory yang sudah ada.
+  - Rute API ditolak bila fitur belum aktif untuk faskes; izin submodul **Inventory › Pembelian Marketplace** per aksi. Aksi berisiko (konfigurasi koneksi, pemetaan, persetujuan, checkout, laporan) tidak diberikan otomatis ke peran yang ada.
+  - **Migrasi baru:** `20261018050000-inv_marketplace`, `20261018050100-sinkron_katalog_inv_marketplace`, `20261018050200-izin_inv_marketplace`.
+  - **Variabel lingkungan baru (opsional):** `INVENTORY_MARKETPLACE_KUNCI_RAHASIA` (bawaan memakai `SECRET_KEY`).
 - **Bridging PACS/RIS** (Radiologi, fitur `rad_bridging_pacs`, pola sama dengan Bridging LIS): order radiologi dikirim ke PACS/RIS saat **Validasi & Kirim ke PACS**, dengan Accession Number unik per pemeriksaan sebagai kunci idempotensi; **Validasi Saja** tetap tersedia sebagai jalur darurat.
   - **Konfigurasi PACS** & **Pengiriman PACS** di Setting › Konfigurasi Integrasi: multi-koneksi per faskes (satu bawaan), API key & kunci masuk tersimpan terenkripsi dan tersamar, **Uji Koneksi**, riwayat pengiriman (Terkirim/Gagal/Sedang dikirim/Tidak pasti/Hasil diterima/Hasil sebagian) dengan **Kirim Ulang/Kirim Lagi** dan **Cek Status**.
   - **Radiologi › Mapping PACS**: tindakan → kode prosedur & modalitas PACS, unit asal/dokter pengirim/penjamin → kode PACS, ruang/alat → AE Title (data referensi worklist, bukan endpoint DICOM MWL).

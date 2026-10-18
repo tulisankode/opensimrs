@@ -1247,6 +1247,21 @@ export const inventoryPermission = {
         },
       ],
     },
+    {
+      // STD-0019 — Pembelian BMHP via marketplace mitra. Fitur katalog "inv_marketplace" (mati bawaan).
+      name: "Pembelian Marketplace",
+      allows: [
+        "READ",
+        "KONFIGURASI KONEKSI",
+        "CARI PENAWARAN",
+        "KELOLA PEMETAAN",
+        "AJUKAN PERMINTAAN",
+        "PERSETUJUAN",
+        "CHECKOUT",
+        "SINKRON STATUS",
+        "LIHAT LAPORAN",
+      ],
+    },
   ],
 };
 

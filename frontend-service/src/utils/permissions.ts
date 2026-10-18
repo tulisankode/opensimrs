@@ -328,6 +328,8 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/inventory/stok-adjustment", permission: read("Inventory", "Stok Adjustment") },
   { path: "/inventory/laporan/obat-expired", permission: read("Inventory", "Laporan Inventory", "Obat Expired") },
   { path: "/inventory/laporan/persediaan", permission: read("Inventory", "Laporan Inventory", "Persediaan") },
+  // STD-0019 — Pembelian via Marketplace (fitur inv_marketplace, nonaktif bawaan)
+  { path: "/inventory/marketplace", mode: "prefix", permission: read("Inventory", "Pembelian Marketplace") },
 
   { path: "/laporan/jumlah-kunjungan", permission: read("Laporan", "Jumlah Kunjungan Berdasarkan Status Rawat") },
   { path: "/laporan/rekapitulasi-tindakan", permission: read("Laporan", "Rekapitulasi Tindakan") },

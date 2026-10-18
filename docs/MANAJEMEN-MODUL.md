@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 1 berstatus Segera), **68 fitur** (2 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 1 berstatus Segera), **68 fitur** (1 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -405,7 +405,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `inv_retur_supplier` | Retur & Penggantian Supplier | Mengembalikan barang rusak/ED ke supplier dan mencatat penggantiannya. | Tersedia | – | – | PM, PKM |
 | `inv_stok_opname` | Stok Opname | Penghitungan fisik stok berkala. | Tersedia | – | – | – |
 | `inv_stok_adjustment` | Penyesuaian Stok | Koreksi stok di luar opname (rusak, hilang, selisih). | Tersedia | – | – | – |
-| `inv_marketplace` | Pembelian via Marketplace | Pengadaan barang lewat marketplace mitra (afiliasi). | Segera | – | – | – |
+| `inv_marketplace` | Pembelian via Marketplace | Pengadaan barang lewat marketplace mitra (afiliasi). | Tersedia | – | – | PM, KP, KU, PKM, RS D, RS C, RS B, RS A |
 
 #### Laboratorium (`laboratorium`)
 

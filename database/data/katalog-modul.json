@@ -1021,9 +1021,9 @@
       "modul": "inventory",
       "nama": "Pembelian via Marketplace",
       "deskripsi": "Pengadaan barang lewat marketplace mitra (afiliasi).",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/inventory/marketplace"],
       "urutan": 41
     },
     {
@@ -1753,7 +1753,8 @@
         "farmasi_retur",
         "inv_pengadaan_po",
         "inv_retur_supplier",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "inv_marketplace"
       ],
       "klinik_pratama": [
         "lab_bridging_lis",
@@ -1762,13 +1763,15 @@
         "rme_soap_ringkas",
         "daftar_ringkas",
         "mcu_pcare",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "inv_marketplace"
       ],
       "klinik_utama": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "inv_marketplace"
       ],
       "puskesmas": [
         "bayar_diskon_voucher",
@@ -1777,33 +1780,38 @@
         "inv_retur_supplier",
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "inv_marketplace"
       ],
       "rs_d": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "inv_marketplace"
       ],
       "rs_c": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "inv_marketplace"
       ],
       "rs_b": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
         "bdrs_bridging",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "inv_marketplace"
       ],
       "rs_a": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
         "bdrs_bridging",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "inv_marketplace"
       ]
     },
     "bagian_mati": {
