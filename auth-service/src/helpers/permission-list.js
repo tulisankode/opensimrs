@@ -984,7 +984,10 @@ export const giziPermission = {
 };
 
 // Laundry & Linen (STD-0023, penunjang-service). Konfirmasi serah terima & distribusi dipisah dari CREATE (dua
-// petugas berbeda — KF-5/KF-10); "Permintaan Linen" untuk petugas ruangan.
+// petugas berbeda — KF-5/KF-10); "Permintaan Linen" untuk petugas ruangan. Pelacakan per unit (STD-0030): pindai di
+// setiap titik alur memakai aksi submodul alur di atas; "Pemindaian Unit" hanya membaca hasil pindai, "Unit Linen"
+// registrasi/tautan bed/cetak label, "Koreksi Unit" ubah status & pindah lokasi beralasan, cara pencatatan per jenis
+// mengikuti Datamaster › Jenis Linen › UPDATE.
 export const laundryPermission = {
   module: "Laundry",
   subModules: [
@@ -996,6 +999,10 @@ export const laundryPermission = {
     { name: "Koreksi Stok", allows: ["READ", "CREATE"] },
     { name: "Datamaster", features: [{ name: "Jenis Linen", allows: ["READ", "CREATE", "UPDATE", "DELETE"] }] },
     { name: "Laporan Laundry", allows: ["READ", "CETAK LAPORAN"] },
+    { name: "Unit Linen", allows: ["READ", "CREATE", "UPDATE", "CETAK LABEL"] },
+    { name: "Pemindaian Unit", allows: ["READ"] },
+    { name: "Koreksi Unit", allows: ["READ", "UPDATE"] },
+    { name: "Laporan Unit", allows: ["READ", "CETAK LAPORAN"] },
   ],
 };
 

@@ -4,10 +4,13 @@ import { tangani, kirim, wajib, permintaanSalah, tidakDitemukan } from "../umum/
 import { izinLaundry } from "../umum/izin.js";
 import { KATEGORI_LINEN, STATUS_BATCH, URUTAN_TAHAP, beratPositif, bulatPositif, cekPilihan, cekTransisiTahap, epochOpsional, periode, rincianUnik, teks } from "./bersama.js";
 import { catatTransaksiStok } from "./stok.js";
+import { cekUnitAlur, daftarKode, galatPosisi, jumlahDariKode, kunciUnitDariKode, kunciUnitRincian, normalKode, pindahkanUnit, statusSiklus } from "./unit-alur.js";
 
 // Pemrosesan batch (UC-2): batch dibentuk dari rincian penerimaan terkonfirmasi berkategori sama (boleh lintas
 // ruangan — KF-7), berat dicatat dalam kg terpisah dari jumlah unit. Tahapan pencucian → pengeringan →
 // setrika/lipat berurutan; saat setrika/lipat selesai, linen masuk stok bersih laundry (sekali, di transaksi yang sama).
+// Jenis per unit (STD-0030): unit kotor dipindai masuk batch (kode_unit, boleh tanpa rincian_asal — asal diturunkan
+// dari unit); saat batch selesai seluruh unit batch masuk stok bersih dan siklus cucinya bertambah tepat satu.
 
 export const rute = express.Router();
 
@@ -60,11 +63,36 @@ rute.post(
   izinLaundry("Batch", "CREATE"),
   tangani(async (req, res) => {
     const b = req.body ?? {};
-    wajib(b, ["rincian_asal", "berat_kg"]);
-    const asal = rincianUnik(b.rincian_asal, "rincian_penerimaan_uuid", "Asal batch");
+    wajib(b, ["berat_kg"]);
+    const kodeBatch = b.kode_unit === undefined || b.kode_unit === null ? null : daftarKode(b.kode_unit);
+    if (!kodeBatch && (b.rincian_asal === undefined || b.rincian_asal === null)) throw permintaanSalah("rincian_asal atau kode_unit wajib diisi");
     const beratKg = beratPositif(b.berat_kg, "berat_kg");
     const waktuMulai = epochOpsional(b.waktu_mulai, "waktu_mulai", sekarang());
     const f = req.author.faskesUuid;
+    // Unit hasil pindai dikelompokkan per rincian penerimaan asalnya (unit kotor selalu memegang rincian_uuid).
+    const masukan = Array.isArray(b.rincian_asal) ? [...b.rincian_asal] : [];
+    if (kodeBatch) {
+      const peta = await query(
+        `SELECT upper(p.nilai) AS nilai, u.kode_unit, u.rincian_uuid, u.lokasi_tipe, u.lokasi_uuid, u.status FROM laundry_unit_pengenal p
+           JOIN laundry_unit u ON u.uuid = p.unit_uuid AND u.faskes_uuid = p.faskes_uuid AND u.deleted_at IS NULL
+          WHERE p.faskes_uuid = $1 AND upper(p.nilai) = ANY($2::text[]) AND p.aktif AND p.deleted_at IS NULL`,
+        [f, kodeBatch],
+      );
+      const ke = new Map(peta.map((r) => [r.nilai, r]));
+      const takDikenal = kodeBatch.filter((x) => !ke.has(x));
+      if (takDikenal.length) throw permintaanSalah(`Kode unit tidak dikenal: ${takDikenal.join(", ")}`);
+      const grup = new Map();
+      for (const x of kodeBatch) {
+        const u = ke.get(x);
+        if (u.lokasi_tipe !== "kotor" || !u.rincian_uuid) throw galatPosisi(u, "unit tidak berada di antrean cuci (kotor)");
+        grup.set(u.rincian_uuid, [...(grup.get(u.rincian_uuid) ?? []), x]);
+      }
+      for (const [rincianUuid, kode] of grup) {
+        if (masukan.some((m) => String(m?.rincian_penerimaan_uuid) === rincianUuid)) throw permintaanSalah("Rincian asal yang sama dikirim ganda (rincian_asal dan kode_unit)");
+        masukan.push({ rincian_penerimaan_uuid: rincianUuid, kode_unit: kode });
+      }
+    }
+    const asal = rincianUnik(masukan, "rincian_penerimaan_uuid", "Asal batch");
     const hasil = await transaksi(async (k) => {
       // Kunci rincian asal (urutan uuid tetap) agar dua batch bersamaan tidak memproses sisa yang sama dua kali.
       const refs = [];
@@ -76,7 +104,24 @@ rute.post(
           k,
         );
         if (!r) throw permintaanSalah("Asal batch tidak valid atau penerimaan belum dikonfirmasi");
-        const jumlah = bulatPositif(x.jumlah_diproses, "jumlah_diproses");
+        // Rincian yang memegang unit kotor: yang masuk batch = unit hasil pindai, atau seluruh unit bila jumlahnya sama.
+        const unitRincian = await kunciUnitRincian(k, f, "rincian_uuid", r.uuid, "kotor");
+        let units = [];
+        let jumlah;
+        if (x.kode_unit !== undefined && x.kode_unit !== null) {
+          if (!unitRincian.length) throw permintaanSalah("Rincian asal ini dihitung per jumlah atau unitnya sudah diproses; kode unit tidak dipakai");
+          const kode = daftarKode(x.kode_unit);
+          const milik = new Set(unitRincian.map((u) => u.uuid));
+          units = await kunciUnitDariKode(k, f, kode);
+          for (const u of units) if (!milik.has(u.uuid)) throw galatPosisi(u, "unit bukan antrean cuci rincian ini");
+          cekUnitAlur(units, { lokasiTipe: "kotor", keterangan: "unit tidak berada di antrean cuci" });
+          jumlah = jumlahDariKode(kode, x.jumlah_diproses, "jumlah_diproses");
+        } else {
+          jumlah = bulatPositif(x.jumlah_diproses, "jumlah_diproses");
+          if (unitRincian.length && jumlah !== unitRincian.length)
+            throw permintaanSalah(`Linen pada rincian ini dilacak per unit: pindai kode unit yang masuk batch (sebagian ${jumlah} dari ${unitRincian.length})`);
+          units = unitRincian;
+        }
         const total = await satu(
           `SELECT COALESCE(SUM(jumlah_diproses), 0)::numeric AS jumlah FROM laundry_batch_asal WHERE rincian_penerimaan_uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`,
           [r.uuid, f],
@@ -84,7 +129,7 @@ rute.post(
         );
         const sisa = Number(r.jumlah_diterima ?? 0) - Number(total.jumlah);
         if (jumlah > sisa) throw permintaanSalah(`Jumlah yang diproses melebihi sisa linen kotor yang belum dicuci (sisa ${sisa})`);
-        refs.push({ ...r, jumlah });
+        refs.push({ ...r, jumlah, units });
       }
       if (new Set(refs.map((x) => x.kategori)).size !== 1) throw permintaanSalah("Kategori berbeda harus diproses dalam batch terpisah");
       const uuid = uuidv7();
@@ -103,7 +148,10 @@ rute.post(
         },
         k,
       );
-      for (const x of refs) await sisipkan("laundry_batch_asal", { faskes_uuid: f, batch_uuid: batch.uuid, rincian_penerimaan_uuid: x.uuid, jumlah_diproses: x.jumlah }, k);
+      for (const x of refs) {
+        await sisipkan("laundry_batch_asal", { faskes_uuid: f, batch_uuid: batch.uuid, rincian_penerimaan_uuid: x.uuid, jumlah_diproses: x.jumlah }, k);
+        await pindahkanUnit(k, x.units, { lokasi_tipe: "batch", dokumen_uuid: batch.uuid }, { faskes: f, peristiwa: "masuk_batch", dokumenTipe: "batch", dokumenUuid: batch.uuid, pelaku: req.author.username, waktu: batch.created_at });
+      }
       for (const tahap of URUTAN_TAHAP) await sisipkan("laundry_batch_tahap", { faskes_uuid: f, batch_uuid: batch.uuid, tahap, status: "belum" }, k);
       return batch;
     });
@@ -136,7 +184,30 @@ rute.patch(
         k,
       );
       let batch = b;
+      let unitSelesai = [];
       if (selesaiBatch) {
+        // Unit dalam batch: opsional diverifikasi dengan hasil pindai (harus persis sama), lalu masuk stok bersih dan
+        // siklus cuci +1. Batch terkunci (FOR UPDATE) & status "selesai" hanya sekali + indeks unik
+        // laundry_unit_siklus_batch → siklus tidak mungkin bertambah dua kali untuk batch yang sama.
+        const unitBatch = await kunciUnitRincian(k, f, "dokumen_uuid", b.uuid, "batch");
+        if (req.body.kode_unit !== undefined && req.body.kode_unit !== null) {
+          const kode = daftarKode(req.body.kode_unit);
+          const ada = new Set(unitBatch.map((u) => normalKode(u.kode_unit)));
+          const asing = kode.filter((x) => !ada.has(x));
+          const kurang = unitBatch.filter((u) => !kode.includes(normalKode(u.kode_unit))).map((u) => u.kode_unit);
+          if (asing.length || kurang.length) {
+            const rinci = [asing.length ? `bukan bagian batch ini: ${asing.join(", ")}` : "", kurang.length ? `belum dipindai: ${kurang.join(", ")}` : ""];
+            throw permintaanSalah(`Hasil pindai tidak cocok dengan isi batch — ${rinci.filter(Boolean).join("; ")}`);
+          }
+        }
+        unitSelesai = await pindahkanUnit(k, unitBatch, { lokasi_tipe: "laundry", lokasi_uuid: null, dokumen_uuid: null, rincian_uuid: null, tambahSiklus: true }, {
+          faskes: f,
+          peristiwa: "selesai_cuci",
+          dokumenTipe: "batch",
+          dokumenUuid: b.uuid,
+          pelaku: req.author.username,
+          waktu,
+        });
         batch = await satu(`UPDATE laundry_batch SET status = 'selesai', waktu_selesai = $1, updated_at = $1 WHERE uuid = $2 RETURNING *`, [waktu, b.uuid], k);
         // Linen bersih masuk stok laundry per jenis (jumlah unit dari asal batch).
         const perJenis = await query(
@@ -160,9 +231,14 @@ rute.patch(
             waktuTransaksi: waktu,
           });
       }
-      return { batch, tahap: t };
+      // Peringatan umur pakai (KT-17) untuk unit yang baru selesai dicuci.
+      const unitPeringatan = unitSelesai
+        .map((u) => ({ uuid: u.uuid, kode_unit: u.kode_unit, siklus_cuci: Number(u.siklus_cuci), batas_siklus: u.batas_siklus, status_siklus: statusSiklus(u.siklus_cuci, u.batas_siklus, u.peringatan_siklus) }))
+        .filter((u) => u.status_siklus !== "normal");
+      return { batch, tahap: t, unit_selesai: unitSelesai.length, unit_peringatan: unitPeringatan };
     });
-    kirim(res, hasil, hasil.batch.status === "selesai" ? "Batch selesai; linen bersih masuk stok laundry" : "Tahap batch berhasil diperbarui");
+    const pesan = hasil.batch.status === "selesai" ? "Batch selesai; linen bersih masuk stok laundry" : "Tahap batch berhasil diperbarui";
+    kirim(res, hasil, hasil.unit_peringatan.length ? `${pesan}. ${hasil.unit_peringatan.length} unit mendekati/mencapai batas umur pakai` : pesan);
   }),
 );
 
