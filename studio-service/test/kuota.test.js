@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CATATAN_LANJUTAN, GalatKuota, JEDA_BAWAAN, JEDA_KREDIT, kenaliGalatKuota, konektorBerikutnya, lanjutPalingAwal, susunRantai, uraiWaktuReset, waktuLanjut,
+  CATATAN_LANJUTAN, GalatKuota, JEDA_BAWAAN, JEDA_JARINGAN, JEDA_KREDIT, kenaliGalatKuota, konektorBerikutnya, lanjutPalingAwal, susunRantai, uraiWaktuReset, waktuLanjut,
 } from "../src/agen/kuota.js";
 import { SQL_KLAIM_TUNDA, klaimTundaJatuhTempo } from "../src/penjadwal.js";
 import { STATUS_BERJALAN, alasanTidakLanjut } from "../src/alur.js";
@@ -12,7 +12,7 @@ const detik = (ms) => Math.floor(ms / 1000);
 
 test("kenaliGalatKuota: Claude Code session limit dengan jam & zona dalam kurung", () => {
   const k = kenaliGalatKuota("You've hit your session limit · resets 11:10am (Asia/Jakarta)", KINI);
-  assert.deepEqual(k, { penyedia: "claude_code", lanjutPada: detik(Date.UTC(2026, 9, 18, 4, 10)), diketahui: true, kredit: false });
+  assert.deepEqual(k, { penyedia: "claude_code", lanjutPada: detik(Date.UTC(2026, 9, 18, 4, 10)), diketahui: true, kredit: false, jaringan: false });
 });
 
 test("kenaliGalatKuota: jam yang sudah lewat hari ini → besok; tanpa zona = Asia/Jakarta", () => {
@@ -162,4 +162,15 @@ test("kenaliGalatKuota: rate limit token per menit organisasi API dikenali sebag
   const k = kenaliGalatKuota("429 This request would exceed your organization's rate limit of 500,000 input tokens per minute (org: contoh, model: claude-sonnet-5-5).", Date.UTC(2026, 9, 18, 4, 44));
   assert.equal(k?.kredit, false);
   assert.equal(k.penyedia, "api");
+});
+
+test("kenaliGalatKuota: galat jaringan sementara → beralih/tunda singkat; galat lain tetap null", () => {
+  const kini = Date.UTC(2026, 9, 18, 7, 0);
+  for (const pesan of ["fetch failed", "API Error: Connection lost mid-response. The response above may be incomplete.", "connect ECONNREFUSED 127.0.0.1:11434", "socket hang up"]) {
+    const k = kenaliGalatKuota(pesan, kini);
+    assert.equal(k?.jaringan, true, pesan);
+    assert.equal(k.lanjutPada, Math.floor(kini / 1000) + JEDA_JARINGAN);
+  }
+  assert.equal(kenaliGalatKuota("SyntaxError: Unexpected token", kini), null);
+  assert.equal(kenaliGalatKuota("Prompt is too long", kini), null);
 });
