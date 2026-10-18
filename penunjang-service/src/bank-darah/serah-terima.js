@@ -4,6 +4,8 @@ import { tangani, kirim, wajib, tidakDitemukan, permintaanSalah, Galat } from ".
 import { izinBdrs, pastikanIzin } from "../umum/izin.js";
 import { kunciPermintaan, detailPermintaan } from "./permintaan.js";
 import { ambilPengaturan } from "./pengaturan.js";
+import { cekKompatibilitas } from "./kompatibilitas.js";
+import { catatAuditBdrs, cekOverrideDarurat, segarkanKedaluwarsa, teks } from "./bersama.js";
 import { kirimTagihan } from "../umum/tagihan.js";
 
 // Serah terima kantong ke ruangan (KF-15/KF-16/KF-17): mensyaratkan konfirmasi dua akun pengguna berbeda
@@ -14,7 +16,7 @@ import { kirimTagihan } from "../umum/tagihan.js";
 
 const KOLOM = `
   st.uuid, st.permintaan_uuid, st.petugas_penyerah, st.waktu_konfirmasi_penyerah, st.petugas_penerima,
-  st.waktu_konfirmasi_penerima, st.status, st.status_tagihan, st.pesan_tagihan, st.created_at, st.updated_at`;
+  st.waktu_konfirmasi_penerima, st.status, st.status_tagihan, st.pesan_tagihan, st.alasan_batal, st.created_at, st.updated_at`;
 
 const detailSerahTerima = async (uuid, faskes, k) => {
   const st = await satu(`SELECT ${KOLOM} FROM bdrs_serah_terima st WHERE st.uuid = $1 AND st.faskes_uuid = $2 AND st.deleted_at IS NULL`, [uuid, faskes], k);
@@ -71,7 +73,12 @@ buatSerahTerima.post(
     const stokUuids = [...new Set((req.body?.stok_uuids ?? []).filter(Boolean))];
     if (!stokUuids.length) throw permintaanSalah("Pilih minimal satu kantong untuk diserahkan");
     const faskes = req.author.faskesUuid;
+    const alasanOverride = teks(req.body?.alasan_override);
+    const mintaOverride = req.body?.override_darurat === true;
 
+    // Segarkan kedaluwarsa DI LUAR transaksi (autocommit) agar perubahan status tetap tersimpan meski transaksi di
+    // bawah gagal/409 — KT-9. Dalam transaksi tetap dibandingkan ulang `tanggal_kedaluwarsa <= sekarangEpoch`.
+    const sekarangEpoch = await segarkanKedaluwarsa(faskes);
     const st = await transaksi(async (k) => {
       const pm = await kunciPermintaan(req.params.uuid, faskes, k);
       if (!["diproses", "dipenuhi_sebagian"].includes(pm.status)) throw new Galat(409, "Permintaan tidak dalam status siap diserahkan");
@@ -88,11 +95,14 @@ buatSerahTerima.post(
       // Kunci baris stok & pastikan masih tersedia (mencegah dua transaksi memperebutkan kantong yang sama).
       const stokRows = await query(`SELECT * FROM bdrs_stok WHERE uuid = ANY($1) AND faskes_uuid = $2 AND deleted_at IS NULL FOR UPDATE`, [stokUuids, faskes], k);
       if (stokRows.length !== stokUuids.length) throw permintaanSalah("Sebagian kantong tidak ditemukan");
+      // Kedaluwarsa diperiksa lebih dulu: penyegaran di atas sudah mengubah statusnya, sehingga tanpa urutan ini
+      // petugas hanya melihat "tidak tersedia".
+      const kedaluwarsa = stokRows.filter((s) => s.status === "kedaluwarsa" || s.tanggal_kedaluwarsa <= sekarangEpoch);
+      if (kedaluwarsa.length) throw new Galat(409, `Kantong ${kedaluwarsa.map((s) => s.no_kantong).join(", ")} sudah kedaluwarsa`);
       const tidakTersedia = stokRows.filter((s) => s.status !== "tersedia");
       if (tidakTersedia.length) throw new Galat(409, `Kantong ${tidakTersedia.map((s) => s.no_kantong).join(", ")} sudah tidak tersedia`);
-      const sekarangEpoch = Math.floor(Date.now() / 1000);
-      const kedaluwarsa = stokRows.filter((s) => s.tanggal_kedaluwarsa <= sekarangEpoch);
-      if (kedaluwarsa.length) throw new Galat(409, `Kantong ${kedaluwarsa.map((s) => s.no_kantong).join(", ")} sudah kedaluwarsa`);
+      const belumNonReaktif = stokRows.filter((s) => s.status_imltd !== "non_reaktif");
+      if (belumNonReaktif.length) throw new Galat(409, `Kantong ${belumNonReaktif.map((s) => s.no_kantong).join(", ")} berstatus IMLTD tidak layak diserahkan`);
 
       const crossmatchRows = await query(
         `SELECT * FROM bdrs_crossmatch WHERE permintaan_uuid = $1 AND stok_uuid = ANY($2) AND deleted_at IS NULL`,
@@ -102,6 +112,51 @@ buatSerahTerima.post(
       for (const s of stokRows) {
         const c = crossmatchRows.find((x) => x.stok_uuid === s.uuid);
         if (!c || !c.kompatibel || c.status_validasi !== "berlaku") throw new Galat(409, `Kantong ${s.no_kantong} belum dinyatakan kompatibel/berlaku untuk diserahkan`);
+      }
+
+      // Validasi ulang kelompok komponen & kecocokan ABO/Rh pasien-kantong (STD-0016 — ditegakkan kembali di serah terima).
+      const pemeriksaan = await satu(`SELECT golongan_abo, rhesus FROM bdrs_pemeriksaan WHERE permintaan_uuid = $1 AND deleted_at IS NULL`, [pm.uuid], k);
+      if (!pemeriksaan) throw new Galat(409, "Catat pemeriksaan golongan darah pasien terlebih dahulu");
+      const komponenRows = await query(`SELECT uuid, kode, nama, kelompok FROM bdrs_komponen_darah WHERE uuid = ANY($1)`, [stokRows.map((s) => s.komponen_uuid)], k);
+      const pengaturan = await ambilPengaturan(faskes);
+      for (const s of stokRows) {
+        const komponen = komponenRows.find((kp) => kp.uuid === s.komponen_uuid);
+        if (!komponen || komponen.kelompok === "lainnya") throw new Galat(409, `Kelompok komponen ${komponen?.nama ?? s.komponen_uuid} belum ditetapkan; atur di Datamaster › Komponen Darah`);
+        const cek = cekKompatibilitas({
+          kelompokKomponen: komponen.kelompok,
+          golonganPasien: pemeriksaan.golongan_abo,
+          rhesusPasien: pemeriksaan.rhesus,
+          golonganKantong: s.golongan_abo,
+          rhesusKantong: s.rhesus,
+          namaKomponen: komponen.nama,
+        });
+        if (!cek.kompatibel) {
+          // Override tidak diminta: tetap tolak dengan pesan ketidakcocokan golongan (bukan alasan override).
+          if (!mintaOverride) throw new Galat(409, cek.alasan);
+          const override = await cekOverrideDarurat({
+            req,
+            pengaturan,
+            kelompokKomponen: komponen.kelompok,
+            golonganKantong: s.golongan_abo,
+            rhesusKantong: s.rhesus,
+            patientUuid: pm.patient_uuid,
+            alasanOverride,
+            k,
+          });
+          if (!override.sah) throw new Galat(409, override.alasan);
+          await catatAuditBdrs(faskes, "override_darurat", {
+            stokUuid: s.uuid,
+            permintaanUuid: pm.uuid,
+            pengguna: req.author.username ?? null,
+            data: {
+              golongan_pasien: `${pemeriksaan.golongan_abo}${pemeriksaan.rhesus === "negatif" ? "-" : "+"}`,
+              golongan_kantong: `${s.golongan_abo}${s.rhesus === "negatif" ? "-" : "+"}`,
+              komponen: komponen.nama,
+              alasan: alasanOverride,
+              konteks: "serah_terima",
+            },
+          }, k);
+        }
       }
 
       await query(`UPDATE bdrs_stok SET status = 'dialokasikan', updated_at = $2 WHERE uuid = ANY($1)`, [stokUuids, sekarangEpoch], k);
@@ -158,6 +213,10 @@ rute.post(
     const faskes = req.author.faskesUuid;
     const username = req.author.username ?? null;
 
+    // Segarkan kedaluwarsa DI LUAR transaksi (autocommit) agar perubahan status tetap tersimpan meski konfirmasi
+    // gagal/409 di bawah — KT-9. Pengaman di dalam transaksi: kantong kedaluwarsa tidak lagi berstatus 'dialokasikan'
+    // setelah disegarkan, sehingga tertangkap pemeriksaan `belumDialokasikan`.
+    await segarkanKedaluwarsa(faskes);
     const hasil = await transaksi(async (k) => {
       const st = await kunciSerahTerima(req.params.uuid, faskes, k);
       if (st.status !== "menunggu") throw new Galat(409, `Transaksi berstatus ${st.status}, tidak dapat dikonfirmasi`);
@@ -176,6 +235,8 @@ rute.post(
         const stokRows = await query(`SELECT * FROM bdrs_stok WHERE uuid = ANY($1) AND faskes_uuid = $2 FOR UPDATE`, [stokUuids, faskes], k);
         const belumDialokasikan = stokRows.filter((s) => s.status !== "dialokasikan");
         if (belumDialokasikan.length) throw new Galat(409, "Sebagian kantong sudah tidak dalam status dialokasikan, konfirmasi dibatalkan");
+        const belumNonReaktif = stokRows.filter((s) => s.status_imltd !== "non_reaktif");
+        if (belumNonReaktif.length) throw new Galat(409, "Sebagian kantong berstatus IMLTD tidak layak diserahkan, konfirmasi dibatalkan");
         await query(`UPDATE bdrs_stok SET status = 'diserahkan', updated_at = $2 WHERE uuid = ANY($1)`, [stokUuids, sekarang()], k);
         header = await ubah("bdrs_serah_terima", st.uuid, faskes, { status: "selesai" }, k);
 
@@ -211,16 +272,22 @@ rute.post(
   "/:uuid/batal",
   izinBdrs("Serah Terima", "KONFIRMASI PENYERAH"),
   tangani(async (req, res) => {
-    const alasan = String(req.body?.alasan ?? "").trim();
+    const alasan = teks(req.body?.alasan ?? req.body?.alasan_batal);
     if (!alasan) throw permintaanSalah("alasan wajib diisi");
     const faskes = req.author.faskesUuid;
+    // Segarkan kedaluwarsa DI LUAR transaksi (autocommit) agar perubahan status tetap tersimpan meski pembatalan
+    // gagal/409 di bawah — konsisten dengan KT-9 pada endpoint lain.
+    const sekarangEpoch = await segarkanKedaluwarsa(faskes);
     await transaksi(async (k) => {
       const st = await kunciSerahTerima(req.params.uuid, faskes, k);
       if (st.status !== "menunggu") throw new Galat(409, `Transaksi berstatus ${st.status}, tidak dapat dibatalkan`);
       const items = await query(`SELECT stok_uuid FROM bdrs_serah_terima_item WHERE serah_terima_uuid = $1 AND deleted_at IS NULL`, [st.uuid], k);
-      await query(`UPDATE bdrs_stok SET status = 'tersedia', updated_at = $2 WHERE uuid = ANY($1)`, [items.map((i) => i.stok_uuid), sekarang()], k);
-      await query(`UPDATE bdrs_serah_terima_item SET deleted_at = $2 WHERE serah_terima_uuid = $1 AND deleted_at IS NULL`, [st.uuid, sekarang()], k);
-      await ubah("bdrs_serah_terima", st.uuid, faskes, { status: "batal" }, k);
+      const stokUuids = items.map((i) => i.stok_uuid);
+      // Kantong yang sudah kedaluwarsa kembali ke status kedaluwarsa (sudah ditegakkan segarkanKedaluwarsa di atas),
+      // sisanya kembali tersedia.
+      await query(`UPDATE bdrs_stok SET status = 'tersedia', updated_at = $2 WHERE uuid = ANY($1) AND status = 'dialokasikan'`, [stokUuids, sekarangEpoch], k);
+      await query(`UPDATE bdrs_serah_terima_item SET deleted_at = $2 WHERE serah_terima_uuid = $1 AND deleted_at IS NULL`, [st.uuid, sekarangEpoch], k);
+      await ubah("bdrs_serah_terima", st.uuid, faskes, { status: "batal", alasan_batal: alasan }, k);
     });
     kirim(res, { uuid: req.params.uuid, alasan }, "Transaksi serah terima dibatalkan, kantong kembali tersedia");
   }),

@@ -6,7 +6,7 @@ import { getStoredPermissions, hasPermission } from "@/utils/permissions";
 // Izin aksi modul MCU (Setting › Hak Akses › MCU). Tanpa daftar izin = super admin → boleh; backend menegakkan izin
 // yang sama (403). Submodul: "Peserta" (CREATE/IMPOR/UPDATE/KIRIM LIS/BATAL/HAPUS/KESIMPULAN/CETAK), "Pemeriksaan" (INPUT HASIL),
 // "Datamaster" (fitur Paket MCU / Perusahaan: CREATE/UPDATE/DELETE), "Tagihan Korporasi" (CREATE/UPDATE/PEMBAYARAN/CETAK),
-// "Laporan MCU" (READ/CETAK LAPORAN).
+// "Laporan MCU" (READ/CETAK LAPORAN), "MCU PCare" (READ/KIRIM/UBAH/HAPUS).
 export const izinMcu = (submodul: string, aksi: string, fitur?: string) =>
   !getStoredPermissions().length || hasPermission("MCU", submodul, aksi as any, fitur ?? null);
 
@@ -190,7 +190,7 @@ export const petunjukGalatLis = (pesan?: string | null): { teks: string; rute?: 
   if (/tidak boleh kosong|harus/i.test(p)) return { teks: "Lengkapi data pasien/peserta yang wajib diisi LIS, lalu kirim ulang." };
   if (/belum pasti|cek status|waktu habis|terputus|bad gateway/i.test(p)) return { teks: "Respons LIS tidak diterima. Jalankan Cek Status sebelum mengirim ulang agar tidak terdaftar dua kali." };
   if (/coba lagi setelah|sibuk/i.test(p)) return { teks: "LIS sedang gagal memproses. Kirim ulang beberapa menit lagi." };
-  if (/tidak dapat dihubungi|koneksi lis|x-api-key|kode rs|kode lab/i.test(p)) return { teks: "Periksa koneksi LIS (URL, API key, Kode RS/Lab).", rute: "/setting/konfigurasi-integrasi", label: "Konfigurasi LIS" };
+  if (/tidak dapat dihubungi|koneksi lis|x-api-key|kode rs|kode lab/i.test(p)) return { teks: "Periksa koneksi LIS (URL, API key, Kode RS/Lab).", rute: "/setting/konfigurasi-integrasi/lis-pk", label: "Konfigurasi LIS" };
   if (/tidak ditemukan di LIS|aman dikirim ulang/i.test(p)) return { teks: "Belum terdaftar di LIS — aman dikirim ulang." };
   return null;
 };
@@ -228,6 +228,27 @@ export const catatPembayaranMcu = (
 ) => apiPenunjangPost(`/mcu/invoice/${uuid}/pembayaran`, data);
 export const batalPembayaranMcu = (uuid: string, bayarUuid: string, alasan: string) =>
   apiPenunjangPost(`/mcu/invoice/${uuid}/pembayaran/${bayarUuid}/batal`, { alasan });
+
+// ── MCU PCare (BPJS, STD-0020): pelaporan hasil MCU peserta JKN ─────────────────────────────────
+// Fitur katalog "mcu_pcare" (syarat modul bpjs_fktp), mati bawaan — lihat fiturAktif("mcu_pcare").
+export type StatusPcareMcu = "belum" | "mengirim" | "terkirim" | "gagal" | "tidak_pasti";
+export const STATUS_PCARE_MCU: Record<StatusPcareMcu, Lencana> = {
+  belum: { label: "Belum dikirim", bg: "bg-[#EAECF0]", text: "text-[#475467]" },
+  mengirim: { label: "Sedang dikirim", bg: "bg-[#D1E9FF]", text: "text-[#175CD3]" },
+  terkirim: { label: "Terkirim", bg: "bg-[#D1FADF]", text: "text-[#027A48]" },
+  gagal: { label: "Gagal", bg: "bg-[#FDE2E1]", text: "text-[#B42318]" },
+  tidak_pasti: { label: "Tidak pasti", bg: "bg-[#FEF0C7]", text: "text-[#B54708]" },
+};
+export type KandidatKunjunganPcare = { rawatJalanUuid: string; noKunjungan: string; noPelayanan?: string; tanggalDaftar?: number; dischargeDate?: number };
+export const kandidatKunjunganPcareMcu = (pesertaUuid: string) => apiPenunjangGet(`/mcu/pcare/kunjungan?peserta_uuid=${pesertaUuid}`);
+export const statusPcareMcu = (pesertaUuid: string) => apiPenunjangGet(`/mcu/pcare/peserta/${pesertaUuid}`);
+export const kirimPcareMcu = (pesertaUuid: string, data: { rawatJalanUuid?: string; konfirmasi?: boolean } = {}) =>
+  apiPenunjangPost(`/mcu/pcare/peserta/${pesertaUuid}/kirim`, data);
+export const ulangPcareMcu = (pesertaUuid: string, data: { rawatJalanUuid?: string; konfirmasi?: boolean } = {}) =>
+  apiPenunjangPost(`/mcu/pcare/peserta/${pesertaUuid}/ulang`, data);
+export const ubahPcareMcu = (pesertaUuid: string, data: { alasan: string; rawatJalanUuid?: string }) =>
+  apiPenunjangPut(`/mcu/pcare/peserta/${pesertaUuid}`, data);
+export const hapusPcareMcu = (pesertaUuid: string, alasan: string) => apiPenunjangDelete(`/mcu/pcare/peserta/${pesertaUuid}?alasan=${encodeURIComponent(alasan)}`);
 
 // Laporan
 export const laporanMcu = (params: Record<string, any> = {}) => apiPenunjangGet(`/mcu/laporan${qs(params)}`);

@@ -6,6 +6,7 @@ import PrinterController from "../controllers/printer-controller.js";
 import ModulController from "../controllers/modul-controller.js";
 import BantuanController from "../controllers/bantuan-controller.js";
 import authorizationMiddleware from "../middlewares/authorization-middleware.js";
+import auditTrailRoutes from "./audit-trail-routes.js";
 
 const apiBase = process.env.API_BASE || "api";
 const apiVersion = process.env.API_VERSION || "v1";
@@ -53,5 +54,8 @@ routes.post(`/${apiBase}/${apiVersion}/setting/bantuan/konfigurasi/uji`, Bantuan
 // PRINTER
 routes.get(`/${apiBase}/${apiVersion}/setting/printer`, PrinterController.findByUuid);
 routes.put(`/${apiBase}/${apiVersion}/setting/printer`, PrinterController.update);
+
+// AUDIT TRAIL (STD-0029)
+routes.use(auditTrailRoutes);
 
 export default routes;

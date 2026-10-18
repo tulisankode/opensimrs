@@ -10,7 +10,11 @@ import stok from "./stok.js";
 import serahTerima, { buatSerahTerima } from "./serah-terima.js";
 import transfusi from "./transfusi.js";
 import laporan from "./laporan.js";
-import { GOLONGAN_ABO, HASIL_UJI, RHESUS, STATUS_PERMINTAAN, STATUS_STOK, SUMBER_KUNJUNGAN, SUMBER_STOK, pilihan } from "./bersama.js";
+import { GOLONGAN_ABO, HASIL_UJI, RHESUS, STATUS_IMLTD, STATUS_PERMINTAAN, STATUS_STOK, SUMBER_KUNJUNGAN, SUMBER_STOK, pilihan } from "./bersama.js";
+import { KELOMPOK_KOMPONEN } from "./kompatibilitas.js";
+import { wajibSalahSatu } from "../umum/izin.js";
+import utd from "./utd/utd-rute.js";
+import utdPermintaan from "./utd/utd-permintaan-rute.js";
 
 // Bank Darah RS (BDRS) — /api/v3/penunjang/bank-darah/...
 //   /komponen                       datamaster komponen darah (PRC/WB/TC/FFP, dapat ditambah faskes)
@@ -25,6 +29,24 @@ import { GOLONGAN_ABO, HASIL_UJI, RHESUS, STATUS_PERMINTAAN, STATUS_STOK, SUMBER
 //   /referensi/pilihan|pasien|dokter|lokasi
 const rute = express.Router();
 
+// Semua pembacaan BDRS mewajibkan minimal satu hak READ di modul ini (sebelumnya GET hanya memeriksa login, sehingga
+// pengguna faskes tanpa izin BDRS dapat membaca stok, permintaan, dan serah terima). Penjaga per rute yang lebih
+// spesifik (laporan, transfusi, dsb.) tetap berlaku sesudahnya.
+const BDRS = "Bank Darah RS (BDRS)";
+const bacaBdrs = wajibSalahSatu(
+  [BDRS, "Permintaan Darah", "READ"],
+  [BDRS, "Uji Silang Serasi", "READ"],
+  [BDRS, "Stok & Penerimaan", "READ"],
+  [BDRS, "Serah Terima", "READ"],
+  [BDRS, "Pemantauan Transfusi", "READ"],
+  [BDRS, "Pengaturan", "READ"],
+  [BDRS, "Datamaster", "READ", "Komponen Darah"],
+  [BDRS, "Laporan BDRS", "READ", "Pemakaian Darah"],
+  [BDRS, "Laporan BDRS", "READ", "Rasio Crossmatch-Transfusi"],
+  [BDRS, "Laporan BDRS", "READ", "Hemovigilans"],
+);
+rute.use((req, res, next) => (req.method === "GET" ? bacaBdrs(req, res, next) : next()));
+
 rute.use("/komponen", komponen);
 rute.use("/pengaturan", pengaturan);
 // Rute nested (permintaan/:uuid/...) didaftarkan sebelum rute generik /permintaan agar lebih eksplisit; keduanya
@@ -32,10 +54,12 @@ rute.use("/pengaturan", pengaturan);
 rute.use("/permintaan/:uuid/pemeriksaan", pemeriksaan);
 rute.use("/permintaan/:uuid/crossmatch", crossmatch);
 rute.use("/permintaan/:uuid/serah-terima", buatSerahTerima);
+rute.use("/permintaan/:uuid", utdPermintaan); // /permintaan/:uuid/kirim-utd, /ambil-status-utd (STD-0017)
 rute.use("/permintaan", permintaan);
 rute.use("/stok", stok);
 rute.use("/serah-terima", serahTerima);
 rute.use("/laporan", laporan);
+rute.use("/utd", utd); // Bridging Bank Darah ke UTD eksternal (STD-0017), fitur bdrs_bridging
 rute.use("/", transfusi);
 
 // Daftar pilihan (enum) untuk form frontend.
@@ -48,6 +72,8 @@ rute.get(
       hasil_uji: pilihan(HASIL_UJI),
       status_permintaan: pilihan(STATUS_PERMINTAAN),
       status_stok: pilihan(STATUS_STOK),
+      status_imltd: pilihan(STATUS_IMLTD),
+      kelompok_komponen: pilihan(KELOMPOK_KOMPONEN),
       sumber_kunjungan: pilihan(SUMBER_KUNJUNGAN),
       sumber_stok: pilihan(SUMBER_STOK),
     }),

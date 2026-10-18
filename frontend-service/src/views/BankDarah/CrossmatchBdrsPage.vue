@@ -35,6 +35,7 @@ import {
 const storeUtils = utilsStore();
 const bolehPeriksa = izinBdrs("Uji Silang Serasi", "CATAT PEMERIKSAAN");
 const bolehCrossmatch = izinBdrs("Uji Silang Serasi", "CATAT CROSSMATCH");
+const bolehOverride = izinBdrs("Uji Silang Serasi", "OVERRIDE DARURAT");
 
 // ── Antrean
 const antrean = ref<any[]>([]);
@@ -75,6 +76,7 @@ const buka = async (baris: any) => {
     };
     galatPeriksa.value = "";
     hanyaGolonganSama.value = true;
+    peringatanTerakhir.value = [];
     dialog.value = true;
     muatKandidat();
   } finally {
@@ -120,19 +122,27 @@ const hasilCrossmatch = (stokUuid: string) => (pm.value?.crossmatch ?? []).find(
 // Form crossmatch per kantong (satu dialog kecil)
 const dialogCm = ref(false);
 const kantongAktif = ref<any>(null);
-const formCm = ref({ hasilMayor: "kompatibel", hasilMinor: "kompatibel", catatan: "" });
+const formCm = ref({ hasilMayor: "kompatibel", hasilMinor: "kompatibel", catatan: "", overrideDarurat: false, alasanOverride: "" });
 const bukaCm = (s: any) => {
   kantongAktif.value = s;
   const ada = hasilCrossmatch(s.uuid);
-  formCm.value = { hasilMayor: ada?.hasilMayor ?? "kompatibel", hasilMinor: ada?.hasilMinor ?? "kompatibel", catatan: ada?.catatan ?? "" };
+  formCm.value = { hasilMayor: ada?.hasilMayor ?? "kompatibel", hasilMinor: ada?.hasilMinor ?? "kompatibel", catatan: ada?.catatan ?? "", overrideDarurat: false, alasanOverride: "" };
   dialogCm.value = true;
 };
 const kompatibelForm = computed(() => formCm.value.hasilMayor === "kompatibel" && formCm.value.hasilMinor === "kompatibel");
+const peringatanTerakhir = ref<string[]>([]);
 const simpanCm = async () => {
   storeUtils.setLoading(true);
   try {
-    const res = await catatCrossmatchBdrs(pm.value.uuid, { stokUuid: kantongAktif.value.uuid, ...formCm.value, catatan: formCm.value.catatan || undefined });
+    const { overrideDarurat, alasanOverride, ...hasil } = formCm.value;
+    const res = await catatCrossmatchBdrs(pm.value.uuid, {
+      stokUuid: kantongAktif.value.uuid,
+      ...hasil,
+      catatan: hasil.catatan || undefined,
+      ...(overrideDarurat ? { overrideDarurat, alasanOverride } : {}),
+    });
     if (res?.payload) {
+      peringatanTerakhir.value = res.payload.peringatan ?? [];
       pm.value = res.payload;
       dialogCm.value = false;
       muat();
@@ -241,6 +251,10 @@ const siap = computed(() =>
             </div>
           </div>
 
+          <div v-if="peringatanTerakhir.length" class="px-3 py-2 text-xs rounded-lg bg-[#FEF0C7] text-[#B54708]">
+            <div v-for="(p, i) in peringatanTerakhir" :key="i">{{ p }}</div>
+          </div>
+
           <div>
             <div class="flex items-center justify-between mb-2">
               <h3 class="font-semibold">2. Crossmatch per Kantong Kandidat</h3>
@@ -328,6 +342,16 @@ const siap = computed(() =>
             <span v-if="!kompatibelForm" class="text-xs"> — kantong tidak akan dapat diserahkan untuk permintaan ini.</span>
           </div>
           <CustomTextArea v-model="formCm.catatan" label="Catatan" placeholder="Opsional" />
+          <div class="px-3 py-2 text-xs rounded-lg bg-[#FEF0C7] text-[#B54708]">
+            Backend menolak kantong yang ABO/Rh-nya tidak cocok dengan pasien (HTTP 409), terlepas dari hasil mayor/minor di atas.
+          </div>
+          <div v-if="bolehOverride" class="flex flex-col gap-2 p-3 border rounded-lg border-danger-300">
+            <label class="flex items-center gap-2 text-sm font-semibold text-danger-300">
+              <Checkbox v-model="formCm.overrideDarurat" binary inputId="bdrs-cm-override" />
+              Ajukan pengecualian darurat (hanya kantong universal & diaktifkan pengaturan BDRS)
+            </label>
+            <CustomTextArea v-if="formCm.overrideDarurat" v-model="formCm.alasanOverride" label="Alasan pengecualian (minimal 10 karakter)" required />
+          </div>
         </div>
       </template>
       <template #footer>

@@ -122,6 +122,8 @@
       "kode": "dashboard",
       "nama": "Dashboard",
       "kelompok": "Inti",
+      "bidang": "Manajemen & Mutu",
+      "instalasi": "Pelaporan",
       "inti": true,
       "tersedia": true,
       "deskripsi": "Ringkasan kunjungan & pendapatan.",
@@ -137,6 +139,8 @@
       "kode": "pendaftaran",
       "nama": "Pendaftaran Pasien",
       "kelompok": "Inti",
+      "bidang": "Keuangan & Administrasi",
+      "instalasi": "Pendaftaran & Admisi",
       "inti": true,
       "tersedia": true,
       "deskripsi": "Data pasien, No. RM, pendaftaran kunjungan rawat jalan.",
@@ -152,6 +156,8 @@
       "kode": "rawat_jalan",
       "nama": "RME Rawat Jalan",
       "kelompok": "Inti",
+      "bidang": "Pelayanan Medis & Keperawatan",
+      "instalasi": "Instalasi Rawat Jalan",
       "inti": true,
       "tersedia": true,
       "deskripsi": "Pemeriksaan, SOAP, diagnosis ICD-10, tindakan, resep, resume.",
@@ -167,6 +173,8 @@
       "kode": "pembayaran",
       "nama": "Kasir & Pembayaran",
       "kelompok": "Inti",
+      "bidang": "Keuangan & Administrasi",
+      "instalasi": "Kasir & Penjaminan",
       "inti": true,
       "tersedia": true,
       "deskripsi": "Tagihan otomatis dari tindakan, obat, penunjang & kamar; pembayaran.",
@@ -182,6 +190,8 @@
       "kode": "datamaster",
       "nama": "Data Master",
       "kelompok": "Inti",
+      "bidang": "Sistem",
+      "instalasi": "Data Master",
       "inti": true,
       "tersedia": true,
       "deskripsi": "Pegawai, praktisi, lokasi/poli, tarif, penjamin.",
@@ -197,6 +207,8 @@
       "kode": "laporan",
       "nama": "Laporan",
       "kelompok": "Inti",
+      "bidang": "Manajemen & Mutu",
+      "instalasi": "Pelaporan",
       "inti": true,
       "tersedia": true,
       "deskripsi": "Laporan kunjungan, diagnosis, keuangan.",
@@ -212,6 +224,8 @@
       "kode": "satusehat",
       "nama": "SATUSEHAT",
       "kelompok": "Inti",
+      "bidang": "Sistem",
+      "instalasi": "Integrasi & Interoperabilitas",
       "inti": true,
       "tersedia": true,
       "deskripsi": "Integrasi wajib Kemenkes (RME).",
@@ -220,9 +234,24 @@
       "urutan": 7
     },
     {
+      "kode": "audit_trail",
+      "nama": "Audit Trail",
+      "kelompok": "Inti",
+      "bidang": "Manajemen & Mutu",
+      "instalasi": "Audit Trail",
+      "inti": true,
+      "tersedia": true,
+      "deskripsi": "Jejak login, akses rekam medis, dan perubahan data lintas layanan (rantai hash). Selalu aktif; akses lihat/ekspor lewat izin Setting › Audit Trail.",
+      "menu": [],
+      "rute": [],
+      "urutan": 7
+    },
+    {
       "kode": "antrian",
       "nama": "Antrian & Layar Panggil",
       "kelompok": "Layanan",
+      "bidang": "Keuangan & Administrasi",
+      "instalasi": "Pendaftaran & Admisi",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Nomor antrian, panggilan pasien, layar TV kiosk bersuara.",
@@ -239,6 +268,8 @@
       "kode": "farmasi",
       "nama": "Farmasi",
       "kelompok": "Layanan",
+      "bidang": "Penunjang Medis",
+      "instalasi": "Instalasi Farmasi",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Telaah, verifikasi, penyiapan & penyerahan resep; stok depo.",
@@ -254,6 +285,8 @@
       "kode": "inventory",
       "nama": "Gudang & Pengadaan",
       "kelompok": "Layanan",
+      "bidang": "Penunjang Umum",
+      "instalasi": "Logistik & Gudang",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Gudang, pembelian, distribusi ke depo, stok opname.",
@@ -269,6 +302,8 @@
       "kode": "laboratorium",
       "nama": "Laboratorium",
       "kelompok": "Penunjang",
+      "bidang": "Penunjang Medis",
+      "instalasi": "Instalasi Laboratorium",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Order, validasi, hasil, expertise, bridging LIS.",
@@ -286,6 +321,8 @@
       "kode": "fisioterapi",
       "nama": "Fisioterapi / Rehabilitasi Medik",
       "kelompok": "Penunjang",
+      "bidang": "Penunjang Medis",
+      "instalasi": "Instalasi Rehabilitasi Medik",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Order terapi dari RME, penjadwalan & booking sesi, evaluasi terapi, bed/ruang terapi.",
@@ -301,6 +338,8 @@
       "kode": "radiologi",
       "nama": "Radiologi",
       "kelompok": "Penunjang",
+      "bidang": "Penunjang Medis",
+      "instalasi": "Instalasi Radiologi",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Order & hasil radiologi, bridging PACS.",
@@ -316,6 +355,8 @@
       "kode": "rawat_inap",
       "nama": "Rawat Inap",
       "kelompok": "Layanan",
+      "bidang": "Pelayanan Medis & Keperawatan",
+      "instalasi": "Instalasi Rawat Inap",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Bed & kamar, perpindahan bangsal, discharge, biaya kamar otomatis.",
@@ -337,6 +378,8 @@
       "kode": "igd",
       "nama": "IGD",
       "kelompok": "Layanan",
+      "bidang": "Pelayanan Medis & Keperawatan",
+      "instalasi": "Instalasi Gawat Darurat",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Pendaftaran & pelayanan gawat darurat, SPRI ke rawat inap.",
@@ -353,6 +396,8 @@
       "kode": "bpjs_fktp",
       "nama": "BPJS FKTP (PCare)",
       "kelompok": "Penjaminan",
+      "bidang": "Keuangan & Administrasi",
+      "instalasi": "Kasir & Penjaminan",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Pendaftaran & kunjungan PCare, rujukan keluar, kapitasi.",
@@ -364,6 +409,8 @@
       "kode": "bpjs_fkrtl",
       "nama": "BPJS FKRTL (VClaim/SEP)",
       "kelompok": "Penjaminan",
+      "bidang": "Keuangan & Administrasi",
+      "instalasi": "Kasir & Penjaminan",
       "inti": false,
       "tersedia": true,
       "deskripsi": "SEP, rujukan masuk, klaim INA-CBG.",
@@ -378,6 +425,8 @@
       "kode": "program_puskesmas",
       "nama": "Program Puskesmas",
       "kelompok": "Puskesmas",
+      "bidang": "Program Kesehatan Masyarakat",
+      "instalasi": "Program Puskesmas",
       "inti": false,
       "tersedia": true,
       "deskripsi": "KIA/KB, imunisasi, MTBS, UKM, laporan LB1 & dinkes.",
@@ -393,6 +442,8 @@
       "kode": "kamar_operasi",
       "nama": "Kamar Operasi",
       "kelompok": "Rumah Sakit",
+      "bidang": "Pelayanan Medis & Keperawatan",
+      "instalasi": "Instalasi Bedah Sentral",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Order & jadwal operasi, checklist keselamatan bedah WHO, laporan operasi & anestesi.",
@@ -404,6 +455,8 @@
       "kode": "icu",
       "nama": "ICU / Intensif",
       "kelompok": "Rumah Sakit",
+      "bidang": "Pelayanan Medis & Keperawatan",
+      "instalasi": "Instalasi Perawatan Intensif",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Pemantauan intensif & flowsheet.",
@@ -419,6 +472,8 @@
       "kode": "gizi",
       "nama": "Gizi",
       "kelompok": "Rumah Sakit",
+      "bidang": "Penunjang Medis",
+      "instalasi": "Instalasi Gizi",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Skrining & asesmen gizi, order diet, serta distribusi makan pasien rawat inap.",
@@ -434,6 +489,8 @@
       "kode": "koding_rm",
       "nama": "Koding & Rekam Medis",
       "kelompok": "Rumah Sakit",
+      "bidang": "Penunjang Medis",
+      "instalasi": "Instalasi Rekam Medis",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Koding ICD untuk klaim, peminjaman & retensi berkas.",
@@ -449,6 +506,8 @@
       "kode": "cssd",
       "nama": "CSSD",
       "kelompok": "Penunjang",
+      "bidang": "Penunjang Medis",
+      "instalasi": "Instalasi Sterilisasi (CSSD)",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Sterilisasi alat & pelacakan set instrumen: master set, penerimaan, dekontaminasi, load sterilisasi, penyimpanan & distribusi, pemakaian pasien, recall.",
@@ -464,6 +523,8 @@
       "kode": "bank_darah",
       "nama": "Bank Darah RS (BDRS)",
       "kelompok": "Rumah Sakit",
+      "bidang": "Penunjang Medis",
+      "instalasi": "Pelayanan Darah",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi.",
@@ -479,6 +540,8 @@
       "kode": "utd",
       "nama": "UTD / UPTD Produksi Darah",
       "kelompok": "Rumah Sakit",
+      "bidang": "Penunjang Medis",
+      "instalasi": "Pelayanan Darah",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi.",
@@ -490,6 +553,8 @@
       "kode": "akuntansi",
       "nama": "Akuntansi & Remunerasi",
       "kelompok": "Rumah Sakit",
+      "bidang": "Keuangan & Administrasi",
+      "instalasi": "Akuntansi & Remunerasi",
       "inti": false,
       "tersedia": false,
       "deskripsi": "Jurnal, laporan keuangan, jasa pelayanan.",
@@ -501,6 +566,8 @@
       "kode": "training",
       "nama": "Kelas Training",
       "kelompok": "Layanan",
+      "bidang": "Sistem",
+      "instalasi": "Pelatihan",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Kelas olahraga/edukasi berbayar (yoga, pilates, senam hamil): jadwal kelas, kuota slot, booking peserta.",
@@ -516,6 +583,8 @@
       "kode": "mcu",
       "nama": "Medical Check Up (MCU)",
       "kelompok": "Layanan",
+      "bidang": "Pelayanan Medis & Keperawatan",
+      "instalasi": "Medical Check Up",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Paket MCU perorangan & korporasi: pendaftaran rombongan, alur stasiun pemeriksaan, kesimpulan fit/unfit, laporan & tagihan perusahaan.",
@@ -531,6 +600,8 @@
       "kode": "patologi_anatomi",
       "nama": "Patologi Anatomi",
       "kelompok": "Penunjang",
+      "bidang": "Penunjang Medis",
+      "instalasi": "Instalasi Laboratorium",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Histopatologi, sitologi & potong beku: order, penerimaan jaringan, makroskopis, mikroskopis, diagnosis (ICD-O), arsip blok & slide.",
@@ -546,6 +617,8 @@
       "kode": "mikrobiologi",
       "nama": "Mikrobiologi",
       "kelompok": "Penunjang",
+      "bidang": "Penunjang Medis",
+      "instalasi": "Instalasi Laboratorium",
       "inti": false,
       "tersedia": true,
       "deskripsi": "Pewarnaan, kultur, identifikasi kuman & uji kepekaan antibiotik (S/I/R), laporan sementara & antibiogram.",
@@ -556,6 +629,53 @@
         "/mikrobiologi"
       ],
       "urutan": 30
+    },
+    {
+      "kode": "laundry",
+      "nama": "Laundry & Linen",
+      "kelompok": "Penunjang",
+      "bidang": "Penunjang Umum",
+      "instalasi": "Instalasi Laundry",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Siklus linen kotor–bersih: serah terima linen kotor dua petugas, batch cuci bertahap, distribusi linen bersih, stok & par level per ruangan, koreksi, rekonsiliasi, dan laporan beban cucian.",
+      "menu": [
+        "Laundry"
+      ],
+      "rute": [
+        "/laundry"
+      ],
+      "urutan": 32
+    },
+    {
+      "kode": "ambulans",
+      "nama": "Manajemen Ambulans",
+      "kelompok": "Penunjang",
+      "bidang": "Penunjang Umum",
+      "instalasi": "Transportasi & Ambulans",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Permintaan & penugasan ambulans, perjalanan (jarak/BBM/catatan pendamping), armada & kru, tarif, serta penerusan biaya ke tagihan kunjungan/kuitansi umum.",
+      "menu": [
+        "Manajemen Ambulans"
+      ],
+      "rute": [
+        "/ambulans"
+      ],
+      "urutan": 31
+    },
+    {
+      "kode": "sarpras",
+      "nama": "Sarana dan Prasarana (IPSRS)",
+      "kelompok": "Penunjang",
+      "bidang": "Penunjang Umum",
+      "instalasi": "IPSRS",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Register aset medis & nonmedis, laporan kerusakan dan perbaikan (work order), pemeliharaan preventif, serta kalibrasi dan uji fungsi alat untuk Instalasi Pemeliharaan Sarana RS (IPSRS).",
+      "menu": ["Sarana dan Prasarana (IPSRS)"],
+      "rute": ["/sarpras"],
+      "urutan": 33
     }
   ],
   "fitur": [
@@ -831,6 +951,18 @@
       "urutan": 24
     },
     {
+      "kode": "bdrs_bridging",
+      "modul": "bank_darah",
+      "nama": "Bridging Bank Darah (UTD)",
+      "deskripsi": "Kirim permintaan darah ke UTD mitra & terima status, data kantong, serta hasil IMLTD secara otomatis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/bank-darah/mapping-utd"
+      ],
+      "urutan": 25
+    },
+    {
       "kode": "utd_donor",
       "modul": "utd",
       "nama": "Rekrutmen & Seleksi Donor",
@@ -1009,9 +1141,9 @@
       "modul": "inventory",
       "nama": "Pembelian via Marketplace",
       "deskripsi": "Pengadaan barang lewat marketplace mitra (afiliasi).",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/inventory/marketplace"],
       "urutan": 41
     },
     {
@@ -1040,11 +1172,13 @@
       "kode": "antrian_online_bpjs",
       "modul": "antrian",
       "nama": "Antrean Online BPJS (Mobile JKN)",
-      "deskripsi": "Sinkron antrean & task id ke BPJS, ambil antrean dari Mobile JKN.",
-      "tersedia": false,
+      "deskripsi": "Sinkron antrean & task id ke BPJS, ambil antrean dari Mobile JKN. Perlu BPJS FKRTL atau BPJS FKTP aktif.",
+      "tersedia": true,
       "wajib": false,
-      "modul_syarat": "bpjs_fkrtl",
-      "rute": [],
+      "modul_syarat": null,
+      "rute": [
+        "/antrian/monitoring-bpjs"
+      ],
       "urutan": 44
     },
     {
@@ -1052,9 +1186,12 @@
       "modul": "bpjs_fkrtl",
       "nama": "Rencana Kontrol & SPRI",
       "deskripsi": "Pembuatan surat kontrol dan SPRI lewat VClaim.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/admisi/rencana-kontrol",
+        "/admisi/spri"
+      ],
       "urutan": 45
     },
     {
@@ -1131,8 +1268,8 @@
       "kode": "mcu_pcare",
       "modul": "mcu",
       "nama": "MCU PCare (BPJS)",
-      "deskripsi": "Pelaporan MCU peserta BPJS ke PCare.",
-      "tersedia": false,
+      "deskripsi": "Pelaporan hasil MCU peserta JKN ke layanan MCU PCare (tambah/ubah/hapus, status & kirim ulang).",
+      "tersedia": true,
       "wajib": false,
       "rute": [],
       "modul_syarat": "bpjs_fktp",
@@ -1282,6 +1419,206 @@
         "/patologi-anatomi/mapping/lis"
       ],
       "urutan": 55
+    },
+    {
+      "kode": "laundry_stok",
+      "modul": "laundry",
+      "nama": "Stok & Par Level",
+      "deskripsi": "Saldo linen per ruangan dari buku transaksi, par level, saldo awal, dan stok bersih laundry.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/stok"],
+      "urutan": 70
+    },
+    {
+      "kode": "laundry_penerimaan",
+      "modul": "laundry",
+      "nama": "Serah Terima Linen Kotor",
+      "deskripsi": "Serah terima linen kotor per kategori (biasa/infeksius/bernoda berat) dengan konfirmasi petugas laundry dan alasan selisih.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/penerimaan"],
+      "urutan": 71
+    },
+    {
+      "kode": "laundry_batch",
+      "modul": "laundry",
+      "nama": "Pemrosesan Batch",
+      "deskripsi": "Batch cuci per kategori dengan berat kg serta tahapan pencucian, pengeringan, dan setrika/lipat.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/batch"],
+      "urutan": 72
+    },
+    {
+      "kode": "laundry_distribusi",
+      "modul": "laundry",
+      "nama": "Permintaan & Distribusi",
+      "deskripsi": "Permintaan linen bersih dari ruangan, distribusi dari stok bersih laundry, dan konfirmasi penerimaan ruangan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/distribusi"],
+      "urutan": 73
+    },
+    {
+      "kode": "laundry_koreksi",
+      "modul": "laundry",
+      "nama": "Koreksi Stok",
+      "deskripsi": "Pencatatan linen hilang, rusak, dan afkir dengan alasan serta pelaku.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/koreksi"],
+      "urutan": 74
+    },
+    {
+      "kode": "laundry_master",
+      "modul": "laundry",
+      "nama": "Master Jenis Linen",
+      "deskripsi": "Datamaster jenis linen, kode, dan satuan hitung.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/master"],
+      "urutan": 75
+    },
+    {
+      "kode": "laundry_laporan",
+      "modul": "laundry",
+      "nama": "Laporan Laundry",
+      "deskripsi": "Beban cucian kg per ruangan, perputaran, selisih, pemisahan kategori, rekonsiliasi, dan ekspor Excel.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/laporan"],
+      "urutan": 76
+    },
+    {
+      "kode": "ambulans_armada",
+      "modul": "ambulans",
+      "nama": "Master Armada & Servis",
+      "deskripsi": "Data armada (nomor polisi, jenis, kelengkapan, status), jadwal servis & pajak/STNK, serta riwayat servis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/master/armada", "/ambulans/servis"],
+      "urutan": 56
+    },
+    {
+      "kode": "ambulans_kru",
+      "modul": "ambulans",
+      "nama": "Master Kru & Jadwal Jaga",
+      "deskripsi": "Data kru (sopir/perawat pendamping) beserta jadwal jaga.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/master/kru", "/ambulans/master/jadwal"],
+      "urutan": 57
+    },
+    {
+      "kode": "ambulans_permintaan",
+      "modul": "ambulans",
+      "nama": "Permintaan Layanan",
+      "deskripsi": "Pencatatan permintaan ambulans (jemputan gawat darurat, rujukan, pemulangan, jenazah) & pembatalan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/permintaan"],
+      "urutan": 58
+    },
+    {
+      "kode": "ambulans_penugasan",
+      "modul": "ambulans",
+      "nama": "Penugasan Armada & Kru",
+      "deskripsi": "Penetapan armada & kru untuk permintaan, serta pembatalan penugasan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/penugasan"],
+      "urutan": 59
+    },
+    {
+      "kode": "ambulans_perjalanan",
+      "modul": "ambulans",
+      "nama": "Perjalanan",
+      "deskripsi": "Pencatatan tahapan perjalanan, kilometer, BBM, dan catatan pendamping (akses terbatas).",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/perjalanan"],
+      "urutan": 60
+    },
+    {
+      "kode": "ambulans_tarif",
+      "modul": "ambulans",
+      "nama": "Tarif",
+      "deskripsi": "Tarif layanan ambulans per jenis layanan, kilometer, atau zona beserta masa berlaku.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/tarif"],
+      "urutan": 61
+    },
+    {
+      "kode": "ambulans_pembiayaan",
+      "modul": "ambulans",
+      "nama": "Biaya & Kuitansi",
+      "deskripsi": "Perhitungan biaya, penerusan tagihan ke kunjungan pasien, dan kuitansi untuk pengguna umum.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/kuitansi"],
+      "urutan": 62
+    },
+    {
+      "kode": "ambulans_laporan",
+      "modul": "ambulans",
+      "nama": "Laporan Ambulans",
+      "deskripsi": "Jumlah layanan per jenis, waktu respons, jarak & BBM per armada, serta pendapatan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/laporan"],
+      "urutan": 63
+    },
+    {
+      "kode": "sarpras_aset",
+      "modul": "sarpras",
+      "nama": "Register Aset & Laporan Kerusakan",
+      "deskripsi": "Pencatatan aset (medis, nonmedis, gedung/utilitas, kendaraan), label QR, riwayat per aset, serta laporan kerusakan dan perbaikan dari ruangan sampai selesai.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/sarpras/aset", "/sarpras/laporan-kerusakan"],
+      "urutan": 77
+    },
+    {
+      "kode": "sarpras_pemeliharaan",
+      "modul": "sarpras",
+      "nama": "Pemeliharaan Preventif",
+      "deskripsi": "Jadwal pemeliharaan berkala per aset, checklist, pelaksanaan, dan penanda keterlambatan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/sarpras/pemeliharaan"],
+      "urutan": 78
+    },
+    {
+      "kode": "sarpras_kalibrasi",
+      "modul": "sarpras",
+      "nama": "Kalibrasi & Uji Fungsi Alat",
+      "deskripsi": "Jadwal kalibrasi, lembaga penguji, sertifikat, masa berlaku, dan peringatan jatuh tempo alat medis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/sarpras/kalibrasi"],
+      "urutan": 79
+    },
+    {
+      "kode": "sarpras_utilitas",
+      "modul": "sarpras",
+      "nama": "Pencatatan Utilitas",
+      "deskripsi": "Pencatatan meter listrik/air serta genset/oksigen sentral.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/sarpras/utilitas"],
+      "urutan": 80
+    },
+    {
+      "kode": "sarpras_laporan",
+      "modul": "sarpras",
+      "nama": "Laporan Sarpras",
+      "deskripsi": "Daftar dan riwayat aset, kepatuhan pemeliharaan dan kalibrasi, waktu respons perbaikan, serta biaya pemeliharaan.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/sarpras/laporan"],
+      "urutan": 81
     }
   ],
   "bagian": [
@@ -1606,7 +1943,8 @@
         "fisioterapi",
         "rawat_inap",
         "bpjs_fkrtl",
-        "mcu"
+        "mcu",
+        "laundry"
       ],
       "puskesmas": [
         "dashboard",
@@ -1639,7 +1977,8 @@
         "rawat_inap",
         "igd",
         "bpjs_fkrtl",
-        "mcu"
+        "mcu",
+        "laundry"
       ],
       "rs_c": [
         "dashboard",
@@ -1662,7 +2001,8 @@
         "gizi",
         "koding_rm",
         "mcu",
-        "patologi_anatomi"
+        "patologi_anatomi",
+        "laundry"
       ],
       "rs_b": [
         "dashboard",
@@ -1690,7 +2030,8 @@
         "akuntansi",
         "mcu",
         "patologi_anatomi",
-        "mikrobiologi"
+        "mikrobiologi",
+        "laundry"
       ],
       "rs_a": [
         "dashboard",
@@ -1719,7 +2060,8 @@
         "akuntansi",
         "mcu",
         "patologi_anatomi",
-        "mikrobiologi"
+        "mikrobiologi",
+        "laundry"
       ]
     },
     "fitur_mati": {
@@ -1738,19 +2080,27 @@
         "daftar_general_consent",
         "farmasi_retur",
         "inv_pengadaan_po",
-        "inv_retur_supplier"
+        "inv_retur_supplier",
+        "antrian_online_bpjs",
+        "inv_marketplace"
       ],
       "klinik_pratama": [
         "lab_bridging_lis",
         "lab_expertise",
         "farmasi_ruangan",
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "mcu_pcare",
+        "antrian_online_bpjs",
+        "inv_marketplace"
       ],
       "klinik_utama": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol",
+        "inv_marketplace"
       ],
       "puskesmas": [
         "bayar_diskon_voucher",
@@ -1758,27 +2108,43 @@
         "inv_pengadaan_po",
         "inv_retur_supplier",
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "antrian_online_bpjs",
+        "inv_marketplace"
       ],
       "rs_d": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol",
+        "inv_marketplace"
       ],
       "rs_c": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol",
+        "inv_marketplace"
       ],
       "rs_b": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "bdrs_bridging",
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol",
+        "inv_marketplace"
       ],
       "rs_a": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "bdrs_bridging",
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol",
+        "inv_marketplace"
       ]
     },
     "bagian_mati": {

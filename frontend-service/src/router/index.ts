@@ -21,6 +21,7 @@ import FisioterapiView from "@/views/Fisioterapi/FisioterapiView.vue";
 // NOTE Admisi
 import AdmisiPage from "@/views/Admisi/AdmisiPage.vue";
 import SEPAdmisiPage from "@/views/Admisi/SEPAdmisiPage.vue";
+import RencanaKontrolSpriPage from "@/views/Admisi/RencanaKontrolSpriPage.vue";
 import PatientDataPage from "@/views/Admisi/PatientDataPage.vue";
 import RoomMonitoringPage from "@/views/Admisi/RoomMonitoringPage.vue";
 import AdmisiReportPage from "@/views/Admisi/AdmisiReportPage.vue";
@@ -74,6 +75,7 @@ import PrintOutPage from "../views/SettingPage/Template/PrintOut/PrintOutPage.vu
 import ProfilAkunPage from "../views/SettingPage/Template/ProfilAkun/ProfilAkunPage.vue";
 import ProfilAkunView from "@/views/SettingPage/ProfilAkunView.vue";
 import SystemPage from "@/views/SettingPage/Template/System/SystemPage.vue";
+import AuditTrailPage from "@/views/SettingPage/Template/AuditTrail/AuditTrailPage.vue";
 
 // NOTE Page View Datamaster
 import UserPage from "@/views/Datamaster/User/UserPage.vue";
@@ -104,6 +106,7 @@ import KomponenTarifPage from "@/views/Datamaster/KomponenTarif/KomponenTarifPag
 import LayarAntrianPage from "@/views/Antrian/Layar/LayarAntrianPage.vue";
 import DataAntrianPage from "@/views/Antrian/DataAntrian/AntrianPage.vue";
 import ApmPage from "@/views/Antrian/APM/ApmPage.vue";
+import MonitoringAntreanBpjsPage from "@/views/Antrian/MonitoringAntreanBpjsPage.vue";
 import KonfigurasiLayarPage from "@/views/Antrian/Konfigurasi/KonfigurasiLayar/KonfigurasiLayarPage.vue";
 import KonfigurasiJadwalPage from "@/views/Antrian/Konfigurasi/KonfigurasiJadwalDokter/KonfigurasiJadwalPage.vue";
 import DaftarPasienPage from "@/views/Antrian/APM/ApmPasienJKN/DaftarPasienPage.vue";
@@ -266,6 +269,7 @@ import TransfusiBdrsPage from "@/views/BankDarah/TransfusiBdrsPage.vue";
 import KomponenBdrsPage from "@/views/BankDarah/KomponenBdrsPage.vue";
 import PengaturanBdrsPage from "@/views/BankDarah/PengaturanBdrsPage.vue";
 import LaporanBdrsPage from "@/views/BankDarah/LaporanBdrsPage.vue";
+import MappingUtdPage from "@/views/BankDarah/MappingUtdPage.vue"; // Bridging Bank Darah ke UTD (STD-0017, fitur bdrs_bridging)
 
 // NOTE UTD / UPTD Produksi Darah — donor, aftap, uji saring IMLTD, komponen, distribusi & pelaporan (penunjang-service)
 import UtdView from "@/views/Utd/UtdView.vue";
@@ -285,6 +289,36 @@ import MasterDietPage from "@/views/Gizi/MasterDietPage.vue";
 import BentukMakananGiziPage from "@/views/Gizi/BentukMakananPage.vue";
 import StandarPorsiGiziPage from "@/views/Gizi/StandarPorsiPage.vue";
 import LaporanGiziPage from "@/views/Gizi/LaporanGiziPage.vue";
+// NOTE Laundry & Linen (penunjang-service)
+import LaundryView from "@/views/Laundry/LaundryView.vue";
+import StokLaundryPage from "@/views/Laundry/StokPage.vue";
+import MasterLinenLaundryPage from "@/views/Laundry/MasterLinenPage.vue";
+import PenerimaanLaundryPage from "@/views/Laundry/PenerimaanPage.vue";
+import BatchLaundryPage from "@/views/Laundry/BatchPage.vue";
+import DistribusiLaundryPage from "@/views/Laundry/DistribusiPage.vue";
+import KoreksiLaundryPage from "@/views/Laundry/KoreksiPage.vue";
+import LaporanLaundryPage from "@/views/Laundry/LaporanPage.vue";
+
+// NOTE Sarana dan Prasarana (IPSRS) — aset, work order perbaikan, pemeliharaan, kalibrasi, utilitas (STD-0022, penunjang-service)
+import SarprasView from "@/views/Sarpras/SarprasView.vue";
+import AsetSarprasPage from "@/views/Sarpras/AsetPage.vue";
+import LaporanKerusakanSarprasPage from "@/views/Sarpras/LaporanKerusakanPage.vue";
+import PemeliharaanSarprasPage from "@/views/Sarpras/PemeliharaanPage.vue";
+import KalibrasiSarprasPage from "@/views/Sarpras/KalibrasiPage.vue";
+import UtilitasSarprasPage from "@/views/Sarpras/UtilitasPage.vue";
+import PengaturanSarprasPage from "@/views/Sarpras/PengaturanPage.vue";
+import LaporanSarprasPage from "@/views/Sarpras/LaporanPage.vue";
+
+// NOTE Manajemen Ambulans — permintaan & penugasan, perjalanan, armada & kru, tarif, biaya/kuitansi (STD-0024, penunjang-service)
+import AmbulansView from "@/views/Ambulans/AmbulansView.vue";
+import PermintaanAmbulansPage from "@/views/Ambulans/PermintaanPage.vue";
+import PenugasanAmbulansPage from "@/views/Ambulans/PenugasanPage.vue";
+import PerjalananAmbulansPage from "@/views/Ambulans/PerjalananPage.vue";
+import ArmadaAmbulansPage from "@/views/Ambulans/ArmadaPage.vue";
+import KruAmbulansPage from "@/views/Ambulans/KruPage.vue";
+import TarifAmbulansPage from "@/views/Ambulans/TarifPage.vue";
+import KuitansiAmbulansPage from "@/views/Ambulans/KuitansiPage.vue";
+import LaporanAmbulansPage from "@/views/Ambulans/LaporanPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
@@ -305,6 +339,10 @@ import PersediaanPage from "@/views/Inventory/Page/Laporan/PersediaanPage.vue";
 import StokAdjustmentPage from "@/views/Inventory/Page/StokAdjustment/StokAdjustmentPage.vue";
 import StockAndMutationCardsPage from "@/views/Inventory/Page/KartustokMutasi/StockAndMutationCardsPage.vue";
 import StokOpnamePage from "@/views/Inventory/Page/StokOpname/StokOpnamePage.vue";
+// STD-0019 — Pembelian via Marketplace (fitur inv_marketplace, nonaktif bawaan)
+import PencarianPenawaranPage from "@/views/Inventory/Page/Marketplace/PencarianPenawaranPage.vue";
+import PemetaanProdukPage from "@/views/Inventory/Page/Marketplace/PemetaanProdukPage.vue";
+import PermintaanMarketplacePage from "@/views/Inventory/Page/Marketplace/PermintaanMarketplacePage.vue";
 import InventoryView from "@/views/Inventory/InventoryView.vue";
 
 // NOTE Training
@@ -466,7 +504,7 @@ const router = createRouter({
       component: SettingView,
     },
     {
-      path: "/setting/konfigurasi-integrasi",
+      path: "/setting/konfigurasi-integrasi/:bagian?",
       name: "setting-konfigurasi-integrasi",
       meta: {
         layout: SidebarLayout,
@@ -508,6 +546,12 @@ const router = createRouter({
       path: "/setting/system",
       name: "setting-system",
       meta: { layout: SidebarLayout, page: SystemPage, requiresAuth: true },
+      component: SettingView,
+    },
+    {
+      path: "/setting/audit-trail",
+      name: "setting-audit-trail",
+      meta: { layout: SidebarLayout, page: AuditTrailPage, requiresAuth: true },
       component: SettingView,
     },
     // !SECTION
@@ -751,6 +795,19 @@ const router = createRouter({
       },
       component: AdmisiView,
     },
+    // Rencana Kontrol & SPRI via VClaim (fitur vclaim_rencana_kontrol, izin Admisi › Rencana Kontrol & SPRI) — STD-0021
+    {
+      path: "/admisi/rencana-kontrol",
+      name: "admisi-rencana-kontrol",
+      meta: { layout: SidebarLayout, page: RencanaKontrolSpriPage, requiresAuth: true },
+      component: AdmisiView,
+    },
+    {
+      path: "/admisi/spri",
+      name: "admisi-spri",
+      meta: { layout: SidebarLayout, page: RencanaKontrolSpriPage, requiresAuth: true },
+      component: AdmisiView,
+    },
     {
       path: "/admisi/data-pasien",
       name: "admisi-data-pasien",
@@ -904,6 +961,12 @@ const router = createRouter({
       path: "/antrian/apm",
       name: "antrian-apm",
       meta: { layout: SidebarLayout, page: ApmPage, requiresAuth: true },
+      component: AntrianView,
+    },
+    {
+      path: "/antrian/monitoring-bpjs",
+      name: "antrian-monitoring-bpjs",
+      meta: { layout: SidebarLayout, page: MonitoringAntreanBpjsPage, requiresAuth: true },
       component: AntrianView,
     },
     {
@@ -1744,6 +1807,33 @@ const router = createRouter({
     ]),
     // !SECTION
 
+    // SECTION Manajemen Ambulans (STD-0024, penunjang-service)
+    { path: "/ambulans", name: "ambulans", redirect: "/ambulans/permintaan" },
+    ...halamanModul(AmbulansView, [
+      ["/ambulans/permintaan", "ambulans-permintaan", PermintaanAmbulansPage],
+      ["/ambulans/penugasan", "ambulans-penugasan", PenugasanAmbulansPage],
+      ["/ambulans/perjalanan", "ambulans-perjalanan", PerjalananAmbulansPage],
+      ["/ambulans/master/armada", "ambulans-master-armada", ArmadaAmbulansPage],
+      ["/ambulans/master/kru", "ambulans-master-kru", KruAmbulansPage],
+      ["/ambulans/tarif", "ambulans-tarif", TarifAmbulansPage],
+      ["/ambulans/kuitansi", "ambulans-kuitansi", KuitansiAmbulansPage],
+      ["/ambulans/laporan", "ambulans-laporan", LaporanAmbulansPage],
+    ]),
+    // !SECTION
+
+    // SECTION Sarana dan Prasarana (IPSRS) (STD-0022, penunjang-service)
+    { path: "/sarpras", name: "sarpras", redirect: "/sarpras/aset" },
+    ...halamanModul(SarprasView, [
+      ["/sarpras/aset", "sarpras-aset", AsetSarprasPage],
+      ["/sarpras/laporan-kerusakan", "sarpras-laporan-kerusakan", LaporanKerusakanSarprasPage],
+      ["/sarpras/pemeliharaan", "sarpras-pemeliharaan", PemeliharaanSarprasPage],
+      ["/sarpras/kalibrasi", "sarpras-kalibrasi", KalibrasiSarprasPage],
+      ["/sarpras/utilitas", "sarpras-utilitas", UtilitasSarprasPage],
+      ["/sarpras/pengaturan", "sarpras-pengaturan", PengaturanSarprasPage],
+      ["/sarpras/laporan", "sarpras-laporan", LaporanSarprasPage],
+    ]),
+    // !SECTION
+
     // SECTION Program Puskesmas (program-puskesmas-service)
     { path: "/program-puskesmas", name: "program-puskesmas", redirect: "/program-puskesmas/kia" },
     ...halamanModul(ProgramPuskesmasView, [
@@ -1783,6 +1873,19 @@ const router = createRouter({
     ]),
     // !SECTION
 
+    // SECTION Laundry & Linen (penunjang-service)
+    { path: "/laundry", name: "laundry", redirect: "/laundry/stok" },
+    ...halamanModul(LaundryView, [
+      ["/laundry/stok", "laundry-stok", StokLaundryPage],
+      ["/laundry/master", "laundry-master", MasterLinenLaundryPage],
+      ["/laundry/penerimaan", "laundry-penerimaan", PenerimaanLaundryPage],
+      ["/laundry/batch", "laundry-batch", BatchLaundryPage],
+      ["/laundry/distribusi", "laundry-distribusi", DistribusiLaundryPage],
+      ["/laundry/koreksi", "laundry-koreksi", KoreksiLaundryPage],
+      ["/laundry/laporan", "laundry-laporan", LaporanLaundryPage],
+    ]),
+    // !SECTION
+
     // SECTION Bank Darah RS (BDRS)
     { path: "/bank-darah", name: "bank-darah", redirect: "/bank-darah/permintaan" },
     ...halamanModul(BankDarahView, [
@@ -1794,6 +1897,7 @@ const router = createRouter({
       ["/bank-darah/datamaster/komponen", "bank-darah-datamaster-komponen", KomponenBdrsPage],
       ["/bank-darah/pengaturan", "bank-darah-pengaturan", PengaturanBdrsPage],
       ["/bank-darah/laporan", "bank-darah-laporan", LaporanBdrsPage],
+      ["/bank-darah/mapping-utd", "bank-darah-mapping-utd", MappingUtdPage],
     ]),
     // !SECTION
 
@@ -1970,6 +2074,12 @@ const router = createRouter({
       meta: { layout: SidebarLayout, page: PersediaanPage, requiresAuth: true },
       component: InventoryView,
     },
+    // STD-0019 — Pembelian via Marketplace (fitur inv_marketplace, nonaktif bawaan; lihat InventoryView.vue)
+    ...halamanModul(InventoryView, [
+      ["/inventory/marketplace/pencarian", "inventory-marketplace-pencarian", PencarianPenawaranPage],
+      ["/inventory/marketplace/pemetaan", "inventory-marketplace-pemetaan", PemetaanProdukPage],
+      ["/inventory/marketplace/permintaan", "inventory-marketplace-permintaan", PermintaanMarketplacePage],
+    ]),
     // !SECTION
 
     // SECTION Training

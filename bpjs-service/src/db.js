@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import pg from "pg";
 import { MongoClient, ObjectId } from "mongodb";
 import config from "./config.js";
@@ -21,3 +22,13 @@ export const mongo = async () => {
 export const keObjectId = (id) => (ObjectId.isValid(String(id)) && String(id).length === 24 ? new ObjectId(String(id)) : null);
 
 export const sekarang = () => Math.floor(Date.now() / 1000);
+
+export const uuidv7 = () => {
+  const b = crypto.randomBytes(16);
+  const t = BigInt(Date.now());
+  for (let i = 0; i < 6; i++) b[i] = Number((t >> BigInt(8 * (5 - i))) & 255n);
+  b[6] = (b[6] & 0x0f) | 0x70;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = b.toString("hex");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+};

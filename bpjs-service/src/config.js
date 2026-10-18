@@ -25,6 +25,17 @@ export default {
 
   // mock = respons tiruan terenkripsi seperti BPJS (pengujian), tidak menulis kode BPJS ke database
   mode: process.env.BPJS_MODE || "nyata",
+  // Latensi tiruan mode mock (ms) untuk menguji permintaan bersamaan; 0 = tanpa jeda. Tidak berpengaruh di mode nyata.
+  mockTundaMs: angka(process.env.BPJS_MOCK_TUNDA_MS, 0),
+  // STD-0020 — pemetaan field MCU PCare (bpjs-service/src/pcare-peta.js#buatMcu) masih berupa draf yang belum
+  // dikonfirmasi ke spesifikasi resmi PCare (field, satuan, nilai kosong). Di luar mode mock, pengiriman MCU PCare
+  // ditolak (DataBelumLengkap) sampai flag ini diaktifkan secara eksplisit setelah pemetaan dipastikan — lihat
+  // bpjs-service/src/pcare.js#operasiMcu dan Rancangan Teknis STD-0020 §"Keputusan desain".
+  mcuPcareDikonfirmasi: process.env.BPJS_MCU_PCARE_DIKONFIRMASI === "true",
+  // STD-0021 — jalur & payload Rencana Kontrol/SPRI VClaim (bpjs-service/src/vclaim-peta.js) belum diverifikasi ke
+  // katalog resmi VClaim 2.0/sandbox BPJS. Di luar mode mock, operasi Rencana Kontrol/SPRI ditolak SEBELUM koneksi
+  // keluar sampai flag ini diaktifkan eksplisit setelah jalur & payload dipastikan — lihat vclaim.js#pastikanModeSurat.
+  vclaimRenkonDikonfirmasi: process.env.BPJS_VCLAIM_RENKON_DIKONFIRMASI === "true",
   lingkungan,
   pcareUrl: process.env.BPJS_PCARE_URL || PCARE[lingkungan],
   // Katalog PCare: POST/PUT memakai Content-Type text/plain berisi JSON
@@ -36,6 +47,16 @@ export default {
   pekerjaIntervalMenit: angka(process.env.BPJS_INTERVAL_MENIT, 10),
   pekerjaRentangHari: angka(process.env.BPJS_RENTANG_HARI, 3),
   maksPercobaan: angka(process.env.BPJS_MAKS_PERCOBAAN, 5),
+
+  // Antrean Online BPJS (Mobile JKN): layanan antrian-service dipanggil lewat endpoint "mobile" (x-api-key,
+  // tanpa JWT) yang sudah ada untuk membuat pendaftaran & membatalkan booking — lihat antrean-service.js.
+  antrianApiUrl:
+    process.env.BASE_URL_API_ANTRIAN || process.env.BASE_URL_ANTRIAN || process.env.ANTRIAN_SERVICE_URL || "http://localhost:8082/api/v3/antrian",
+  antrianApiKey: process.env.ANTRIAN_KEY_SECRET,
+  antreanPekerjaAktif: process.env.BPJS_ANTREAN_PEKERJA !== "false",
+  antreanPekerjaIntervalMenit: angka(process.env.BPJS_ANTREAN_INTERVAL_MENIT, 2),
+  antreanMaksPercobaan: angka(process.env.BPJS_ANTREAN_MAKS_PERCOBAAN, 5),
+  antreanTokenKedaluwarsaDetik: angka(process.env.BPJS_ANTREAN_TOKEN_TTL, 3600),
 
   pg: {
     host: process.env.DB_HOST || "localhost",

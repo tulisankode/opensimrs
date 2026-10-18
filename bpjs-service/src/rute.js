@@ -4,14 +4,20 @@ import { wajibLogin } from "./auth.js";
 import {
   konfigurasiTersamar, simpanKonfigurasi, ujiKoneksi, referensi, cekPeserta,
   daftarPemetaan, simpanPemetaan, sinkronKunjungan, daftarKunjungan, jalankanPekerja,
+  kandidatKunjunganMcu, operasiMcu, statusMcu,
 } from "./pcare.js";
 import * as vc from "./vclaim.js";
+import fiturAktif, { pesanFiturNonaktif } from "./fitur-aktif.js";
+import { izinSurat, pastikanIzin, MODUL_SURAT, SUBMODUL_SURAT } from "./izin.js";
+import { GalatBpjs } from "./klien-pcare.js";
+import { ruteInternal as ruteAntrean } from "./antrean-route.js";
 
 const rute = express.Router();
 const tangani = (fn) => (req, res) =>
   fn(req, res).catch((error) => {
     const status = Number(error.status) >= 400 && Number(error.status) < 600 ? Number(error.status) : 500;
-    res.status(status).json({ message: error.message });
+    // 409 (bentrok idempotensi/status surat) menyertakan detail milik OpenSIMRS (mis. uuid surat), bukan respons mentah BPJS
+    res.status(status).json(status === 409 && error.detail ? { message: error.message, detail: error.detail } : { message: error.message });
   });
 const kirim = (res, payload, message = "Data berhasil ditampilkan") => res.json({ message, payload });
 
@@ -68,8 +74,36 @@ rute.post(
   })
 );
 
+// MCU PCare (STD-0020) — dipanggil dari penunjang-service (lihat penunjang-service/src/mcu/pcare.js), yang
+// meneruskan token pengguna apa adanya sehingga wajibLogin di atas tetap berlaku sebagai otorisasi layanan.
+rute.get(
+  "/pcare/mcu/kunjungan",
+  tangani(async (req, res) => kirim(res, await kandidatKunjunganMcu(req.author.faskesUuid, req.query.patient_uuid)))
+);
+rute.get("/pcare/mcu/status/:pesertaUuid", tangani(async (req, res) => kirim(res, await statusMcu(req.author.faskesUuid, req.params.pesertaUuid))));
+rute.post(
+  "/pcare/mcu/operasi",
+  tangani(async (req, res) => {
+    // Kontrak penunjang-service → bpjs-service memakai snake_case (penunjang-service/src/mcu/pcare.js); dipetakan
+    // eksplisit ke parameter operasiMcu (camelCase) agar field tidak hilang diam-diam.
+    const b = req.body ?? {};
+    const hasil = await operasiMcu(req.author.faskesUuid, {
+      pesertaUuid: b.peserta_uuid,
+      rawatJalanUuid: b.rawat_jalan_uuid,
+      operasi: b.operasi,
+      payload: b.payload ?? {},
+      alasan: b.alasan,
+      konfirmasi: !!b.konfirmasi,
+      dikirimOleh: req.author.username ?? null,
+    });
+    const berhasil = !["gagal", "tidak_pasti"].includes(hasil.status);
+    res.status(berhasil ? 200 : 422).json({ message: berhasil ? "Laporan MCU PCare diproses" : hasil.pesan, payload: hasil });
+  })
+);
+
 // --- BPJS VClaim (FKRTL / rumah sakit) ---------------------------------------------------------------
 const fk = (req) => req.author.faskesUuid;
+const NAMA_FITUR_SURAT = "Rencana Kontrol & SPRI (VClaim)";
 rute.get("/vclaim/konfigurasi", tangani(async (req, res) => kirim(res, await vc.konfigurasiTersamar(fk(req)))));
 rute.put(
   "/vclaim/konfigurasi",
@@ -92,7 +126,20 @@ rute.get(
     res.json({ message: "Data berhasil ditampilkan", payload: data, pagination });
   })
 );
-rute.post("/vclaim/sep", tangani(async (req, res) => kirim(res, await vc.buatSep(fk(req), req.author.username, req.body ?? {}), "SEP berhasil dibuat")));
+// Surat (Rencana Kontrol/SPRI) dipakai hanya lewat suratUuid: wajib fitur vclaim_rencana_kontrol aktif (fail-closed) dan
+// izin "Admisi › Rencana Kontrol & SPRI › PILIH SURAT SEP". Nomor surat bebas hanya diterima bila fitur tidak aktif.
+rute.post(
+  "/vclaim/sep",
+  tangani(async (req, res) => {
+    const b = req.body ?? {};
+    const fiturSurat = b.suratUuid || b.noSurat ? await fiturAktif("vclaim_rencana_kontrol", req.headers.authorization) : null;
+    if (b.suratUuid) {
+      if (fiturSurat !== true) throw new GalatBpjs(pesanFiturNonaktif(fiturSurat, NAMA_FITUR_SURAT), 403);
+      await pastikanIzin(req, MODUL_SURAT, SUBMODUL_SURAT, "PILIH SURAT SEP");
+    }
+    kirim(res, await vc.buatSep(fk(req), req.author.username, b, { fiturSurat }), "SEP berhasil dibuat");
+  })
+);
 rute.delete("/vclaim/sep/:noSep", tangani(async (req, res) => kirim(res, await vc.hapusSep(fk(req), req.author.username, req.params.noSep), "SEP dihapus")));
 
 rute.get("/vclaim/pemetaan-poli", tangani(async (req, res) => kirim(res, await vc.daftarPemetaanPoli(fk(req)))));
@@ -100,5 +147,87 @@ rute.put(
   "/vclaim/pemetaan-poli",
   tangani(async (req, res) => kirim(res, await vc.simpanPemetaanPoli(fk(req), req.body?.poli ?? []), "Pemetaan poli VClaim disimpan"))
 );
+
+// Rencana Kontrol & SPRI (fitur vclaim_rencana_kontrol, modul bpjs_fkrtl, mati bawaan — STD-0021).
+// Fitur diperiksa fail-closed (setting-service tak terjangkau = 403) dan setiap rute wajib izin
+// "Admisi › Rencana Kontrol & SPRI" sesuai aksinya (auth-service/src/helpers/permission-list.js).
+const wajibFiturRencanaKontrol = async (req, res, next) => {
+  const aktif = await fiturAktif("vclaim_rencana_kontrol", req.headers.authorization);
+  if (aktif !== true) return res.status(403).json({ message: pesanFiturNonaktif(aktif, NAMA_FITUR_SURAT) });
+  next();
+};
+rute.use(["/vclaim/rencana-kontrol", "/vclaim/spri"], wajibFiturRencanaKontrol);
+
+const daftar = (fn) =>
+  tangani(async (req, res) => {
+    const { data, pagination } = await fn(fk(req), req.query);
+    res.json({ message: "Data berhasil ditampilkan", payload: data, pagination });
+  });
+const pesanCekStatus = (hasil) =>
+  hasil.statusOperasi === "terkonfirmasi"
+    ? "Surat ditemukan di VClaim dan diselaraskan"
+    : hasil.status === "dihapus"
+      ? "Surat tidak ada lagi di VClaim; ditandai dihapus"
+      : hasil.statusOperasi === "gagal"
+        ? "Surat tidak ditemukan di VClaim; aman untuk mencoba membuat ulang"
+        : "Beberapa surat cocok di VClaim; pilih nomor surat yang benar";
+
+rute.get("/vclaim/rencana-kontrol", izinSurat("READ"), daftar(vc.daftarRencanaKontrol));
+rute.post(
+  "/vclaim/rencana-kontrol",
+  izinSurat("CREATE RENCANA KONTROL"),
+  tangani(async (req, res) => kirim(res, await vc.buatRencanaKontrol(fk(req), req.author.username, req.body ?? {}), "Rencana Kontrol berhasil dibuat"))
+);
+rute.get("/vclaim/rencana-kontrol/:uuid", izinSurat("READ"), tangani(async (req, res) => kirim(res, await vc.detailRencanaKontrol(fk(req), req.params.uuid))));
+rute.put(
+  "/vclaim/rencana-kontrol/:uuid",
+  izinSurat("UPDATE RENCANA KONTROL"),
+  tangani(async (req, res) =>
+    kirim(res, await vc.ubahRencanaKontrol(fk(req), req.author.username, req.params.uuid, req.body ?? {}), "Rencana Kontrol berhasil diubah")
+  )
+);
+rute.delete(
+  "/vclaim/rencana-kontrol/:uuid",
+  izinSurat("DELETE RENCANA KONTROL"),
+  tangani(async (req, res) => kirim(res, await vc.hapusRencanaKontrol(fk(req), req.author.username, req.params.uuid), "Rencana Kontrol dihapus"))
+);
+rute.post(
+  "/vclaim/rencana-kontrol/:uuid/cek-status",
+  izinSurat(["CREATE RENCANA KONTROL", "UPDATE RENCANA KONTROL"]),
+  tangani(async (req, res) => {
+    const hasil = await vc.cekStatusRencanaKontrol(fk(req), req.author.username, req.params.uuid, req.body ?? {});
+    kirim(res, hasil, pesanCekStatus(hasil));
+  })
+);
+
+rute.get("/vclaim/spri", izinSurat("READ"), daftar(vc.daftarSpri));
+rute.post(
+  "/vclaim/spri",
+  izinSurat("CREATE SPRI"),
+  tangani(async (req, res) => kirim(res, await vc.buatSpri(fk(req), req.author.username, req.body ?? {}), "SPRI berhasil dibuat"))
+);
+rute.get("/vclaim/spri/:uuid", izinSurat("READ"), tangani(async (req, res) => kirim(res, await vc.detailSpri(fk(req), req.params.uuid))));
+rute.put(
+  "/vclaim/spri/:uuid",
+  izinSurat("UPDATE SPRI"),
+  tangani(async (req, res) => kirim(res, await vc.ubahSpri(fk(req), req.author.username, req.params.uuid, req.body ?? {}), "SPRI berhasil diubah"))
+);
+rute.delete(
+  "/vclaim/spri/:uuid",
+  izinSurat("DELETE SPRI"),
+  tangani(async (req, res) => kirim(res, await vc.hapusSpri(fk(req), req.author.username, req.params.uuid), "SPRI dihapus"))
+);
+rute.post(
+  "/vclaim/spri/:uuid/cek-status",
+  izinSurat(["CREATE SPRI", "UPDATE SPRI"]),
+  tangani(async (req, res) => {
+    const hasil = await vc.cekStatusSpri(fk(req), req.author.username, req.params.uuid, req.body ?? {});
+    kirim(res, hasil, pesanCekStatus(hasil));
+  })
+);
+
+// --- Antrean Online BPJS (Mobile JKN): konfigurasi & monitoring (izin "Antrian > Antrean Online BPJS") ----------
+// Rute WS Antrean yang dipanggil BPJS (token WS, bukan JWT) dipasang terpisah di server.js: lihat antrean-route.js.
+rute.use("/antrean", ruteAntrean);
 
 export default rute;

@@ -74,12 +74,13 @@ const any = (
 
 export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/setting/profil-faskes", permission: read("Setting", "Profile Faskes") },
-  { path: "/setting/konfigurasi-integrasi", permission: read("Setting", "Konfigurasi Integrasi") },
+  { path: "/setting/konfigurasi-integrasi", mode: "prefix", permission: read("Setting", "Konfigurasi Integrasi") },
   { path: "/setting/permission-menu", permission: read("Setting", "Profile Faskes") },
   { path: "/setting/print-out", permission: read("Setting", "Print Out") },
   { path: "/setting/profil-akun", permission: read("Setting", "Profile Saya") },
   { path: "/setting/manajemen-modul", permission: read("Setting", "System") },
   { path: "/setting/system", permission: read("Setting", "System") },
+  { path: "/setting/audit-trail", permission: read("Setting", "Audit Trail", null, "LIHAT") },
 
   { path: "/datamaster/user", permission: read("Datamaster", "User") },
   { path: "/datamaster/role", permission: read("Datamaster", "Role") },
@@ -109,6 +110,8 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/admisi/rawat-inap", permission: read("Admisi", "Admisi RI") },
   { path: "/admisi/igd", permission: any("Admisi", "Admisi IGD", ["READ", "CREATE PASIEN IGD", "UPDATE ADMISI IGD"]) },
   { path: "/admisi/sep", mode: "prefix", permission: read("Admisi", "SEP") },
+  { path: "/admisi/rencana-kontrol", permission: read("Admisi", "Rencana Kontrol & SPRI") },
+  { path: "/admisi/spri", permission: read("Admisi", "Rencana Kontrol & SPRI") },
   { path: "/admisi/data-pasien", permission: read("Admisi", "Data Pasien") },
   { path: "/admisi/monitoring-kamar", permission: read("Admisi", "Monitoring Kamar") },
   { path: "/admisi/laporan/kunjungan", permission: read("Admisi", "Laporan Admisi", "Kunjungan") },
@@ -123,6 +126,7 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/antrian/data-antrian", permission: read("Antrian", "Data Antrian") },
   { path: "/antrian/layar", permission: read("Antrian", "Layar") },
   { path: "/antrian/apm", mode: "prefix", permission: any("Antrian", "Apm", ["READ", "CHECKIN", "PRINT", "CREATE PASIEN JKN", "CREATE PASIEN NON-JKN"]) },
+  { path: "/antrian/monitoring-bpjs", permission: read("Antrian", "Antrean Online BPJS") },
 
   { path: "/rawat-jalan/poli", permission: read("Rawat Jalan", "Poli") },
   { path: "/rawat-jalan/bpjs/monitoring-kunjungan", featureStatus: "stub", permission: read("Rawat Jalan", "BPJS-PCARE", "Monitoring Kunjungan") },
@@ -291,6 +295,27 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/cssd/laporan", permission: read("CSSD", "Laporan CSSD") },
   { path: "/cssd", mode: "prefix", permission: read("CSSD", null, null, null) },
 
+  // Laundry & Linen (penunjang-service). Halaman distribusi memuat tab Permintaan (petugas ruangan) & Distribusi
+  // (petugas laundry), jadi cukup izin modul; tiap tab/aksi diperiksa di halaman dan backend.
+  { path: "/laundry/stok", permission: read("Laundry", "Stok & Par Level") },
+  { path: "/laundry/penerimaan", permission: read("Laundry", "Penerimaan") },
+  { path: "/laundry/batch", permission: read("Laundry", "Batch") },
+  { path: "/laundry/distribusi", permission: read("Laundry", null, null, null) },
+  { path: "/laundry/koreksi", permission: any("Laundry", "Koreksi Stok", ["READ", "CREATE"]) },
+  { path: "/laundry/master", permission: read("Laundry", "Datamaster", "Jenis Linen") },
+  { path: "/laundry/laporan", permission: read("Laundry", "Laporan Laundry") },
+  { path: "/laundry", mode: "prefix", permission: read("Laundry", null, null, null) },
+
+  // Sarana dan Prasarana (IPSRS) — penunjang-service (STD-0022)
+  { path: "/sarpras/aset", permission: read("Sarana dan Prasarana (IPSRS)", "Aset") },
+  { path: "/sarpras/laporan-kerusakan", permission: read("Sarana dan Prasarana (IPSRS)", "Laporan Kerusakan") },
+  { path: "/sarpras/pemeliharaan", permission: read("Sarana dan Prasarana (IPSRS)", "Pemeliharaan") },
+  { path: "/sarpras/kalibrasi", permission: read("Sarana dan Prasarana (IPSRS)", "Kalibrasi") },
+  { path: "/sarpras/utilitas", permission: read("Sarana dan Prasarana (IPSRS)", "Utilitas") },
+  { path: "/sarpras/pengaturan", permission: read("Sarana dan Prasarana (IPSRS)", "Pengaturan") },
+  { path: "/sarpras/laporan", permission: read("Sarana dan Prasarana (IPSRS)", "Laporan Sarpras") },
+  { path: "/sarpras", mode: "prefix", permission: read("Sarana dan Prasarana (IPSRS)", null, null, null) },
+
   // Bank Darah RS (BDRS) — penunjang-service
   { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },
   { path: "/bank-darah/crossmatch", permission: read("Bank Darah RS (BDRS)", "Uji Silang Serasi") },
@@ -327,6 +352,8 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/inventory/stok-adjustment", permission: read("Inventory", "Stok Adjustment") },
   { path: "/inventory/laporan/obat-expired", permission: read("Inventory", "Laporan Inventory", "Obat Expired") },
   { path: "/inventory/laporan/persediaan", permission: read("Inventory", "Laporan Inventory", "Persediaan") },
+  // STD-0019 — Pembelian via Marketplace (fitur inv_marketplace, nonaktif bawaan)
+  { path: "/inventory/marketplace", mode: "prefix", permission: read("Inventory", "Pembelian Marketplace") },
 
   { path: "/laporan/jumlah-kunjungan", permission: read("Laporan", "Jumlah Kunjungan Berdasarkan Status Rawat") },
   { path: "/laporan/rekapitulasi-tindakan", permission: read("Laporan", "Rekapitulasi Tindakan") },

@@ -20,6 +20,10 @@ export const antrianPermission = {
       name: "Apm",
       allows: ["CREATE PASIEN JKN", "CREATE PASIEN NON-JKN", "CHECKIN", "PRINT"],
     },
+    {
+      name: "Antrean Online BPJS",
+      allows: ["READ", "KONFIGURASI", "KIRIM ULANG"],
+    },
   ],
 };
 
@@ -66,6 +70,11 @@ export const admisiPermission = {
     {
       name: "SEP",
       allows: ["READ", "CREATE SEP", "CREATE SEP MANUAL", "DELETE", "SIMPAN SEP MANUAL", "DELETE PASIEN"],
+    },
+    {
+      // Rencana Kontrol & SPRI via VClaim (fitur vclaim_rencana_kontrol, modul bpjs_fkrtl) — STD-0021
+      name: "Rencana Kontrol & SPRI",
+      allows: ["READ", "CREATE RENCANA KONTROL", "UPDATE RENCANA KONTROL", "DELETE RENCANA KONTROL", "CREATE SPRI", "UPDATE SPRI", "DELETE SPRI", "PILIH SURAT SEP"],
     },
     {
       name: "Data Pasien",
@@ -854,6 +863,9 @@ export const mcuPermission = {
     },
     { name: "Tagihan Korporasi", allows: ["READ", "CREATE", "UPDATE", "PEMBAYARAN", "CETAK"] },
     { name: "Laporan MCU", allows: ["READ", "CETAK LAPORAN"] },
+    // Pelaporan hasil MCU ke BPJS PCare (STD-0020): KIRIM mencakup kirim pertama & kirim ulang; UBAH/HAPUS
+    // dipisah karena mengubah/menghapus laporan yang sudah terkirim di PCare berisiko lebih tinggi.
+    { name: "MCU PCare", allows: ["READ", "KIRIM", "UBAH", "HAPUS"] },
   ],
 };
 
@@ -971,6 +983,22 @@ export const giziPermission = {
   ],
 };
 
+// Laundry & Linen (STD-0023, penunjang-service). Konfirmasi serah terima & distribusi dipisah dari CREATE (dua
+// petugas berbeda — KF-5/KF-10); "Permintaan Linen" untuk petugas ruangan.
+export const laundryPermission = {
+  module: "Laundry",
+  subModules: [
+    { name: "Stok & Par Level", allows: ["READ", "UPDATE"] },
+    { name: "Penerimaan", allows: ["READ", "CREATE", "KONFIRMASI"] },
+    { name: "Batch", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Permintaan Linen", allows: ["READ", "CREATE", "BATAL"] },
+    { name: "Distribusi", allows: ["READ", "CREATE", "KONFIRMASI"] },
+    { name: "Koreksi Stok", allows: ["READ", "CREATE"] },
+    { name: "Datamaster", features: [{ name: "Jenis Linen", allows: ["READ", "CREATE", "UPDATE", "DELETE"] }] },
+    { name: "Laporan Laundry", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
 // UTD / UPTD Produksi Darah (penunjang-service). "Lihat Hasil Reaktif" dipisah dari IMLTD READ (KF-18): hasil reaktif
 // & identitas donor terkait hanya tampil bagi peran yang diberi izin ini secara eksplisit.
 export const utdPermission = {
@@ -997,7 +1025,7 @@ export const bankDarahPermission = {
   module: "Bank Darah RS (BDRS)",
   subModules: [
     { name: "Permintaan Darah", allows: ["READ", "CREATE", "UPDATE", "LENGKAPI", "BATAL"] },
-    { name: "Uji Silang Serasi", allows: ["READ", "CATAT PEMERIKSAAN", "CATAT CROSSMATCH"] },
+    { name: "Uji Silang Serasi", allows: ["READ", "CATAT PEMERIKSAAN", "CATAT CROSSMATCH", "OVERRIDE DARURAT"] },
     { name: "Stok & Penerimaan", allows: ["READ", "TERIMA KANTONG", "MUSNAHKAN", "KEMBALIKAN"] },
     { name: "Serah Terima", allows: ["READ", "KONFIRMASI PENYERAH", "KONFIRMASI PENERIMA"] },
     { name: "Pemantauan Transfusi", allows: ["READ", "CATAT TRANSFUSI", "LAPOR REAKSI"] },
@@ -1024,6 +1052,39 @@ export const cssdPermission = {
     { name: "Pemakaian Pasien", allows: ["READ", "CREATE"] },
     { name: "Recall", allows: ["READ", "TINDAK LANJUT"] },
     { name: "Laporan CSSD", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
+// Manajemen Ambulans (STD-0024, penunjang-service). "Catatan Pendamping" dipisah dari izin Perjalanan & Laporan:
+// catatan pendamping adalah catatan perjalanan beraksesibilitas terbatas (KF-10), tidak tampil di laporan umum.
+export const ambulansPermission = {
+  module: "Manajemen Ambulans",
+  subModules: [
+    { name: "Permintaan", allows: ["READ", "CREATE", "BATAL"] },
+    { name: "Penugasan", allows: ["READ", "CREATE", "BATAL"] },
+    { name: "Perjalanan", allows: ["READ", "CATAT TAHAP", "SELESAIKAN"] },
+    { name: "Catatan Pendamping", allows: ["READ"] },
+    { name: "Armada", allows: ["READ", "CREATE", "UPDATE", "UBAH STATUS"] },
+    { name: "Servis Armada", allows: ["READ", "CREATE"] },
+    { name: "Kru & Jadwal Jaga", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "Tarif", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Biaya & Kuitansi", allows: ["READ", "TERUSKAN"] },
+    { name: "Laporan Ambulans", allows: ["READ", "EKSPOR"] },
+  ],
+};
+
+export const sarprasPermission = {
+  module: "Sarana dan Prasarana (IPSRS)",
+  subModules: [
+    { name: "Aset", allows: ["READ", "CREATE", "UPDATE", "PINDAH LOKASI", "UBAH STATUS", "CETAK QR"] },
+    { name: "Laporan Kerusakan", allows: ["READ", "CREATE", "TUGASKAN", "UPDATE STATUS", "TUTUP"] },
+    { name: "Suku Cadang", allows: ["READ", "CATAT PEMAKAIAN"] },
+    { name: "Pemeliharaan", allows: ["READ", "CREATE JADWAL", "UPDATE JADWAL", "NONAKTIFKAN JADWAL", "CATAT PELAKSANAAN"] },
+    { name: "Kalibrasi", allows: ["READ", "CREATE", "UPDATE JADWAL", "UNGGAH SERTIFIKAT"] },
+    { name: "Berkas", allows: ["READ"] },
+    { name: "Utilitas", allows: ["READ", "CREATE"] },
+    { name: "Laporan Sarpras", allows: ["READ", "EKSPOR"] },
+    { name: "Pengaturan", allows: ["READ", "UPDATE"] },
   ],
 };
 
@@ -1240,6 +1301,21 @@ export const inventoryPermission = {
         },
       ],
     },
+    {
+      // STD-0019 — Pembelian BMHP via marketplace mitra. Fitur katalog "inv_marketplace" (mati bawaan).
+      name: "Pembelian Marketplace",
+      allows: [
+        "READ",
+        "KONFIGURASI KONEKSI",
+        "CARI PENAWARAN",
+        "KELOLA PEMETAAN",
+        "AJUKAN PERMINTAAN",
+        "PERSETUJUAN",
+        "CHECKOUT",
+        "SINKRON STATUS",
+        "LIHAT LAPORAN",
+      ],
+    },
   ],
 };
 
@@ -1407,6 +1483,12 @@ export const settingPermission = {
       name: "Profile Saya",
       allows: ["READ", "UPDATE FOTO PROFILE DAN NAMA LENGKAP", "UPDATE USERNAME DAN PASSWORD"],
     },
+    // Audit Trail terpusat (STD-0029): tidak diberikan otomatis ke peran faskes mana pun — hanya superadmin lewat
+    // migrasi database/migrations/20261018000001-izin_audit_trail_setting.cjs. Admin faskes lain diberi manual.
+    {
+      name: "Audit Trail",
+      allows: ["LIHAT", "EKSPOR"],
+    },
   ],
 };
 
@@ -1470,9 +1552,12 @@ export function mapPermission(permissionList) {
     "koding rekam medis": kodingRmPermission,
     "kamar operasi": kamarOperasiPermission,
     gizi: giziPermission,
+    laundry: laundryPermission,
     utd: utdPermission,
     "bank darah rs (bdrs)": bankDarahPermission,
     cssd: cssdPermission,
+    "manajemen ambulans": ambulansPermission,
+    "sarana dan prasarana (ipsrs)": sarprasPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,
     stok: stokPermission,

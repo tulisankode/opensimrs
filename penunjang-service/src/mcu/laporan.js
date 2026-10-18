@@ -48,7 +48,15 @@ rute.get(
       LEFT JOIN mcu_perusahaan pr ON pr.uuid = s.perusahaan_uuid
       LEFT JOIN mcu_paket pk ON pk.uuid = s.paket_uuid`;
 
-    const [ringkasan, perPerusahaan, perPaket, perTanggal, perJenis] = await Promise.all([
+    // Status pengiriman MCU PCare (STD-0020), hanya peserta berpenjamin BPJS sesuai filter rekap saat ini (KT-17).
+    const pcarePromise = query(
+      `SELECT COALESCE(pc.status, 'belum') AS status, COUNT(*)::int AS jumlah
+         FROM mcu_peserta s LEFT JOIN mcu_pcare_kirim pc ON pc.faskes_uuid = s.faskes_uuid AND pc.peserta_uuid = s.uuid AND pc.deleted_at IS NULL
+        WHERE ${w} AND EXISTS (SELECT 1 FROM penjamin pj WHERE pj.uuid = s.penjamin_uuid AND pj.name ILIKE 'BPJS%')
+        GROUP BY 1 ORDER BY 1`,
+      p,
+    );
+    const [ringkasan, perPerusahaan, perPaket, perTanggal, perJenis, pcare] = await Promise.all([
       satu(`SELECT ${AGREGAT} FROM ${DARI} WHERE ${w}`, p),
       query(
         `SELECT COALESCE(pr.nama, 'Perorangan') AS nama, s.perusahaan_uuid AS uuid, ${AGREGAT}
@@ -62,6 +70,7 @@ rute.get(
       ),
       query(`SELECT s.tanggal::text AS tanggal, ${AGREGAT} FROM ${DARI} WHERE ${w} GROUP BY s.tanggal ORDER BY s.tanggal`, p),
       query(`SELECT s.jenis_mcu, COUNT(*) FILTER (WHERE s.status <> 'batal')::int AS peserta FROM ${DARI} WHERE ${w} GROUP BY s.jenis_mcu ORDER BY 2 DESC`, p),
+      pcarePromise,
     ]);
 
     // Temuan terbanyak: kategori IMT dari stasiun tanda vital (indikator kesehatan kerja yang umum dilaporkan).
@@ -94,6 +103,7 @@ rute.get(
       per_tanggal: perTanggal,
       per_jenis_mcu: perJenis,
       kategori_imt: imt,
+      pcare,
     });
   }),
 );

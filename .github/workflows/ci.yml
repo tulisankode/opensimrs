@@ -50,9 +50,11 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm test
-      - name: Uji unit (setting-service, penyaring Helpdesk)
+      - name: Uji unit (setting-service, penyaring Helpdesk & katalog modul)
         working-directory: setting-service
-        run: node --test test/*.test.mjs
+        run: |
+          npm install --no-audit --no-fund
+          npm test
       - name: Uji unit (penunjang-service, CSSD)
         working-directory: penunjang-service
         run: |

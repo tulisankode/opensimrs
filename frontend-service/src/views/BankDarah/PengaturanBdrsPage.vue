@@ -3,22 +3,31 @@ import { onMounted, ref } from "vue";
 import PageToolbar from "@/components/Base/PageToolbar.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import CustomInputNumber from "@/components/Base/CustomInputNumber.vue";
+import CustomSwitch from "@/components/Base/CustomSwitch.vue";
 import { utilsStore } from "@/stores/utils";
 import { ambilPengaturanBdrs, izinBdrs, rupiahBdrs, simpanPengaturanBdrs } from "@/stores/penunjang/bankDarah";
 
-// Pengaturan BDRS per faskes: ambang peringatan kedaluwarsa kantong (hari) dan tarif pengolahan darah & uji silang
-// serasi per kantong yang dikirim ke tagihan kunjungan saat serah terima selesai (tarif 0 = tidak ditagihkan).
+// Pengaturan BDRS per faskes: ambang peringatan kedaluwarsa kantong (hari), tarif pengolahan darah & uji silang
+// serasi per kantong yang dikirim ke tagihan kunjungan saat serah terima selesai (tarif 0 = tidak ditagihkan), serta
+// sakelar pengecualian darurat ABO/Rh (STD-0016/KF-7) — bawaan nonaktif, hanya untuk kantong universal yang disahkan.
 const storeUtils = utilsStore();
 const bolehUbah = izinBdrs("Pengaturan", "UPDATE");
 
-const form = ref({ ambangKedaluwarsaHari: 3, tarifPengolahan: 0, tarifCrossmatch: 0 });
+const form = ref({ ambangKedaluwarsaHari: 3, tarifPengolahan: 0, tarifCrossmatch: 0, overrideDaruratAktif: false, overrideOPosAktif: false });
 const galat = ref("");
 
 const muat = async () => {
   storeUtils.setLoading(true);
   try {
     const p = (await ambilPengaturanBdrs())?.payload;
-    if (p) form.value = { ambangKedaluwarsaHari: Number(p.ambangKedaluwarsaHari) || 3, tarifPengolahan: Number(p.tarifPengolahan) || 0, tarifCrossmatch: Number(p.tarifCrossmatch) || 0 };
+    if (p)
+      form.value = {
+        ambangKedaluwarsaHari: Number(p.ambangKedaluwarsaHari) || 3,
+        tarifPengolahan: Number(p.tarifPengolahan) || 0,
+        tarifCrossmatch: Number(p.tarifCrossmatch) || 0,
+        overrideDaruratAktif: !!p.overrideDaruratAktif,
+        overrideOPosAktif: !!p.overrideOPosAktif,
+      };
   } finally {
     storeUtils.setLoading(false);
   }
@@ -65,6 +74,21 @@ const simpan = async () => {
             <div class="text-xs text-grey-400">
               Contoh: 2 kantong diserahkan → {{ rupiahBdrs(2 * (form.tarifPengolahan + form.tarifCrossmatch)) }}. Tarif 0 berarti komponen biaya tersebut tidak ditagihkan.
             </div>
+          </section>
+          <section class="flex flex-col gap-3">
+            <h3 class="text-sm font-semibold">Pengecualian Darurat ABO/Rh</h3>
+            <div class="text-xs text-grey-400">
+              Bawaan nonaktif. Hanya berlaku untuk kantong universal (PRC O Rh negatif / plasma AB), memerlukan izin khusus
+              <b>Uji Silang Serasi › OVERRIDE DARURAT</b>, dan alasan minimal 10 karakter. Wajib disahkan penanggung jawab klinis sebelum diaktifkan di produksi.
+            </div>
+            <CustomSwitch v-model="form.overrideDaruratAktif" label="Izinkan pengecualian darurat" sideLabel="Nonaktif" sideLabelTrue="Aktif" :disabled="!bolehUbah" />
+            <CustomSwitch
+              v-model="form.overrideOPosAktif"
+              label="Izinkan PRC O Rh positif sebagai kantong universal (laki-laki / perempuan >50 tahun)"
+              sideLabel="Nonaktif"
+              sideLabelTrue="Aktif"
+              :disabled="!bolehUbah || !form.overrideDaruratAktif"
+            />
           </section>
           <div v-if="galat" class="text-sm text-danger-300">{{ galat }}</div>
           <div v-if="bolehUbah">

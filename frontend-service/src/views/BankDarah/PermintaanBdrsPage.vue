@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useToast } from "primevue/usetoast";
+import { fiturAktif } from "@/stores/modulFaskes";
 import PageToolbar from "@/components/Base/PageToolbar.vue";
 import ToolbarFilterMenu from "@/components/Base/ToolbarFilterMenu.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
@@ -21,20 +23,26 @@ import {
   SKRINING_ANTIBODI,
   STATUS_PERMINTAAN_BDRS,
   SUMBER_KUNJUNGAN_BDRS,
+  ambilStatusUtdPermintaan,
   buatPermintaanBdrs,
   cariPasienBdrs,
+  daftarDokterBdrs,
+  daftarKantongUtdPermintaan,
   daftarKomponenBdrs,
   daftarLokasiBdrs,
   daftarPermintaanBdrs,
   detailPermintaanBdrs,
   gayaPermintaanBdrs,
   gayaSerahTerimaBdrs,
+  gayaValidasiKantongUtd,
   golonganRh,
   izinBdrs,
   keTanggal,
+  kirimPermintaanKeUtd,
   lengkapiPermintaanBdrs,
   opsi,
   permintaanKunjunganBdrs,
+  terimaKantongUtd,
   ubahStatusPermintaanBdrs,
   umurBdrs,
   waktuBdrs,
@@ -44,6 +52,7 @@ import {
 // kunjungan pasien (No. Reg), serta tindakan proses/kembalikan/tolak/batalkan/lengkapi sesuai status & izin.
 // Alur: baru → diproses → (perlu_dilengkapi → diproses) → dipenuhi_sebagian/diserahkan, atau dibatalkan/ditolak.
 const storeUtils = utilsStore();
+const toast = useToast();
 const boleh = (aksi: string) => izinBdrs("Permintaan Darah", aksi);
 
 // ── Daftar & filter
@@ -100,15 +109,21 @@ const gantiHalaman = (e: { page: number; rows: number }) => {
 // ── Referensi form
 const komponen = ref<any[]>([]);
 const lokasi = ref<any[]>([]);
+const dokter = ref<any[]>([]);
 const muatReferensi = async () => {
   if (!komponen.value.length) komponen.value = (await daftarKomponenBdrs({ status: "aktif", limit: 200 }))?.payload?.data ?? [];
   if (!lokasi.value.length) lokasi.value = (await daftarLokasiBdrs({ pelayanan: "rajal,ranap,igd" }))?.payload ?? [];
+  if (!dokter.value.length) dokter.value = (await daftarDokterBdrs())?.payload ?? [];
 };
 const opsiKomponen = computed(() => komponen.value.map((k: any) => ({ value: k.uuid, label: `${k.kode} — ${k.nama}` })));
 
 // ── Detail
 const detail = ref<any>(null);
 const dialogDetail = ref(false);
+const kantongUtd = ref<any[]>([]);
+const muatKantongUtd = async () => {
+  kantongUtd.value = detail.value && fiturAktif("bdrs_bridging") ? ((await daftarKantongUtdPermintaan(detail.value.uuid))?.payload ?? []) : [];
+};
 const bukaDetail = async (uuid: string) => {
   storeUtils.setLoading(true);
   try {
@@ -116,12 +131,50 @@ const bukaDetail = async (uuid: string) => {
     if (res?.payload) {
       detail.value = res.payload;
       dialogDetail.value = true;
+      await muatKantongUtd();
     }
   } finally {
     storeUtils.setLoading(false);
   }
 };
 const AKTIF = ["baru", "diproses", "perlu_dilengkapi", "dipenuhi_sebagian"];
+// ── Bridging UTD (STD-0017): kirim permintaan ke UTD mitra, ambil status/kantong, & teruskan kantong valid ke stok.
+const memprosesUtd = ref(false);
+const bisaKirimUtd = computed(() => fiturAktif("bdrs_bridging") && AKTIF.includes(detail.value?.status) && boleh("UPDATE"));
+// Ambil Status menulis hasil & kantong UTD → izin UPDATE (sama dengan backend).
+const bisaAmbilStatusUtd = computed(() => fiturAktif("bdrs_bridging") && boleh("UPDATE") && AKTIF.includes(detail.value?.status));
+const kirimKeUtd = async () => {
+  memprosesUtd.value = true;
+  try {
+    const res = await kirimPermintaanKeUtd(detail.value.uuid);
+    // Galat (termasuk penolakan UTD → 502 dan >1 koneksi tanpa bawaan → 409) sudah ditampilkan apiHandler; res undefined.
+    if (res?.payload) toast.add({ severity: res.payload.status === "terkirim" ? "success" : "warn", summary: res.message ?? "Dikirim ke UTD", life: 6000 });
+    await muatKantongUtd();
+  } finally {
+    memprosesUtd.value = false;
+  }
+};
+const ambilStatusUtd = async () => {
+  memprosesUtd.value = true;
+  try {
+    await ambilStatusUtdPermintaan(detail.value.uuid);
+    await muatKantongUtd();
+    toast.add({ severity: "info", summary: "Status UTD diperbarui", life: 3000 });
+  } finally {
+    memprosesUtd.value = false;
+  }
+};
+const terimaKantong = async (k: any) => {
+  memprosesUtd.value = true;
+  try {
+    const res = await terimaKantongUtd(k.uuid);
+    if (res?.payload) toast.add({ severity: "success", summary: `Kantong ${k.noKantong} diterima ke stok`, life: 4000 });
+    await muatKantongUtd();
+    muat();
+  } finally {
+    memprosesUtd.value = false;
+  }
+};
 const bisaProses = computed(() => detail.value?.status === "baru" && boleh("UPDATE"));
 const bisaKembalikanTolak = computed(() => ["baru", "diproses"].includes(detail.value?.status) && boleh("UPDATE"));
 // Pembuat permintaan boleh membatalkan tanpa izin BATAL (diperiksa backend); tombol ditampilkan bagi pengaju & pemilik izin BATAL.
@@ -154,10 +207,10 @@ const bukaAlasan = (aksi: "kembalikan" | "tolak" | "batalkan") => {
   dialogAlasan.value = true;
 };
 const simpanAlasan = async () => {
-  if (aksiAlasan.value !== "batalkan" && !alasan.value.trim()) return (galatAlasan.value = "Alasan wajib diisi");
+  if (!alasan.value.trim()) return (galatAlasan.value = "Alasan wajib diisi");
   storeUtils.setLoading(true);
   try {
-    const res = await ubahStatusPermintaanBdrs(detail.value.uuid, aksiAlasan.value, alasan.value.trim() || undefined);
+    const res = await ubahStatusPermintaanBdrs(detail.value.uuid, aksiAlasan.value, alasan.value.trim());
     if (res?.payload) {
       dialogAlasan.value = false;
       detail.value = res.payload;
@@ -175,7 +228,7 @@ const kataPasien = ref("");
 const hasilPasien = ref<any[]>([]);
 const pasien = ref<any>(null);
 const riwayatPasien = ref<any[]>([]);
-const kosong = () => ({ noReg: "", lokasiAsalUuid: "", komponenUuid: "", golonganDiminta: "", rhesusDiminta: "", jumlahDiminta: 1, indikasi: "", cito: false });
+const kosong = () => ({ noReg: "", lokasiAsalUuid: "", komponenUuid: "", golonganDiminta: "", rhesusDiminta: "", jumlahDiminta: 1, indikasi: "", cito: false, dokterPemintaUuid: "" });
 const form = ref<any>(kosong());
 const galatForm = ref("");
 // No. Reg dari riwayat permintaan pasien terpilih (bantuan isian; kunjungan aktif tetap diperiksa backend).
@@ -221,6 +274,7 @@ const simpanForm = async () => {
   const f = form.value;
   galatForm.value = "";
   if (!modeLengkapi.value && !f.noReg.trim()) return (galatForm.value = "No. Registrasi kunjungan wajib diisi");
+  if (!modeLengkapi.value && !f.dokterPemintaUuid) return (galatForm.value = "Dokter peminta wajib dipilih");
   if (!f.komponenUuid) return (galatForm.value = "Komponen darah wajib dipilih");
   if (!f.golonganDiminta || !f.rhesusDiminta) return (galatForm.value = "Golongan darah & rhesus yang diminta wajib dipilih");
   if (!Number.isInteger(Number(f.jumlahDiminta)) || f.jumlahDiminta < 1 || f.jumlahDiminta > 20) return (galatForm.value = "Jumlah kantong harus 1–20");
@@ -237,7 +291,7 @@ const simpanForm = async () => {
     };
     const res = modeLengkapi.value
       ? await lengkapiPermintaanBdrs(detail.value.uuid, isi)
-      : await buatPermintaanBdrs({ ...isi, noReg: f.noReg.trim(), lokasiAsalUuid: f.lokasiAsalUuid || null });
+      : await buatPermintaanBdrs({ ...isi, noReg: f.noReg.trim(), lokasiAsalUuid: f.lokasiAsalUuid || null, dokterPemintaUuid: f.dokterPemintaUuid });
     if (res?.payload) {
       dialogForm.value = false;
       detail.value = res.payload;
@@ -355,6 +409,7 @@ onMounted(muat);
             <div><span class="text-grey-400">Diajukan:</span> {{ waktuBdrs(detail.createdAt) }} · {{ detail.dibuatOleh ?? "-" }}</div>
             <div><span class="text-grey-400">Asal:</span> {{ SUMBER_KUNJUNGAN_BDRS[detail.sumberKunjungan] }} · {{ detail.lokasiAsal ?? "-" }} ({{ detail.noReg }})</div>
             <div v-if="detail.waktuDiproses"><span class="text-grey-400">Diproses:</span> {{ waktuBdrs(detail.waktuDiproses) }} · {{ detail.diprosesOleh }}</div>
+            <div><span class="text-grey-400">Dokter peminta:</span> {{ detail.dokterPemintaNama ?? "-" }}</div>
             <div><span class="text-grey-400">Komponen:</span> {{ detail.komponenKode }} — {{ detail.komponenNama }}</div>
             <div><span class="text-grey-400">Golongan diminta:</span> {{ golonganRh(detail.golonganDiminta, detail.rhesusDiminta) }}</div>
             <div><span class="text-grey-400">Jumlah:</span> {{ detail.jumlahDipenuhi ?? 0 }} dari {{ detail.jumlahDiminta }} kantong</div>
@@ -362,6 +417,7 @@ onMounted(muat);
             <div v-if="detail.alasanKembali" class="col-span-2 text-danger-300">
               {{ detail.status === "perlu_dilengkapi" ? "Perlu dilengkapi" : "Alasan" }}: {{ detail.alasanKembali }}
             </div>
+            <div v-if="detail.alasanBatal" class="col-span-2 text-danger-300">Alasan dibatalkan: {{ detail.alasanBatal }}</div>
           </div>
 
           <div>
@@ -397,6 +453,41 @@ onMounted(muat);
             </DataTable>
           </div>
 
+          <div v-if="fiturAktif('bdrs_bridging') && kantongUtd.length">
+            <h3 class="mb-1 font-semibold">Kantong Bridging UTD</h3>
+            <DataTable :value="kantongUtd" stripedRows class="text-xs">
+              <Column field="noKantong" header="No. Kantong" headerClass="bg-opensimrs-50" />
+              <Column header="Gol." headerClass="bg-opensimrs-50">
+                <template #body="{ data: k }">
+                  {{ golonganRh(k.golonganAbo, k.rhesus) }}
+                  <span v-if="k.peringatanGolongan" class="ml-1 text-[10px] text-[#B54708]">(beda dari permintaan)</span>
+                </template>
+              </Column>
+              <Column header="IMLTD" headerClass="bg-opensimrs-50">
+                <template #body="{ data: k }">{{ k.statusImltd }}</template>
+              </Column>
+              <Column header="Status" headerClass="bg-opensimrs-50">
+                <template #body="{ data: k }">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold" :class="[gayaValidasiKantongUtd(k.statusValidasi)?.bg, gayaValidasiKantongUtd(k.statusValidasi)?.text]">
+                    {{ gayaValidasiKantongUtd(k.statusValidasi)?.label ?? k.statusValidasi }}
+                  </span>
+                  <div v-if="k.alasanTolak" class="mt-0.5 text-[#B42318]">{{ k.alasanTolak }}</div>
+                </template>
+              </Column>
+              <Column header="" headerClass="bg-opensimrs-50">
+                <template #body="{ data: k }">
+                  <CustomButton
+                    v-if="k.statusValidasi === 'menunggu' && izinBdrs('Stok & Penerimaan', 'TERIMA KANTONG')"
+                    label="Terima ke Stok"
+                    size="small"
+                    :disabled="memprosesUtd"
+                    @click="terimaKantong(k)"
+                  />
+                </template>
+              </Column>
+            </DataTable>
+          </div>
+
           <div v-if="detail.serahTerima?.length">
             <h3 class="mb-1 font-semibold">Serah Terima</h3>
             <DataTable :value="detail.serahTerima" stripedRows class="text-xs">
@@ -422,6 +513,8 @@ onMounted(muat);
       </template>
       <template #footer>
         <div v-if="detail" class="flex flex-wrap justify-end gap-2">
+          <CustomButton v-if="bisaAmbilStatusUtd" label="Ambil Status UTD" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" :disabled="memprosesUtd" @click="ambilStatusUtd" />
+          <CustomButton v-if="bisaKirimUtd" label="Kirim ke UTD" icon="PhPaperPlaneTilt" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" :disabled="memprosesUtd" @click="kirimKeUtd" />
           <CustomButton v-if="bisaBatalkan" label="Batalkan" icon="PhXCircle" outlined borderColor="border-danger-300" textColor="text-danger-300" @click="bukaAlasan('batalkan')" />
           <CustomButton v-if="bisaKembalikanTolak" label="Tolak" icon="PhProhibit" outlined borderColor="border-danger-300" textColor="text-danger-300" @click="bukaAlasan('tolak')" />
           <CustomButton v-if="bisaKembalikanTolak" label="Kembalikan" icon="PhArrowUUpLeft" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="bukaAlasan('kembalikan')" />
@@ -438,9 +531,9 @@ onMounted(muat);
         <div class="flex flex-col gap-2 pt-4">
           <CustomTextArea
             v-model="alasan"
-            :label="aksiAlasan === 'batalkan' ? 'Alasan (opsional)' : 'Alasan'"
+            label="Alasan"
             :placeholder="aksiAlasan === 'kembalikan' ? 'mis. indikasi transfusi belum lengkap' : 'Tuliskan alasan'"
-            :required="aksiAlasan !== 'batalkan'"
+            required
           />
           <div v-if="galatAlasan" class="text-sm text-danger-300">{{ galatAlasan }}</div>
         </div>
@@ -509,6 +602,15 @@ onMounted(muat);
                 optionLabel="name"
               />
             </div>
+            <CustomSelect
+              v-model="form.dokterPemintaUuid"
+              label="Dokter Peminta"
+              placeHolder="Pilih dokter peminta"
+              :options="dokter"
+              optionValue="uuid"
+              optionLabel="nama"
+              required
+            />
           </template>
           <div class="grid grid-cols-3 gap-4">
             <CustomSelect v-model="form.komponenUuid" label="Komponen Darah" placeHolder="Pilih komponen" :options="opsiKomponen" optionValue="value" optionLabel="label" required />

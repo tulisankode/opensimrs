@@ -3,6 +3,7 @@ import cors from "cors";
 import morgan from "morgan";
 import efp from "express-fileupload";
 import authorizationSdk from "@opensimrs/authorization-sdk";
+import { auditContextMiddleware } from "@opensimrs/model-sdk/audit-context";
 
 import { env, logger } from "./src/configurations/index.js";
 import "./src/configurations/associations.js";
@@ -35,6 +36,8 @@ const authConfig = {
   privateKey: env.PRIVATE_KEY,
 };
 app.use(authorizationSdk([], authConfig));
+// Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
+app.use(auditContextMiddleware());
 app.use( routes);
 
 app.use(errorMiddleware);

@@ -263,6 +263,9 @@ export default class UserRepository {
         },
         returning: true,
         transaction: tr,
+        // STD-0029: afterUpdate per baris mencatat audit `ubah`/`ubah_izin` (bila permissions/roleUuid berubah)
+        // dengan nilai lama/baru yang disamarkan — lihat packages/model-sdk/umum/audit-sequelize.js.
+        individualHooks: true,
       });
       if(affectedRow !== 1){
         throw new HttpException(
@@ -556,6 +559,9 @@ export default class UserRepository {
           },
           transaction: tr,
           returning: ["username"],
+          // STD-0029: pencatatan audit otomatis dilewati di sini — UserService.updatePassword mencatat peristiwa
+          // `ganti_sandi` secara eksplisit (tanpa menyimpan sandi), bukan `ubah` generik.
+          skipAudit: true,
         }
       );
       return afectedRow[1][0];

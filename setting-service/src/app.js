@@ -9,6 +9,8 @@ import bcrypt from "bcrypt";
 import MODELMERGE from "./models/model-synchronize.js";
 import authorizationSdk from "@opensimrs/authorization-sdk";
 import {dbSeeder} from "./seeders/db-seeder.js";
+import {auditContextMiddleware} from "@opensimrs/model-sdk/audit-context";
+import permissionRedisClient from "./configurations/redis-client-config.js";
 
 const APPLICATION_PORT = process.env.APPLICATION_PORT;
 const APPLICATION_HOST = process.env.APPLICATION_HOST;
@@ -22,9 +24,16 @@ app.use(cors({
 app.use(express.json({limit: "25 mb"}));
 app.use(express.urlencoded({extended: false, limit: "25 mb"}));
 app.use(authorizationSdk([]));
+// Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
+app.use(auditContextMiddleware());
 app.use(routes);
 app.use(errorMiddleware);
 app.listen(APPLICATION_PORT, APPLICATION_HOST, async () => {
+    try {
+        if (!permissionRedisClient.isOpen) await permissionRedisClient.connect();
+    } catch (error) {
+        console.error("Gagal konek Redis (izin Audit Trail):", error.message);
+    }
     try {
         // for (const model of MODELMERGE) {
         //     await model.sync({ alter: false, force: true });
