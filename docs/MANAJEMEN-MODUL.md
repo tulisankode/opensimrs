@@ -220,7 +220,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **35 modul** (8 inti, 1 berstatus Segera), **89 fitur** (0 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 1 berstatus Segera), **99 fitur** (4 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -277,6 +277,8 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `ambulans` | Manajemen Ambulans | Permintaan & penugasan ambulans, perjalanan (jarak/BBM/catatan pendamping), armada & kru, tarif, serta penerusan biaya ke tagihan kunjungan/kuitansi umum. | Tersedia | Penunjang Umum › Transportasi & Ambulans | Manajemen Ambulans |
 | `laundry` | Laundry & Linen | Siklus linen kotor–bersih: serah terima linen kotor dua petugas, batch cuci bertahap, distribusi linen bersih, stok & par level per ruangan, koreksi, rekonsiliasi, dan laporan beban cucian. | Tersedia | Penunjang Umum › Instalasi Laundry | Laundry |
 | `sarpras` | Sarana dan Prasarana (IPSRS) | Register aset medis & nonmedis, laporan kerusakan dan perbaikan (work order), pemeliharaan preventif, serta kalibrasi dan uji fungsi alat untuk Instalasi Pemeliharaan Sarana RS (IPSRS). | Tersedia | Penunjang Umum › IPSRS | Sarana dan Prasarana (IPSRS) |
+| `mutu` | Mutu & Akreditasi | Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dan dasbor kesiapan akreditasi. | Tersedia | Manajemen & Mutu › Manajemen Mutu | Mutu & Akreditasi |
+| `sdm` | HR / SDM | Kepegawaian tertaut pegawai Data Master (status, unit, jabatan, golongan, pendidikan, riwayat bertanggal berlaku) dan kredensial pegawai yang satu sumber dengan Kredensial Staf Mutu & Akreditasi. Jadwal dinas, kehadiran/cuti, pelatihan, dan penggajian menyusul. | Tersedia | Keuangan & Administrasi › SDM & Kepegawaian | HR / SDM |
 
 #### Penjaminan
 
@@ -302,7 +304,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Penunjang Medis › Pelayanan Darah | Bank Darah RS (BDRS) |
 | `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Tersedia | Penunjang Medis › Pelayanan Darah | UTD |
 | `akuntansi` | Akuntansi & Remunerasi | Jurnal, laporan keuangan, jasa pelayanan. | Segera | Keuangan & Administrasi › Akuntansi & Remunerasi | – |
-| `mutu` | Mutu & Akreditasi | Profil indikator mutu, pengumpulan data, validasi, analisis PDSA, serta laporan. | Tersedia | Manajemen & Mutu › Mutu & Akreditasi | Mutu & Akreditasi |
+| `hemodialisa` | Unit Hemodialisa | Registrasi HD akut/kronis, jadwal per mesin & shift, resep HD, asesmen pra-HD, pemantauan intradialitik, Kt/V & URR, pemakaian BHP & reuse dializer, tagihan tindakan, dan laporan unit. | Tersedia | Pelayanan Medis & Keperawatan › Unit Hemodialisa | Hemodialisa |
 
 ### C. Matriks modul × segmen (preset bawaan)
 
@@ -343,8 +345,10 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Mikrobiologi (`mikrobiologi`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | Manajemen Ambulans (`ambulans`) | Tersedia | – | – | – | – | – | – | – | – |
 | Laundry & Linen (`laundry`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
-| Mutu & Akreditasi (`mutu`) | Tersedia | – | – | – | – | – | – | – | – |
 | Sarana dan Prasarana (IPSRS) (`sarpras`) | Tersedia | – | – | – | – | – | – | – | – |
+| Mutu & Akreditasi (`mutu`) | Tersedia | – | – | – | – | – | – | – | – |
+| Unit Hemodialisa (`hemodialisa`) | Tersedia | – | – | – | – | – | – | – | – |
+| HR / SDM (`sdm`) | Tersedia | – | – | – | – | – | – | – | – |
 
 ### D. Fitur per modul
 
@@ -542,12 +546,9 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `laundry_koreksi` | Koreksi Stok | Pencatatan linen hilang, rusak, dan afkir dengan alasan serta pelaku. | Tersedia | – | – | – |
 | `laundry_master` | Master Jenis Linen | Datamaster jenis linen, kode, dan satuan hitung. | Tersedia | – | – | – |
 | `laundry_laporan` | Laporan Laundry | Beban cucian kg per ruangan, perputaran, selisih, pemisahan kategori, rekonsiliasi, dan ekspor Excel. | Tersedia | – | – | – |
-
-#### Mutu & Akreditasi (`mutu`)
-
-| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
-|---|---|---|---|---|---|---|
-| `mutu_indikator` | Indikator Mutu (INM/IMP-RS/IMPU) | Profil indikator, pengumpulan data, validasi, analisis, dan laporan. | Tersedia | Ya | – | – |
+| `laundry_unit` | Unit Linen & Label | Cara pencatatan per jenis (per jumlah/per unit) dan batas umur pakai, registrasi unit berkode unik, label QR/barcode, koreksi status/lokasi, dan tautan bed/kamar. | Tersedia | – | – | – |
+| `laundry_pemindaian_unit` | Pemindaian Unit | Pindai unit (kamera peramban/scanner USB) di setiap titik alur: serah terima kotor, masuk batch, selesai cuci, distribusi, dan penerimaan ruangan; stok ikut dihitung dari hasil pindai. | Tersedia | – | – | – |
+| `laundry_laporan_unit` | Laporan Unit Linen | Riwayat perjalanan per unit, unit hilang/rusak per ruangan, unit mendekati/mencapai batas umur pakai, dan perputaran. | Tersedia | – | – | – |
 
 #### Sarana dan Prasarana (IPSRS) (`sarpras`)
 
@@ -558,6 +559,29 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `sarpras_kalibrasi` | Kalibrasi & Uji Fungsi Alat | Jadwal kalibrasi, lembaga penguji, sertifikat, masa berlaku, dan peringatan jatuh tempo alat medis. | Tersedia | – | – | – |
 | `sarpras_utilitas` | Pencatatan Utilitas | Pencatatan meter listrik/air serta genset/oksigen sentral. | Tersedia | – | – | – |
 | `sarpras_laporan` | Laporan Sarpras | Daftar dan riwayat aset, kepatuhan pemeliharaan dan kalibrasi, waktu respons perbaikan, serta biaya pemeliharaan. | Tersedia | Ya | – | – |
+
+#### Mutu & Akreditasi (`mutu`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `mutu_dokumen_kredensial` | Dokumen Akreditasi & Kredensial Staf | Instrumen akreditasi milik faskes (bab/standar/elemen, impor CSV), dokumen akreditasi berversi dengan pemetaan bukti & pengingat tinjau ulang, kredensial staf (STR/SIP/sertifikat/RKK/SPK) dengan peringatan 90/30 hari, dasbor kesiapan, dan akses baca surveior. | Tersedia | – | – | – |
+
+#### Unit Hemodialisa (`hemodialisa`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `hd_bridging_hdis` | Bridging HDIS | Kirim jadwal & data pasien minimum ke HDIS dan terima parameter mesin per sesi secara idempoten (kontrak REST generik). | Tersedia | – | – | – |
+
+#### HR / SDM (`sdm`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `sdm_kepegawaian` | Kepegawaian | Data kepegawaian tertaut pegawai Data Master: status, unit kerja, jabatan, golongan, pendidikan, riwayat perubahan bertanggal berlaku (riwayat lama tidak ditimpa), dan tautan akun login. | Tersedia | Ya | – | – |
+| `sdm_kredensial` | Kredensial Pegawai | STR, SIP, sertifikat pelatihan/kompetensi, RKK, SPK dengan berkas, verifikasi, pencabutan, dan peringatan 90/30 hari — satu sumber data dengan Kredensial Staf Mutu & Akreditasi. | Tersedia | – | – | – |
+| `sdm_jadwal_dinas` | Jadwal Dinas | Pola shift, jadwal dinas unit dengan validasi benturan & istirahat minimum, persetujuan, dan tukar dinas. | Segera | – | – | – |
+| `sdm_kehadiran` | Kehadiran, Cuti & Izin | Impor/pencatatan kehadiran serta pengajuan cuti & izin dengan persetujuan berjenjang. | Segera | – | – | – |
+| `sdm_pelatihan` | Pelatihan | Riwayat pelatihan & jam diklat pegawai dengan verifikasi. | Segera | – | – | – |
+| `sdm_penggajian` | Penggajian | Komponen gaji, rancangan & pengesahan penggajian per periode, slip gaji, serta integrasi jaspel/jurnal. | Segera | – | – | – |
 
 ### E. Bagian (unit terkecil)
 
@@ -637,6 +661,7 @@ Field `bidang` dan `instalasi` menempatkan menu modul di panel **Lainnya** pada 
 | Pelayanan Medis & Keperawatan | Instalasi Bedah Sentral | Kamar Operasi (`kamar_operasi`) |
 | Pelayanan Medis & Keperawatan | Instalasi Perawatan Intensif | ICU / Intensif (`icu`) |
 | Pelayanan Medis & Keperawatan | Medical Check Up | Medical Check Up (MCU) (`mcu`) |
+| Pelayanan Medis & Keperawatan | Unit Hemodialisa | Unit Hemodialisa (`hemodialisa`) |
 | Penunjang Medis | Instalasi Farmasi | Farmasi (`farmasi`) |
 | Penunjang Medis | Instalasi Laboratorium | Laboratorium (`laboratorium`), Patologi Anatomi (`patologi_anatomi`), Mikrobiologi (`mikrobiologi`) |
 | Penunjang Medis | Instalasi Rehabilitasi Medik | Fisioterapi / Rehabilitasi Medik (`fisioterapi`) |
@@ -652,9 +677,10 @@ Field `bidang` dan `instalasi` menempatkan menu modul di panel **Lainnya** pada 
 | Keuangan & Administrasi | Pendaftaran & Admisi | Pendaftaran Pasien (`pendaftaran`), Antrian & Layar Panggil (`antrian`) |
 | Keuangan & Administrasi | Kasir & Penjaminan | Kasir & Pembayaran (`pembayaran`), BPJS FKTP (PCare) (`bpjs_fktp`), BPJS FKRTL (VClaim/SEP) (`bpjs_fkrtl`) |
 | Keuangan & Administrasi | Akuntansi & Remunerasi | Akuntansi & Remunerasi (`akuntansi`) |
+| Keuangan & Administrasi | SDM & Kepegawaian | HR / SDM (`sdm`) |
 | Manajemen & Mutu | Pelaporan | Dashboard (`dashboard`), Laporan (`laporan`) |
 | Manajemen & Mutu | Audit Trail | Audit Trail (`audit_trail`) |
-| Manajemen & Mutu | Mutu & Akreditasi | Mutu & Akreditasi (`mutu`) |
+| Manajemen & Mutu | Manajemen Mutu | Mutu & Akreditasi (`mutu`) |
 | Program Kesehatan Masyarakat | Program Puskesmas | Program Puskesmas (`program_puskesmas`) |
 | Sistem | Data Master | Data Master (`datamaster`) |
 | Sistem | Integrasi & Interoperabilitas | SATUSEHAT (`satusehat`) |

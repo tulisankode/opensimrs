@@ -32,7 +32,17 @@ let masuk = ""; process.stdin.on("data", (d) => (masuk += d)).on("end", () => {
 process.env.STUDIO_CODEX_BIN = tiruan;
 process.env.DB_PORT = "1"; // tanpa basis data: log & status tugas diabaikan
 
-const { argumenCodex, jalankanCodex, terlarang } = await import("../src/agen/codex.js");
+const { argumenCodex, jalankanCodex, pilihModelCodex, terlarang } = await import("../src/agen/codex.js");
+
+test("pilihModelCodex: kosong/tidak tersedia → model pertama akun; tersedia → dipakai; tanpa daftar → apa adanya", () => {
+  const akun = [{ kode: "gpt-6-luna" }, { kode: "gpt-5.6-terra" }];
+  assert.equal(pilihModelCodex("", akun), "gpt-6-luna");
+  assert.equal(pilihModelCodex(undefined, akun), "gpt-6-luna");
+  assert.equal(pilihModelCodex("gpt-6.1-sol", akun), "gpt-6-luna");
+  assert.equal(pilihModelCodex("gpt-5.6-terra", akun), "gpt-5.6-terra");
+  assert.equal(pilihModelCodex("gpt-5.6-terra", []), "gpt-5.6-terra");
+  assert.equal(pilihModelCodex("", []), "");
+});
 
 const git = (cwd, ...a) => execFileSync("git", ["-c", "safe.directory=*", "-c", "user.email=uji@contoh.id", "-c", "user.name=uji", ...a], { cwd, encoding: "utf8" }).trim();
 

@@ -15,6 +15,8 @@ const sidebarBodyList = ref<SidebarBody[]>([
       { name: "Batch Cuci", icon: "PhWashingMachine", type: linkType.LINK, url: "/laundry/batch" },
       { name: "Permintaan & Distribusi", icon: "PhTruck", type: linkType.LINK, url: "/laundry/distribusi" },
       { name: "Koreksi Stok", icon: "PhWarningCircle", type: linkType.LINK, url: "/laundry/koreksi" },
+      { name: "Pemindaian Unit", icon: "PhBarcode", type: linkType.LINK, url: "/laundry/pemindaian-unit" },
+      { name: "Unit Linen & Label", icon: "PhTag", type: linkType.LINK, url: "/laundry/unit" },
     ],
   },
   {
@@ -32,7 +34,10 @@ const sidebarBodyList = ref<SidebarBody[]>([
   {
     name: "3",
     type: linkType.SECTION,
-    child: [{ name: "Laporan", icon: "FileReportIcon", type: linkType.LINK, url: "/laundry/laporan" }],
+    child: [
+      { name: "Laporan", icon: "FileReportIcon", type: linkType.LINK, url: "/laundry/laporan" },
+      { name: "Laporan Unit Linen", icon: "FileReportIcon", type: linkType.LINK, url: "/laundry/laporan-unit" },
+    ],
   },
 ]);
 </script>

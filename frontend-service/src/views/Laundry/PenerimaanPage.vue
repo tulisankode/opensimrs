@@ -28,7 +28,9 @@ const boleh = (aksi: string) => izinLaundry("Penerimaan", aksi);
 const ruangan = ref<any[]>([]);
 const jenis = ref<any[]>([]);
 const opsiRuangan = computed(() => ruangan.value.map((r) => ({ value: r.uuid, label: r.nama })));
-const opsiJenis = computed(() => jenis.value.filter((j) => j.aktif).map((j) => ({ value: j.uuid, label: `${j.nama} (${j.satuan})` })));
+// Jenis per unit (STD-0030) diserahkan lewat Pemindaian Unit (kode unit wajib), bukan form jumlah.
+const opsiJenis = computed(() => jenis.value.filter((j) => j.aktif && j.caraPencatatan !== "per_unit").map((j) => ({ value: j.uuid, label: `${j.nama} (${j.satuan})` })));
+const adaJenisUnit = computed(() => jenis.value.some((j) => j.aktif && j.caraPencatatan === "per_unit"));
 
 const filterStatus = ref("menunggu_konfirmasi");
 const data = ref<any[]>([]);
@@ -161,6 +163,7 @@ const batal = async (p: any) => {
       <template #body>
         <div class="flex flex-col gap-3 pt-4">
           <CustomSelect v-model="form.lokasiUuid" label="Ruangan Asal" :options="opsiRuangan" optionValue="value" optionLabel="label" placeHolder="Pilih ruangan" />
+          <div v-if="adaJenisUnit" class="text-xs text-grey-400">Jenis linen yang dilacak per unit diserahkan lewat menu <b>Pemindaian Unit</b>.</div>
           <div v-for="(x, i) in form.rincian" :key="i" class="grid grid-cols-[2fr_1.3fr_1fr_auto] items-end gap-2">
             <CustomSelect v-model="x.jenisLinenUuid" label="Jenis Linen" :options="opsiJenis" optionValue="value" optionLabel="label" placeHolder="Pilih" />
             <CustomSelect v-model="x.kategori" label="Kategori" :options="OPSI_KATEGORI" optionValue="value" optionLabel="label" />

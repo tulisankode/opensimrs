@@ -4,9 +4,13 @@ import { tangani, kirim, wajib, permintaanSalah, tidakDitemukan } from "../umum/
 import { izinLaundry } from "../umum/izin.js";
 import { KATEGORI_LINEN, STATUS_PENERIMAAN, angkaWajib, bulatPositif, cekPilihan, epochOpsional, konflik, periode, teks } from "./bersama.js";
 import { keluarkanStok, saldoLinen, validasiJenis, validasiRuangan } from "./stok.js";
+import { cekUnitAlur, daftarKode, jumlahDariKode, kunciUnitDariKode, kunciUnitRincian, pilahDiterima, pindahkanUnit } from "./unit-alur.js";
 
 // Serah terima linen kotor (UC-1): ruangan menyerahkan → petugas laundry (≠ penyerah) mengonfirmasi jumlah aktual.
 // Rincian awal (jumlah_diserahkan) tidak pernah ditimpa; jumlah diterima & alasan selisih disimpan terpisah (KT-5).
+// Jenis linen per unit (STD-0030): rincian memuat kode_unit hasil pindai dan jumlahnya = banyaknya unit; konfirmasi
+// memindai unit yang benar-benar diterima (unit selisih kembali tercatat di ruangan, buku stok hanya berkurang
+// sebanyak unit yang diterima).
 
 export const rute = express.Router();
 
@@ -93,15 +97,22 @@ rute.post(
     // Jenis + kategori yang sama cukup satu baris (kategori berbeda dari jenis yang sama boleh, mis. infeksius terpisah).
     const lihat = new Set();
     const rincian = b.rincian.map((d) => {
-      wajib(d, ["jenis_linen_uuid", "jumlah_diserahkan", "kategori"]);
+      wajib(d, ["jenis_linen_uuid", "kategori"]);
       const kategori = cekPilihan(d.kategori, KATEGORI_LINEN, "kategori");
       const kunci = `${d.jenis_linen_uuid}|${kategori}`;
       if (lihat.has(kunci)) throw permintaanSalah("Rincian memuat jenis linen & kategori yang sama lebih dari sekali");
       lihat.add(kunci);
-      return { jenis_linen_uuid: String(d.jenis_linen_uuid), kategori, jumlah: bulatPositif(d.jumlah_diserahkan, "jumlah_diserahkan") };
+      const kode = d.kode_unit === undefined || d.kode_unit === null ? null : daftarKode(d.kode_unit);
+      const jumlah = kode ? jumlahDariKode(kode, d.jumlah_diserahkan, "jumlah_diserahkan") : bulatPositif(d.jumlah_diserahkan, "jumlah_diserahkan");
+      return { jenis_linen_uuid: String(d.jenis_linen_uuid), kategori, jumlah, kode };
     });
+    const semuaKode = rincian.flatMap((d) => d.kode ?? []);
+    if (semuaKode.length) daftarKode(semuaKode); // unit yang sama tidak boleh muncul di dua rincian
     const hasil = await transaksi(async (k) => {
       const ruang = await validasiRuangan(b.lokasi_uuid, f, k);
+      // Unit hasil pindai dikunci lebih dulu lalu diperiksa: aktif, jenis sesuai, dan sedang tercatat di ruangan ini.
+      const unitPindai = semuaKode.length ? await kunciUnitDariKode(k, f, semuaKode) : [];
+      const unitKode = new Map(semuaKode.map((x, i) => [x, unitPindai[i]]));
       const p = await sisipkan(
         "laundry_penerimaan",
         { faskes_uuid: f, lokasi_uuid: ruang.uuid, waktu_serah: waktuSerah, status: "menunggu_konfirmasi", petugas_penyerah: req.author.username, catatan: teks(b.catatan) ?? null },
@@ -110,13 +121,23 @@ rute.post(
       // Pemeriksaan awal saldo ruangan (pengurangan sebenarnya dikunci & divalidasi ulang saat konfirmasi).
       const perJenis = new Map();
       for (const d of rincian) perJenis.set(d.jenis_linen_uuid, (perJenis.get(d.jenis_linen_uuid) ?? 0) + d.jumlah);
+      const jenisPeta = new Map();
       for (const [jenisUuid, total] of perJenis) {
         const j = await validasiJenis(jenisUuid, f, k);
+        jenisPeta.set(j.uuid, j);
         const saldo = await saldoLinen(f, "ruangan", ruang.uuid, j.uuid, k);
         if (saldo < total) throw permintaanSalah(`Saldo ${j.nama} di ruangan ${ruang.nama} hanya ${saldo}; catat saldo awal/distribusi terlebih dahulu`);
       }
       for (const d of rincian) {
-        await sisipkan("laundry_penerimaan_rincian", { faskes_uuid: f, penerimaan_uuid: p.uuid, jenis_linen_uuid: d.jenis_linen_uuid, jumlah_diserahkan: d.jumlah, kategori: d.kategori }, k);
+        const j = jenisPeta.get(d.jenis_linen_uuid);
+        if (j.cara_pencatatan === "per_unit" && !d.kode) throw permintaanSalah(`${j.nama} dilacak per unit: pindai kode unit yang diserahkan (menu Pemindaian Unit)`);
+        if (j.cara_pencatatan !== "per_unit" && d.kode) throw permintaanSalah(`${j.nama} dihitung per jumlah; kode unit tidak dipakai`);
+        const units = d.kode
+          ? cekUnitAlur(d.kode.map((x) => unitKode.get(x)), { jenisLinenUuid: j.uuid, namaJenis: j.nama, lokasiTipe: "ruangan", lokasiUuid: ruang.uuid, keterangan: `unit tidak sedang tercatat di ruangan ${ruang.nama}` })
+          : [];
+        const r = await sisipkan("laundry_penerimaan_rincian", { faskes_uuid: f, penerimaan_uuid: p.uuid, jenis_linen_uuid: d.jenis_linen_uuid, jumlah_diserahkan: d.jumlah, kategori: d.kategori }, k);
+        if (units.length)
+          await pindahkanUnit(k, units, { lokasi_tipe: "serah_kotor", dokumen_uuid: p.uuid, rincian_uuid: r.uuid }, { faskes: f, peristiwa: "serah_kotor", dokumenTipe: "penerimaan", dokumenUuid: p.uuid, pelaku: req.author.username, waktu: p.created_at });
       }
       return p;
     });
@@ -140,7 +161,7 @@ rute.post(
       if (p.petugas_penyerah === req.author.username) throw permintaanSalah("Petugas penerima harus berbeda dari petugas penyerah");
       const tersimpan = await query(
         `SELECT d.*, j.nama AS nama_linen FROM laundry_penerimaan_rincian d JOIN laundry_jenis_linen j ON j.uuid = d.jenis_linen_uuid AND j.faskes_uuid = d.faskes_uuid
-          WHERE d.penerimaan_uuid = $1 AND d.faskes_uuid = $2 AND d.deleted_at IS NULL ORDER BY d.jenis_linen_uuid, d.kategori`,
+          WHERE d.penerimaan_uuid = $1 AND d.faskes_uuid = $2 AND d.deleted_at IS NULL ORDER BY d.jenis_linen_uuid, d.kategori FOR UPDATE OF d`,
         [p.uuid, f],
         k,
       );
@@ -151,10 +172,24 @@ rute.post(
       const waktu = sekarang();
       for (const r of tersimpan) {
         const x = masukan.get(r.uuid);
-        const jumlah = angkaWajib(x.jumlah_diterima, "jumlah_diterima");
+        // Rincian yang memegang unit: jumlah diterima = unit yang dipindai petugas laundry (lihat pilahDiterima).
+        const unitRincian = await kunciUnitRincian(k, f, "rincian_uuid", r.uuid, "serah_kotor");
+        let pilah = null;
+        if (unitRincian.length) {
+          const kode = x.kode_unit === undefined || x.kode_unit === null ? null : x.kode_unit.length ? daftarKode(x.kode_unit) : [];
+          if (!kode && (x.jumlah_diterima === undefined || x.jumlah_diterima === null || x.jumlah_diterima === ""))
+            throw permintaanSalah(`kode_unit atau jumlah_diterima wajib diisi untuk ${r.nama_linen}`);
+          pilah = pilahDiterima(unitRincian, kode, x.jumlah_diterima, r.nama_linen);
+        } else if (x.kode_unit?.length) throw permintaanSalah(`${r.nama_linen} pada serah terima ini dihitung per jumlah; kode unit tidak dipakai`);
+        const jumlah = pilah ? pilah.diterima.length : angkaWajib(x.jumlah_diterima, "jumlah_diterima");
         if (!Number.isInteger(jumlah) || jumlah < 0) throw permintaanSalah("jumlah_diterima harus berupa bilangan bulat tidak negatif");
         const alasan = teks(x.alasan_selisih) ?? null;
         if (jumlah !== Number(r.jumlah_diserahkan) && !alasan) throw permintaanSalah(`Alasan selisih wajib diisi untuk ${r.nama_linen}`);
+        if (pilah) {
+          const opsi = { faskes: f, dokumenTipe: "penerimaan", dokumenUuid: p.uuid, pelaku: req.author.username, waktu };
+          await pindahkanUnit(k, pilah.diterima, { lokasi_tipe: "kotor" }, { ...opsi, peristiwa: "terima_kotor" });
+          await pindahkanUnit(k, pilah.tidak, { lokasi_tipe: "ruangan", dokumen_uuid: null, rincian_uuid: null }, { ...opsi, peristiwa: "serah_dibatalkan", alasan: `Selisih serah terima: ${alasan}` });
+        }
         await query(`UPDATE laundry_penerimaan_rincian SET jumlah_diterima = $1, alasan_selisih = $2, updated_at = $3 WHERE uuid = $4`, [jumlah, alasan, waktu, r.uuid], k);
         if (jumlah > 0)
           await keluarkanStok(
@@ -185,18 +220,35 @@ rute.post(
   }),
 );
 
-// Pembatalan oleh petugas penyerah, hanya sebelum dikonfirmasi (belum ada transaksi stok) — soft delete.
+// Pembatalan oleh petugas penyerah, hanya sebelum dikonfirmasi (belum ada transaksi stok) — soft delete. Unit yang
+// sudah dipindai kembali tercatat di ruangan asal.
 rute.delete(
   "/penerimaan/:uuid",
   izinLaundry("Penerimaan", "CREATE"),
   tangani(async (req, res) => {
-    const rows = await query(
-      `UPDATE laundry_penerimaan SET deleted_at = $1, updated_at = $1
-        WHERE uuid = $2 AND faskes_uuid = $3 AND status = 'menunggu_konfirmasi' AND petugas_penyerah = $4 AND deleted_at IS NULL RETURNING uuid`,
-      [sekarang(), req.params.uuid, req.author.faskesUuid, req.author.username],
-    );
-    if (!rows.length) throw tidakDitemukan("Serah terima milik Anda yang belum dikonfirmasi");
-    kirim(res, { uuid: rows[0].uuid }, "Serah terima dibatalkan");
+    const f = req.author.faskesUuid;
+    const hasil = await transaksi(async (k) => {
+      const waktu = sekarang();
+      const rows = await query(
+        `UPDATE laundry_penerimaan SET deleted_at = $1, updated_at = $1
+          WHERE uuid = $2 AND faskes_uuid = $3 AND status = 'menunggu_konfirmasi' AND petugas_penyerah = $4 AND deleted_at IS NULL RETURNING uuid`,
+        [waktu, req.params.uuid, f, req.author.username],
+        k,
+      );
+      if (!rows.length) throw tidakDitemukan("Serah terima milik Anda yang belum dikonfirmasi");
+      const units = await kunciUnitRincian(k, f, "dokumen_uuid", rows[0].uuid, "serah_kotor");
+      await pindahkanUnit(k, units, { lokasi_tipe: "ruangan", dokumen_uuid: null, rincian_uuid: null }, {
+        faskes: f,
+        peristiwa: "serah_dibatalkan",
+        dokumenTipe: "penerimaan",
+        dokumenUuid: rows[0].uuid,
+        alasan: "Serah terima dibatalkan petugas penyerah",
+        pelaku: req.author.username,
+        waktu,
+      });
+      return { uuid: rows[0].uuid };
+    });
+    kirim(res, hasil, "Serah terima dibatalkan");
   }),
 );
 

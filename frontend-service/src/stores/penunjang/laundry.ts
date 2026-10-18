@@ -34,6 +34,8 @@ export const SUMBER_TRANSAKSI: Record<string, string> = {
   batch_selesai: "Batch selesai",
   distribusi_kirim: "Distribusi dikirim",
   distribusi_terima: "Distribusi diterima",
+  registrasi_unit: "Registrasi unit baru",
+  koreksi_unit: "Koreksi unit",
   hilang: "Hilang",
   rusak: "Rusak",
   afkir: "Afkir",
@@ -81,19 +83,20 @@ export const koreksiStokLaundry = (data: Record<string, any>) => apiPenunjangPos
 
 // ── Serah terima linen kotor
 export const daftarPenerimaanLaundry = (params: Record<string, any> = {}) => apiPenunjangGet(`/laundry/penerimaan${qs(params)}`);
-export const buatPenerimaanLaundry = (data: { lokasiUuid: string; catatan?: string; rincian: { jenisLinenUuid: string; kategori: string; jumlahDiserahkan: number }[] }) =>
+// Jenis per unit: kodeUnit = hasil pindai (jumlah dihitung dari banyaknya kode).
+export const buatPenerimaanLaundry = (data: { lokasiUuid: string; catatan?: string; rincian: { jenisLinenUuid: string; kategori: string; jumlahDiserahkan?: number; kodeUnit?: string[] }[] }) =>
   apiPenunjangPost("/laundry/penerimaan", data);
-export const konfirmasiPenerimaanLaundry = (uuid: string, rincian: { uuid: string; jumlahDiterima: number; alasanSelisih?: string }[]) =>
+export const konfirmasiPenerimaanLaundry = (uuid: string, rincian: { uuid: string; jumlahDiterima?: number; kodeUnit?: string[]; alasanSelisih?: string }[]) =>
   apiPenunjangPost(`/laundry/penerimaan/${uuid}/konfirmasi`, { rincian });
 export const batalPenerimaanLaundry = (uuid: string) => apiPenunjangDelete(`/laundry/penerimaan/${uuid}`);
 
 // ── Batch
 export const antreanCuciLaundry = () => apiPenunjangGet("/laundry/penerimaan/antrean");
 export const daftarBatchLaundry = (params: Record<string, any> = {}) => apiPenunjangGet(`/laundry/batch${qs(params)}`);
-export const buatBatchLaundry = (data: { beratKg: number; kode?: string; catatan?: string; rincianAsal: { rincianPenerimaanUuid: string; jumlahDiproses: number }[] }) =>
+export const buatBatchLaundry = (data: { beratKg: number; kode?: string; catatan?: string; kodeUnit?: string[]; rincianAsal?: { rincianPenerimaanUuid: string; jumlahDiproses?: number; kodeUnit?: string[] }[] }) =>
   apiPenunjangPost("/laundry/batch", data);
-export const ubahTahapLaundry = (batchUuid: string, tahap: string, status: "berjalan" | "selesai", catatan?: string) =>
-  apiPenunjangPatch(`/laundry/batch/${batchUuid}/tahap/${tahap}`, { status, catatan });
+export const ubahTahapLaundry = (batchUuid: string, tahap: string, status: "berjalan" | "selesai", catatan?: string, kodeUnit?: string[]) =>
+  apiPenunjangPatch(`/laundry/batch/${batchUuid}/tahap/${tahap}`, { status, catatan, kodeUnit });
 
 // ── Permintaan & distribusi
 export const daftarPermintaanLaundry = (params: Record<string, any> = {}) => apiPenunjangGet(`/laundry/permintaan${qs(params)}`);
@@ -101,12 +104,70 @@ export const buatPermintaanLaundry = (data: { lokasiUuid: string; catatan?: stri
   apiPenunjangPost("/laundry/permintaan", data);
 export const batalPermintaanLaundry = (uuid: string, alasan: string) => apiPenunjangPost(`/laundry/permintaan/${uuid}/batal`, { alasan });
 export const daftarDistribusiLaundry = (params: Record<string, any> = {}) => apiPenunjangGet(`/laundry/distribusi${qs(params)}`);
-export const kirimDistribusiLaundry = (data: { lokasiTujuanUuid: string; permintaanUuid?: string; catatan?: string; rincian: { jenisLinenUuid: string; jumlahDikirim: number }[] }) =>
+export const kirimDistribusiLaundry = (data: { lokasiTujuanUuid: string; permintaanUuid?: string; catatan?: string; rincian: { jenisLinenUuid: string; jumlahDikirim?: number; kodeUnit?: string[] }[] }) =>
   apiPenunjangPost("/laundry/distribusi", data);
-export const konfirmasiDistribusiLaundry = (uuid: string, rincian: { uuid: string; jumlahDiterima: number; alasanSelisih?: string }[]) =>
+export const konfirmasiDistribusiLaundry = (uuid: string, rincian: { uuid: string; jumlahDiterima?: number; kodeUnit?: string[]; alasanSelisih?: string }[]) =>
   apiPenunjangPost(`/laundry/distribusi/${uuid}/konfirmasi`, { rincian });
 
 // ── Laporan
 export const laporanLaundry = (params: Record<string, any> = {}) => apiPenunjangGet(`/laundry/laporan${qs(params)}`);
 export const rekonsiliasiLaundry = (params: Record<string, any> = {}) => apiPenunjangGet(`/laundry/laporan/rekonsiliasi${qs(params)}`);
 export const eksporLaundry = (params: Record<string, any> = {}) => apiPenunjangGet(`/laundry/laporan/ekspor${qs(params)}`);
+
+// ── Pelacakan per unit linen (STD-0030). Jenis per unit tetap memakai buku stok yang sama: perpindahan alur dicatat
+// lewat fungsi serah terima/batch/distribusi di atas dengan kodeUnit hasil pindai.
+export const STATUS_UNIT: Record<string, Gaya> = {
+  aktif: { label: "Aktif", ...hijau },
+  rusak: { label: "Rusak", ...kuning },
+  hilang: { label: "Hilang", ...merah },
+  dimusnahkan: { label: "Dimusnahkan", ...abu },
+};
+export const SIKLUS_UNIT: Record<string, Gaya> = {
+  normal: { label: "Normal", ...abu },
+  mendekati: { label: "Mendekati batas", ...kuning },
+  tercapai: { label: "Mencapai batas", ...merah },
+};
+export const POSISI_UNIT: Record<string, string> = {
+  ruangan: "Di ruangan",
+  serah_kotor: "Diserahkan (menunggu laundry)",
+  kotor: "Antrean cuci",
+  batch: "Dalam batch",
+  laundry: "Stok bersih laundry",
+  dalam_perjalanan: "Dalam distribusi",
+};
+export const PERISTIWA_UNIT: Record<string, string> = {
+  registrasi: "Registrasi",
+  serah_kotor: "Serah terima kotor",
+  serah_dibatalkan: "Kembali ke ruangan",
+  terima_kotor: "Diterima laundry",
+  masuk_batch: "Masuk batch",
+  selesai_cuci: "Selesai dicuci",
+  distribusi: "Didistribusikan",
+  terima_ruangan: "Diterima ruangan",
+  selisih_distribusi: "Tidak diterima (selisih)",
+  ubah_status: "Ubah status",
+  koreksi_lokasi: "Koreksi lokasi",
+  tautan_bed: "Tautan bed/kamar",
+};
+export const gayaStatusUnit = (s?: string) => STATUS_UNIT[s ?? ""] ?? { label: s ?? "-", ...abu };
+export const gayaSiklusUnit = (s?: string) => SIKLUS_UNIT[s ?? ""] ?? SIKLUS_UNIT.normal;
+// Posisi unit yang mudah dibaca: "Di ruangan Bangsal Melati", "Stok bersih laundry", dst.
+export const posisiUnit = (u: any) => (u?.lokasiTipe === "laundry" ? POSISI_UNIT.laundry : `${POSISI_UNIT[u?.lokasiTipe] ?? u?.lokasiTipe ?? "-"}${u?.namaLokasi ? ` · ${u.namaLokasi}` : ""}`);
+
+export const referensiUnitLaundry = () => apiPenunjangGet("/laundry/unit/referensi");
+export const jenisUnitLaundry = () => apiPenunjangGet("/laundry/unit/jenis");
+export const aturJenisUnitLaundry = (uuid: string, data: { caraPencatatan?: "per_unit" | "per_jumlah"; batasSiklus?: number | null; peringatanSiklus?: number | null }) =>
+  apiPenunjangPatch(`/laundry/unit/jenis/${uuid}`, data);
+export const daftarUnitLaundry = (params: Record<string, any> = {}) => apiPenunjangGet(`/laundry/unit${qs(params)}`);
+export const registrasiUnitLaundry = (data: { jenisLinenUuid: string; jumlah?: number; kodeAwal?: string; kodeUnit?: string; lokasiTipe: "ruangan" | "laundry"; lokasiUuid?: string; sumber: "stok_ada" | "baru" }) =>
+  apiPenunjangPost("/laundry/unit", data);
+export const pindaiUnitLaundry = (kode: string) => apiPenunjangGet(`/laundry/unit/pindai${qs({ kode })}`);
+export const unitDokumenLaundry = (dokumenUuid: string) => apiPenunjangGet(`/laundry/unit/dokumen/${dokumenUuid}`);
+export const labelUnitLaundry = (uuid: string[]) => apiPenunjangGet(`/laundry/unit/label${qs({ uuid: uuid.join(",") })}`);
+export const bedUnitLaundry = (lokasiUuid: string) => apiPenunjangGet(`/laundry/unit/bed${qs({ lokasi_uuid: lokasiUuid })}`);
+export const detailUnitLaundry = (uuid: string) => apiPenunjangGet(`/laundry/unit/${uuid}`);
+export const ubahStatusUnitLaundry = (uuid: string, data: { status: string; alasan: string; lokasiTipe?: string; lokasiUuid?: string }) => apiPenunjangPatch(`/laundry/unit/${uuid}/status`, data);
+export const koreksiLokasiUnitLaundry = (uuid: string, data: { lokasiTipe: string; lokasiUuid?: string; alasan: string }) => apiPenunjangPut(`/laundry/unit/${uuid}/lokasi`, data);
+export const tautkanBedUnitLaundry = (uuid: string, data: { bedUuid: string | null; alasan?: string }) => apiPenunjangPut(`/laundry/unit/${uuid}/bed`, data);
+export const laporanUnitLaundry = (jenis: "riwayat" | "status" | "siklus" | "perputaran", params: Record<string, any> = {}) =>
+  apiPenunjangGet(`/laundry/unit/laporan/${jenis}${qs(params)}`);

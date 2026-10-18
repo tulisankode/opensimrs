@@ -77,7 +77,9 @@ export const pathDiubahDalamDesain = (teks = "") => {
   return [...new Set(tabel.length ? tabel : lain)];
 };
 
-const POLA_MIGRASI =/^database\/migrations\/(\d{14})-[a-z0-9_-]+\.cjs$/i;
+const POLA_MIGRASI = /^database\/migrations\/(\d{14})-[a-z0-9_-]+\.cjs$/i;
+const POLA_FRAGMEN = /^changelog\.d\/(?!README\.md$)[A-Za-z0-9][A-Za-z0-9._-]*\.md$/i;
+const PERINGATAN = new Set(["Uji", "Urutan migrasi"]);
 // Kode kriptografi (enkripsi/dekripsi rahasia) di luar nama zona merah (mis. kripto.js): hanya boleh berupa salinan
 // baku helper yang sudah teruji. Pembanding dinormalkan: tanpa komentar, nama variabel kunci *_KUNCI_RAHASIA disamakan.
 const POLA_KRIPTO = /\bcreate(?:Cipher|Decipher)iv\s*\(/;
@@ -86,7 +88,9 @@ export const normalKripto = (teks = "") =>
     .map((b) => b.replace(/\b[A-Z][A-Z0-9_]*_KUNCI_RAHASIA\b/g, "X_KUNCI_RAHASIA")).join("\n");
 const POLA_IMPORT_MAIN = /\bfrom\s*["'](?:@\/main|(?:\.\.?\/)+main)(?:\.ts)?["']|\bimport\s*\(\s*["']@\/main(?:\.ts)?["']\s*\)/;
 
-export const periksaKebijakan = (berkas, { risiko = "sedang", migrasiTerakhir = null, kriptoBaku = [] } = {}) => {
+// awalanMigrasi: awalan (YYYYMMDDHH) yang dipesan item ini; awalanLain: [{ nomor, awalan_migrasi }] milik item aktif lain;
+// fragmen: path fragmen CHANGELOG item (changelog.d/STD-NNNN.md).
+export const periksaKebijakan = (berkas, { risiko = "sedang", migrasiTerakhir = null, kriptoBaku = [], awalanMigrasi = null, awalanLain = [], fragmen = null } = {}) => {
   const temuan = [];
   const tambah = (cek, lulus, pesan) => temuan.push({ cek, lulus, pesan });
 
@@ -123,20 +127,29 @@ export const periksaKebijakan = (berkas, { risiko = "sedang", migrasiTerakhir = 
   tambah("Rahasia & kunci", !rahasia.length, rahasia.length ? [...new Set(rahasia)].join("; ") : "Tidak ada pola rahasia");
   tambah("Data pribadi", !pribadi.length, pribadi.length ? [...new Set(pribadi)].slice(0, 10).join("; ") : "Hanya data fiktif (NIK 9999…, HP 080000000000, @contoh.id)");
 
-  // 3. Migrasi: tidak mengubah migrasi lama, nama sesuai pola & urutan, idempoten (pola IF NOT EXISTS)
+  // 3. Migrasi: tidak mengubah migrasi lama, nama sesuai pola, tidak memakai awalan item lain, idempoten (pola IF NOT EXISTS).
+  // Urutan terhadap migrasi terakhir hanya peringatan: Terapkan mengganti nama migrasi yang tertinggal secara otomatis.
   const migrasi = berkas.filter((b) => b.path.startsWith("database/migrations/"));
   const masalahMigrasi = [];
+  const urutan = [];
   for (const m of migrasi) {
     if (!["??", "A"].includes(m.status)) masalahMigrasi.push(`${m.path} adalah migrasi lama yang diubah`);
     const cocok = m.path.match(POLA_MIGRASI);
     if (!cocok) masalahMigrasi.push(`${m.path}: nama harus YYYYMMDDHHMMSS-nama.cjs`);
-    else if (migrasiTerakhir && cocok[1] <= migrasiTerakhir) masalahMigrasi.push(`${m.path}: stempel waktu harus setelah ${migrasiTerakhir}`);
+    else {
+      const milikLain = awalanLain.find((a) => a.awalan_migrasi && a.awalan_migrasi !== awalanMigrasi && cocok[1].startsWith(a.awalan_migrasi));
+      if (milikLain) {
+        masalahMigrasi.push(`${m.path}: awalan ${milikLain.awalan_migrasi} sudah dipesan STD-${String(milikLain.nomor).padStart(4, "0")}${awalanMigrasi ? ` — pakai awalan item ini ${awalanMigrasi}MMSS` : ""}`);
+      } else if (migrasiTerakhir && cocok[1] <= migrasiTerakhir) urutan.push(`${m.path} lebih tua dari migrasi terakhir ${migrasiTerakhir}`);
+      else if (awalanMigrasi && ["??", "A"].includes(m.status) && !cocok[1].startsWith(awalanMigrasi)) urutan.push(`${m.path} tidak memakai awalan item ${awalanMigrasi}`);
+    }
     const isi = barisTambahan(m.patch).join("\n");
     if (/CREATE TABLE(?! IF NOT EXISTS)/i.test(isi) || /ADD COLUMN(?! IF NOT EXISTS)/i.test(isi) || /CREATE (UNIQUE )?INDEX(?! IF NOT EXISTS)/i.test(isi)) {
       masalahMigrasi.push(`${m.path}: gunakan IF NOT EXISTS agar idempoten`);
     }
   }
   tambah("Migrasi", !masalahMigrasi.length, migrasi.length ? masalahMigrasi.join("; ") || `${migrasi.length} migrasi baru sesuai aturan` : "Tidak ada migrasi");
+  if (urutan.length) tambah("Urutan migrasi", false, `${urutan.join("; ")}. Tidak menghalangi: Terapkan mengganti nama migrasi item ke awalan yang lebih baru secara otomatis (urutan relatif dipertahankan).`);
 
   // 4. Katalog modul: perubahan katalog wajib disertai dokumen katalog
   const katalog = berkas.some((b) => b.path === "database/data/katalog-modul.json");
@@ -167,10 +180,17 @@ export const periksaKebijakan = (berkas, { risiko = "sedang", migrasiTerakhir = 
   const logika = berkas.filter((b) => /-service\/src\/.+\.(js|cjs|mjs|ts)$/.test(b.path) && !b.path.startsWith("frontend-service/"));
   const uji = berkas.some((b) => /(^|\/)test\/|\.test\.(js|ts|mjs)$/.test(b.path));
   tambah("Uji", !logika.length || uji, !logika.length ? "Tidak ada logika backend baru" : uji ? "Ada uji untuk perubahan backend" : "Logika backend berubah tanpa berkas uji (peringatan)");
+  // CHANGELOG: fragmen changelog.d/<nama>.md (tidak konflik antar-PR); entri langsung di CHANGELOG.md tetap diterima.
+  const adaFragmen = berkas.some((b) => POLA_FRAGMEN.test(b.path) && b.status !== "D");
   const changelog = berkas.some((b) => b.path === "CHANGELOG.md");
-  tambah("CHANGELOG", changelog, changelog ? "Entri CHANGELOG ada" : "Tambahkan entri di CHANGELOG.md bagian [Belum dirilis]");
+  const sasaran = fragmen ?? "changelog.d/<nama-branch>.md";
+  tambah(
+    "CHANGELOG",
+    adaFragmen || changelog,
+    adaFragmen ? "Fragmen CHANGELOG ada" : changelog ? `Entri CHANGELOG.md ada (disarankan fragmen ${sasaran} agar tidak konflik)` : `Tulis catatan perubahan di ${sasaran} (bagian ### Ditambahkan/Diubah/Diperbaiki; lihat changelog.d/README.md)`,
+  );
 
-  // Peringatan (tidak menggagalkan): uji backend.
-  const wajib = temuan.filter((t) => t.cek !== "Uji");
+  // Peringatan (tidak menggagalkan): uji backend, urutan migrasi.
+  const wajib = temuan.filter((t) => !PERINGATAN.has(t.cek));
   return { lulus: wajib.every((t) => t.lulus), temuan };
 };
