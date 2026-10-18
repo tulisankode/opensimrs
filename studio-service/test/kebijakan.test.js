@@ -46,8 +46,12 @@ test("baris yang dihapus tidak diperiksa", () => {
 test("migrasi: lama diubah, nama, urutan, idempoten", () => {
   const lama = periksaKebijakan([{ path: "database/migrations/20260101000000-a.cjs", status: "M", patch: "+x" }, changelog]);
   assert.equal(cek(lama, "Migrasi").lulus, false);
+  // Tertinggal dari migrasi terakhir: hanya peringatan (Terapkan mengurutkan otomatis), gerbang tetap lulus.
   const urutan = periksaKebijakan([{ path: "database/migrations/20260101000000-b.cjs", status: "??", patch: "+CREATE TABLE IF NOT EXISTS t (id int);" }, changelog], { migrasiTerakhir: "20261015100000" });
-  assert.equal(cek(urutan, "Migrasi").lulus, false);
+  assert.equal(cek(urutan, "Migrasi").lulus, true);
+  assert.equal(cek(urutan, "Urutan migrasi").lulus, false);
+  assert.match(cek(urutan, "Urutan migrasi").pesan, /Terapkan/);
+  assert.equal(urutan.lulus, true);
   const tidakIdempoten = periksaKebijakan([{ path: "database/migrations/20261101000000-c.cjs", status: "??", patch: "+CREATE TABLE t (id int);" }, changelog], { migrasiTerakhir: "20261015100000" });
   assert.equal(cek(tidakIdempoten, "Migrasi").lulus, false);
   const baik = periksaKebijakan([{ path: "database/migrations/20261101000000-c.cjs", status: "??", patch: "+CREATE TABLE IF NOT EXISTS t (id int);\n+ALTER TABLE t ADD COLUMN IF NOT EXISTS n int;" }, changelog], { migrasiTerakhir: "20261015100000" });
@@ -116,4 +120,32 @@ test("kriptografi: menambah createCipheriv ke berkas lama ditolak; tanpa kriptog
   const h = periksaKebijakan([{ path: "lab-service/src/services/x.js", status: "M", patch: '+const c = crypto.createCipheriv("aes-256-gcm", k, iv);' }, changelog], { kriptoBaku: [RAHASIA_LIS] });
   assert.equal(cek(h, "Kriptografi").lulus, false);
   assert.equal(cek(periksaKebijakan([changelog]), "Kriptografi"), undefined);
+});
+
+test("migrasi: awalan yang dipesan item lain ditolak, awalan item sendiri lulus", () => {
+  const opsi = { migrasiTerakhir: "20261018140000", awalanMigrasi: "2026101816", awalanLain: [{ nomor: 31, awalan_migrasi: "2026101815" }] };
+  const bentrok = periksaKebijakan([{ path: "database/migrations/20261018150000-x.cjs", status: "??", patch: "+SELECT 1;" }, changelog], opsi);
+  assert.equal(cek(bentrok, "Migrasi").lulus, false);
+  assert.match(cek(bentrok, "Migrasi").pesan, /STD-0031.*2026101816MMSS/);
+  assert.equal(bentrok.lulus, false);
+  const milikSendiri = periksaKebijakan([{ path: "database/migrations/20261018160100-x.cjs", status: "??", patch: "+SELECT 1;" }, changelog], opsi);
+  assert.equal(milikSendiri.lulus, true);
+  assert.equal(cek(milikSendiri, "Urutan migrasi"), undefined);
+  // Tidak memakai awalan item (tetapi tidak bentrok): peringatan saja.
+  const lain = periksaKebijakan([{ path: "database/migrations/20261018170000-x.cjs", status: "??", patch: "+SELECT 1;" }, changelog], opsi);
+  assert.equal(lain.lulus, true);
+  assert.match(cek(lain, "Urutan migrasi").pesan, /awalan item 2026101816/);
+});
+
+test("CHANGELOG: fragmen changelog.d lulus, CHANGELOG.md lama tetap diterima, README bukan fragmen", () => {
+  const vue = { path: "frontend-service/src/a.vue", status: "M", patch: "+x" };
+  const fragmen = periksaKebijakan([vue, { path: "changelog.d/STD-0031.md", status: "??", patch: "+### Ditambahkan\n+- x" }], { fragmen: "changelog.d/STD-0031.md" });
+  assert.equal(cek(fragmen, "CHANGELOG").lulus, true);
+  assert.equal(fragmen.lulus, true);
+  const lama = periksaKebijakan([vue, changelog], { fragmen: "changelog.d/STD-0031.md" });
+  assert.equal(cek(lama, "CHANGELOG").lulus, true);
+  assert.match(cek(lama, "CHANGELOG").pesan, /changelog\.d\/STD-0031\.md/);
+  const readme = periksaKebijakan([vue, { path: "changelog.d/README.md", status: "M", patch: "+x" }], { fragmen: "changelog.d/STD-0031.md" });
+  assert.equal(cek(readme, "CHANGELOG").lulus, false);
+  assert.match(cek(readme, "CHANGELOG").pesan, /changelog\.d\/STD-0031\.md/);
 });

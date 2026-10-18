@@ -42,7 +42,7 @@ const LABEL: Record<string, string> = { "??": "baru", A: "baru", M: "ubah", D: "
       <div v-if="data" class="grid grid-cols-1 gap-1 md:grid-cols-2">
         <div v-for="t in data.kebijakan.temuan" :key="t.cek" class="flex items-start gap-1.5 text-XS">
           <PhCheckCircle v-if="t.lulus" :size="15" weight="fill" class="mt-[1px] shrink-0 text-success-300" aria-hidden="true" />
-          <PhWarningCircle v-else :size="15" weight="fill" class="mt-[1px] shrink-0" :class="t.cek === 'Uji' ? 'text-warning-300' : 'text-danger-300'" aria-hidden="true" />
+          <PhWarningCircle v-else :size="15" weight="fill" class="mt-[1px] shrink-0" :class="['Uji', 'Urutan migrasi'].includes(t.cek) ? 'text-warning-300' : 'text-danger-300'" aria-hidden="true" />
           <span><b class="text-grey-500">{{ t.cek }}:</b> <span class="text-grey-400">{{ t.pesan }}</span></span>
         </div>
       </div>
