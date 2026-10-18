@@ -7,12 +7,31 @@ import {
   hapusSep as bentukHapusSep,
   buatRencanaKontrol as bentukRencanaKontrol,
   ubahRencanaKontrol as bentukUbahRencanaKontrol,
-  hapusRencanaKontrol as bentukHapusRencanaKontrol,
+  hapusRencanaKontrol as bentukHapusSurat,
   buatSpri as bentukSpri,
   ubahSpri as bentukUbahSpri,
   keTanggalVclaim,
   JENIS_PELAYANAN,
+  JALUR_SURAT,
 } from "./vclaim-peta.js";
+import {
+  JENIS_SURAT,
+  BATAS_DIAJUKAN_DETIK,
+  tanggalLokal,
+  tanggalValid,
+  teksTanggal,
+  pastikanUuid,
+  statusPemantauan,
+  validasiBuatSurat,
+  validasiUbahSurat,
+  sidikPermintaan,
+  keputusanIdempotensi,
+  periksaBolehUbah,
+  caraNoSuratSep,
+  periksaSuratUntukSep,
+  validasiFilterDaftar,
+  pilihKandidatRekonsiliasi,
+} from "./vclaim-surat.js";
 import { enkripsi, dekripsi, samarkan } from "./rahasia.js";
 import { DataBelumLengkap } from "./pcare.js";
 
@@ -169,77 +188,120 @@ export const cariPasien = async (faskesUuid, noKartu) => {
 };
 
 // --- Rencana Kontrol & SPRI (STD-0021) ------------------------------------------------------------
-// Satu tabel bpjs_vclaim_surat untuk kedua jenis surat. VClaim adalah sumber nomor surat: no_surat tetap
-// NULL sampai status_operasi='terkonfirmasi'. idempotency_key mencegah pembuatan ganda saat permintaan
-// yang sama dicoba ulang (lihat desain teknis STD-0021, KF-7/KT-4).
+// Satu tabel bpjs_vclaim_surat untuk kedua jenis surat. VClaim adalah sumber nomor surat: no_surat tetap NULL sampai
+// status_operasi='terkonfirmasi'. Aturan murni (validasi, sidik, idempotensi, status, syarat SEP) ada di vclaim-surat.js.
+// Semua perubahan status memakai UPDATE bersyarat (klaim atomik) sehingga permintaan bersamaan tidak saling menimpa:
+// - buat  : INSERT ... ON CONFLICT (faskes, jenis, idempotency_key) DO NOTHING — hanya satu permintaan yang mengirim;
+// - ubah/hapus: terkonfirmasi & belum_dipakai → 'diajukan' selama VClaim dipanggil (SEP tidak bisa memakai surat itu);
+// - SEP   : belum_dipakai → dipakai sebelum SEP dikirim; dilepas kembali bila BPJS menolak SEP secara pasti.
 
-export const JENIS_SURAT = { RENCANA_KONTROL: "rencana_kontrol", SPRI: "spri" };
+export { JENIS_SURAT };
 
-const petaSurat = (b) =>
-  b && {
+const PILIH_SURAT = `SELECT *, to_char(tgl_rencana, 'YYYY-MM-DD') AS tgl_rencana_teks FROM bpjs_vclaim_surat`;
+const KEMBALI_SURAT = `RETURNING *, to_char(tgl_rencana, 'YYYY-MM-DD') AS tgl_rencana_teks`;
+const pesanGalat = (error) => String(error?.message || "Galat BPJS VClaim").slice(0, 500);
+// 422 = BPJS menolak secara pasti (metaData 201/validasi); selain itu (jaringan, 5xx, respons aneh) = hasil tidak pasti
+const gagalPasti = (error) => Number(error?.status) === 422;
+
+const petaSurat = (b) => {
+  if (!b) return b;
+  const tglRencana = b.tgl_rencana_teks ?? teksTanggal(b.tgl_rencana);
+  return {
     uuid: b.uuid,
     jenis: b.jenis,
     noSurat: b.no_surat,
     noKartu: b.no_kartu,
     noRm: b.no_rm,
     patientUuid: b.patient_uuid,
+    namaPasien: b.nama_pasien ?? null,
     sumber: b.sumber,
     sumberUuid: b.sumber_uuid,
     dpjp: b.dpjp,
+    namaDokter: b.respons?.namaDokter ?? null,
     poliTujuan: b.poli_tujuan,
-    tglRencana: b.tgl_rencana,
+    noSepAsal: b.no_sep_asal ?? null,
+    tglRencana,
     statusOperasi: b.status_operasi,
     statusPakai: b.status_pakai,
-    status: statusPemantauan(b),
+    status: statusPemantauan({ ...b, tgl_rencana_teks: tglRencana }),
+    operasiTerakhir: b.operasi_terakhir ?? null,
     simulasi: b.simulasi,
     pesanGalat: b.pesan_galat,
     sepNoSep: b.sep_no_sep,
     dibuatOleh: b.dibuat_oleh,
+    diubahOleh: b.diubah_oleh,
     createdAt: Number(b.created_at),
     updatedAt: Number(b.updated_at),
     deletedAt: b.deleted_at != null ? Number(b.deleted_at) : null,
   };
-
-// Status ringkas untuk pemantauan (KF-10): dihapus > tidak_pasti/gagal/diajukan > digunakan > jatuh_tempo > aktif
-const statusPemantauan = (b) => {
-  if (b.deleted_at) return "dihapus";
-  if (b.status_operasi !== "terkonfirmasi") return b.status_operasi; // diajukan | gagal | tidak_pasti
-  if (b.status_pakai === "dipakai") return "digunakan";
-  if (b.tgl_rencana && new Date(b.tgl_rencana).getTime() < Date.now()) return "jatuh_tempo";
-  return "aktif";
 };
 
-// Membuat surat (POST): cek idempotency_key sebelum memanggil VClaim agar permintaan berulang tidak
-// membuat surat ganda. jalurVclaim/buatPermintaan/ambilNoSurat berbeda untuk Rencana Kontrol dan SPRI.
-const buatSurat = async ({ faskesUuid, pengguna, jenis, kolom, buatPermintaan, jalurVclaim, ambilNoSurat }) => {
-  if (!kolom.idempotencyKey) throw new DataBelumLengkap("Kunci idempotensi wajib diisi");
-  const k = await kredensialSiap(faskesUuid);
-  let baris = await satu(
-    `SELECT * FROM bpjs_vclaim_surat WHERE faskes_uuid = $1 AND jenis = $2 AND idempotency_key = $3`,
-    [faskesUuid, jenis, kolom.idempotencyKey]
-  );
-  if (baris?.no_surat) return petaSurat(baris); // sudah terkonfirmasi sebelumnya: kembalikan hasil yang sama, jangan kirim ulang
-  if (baris && baris.status_operasi === "tidak_pasti") {
+// Operasi Rencana Kontrol/SPRI di luar mode mock ditolak SEBELUM koneksi keluar sampai jalur & payload VClaim
+// diverifikasi (config.vclaimRenkonDikonfirmasi) — pola sama dengan MCU PCare (config.mcuPcareDikonfirmasi).
+export const pastikanModeSurat = () => {
+  if (config.mode !== "mock" && !config.vclaimRenkonDikonfirmasi) {
     throw new GalatBpjs(
-      "Hasil permintaan sebelumnya dengan kunci idempotensi ini belum dapat dipastikan; periksa status surat di VClaim sebelum mencoba lagi",
-      409,
-      { uuid: baris.uuid }
+      "Jalur & payload Rencana Kontrol/SPRI VClaim belum diverifikasi ke katalog resmi BPJS — operasi nyata belum diaktifkan " +
+        "(BPJS_VCLAIM_RENKON_DIKONFIRMASI). Mode mock tetap tersedia untuk uji coba.",
+      422
     );
   }
+};
 
-  const permintaan = buatPermintaan(k);
-  const t0 = sekarang();
+// Pasien wajib milik faskes ini; kunjungan asal (bila diisi) wajib milik pasien yang sama. No. RM diambil dari pasien.
+const lengkapiPasien = async (faskesUuid, kolom) => {
+  const pasien = await satu(`SELECT uuid, no_rm FROM patients WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [
+    kolom.patientUuid, faskesUuid,
+  ]);
+  if (!pasien) throw new GalatBpjs("Pasien tidak ditemukan di faskes ini", 422);
+  kolom.noRm = pasien.no_rm ?? kolom.noRm;
+  if (kolom.sumberUuid) {
+    const tabel = { rawat_jalan: "rawat_jalans", rawat_inap: "rawat_inaps", igd: "instalasi_gawat_darurats" }[kolom.sumber];
+    const kunjungan = await satu(`SELECT uuid FROM ${tabel} WHERE uuid = $1 AND faskes_uuid = $2 AND patient_uuid = $3 AND deleted_at IS NULL`, [
+      kolom.sumberUuid, faskesUuid, kolom.patientUuid,
+    ]);
+    if (!kunjungan) throw new GalatBpjs("Kunjungan asal tidak ditemukan atau bukan milik pasien ini", 422);
+  }
+  return kolom;
+};
+
+// Membuat surat (POST) dengan idempotensi atomik per (faskes, jenis, idempotency_key) dan sidik isi permintaan.
+const buatSurat = async ({ faskesUuid, pengguna, jenis, data, buatPermintaan, jalurVclaim, ambilNoSurat }) => {
+  const kolom = validasiBuatSurat(jenis, data);
+  pastikanModeSurat();
+  const k = await kredensialSiap(faskesUuid);
+  await lengkapiPasien(faskesUuid, kolom);
+  const sidik = sidikPermintaan(jenis, kolom);
+  const permintaan = buatPermintaan(kolom, pengguna);
+  const isi = [
+    kolom.noKartu, kolom.noRm || null, kolom.patientUuid, kolom.sumber, kolom.sumberUuid || null, kolom.dpjp,
+    kolom.poliTujuan || null, kolom.tglRencana, kolom.noSepAsal || null, config.mode === "mock", sidik, JSON.stringify(permintaan), pengguna,
+  ];
+
+  let baris = await satu(
+    `INSERT INTO bpjs_vclaim_surat (faskes_uuid, jenis, idempotency_key, no_kartu, no_rm, patient_uuid, sumber, sumber_uuid, dpjp,
+       poli_tujuan, tgl_rencana, no_sep_asal, simulasi, sidik, permintaan, dibuat_oleh, status_operasi, status_pakai, operasi_terakhir,
+       created_at, updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'diajukan','belum_dipakai','buat',$17,$17)
+     ON CONFLICT (faskes_uuid, jenis, idempotency_key) DO NOTHING ${KEMBALI_SURAT}`,
+    [faskesUuid, jenis, kolom.idempotencyKey, ...isi, sekarang()]
+  );
+
   if (!baris) {
+    const ada = await satu(`${PILIH_SURAT} WHERE faskes_uuid = $1 AND jenis = $2 AND idempotency_key = $3`, [faskesUuid, jenis, kolom.idempotencyKey]);
+    if (!ada) throw new GalatBpjs("Permintaan bentrok dengan permintaan lain; coba lagi", 409);
+    const keputusan = keputusanIdempotensi(ada, sidik);
+    if (keputusan.kembalikan) return { ...petaSurat(ada), diulang: true }; // sudah terkonfirmasi: hasil sama, tanpa memanggil VClaim
+    if (keputusan.tolak) throw new GalatBpjs(keputusan.pesan, keputusan.tolak, { uuid: ada.uuid, statusOperasi: ada.status_operasi });
+    // Ulang setelah 'gagal': klaim ulang atomik sekaligus memperbarui kolom dengan isi permintaan yang baru
     baris = await satu(
-      `INSERT INTO bpjs_vclaim_surat (faskes_uuid, jenis, no_kartu, no_rm, patient_uuid, sumber, sumber_uuid, dpjp, poli_tujuan,
-         tgl_rencana, status_operasi, status_pakai, simulasi, idempotency_key, permintaan, dibuat_oleh, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'diajukan','belum_dipakai',$11,$12,$13,$14,$15,$15) RETURNING *`,
-      [
-        faskesUuid, jenis, kolom.noKartu, kolom.noRm || null, kolom.patientUuid || null, kolom.sumber || null, kolom.sumberUuid || null,
-        kolom.dpjp || null, kolom.poliTujuan || null, kolom.tglRencana ? keTanggalVclaim(kolom.tglRencana) : null,
-        config.mode === "mock", kolom.idempotencyKey, JSON.stringify(permintaan), pengguna, t0,
-      ]
+      `UPDATE bpjs_vclaim_surat SET no_kartu = $2, no_rm = $3, patient_uuid = $4, sumber = $5, sumber_uuid = $6, dpjp = $7, poli_tujuan = $8,
+         tgl_rencana = $9, no_sep_asal = $10, simulasi = $11, sidik = $12, permintaan = $13, dibuat_oleh = $14, status_operasi = 'diajukan',
+         operasi_terakhir = 'buat', pesan_galat = NULL, respons = NULL, updated_at = $15
+       WHERE id = $1 AND status_operasi = 'gagal' AND no_surat IS NULL ${KEMBALI_SURAT}`,
+      [ada.id, ...isi, sekarang()]
     );
+    if (!baris) throw new GalatBpjs("Permintaan dengan kunci idempotensi ini sedang diproses", 409, { uuid: ada.uuid });
   }
 
   try {
@@ -247,210 +309,330 @@ const buatSurat = async ({ faskesUuid, pengguna, jenis, kolom, buatPermintaan, j
     const noSurat = ambilNoSurat(response);
     if (!noSurat) throw new GalatBpjs("BPJS tidak mengembalikan nomor surat", 502, response);
     const diperbarui = await satu(
-      `UPDATE bpjs_vclaim_surat SET no_surat = $2, status_operasi = 'terkonfirmasi', respons = $3, permintaan = $4,
-         pesan_galat = NULL, updated_at = $5 WHERE id = $1 RETURNING *`,
-      [baris.id, noSurat, JSON.stringify(response), JSON.stringify(permintaan), sekarang()]
+      `UPDATE bpjs_vclaim_surat SET no_surat = $2, status_operasi = 'terkonfirmasi', respons = $3, pesan_galat = NULL, updated_at = $4
+       WHERE id = $1 ${KEMBALI_SURAT}`,
+      [baris.id, noSurat, JSON.stringify(response), sekarang()]
     );
     return petaSurat(diperbarui);
   } catch (error) {
-    const statusOperasi = Number(error.status) === 422 ? "gagal" : "tidak_pasti";
-    await query(`UPDATE bpjs_vclaim_surat SET status_operasi = $2, pesan_galat = $3, permintaan = $4, updated_at = $5 WHERE id = $1`, [
-      baris.id, statusOperasi, String(error.message || "Galat BPJS VClaim").slice(0, 500), JSON.stringify(permintaan), sekarang(),
+    await query(`UPDATE bpjs_vclaim_surat SET status_operasi = $2, pesan_galat = $3, updated_at = $4 WHERE id = $1`, [
+      baris.id, gagalPasti(error) ? "gagal" : "tidak_pasti", pesanGalat(error), sekarang(),
     ]);
     throw error;
   }
 };
 
-// Mengubah surat yang sudah terkonfirmasi (PUT). Kegagalan validasi BPJS (422) tidak mengubah status surat
-// lama (surat lama tetap berlaku); kegagalan jaringan/ambigu (G10) menandai 'tidak_pasti' untuk rekonsiliasi.
-const ubahSurat = async ({ faskesUuid, pengguna, jenis, uuid, buatPermintaan, jalurVclaim, ambilNoSurat, kolomBaru }) => {
-  const baris = await satu(`SELECT * FROM bpjs_vclaim_surat WHERE faskes_uuid = $1 AND uuid = $2 AND jenis = $3 AND deleted_at IS NULL`, [
-    faskesUuid, uuid, jenis,
-  ]);
+const ambilSuratAktif = async (faskesUuid, jenis, uuid) => {
+  const baris = await satu(`${PILIH_SURAT} WHERE faskes_uuid = $1 AND uuid = $2 AND jenis = $3`, [faskesUuid, pastikanUuid(uuid), jenis]);
   if (!baris) throw new GalatBpjs("Surat tidak ditemukan", 404);
-  if (!baris.no_surat) throw new DataBelumLengkap("Surat belum terkonfirmasi BPJS; tidak dapat diubah");
+  return baris;
+};
+
+// Klaim atomik ubah/hapus: hanya surat terkonfirmasi yang belum dipakai SEP. Selama VClaim dipanggil status menjadi
+// 'diajukan' sehingga SEP, ubah, atau hapus lain yang bersamaan tidak dapat memakai surat ini.
+const klaimUbah = async (baris, operasi) => {
+  periksaBolehUbah(baris, operasi === "hapus" ? "dihapus" : "diubah");
+  if (baris.simulasi && config.mode !== "mock") throw new GalatBpjs("Surat simulasi (mode mock) tidak dapat diubah/dihapus di mode nyata", 409);
+  const diklaim = await satu(
+    `UPDATE bpjs_vclaim_surat SET status_operasi = 'diajukan', operasi_terakhir = $2, updated_at = $3
+     WHERE id = $1 AND status_operasi = 'terkonfirmasi' AND status_pakai = 'belum_dipakai' AND deleted_at IS NULL ${KEMBALI_SURAT}`,
+    [baris.id, operasi, sekarang()]
+  );
+  if (!diklaim) throw new GalatBpjs("Surat sedang diproses atau sudah dipakai SEP; muat ulang lalu coba lagi", 409);
+  return diklaim;
+};
+
+// Kegagalan ubah/hapus: penolakan pasti BPJS mengembalikan status 'terkonfirmasi' (surat lama tetap berlaku);
+// kegagalan jaringan/ambigu menandai 'tidak_pasti' untuk direkonsiliasi lewat "Cek status di VClaim".
+const kembalikanKlaim = (baris, error, keterangan) =>
+  query(`UPDATE bpjs_vclaim_surat SET status_operasi = $2, pesan_galat = $3, updated_at = $4 WHERE id = $1`, [
+    baris.id, gagalPasti(error) ? "terkonfirmasi" : "tidak_pasti", `${keterangan}: ${pesanGalat(error)}`.slice(0, 500), sekarang(),
+  ]);
+
+// Mengubah surat (PUT): hanya untuk surat terkonfirmasi & belum dipakai; sukses → kembali 'terkonfirmasi'.
+const ubahSurat = async ({ faskesUuid, pengguna, jenis, uuid, data, buatPermintaan, jalurVclaim, ambilNoSurat }) => {
+  const perubahan = validasiUbahSurat(jenis, data);
+  pastikanModeSurat();
+  const lama = await ambilSuratAktif(faskesUuid, jenis, uuid);
+  if (lama.deleted_at) throw new GalatBpjs("Surat sudah dihapus", 409);
   const k = await kredensialSiap(faskesUuid);
-  const permintaan = buatPermintaan(baris);
+  const baris = await klaimUbah(lama, "ubah");
+  const baru = {
+    dpjp: perubahan.dpjp ?? baris.dpjp,
+    poliTujuan: perubahan.poliTujuan ?? baris.poli_tujuan,
+    tglRencana: perubahan.tglRencana ?? baris.tgl_rencana_teks,
+  };
+  const permintaan = buatPermintaan(baris, baru, pengguna);
   try {
     const { response } = await vclaim(k, "PUT", jalurVclaim, permintaan);
-    const noSuratBaru = ambilNoSurat(response) || baris.no_surat;
-    const kolom = kolomBaru(baris);
     const diperbarui = await satu(
-      `UPDATE bpjs_vclaim_surat SET no_surat = $2, dpjp = COALESCE($3, dpjp), poli_tujuan = COALESCE($4, poli_tujuan),
-         tgl_rencana = COALESCE($5, tgl_rencana), respons = $6, permintaan = $7, pesan_galat = NULL, diubah_oleh = $8,
-         updated_at = $9 WHERE id = $1 RETURNING *`,
+      `UPDATE bpjs_vclaim_surat SET no_surat = $2, dpjp = $3, poli_tujuan = $4, tgl_rencana = $5, status_operasi = 'terkonfirmasi',
+         respons = $6, permintaan = $7, pesan_galat = NULL, diubah_oleh = $8, updated_at = $9
+       WHERE id = $1 ${KEMBALI_SURAT}`,
       [
-        baris.id, noSuratBaru, kolom.dpjp ?? null, kolom.poliTujuan ?? null,
-        kolom.tglRencana ? keTanggalVclaim(kolom.tglRencana) : null, JSON.stringify(response), JSON.stringify(permintaan), pengguna, sekarang(),
+        baris.id, ambilNoSurat(response) || baris.no_surat, baru.dpjp, baru.poliTujuan, baru.tglRencana,
+        JSON.stringify(response), JSON.stringify(permintaan), pengguna, sekarang(),
       ]
     );
     return petaSurat(diperbarui);
   } catch (error) {
-    if (Number(error.status) !== 422) {
-      await query(`UPDATE bpjs_vclaim_surat SET status_operasi = 'tidak_pasti', pesan_galat = $2, updated_at = $3 WHERE id = $1`, [
-        baris.id, String(error.message || "Galat BPJS VClaim").slice(0, 500), sekarang(),
-      ]);
-    }
+    await kembalikanKlaim(baris, error, "Perubahan surat gagal");
     throw error;
   }
 };
 
-const daftarSurat = async (faskesUuid, jenis, { page = 1, limit = 10, noSurat = "", noKartu = "", dari = "", sampai = "" }) => {
+// Menghapus surat (DELETE): hanya untuk surat terkonfirmasi & belum dipakai SEP; sudah dihapus = idempoten.
+const hapusSurat = async ({ faskesUuid, pengguna, jenis, uuid }) => {
+  const lama = await ambilSuratAktif(faskesUuid, jenis, uuid);
+  if (lama.deleted_at) return petaSurat(lama);
+  pastikanModeSurat();
+  const k = await kredensialSiap(faskesUuid);
+  const baris = await klaimUbah(lama, "hapus");
+  try {
+    await vclaim(k, "DELETE", JALUR_SURAT.HAPUS, bentukHapusSurat({ noSuratKontrol: baris.no_surat, user: pengguna }));
+  } catch (error) {
+    await kembalikanKlaim(baris, error, "Penghapusan surat gagal");
+    throw error;
+  }
+  const t0 = sekarang();
+  const diperbarui = await satu(
+    `UPDATE bpjs_vclaim_surat SET status_operasi = 'dihapus', pesan_galat = NULL, dihapus_oleh = $2, deleted_at = $3, updated_at = $3
+     WHERE id = $1 ${KEMBALI_SURAT}`,
+    [baris.id, pengguna, t0]
+  );
+  return petaSurat(diperbarui);
+};
+
+/**
+ * Rekonsiliasi surat berstatus 'tidak_pasti' (atau 'diajukan' yang macet > BATAS_DIAJUKAN_DETIK) — "Cek status di VClaim".
+ * - Sudah bernomor (ubah/hapus tidak pasti): cari nomor surat di VClaim → selaraskan isi, atau tandai dihapus bila
+ *   surat tidak ada lagi.
+ * - Belum bernomor (buat tidak pasti): cari daftar surat peserta pada bulan tanggal rencana → satu kandidat cocok =
+ *   terkonfirmasi; tidak ada = 'gagal' (aman diulang dengan kunci yang sama); beberapa = operator memilih noSurat.
+ */
+const rekonsiliasiSurat = async ({ faskesUuid, pengguna, jenis, uuid, data }) => {
+  const baris = await ambilSuratAktif(faskesUuid, jenis, uuid);
+  const macet = baris.status_operasi === "diajukan" && sekarang() - Number(baris.updated_at) > BATAS_DIAJUKAN_DETIK;
+  if (baris.deleted_at || (baris.status_operasi !== "tidak_pasti" && !macet)) {
+    throw new GalatBpjs(
+      `Cek status hanya untuk surat berstatus tidak pasti atau diajukan lebih dari ${BATAS_DIAJUKAN_DETIK / 60} menit (status sekarang: ${statusPemantauan(baris)})`,
+      409
+    );
+  }
+  pastikanModeSurat();
+  const k = await kredensialSiap(faskesUuid);
+  const ambil = async (jalur) => {
+    try {
+      return (await vclaim(k, "GET", jalur)).response;
+    } catch (error) {
+      if (gagalPasti(error)) return null; // "data tidak ditemukan"
+      throw error;
+    }
+  };
+  // Pembaruan bersyarat: hanya bila status belum diubah permintaan lain sejak dibaca
+  const selaraskan = (set, nilai) =>
+    satu(
+      `UPDATE bpjs_vclaim_surat SET ${set}, updated_at = $3 WHERE id = $1 AND status_operasi = $2 AND deleted_at IS NULL ${KEMBALI_SURAT}`,
+      [baris.id, baris.status_operasi, sekarang(), ...nilai]
+    );
+
+  let hasil;
+  let kandidat = [];
+  if (baris.no_surat) {
+    const surat = await ambil(JALUR_SURAT.cariNomor(baris.no_surat));
+    if (!surat) {
+      hasil = await selaraskan(`status_operasi = 'dihapus', pesan_galat = $4, dihapus_oleh = $5, deleted_at = $3`, [
+        baris.operasi_terakhir === "hapus" ? null : "Surat tidak ditemukan lagi di VClaim saat cek status", pengguna,
+      ]);
+    } else {
+      hasil = await selaraskan(
+        `status_operasi = 'terkonfirmasi', pesan_galat = NULL, dpjp = COALESCE($4, dpjp), poli_tujuan = COALESCE($5, poli_tujuan),
+         tgl_rencana = COALESCE($6::date, tgl_rencana), respons = $7`,
+        [surat.kodeDokter || null, surat.poliTujuan || null, tanggalValid(surat.tglRencanaKontrol) ? surat.tglRencanaKontrol : null, JSON.stringify(surat)]
+      );
+    }
+  } else {
+    const [tahun, bulan] = String(baris.tgl_rencana_teks ?? "").split("-");
+    const daftar = (await ambil(JALUR_SURAT.daftarPeserta(bulan, tahun, baris.no_kartu)))?.list ?? [];
+    const nomor = daftar.map((x) => x?.noSuratKontrol).filter(Boolean);
+    const terpakai = nomor.length
+      ? new Set((await query(`SELECT no_surat FROM bpjs_vclaim_surat WHERE faskes_uuid = $1 AND no_surat = ANY($2)`, [faskesUuid, nomor])).map((r) => r.no_surat))
+      : new Set();
+    const pilihan = pilihKandidatRekonsiliasi(daftar, baris, terpakai, data?.noSurat ? String(data.noSurat) : null);
+    kandidat = pilihan.kandidat;
+    if (pilihan.terpilih) {
+      hasil = await selaraskan(`status_operasi = 'terkonfirmasi', no_surat = $4, respons = $5, pesan_galat = NULL`, [
+        pilihan.terpilih.noSuratKontrol, JSON.stringify(pilihan.terpilih),
+      ]);
+    } else if (!kandidat.length) {
+      hasil = await selaraskan(`status_operasi = 'gagal', pesan_galat = $4`, [
+        "Surat tidak ditemukan di VClaim saat cek status; aman untuk mencoba lagi dengan kunci idempotensi yang sama",
+      ]);
+    } else {
+      hasil = await selaraskan(`pesan_galat = $4`, [`Ditemukan ${kandidat.length} surat yang cocok di VClaim; pilih nomor surat yang benar`]);
+    }
+  }
+  if (!hasil) throw new GalatBpjs("Status surat berubah oleh permintaan lain; muat ulang lalu coba lagi", 409);
+  return {
+    ...petaSurat(hasil),
+    kandidat: kandidat.map((x) => ({
+      noSurat: x.noSuratKontrol, tglRencana: x.tglRencanaKontrol, kodeDokter: x.kodeDokter, namaDokter: x.namaDokter, poliTujuan: x.poliTujuan,
+    })),
+  };
+};
+
+const daftarSurat = async (faskesUuid, jenis, q) => {
+  const f = validasiFilterDaftar(q);
+  const hariIni = tanggalLokal();
   const nilai = [faskesUuid, jenis];
-  const kondisi = ["faskes_uuid = $1", "jenis = $2", "deleted_at IS NULL"];
-  if (noSurat) {
-    nilai.push(`%${noSurat}%`);
-    kondisi.push(`no_surat ILIKE $${nilai.length}`);
+  const kondisi = ["s.faskes_uuid = $1", "s.jenis = $2"];
+  const tambah = (sql, v) => {
+    nilai.push(v);
+    kondisi.push(sql.replaceAll("?", `$${nilai.length}`));
+  };
+  if (f.noSurat) tambah("s.no_surat ILIKE ?", `%${f.noSurat}%`);
+  if (f.noKartu) tambah("s.no_kartu ILIKE ?", `%${f.noKartu}%`);
+  if (f.q) tambah("(s.no_surat ILIKE ? OR s.no_kartu ILIKE ? OR s.no_rm ILIKE ? OR p.name ILIKE ?)", `%${f.q}%`);
+  if (f.patientUuid) tambah("s.patient_uuid = ?", f.patientUuid);
+  if (f.sumberUuid) tambah("s.sumber_uuid = ?", f.sumberUuid);
+  if (f.dari) tambah("s.tgl_rencana >= ?::date", f.dari);
+  if (f.sampai) tambah("s.tgl_rencana <= ?::date", f.sampai);
+  if (f.status === "dihapus") kondisi.push("s.deleted_at IS NOT NULL");
+  else kondisi.push("s.deleted_at IS NULL");
+  if (["diajukan", "gagal", "tidak_pasti"].includes(f.status)) tambah("s.status_operasi = ?", f.status);
+  if (f.status === "digunakan") kondisi.push("s.status_operasi = 'terkonfirmasi'", "s.status_pakai = 'dipakai'");
+  if (f.status === "aktif" || f.status === "jatuh_tempo") {
+    kondisi.push("s.status_operasi = 'terkonfirmasi'", "s.status_pakai = 'belum_dipakai'");
+    tambah(f.status === "aktif" ? "s.tgl_rencana >= ?::date" : "s.tgl_rencana < ?::date", hariIni);
   }
-  if (noKartu) {
-    nilai.push(`%${noKartu}%`);
-    kondisi.push(`no_kartu ILIKE $${nilai.length}`);
-  }
-  if (dari) {
-    nilai.push(dari);
-    kondisi.push(`tgl_rencana >= $${nilai.length}::date`);
-  }
-  if (sampai) {
-    nilai.push(sampai);
-    kondisi.push(`tgl_rencana <= $${nilai.length}::date`);
-  }
-  const batas = Math.min(100, Math.max(1, Number(limit) || 10));
-  const halaman = Math.max(1, Number(page) || 1);
-  const dariTabel = `FROM bpjs_vclaim_surat WHERE ${kondisi.join(" AND ")}`;
+  const dariTabel = `FROM bpjs_vclaim_surat s LEFT JOIN patients p ON p.uuid = s.patient_uuid WHERE ${kondisi.join(" AND ")}`;
   const [total, baris] = await Promise.all([
     satu(`SELECT COUNT(*)::int AS total ${dariTabel}`, nilai),
-    query(`SELECT * ${dariTabel} ORDER BY created_at DESC LIMIT ${batas} OFFSET ${(halaman - 1) * batas}`, nilai),
+    query(
+      `SELECT s.*, to_char(s.tgl_rencana, 'YYYY-MM-DD') AS tgl_rencana_teks, p.name AS nama_pasien
+       ${dariTabel} ORDER BY s.created_at DESC LIMIT ${f.limit} OFFSET ${(f.page - 1) * f.limit}`,
+      nilai
+    ),
   ]);
-  return { data: baris.map(petaSurat), pagination: { page: halaman, limit: batas, total: total?.total ?? 0 } };
+  return { data: baris.map(petaSurat), pagination: { page: f.page, limit: f.limit, total: total?.total ?? 0 } };
 };
 
 const detailSurat = async (faskesUuid, jenis, uuid) => {
-  const baris = await satu(`SELECT * FROM bpjs_vclaim_surat WHERE faskes_uuid = $1 AND jenis = $2 AND uuid = $3`, [faskesUuid, jenis, uuid]);
+  const baris = await satu(
+    `SELECT s.*, to_char(s.tgl_rencana, 'YYYY-MM-DD') AS tgl_rencana_teks, p.name AS nama_pasien
+     FROM bpjs_vclaim_surat s LEFT JOIN patients p ON p.uuid = s.patient_uuid
+     WHERE s.faskes_uuid = $1 AND s.jenis = $2 AND s.uuid = $3`,
+    [faskesUuid, jenis, pastikanUuid(uuid)]
+  );
   if (!baris) throw new GalatBpjs("Surat tidak ditemukan", 404);
   return petaSurat(baris);
 };
 
 // --- Rencana Kontrol -------------------------------------------------------------------------------
 
-export const buatRencanaKontrol = (faskesUuid, pengguna, data) => {
-  const wajib = { noKartu: "Nomor kartu", dpjp: "Kode dokter DPJP BPJS", poliTujuan: "Poli tujuan", tglRencana: "Tanggal rencana kontrol" };
-  for (const [f, nama] of Object.entries(wajib)) if (!data?.[f]) throw new DataBelumLengkap(`${nama} wajib diisi`);
-  const noKartu = String(data.noKartu).replace(/\D/g, "");
-  return buatSurat({
-    faskesUuid, pengguna, jenis: JENIS_SURAT.RENCANA_KONTROL,
-    kolom: { ...data, noKartu },
-    buatPermintaan: () =>
-      bentukRencanaKontrol({ noKartu, kodeDokter: data.dpjp, poliKontrol: data.poliTujuan, tglRencanaKontrol: data.tglRencana, user: pengguna }),
-    jalurVclaim: "/RencanaKontrol/insert",
-    ambilNoSurat: (r) => r?.noSuratKontrol,
+const RK = JENIS_SURAT.RENCANA_KONTROL;
+const noSuratRk = (r) => r?.noSuratKontrol;
+
+export const buatRencanaKontrol = (faskesUuid, pengguna, data) =>
+  buatSurat({
+    faskesUuid, pengguna, jenis: RK, data,
+    buatPermintaan: (kolom, user) =>
+      bentukRencanaKontrol({
+        noKartu: kolom.noKartu, noSep: kolom.noSepAsal, kodeDokter: kolom.dpjp, poliKontrol: kolom.poliTujuan, tglRencanaKontrol: kolom.tglRencana, user,
+      }),
+    jalurVclaim: JALUR_SURAT.RENCANA_KONTROL_BUAT,
+    ambilNoSurat: noSuratRk,
   });
-};
 
 export const ubahRencanaKontrol = (faskesUuid, pengguna, uuid, data) =>
   ubahSurat({
-    faskesUuid, pengguna, jenis: JENIS_SURAT.RENCANA_KONTROL, uuid,
-    buatPermintaan: (baris) =>
+    faskesUuid, pengguna, jenis: RK, uuid, data,
+    buatPermintaan: (baris, baru, user) =>
       bentukUbahRencanaKontrol({
-        noSuratKontrol: baris.no_surat,
-        noKartu: baris.no_kartu,
-        kodeDokter: data.dpjp || baris.dpjp,
-        poliKontrol: data.poliTujuan || baris.poli_tujuan,
-        tglRencanaKontrol: data.tglRencana || baris.tgl_rencana,
-        user: pengguna,
+        noSuratKontrol: baris.no_surat, noKartu: baris.no_kartu, noSep: baris.no_sep_asal, kodeDokter: baru.dpjp, poliKontrol: baru.poliTujuan,
+        tglRencanaKontrol: baru.tglRencana, user,
       }),
-    jalurVclaim: "/RencanaKontrol/update",
-    ambilNoSurat: (r) => r?.noSuratKontrol,
-    kolomBaru: () => ({ dpjp: data.dpjp, poliTujuan: data.poliTujuan, tglRencana: data.tglRencana }),
+    jalurVclaim: JALUR_SURAT.RENCANA_KONTROL_UBAH,
+    ambilNoSurat: noSuratRk,
   });
 
-export const hapusRencanaKontrol = async (faskesUuid, pengguna, uuid) => {
-  const baris = await satu(`SELECT * FROM bpjs_vclaim_surat WHERE faskes_uuid = $1 AND uuid = $2 AND jenis = $3`, [
-    faskesUuid, uuid, JENIS_SURAT.RENCANA_KONTROL,
-  ]);
-  if (!baris) throw new GalatBpjs("Rencana Kontrol tidak ditemukan", 404);
-  if (baris.deleted_at) return petaSurat(baris); // sudah dihapus - idempoten
-  if (!baris.no_surat) throw new GalatBpjs("Rencana Kontrol belum terkonfirmasi BPJS; tidak dapat dihapus", 422);
-  const k = await kredensialSiap(faskesUuid);
-  await vclaim(k, "DELETE", "/RencanaKontrol/delete", bentukHapusRencanaKontrol({ noSuratKontrol: baris.no_surat, user: pengguna }));
-  const t0 = sekarang();
-  const diperbarui = await satu(
-    `UPDATE bpjs_vclaim_surat SET status_operasi = 'dihapus', dihapus_oleh = $2, deleted_at = $3, updated_at = $3 WHERE id = $1 RETURNING *`,
-    [baris.id, pengguna, t0]
-  );
-  return petaSurat(diperbarui);
-};
-
-export const daftarRencanaKontrol = (faskesUuid, q) => daftarSurat(faskesUuid, JENIS_SURAT.RENCANA_KONTROL, q);
-export const detailRencanaKontrol = (faskesUuid, uuid) => detailSurat(faskesUuid, JENIS_SURAT.RENCANA_KONTROL, uuid);
+export const hapusRencanaKontrol = (faskesUuid, pengguna, uuid) => hapusSurat({ faskesUuid, pengguna, jenis: RK, uuid });
+export const cekStatusRencanaKontrol = (faskesUuid, pengguna, uuid, data) => rekonsiliasiSurat({ faskesUuid, pengguna, jenis: RK, uuid, data });
+export const daftarRencanaKontrol = (faskesUuid, q) => daftarSurat(faskesUuid, RK, q);
+export const detailRencanaKontrol = (faskesUuid, uuid) => detailSurat(faskesUuid, RK, uuid);
 
 // --- SPRI (Surat Perintah Rawat Inap) --------------------------------------------------------------
 
-export const buatSpri = (faskesUuid, pengguna, data) => {
-  const wajib = { noKartu: "Nomor kartu", tglRencana: "Tanggal rencana rawat inap" };
-  for (const [f, nama] of Object.entries(wajib)) if (!data?.[f]) throw new DataBelumLengkap(`${nama} wajib diisi`);
-  const noKartu = String(data.noKartu).replace(/\D/g, "");
-  return buatSurat({
-    faskesUuid, pengguna, jenis: JENIS_SURAT.SPRI,
-    kolom: { ...data, noKartu },
-    buatPermintaan: () => bentukSpri({ noKartu, tglRencana: data.tglRencana, user: pengguna }),
-    jalurVclaim: "/SPRI/insert",
-    ambilNoSurat: (r) => r?.noSuratSPRI,
+const SPRI = JENIS_SURAT.SPRI;
+const noSuratSpri = (r) => r?.noSuratSPRI ?? r?.noSPRI;
+
+export const buatSpri = (faskesUuid, pengguna, data) =>
+  buatSurat({
+    faskesUuid, pengguna, jenis: SPRI, data,
+    buatPermintaan: (kolom, user) =>
+      bentukSpri({ noKartu: kolom.noKartu, kodeDokter: kolom.dpjp, poliKontrol: kolom.poliTujuan, tglRencana: kolom.tglRencana, user }),
+    jalurVclaim: JALUR_SURAT.SPRI_BUAT,
+    ambilNoSurat: noSuratSpri,
   });
-};
 
 export const ubahSpri = (faskesUuid, pengguna, uuid, data) =>
   ubahSurat({
-    faskesUuid, pengguna, jenis: JENIS_SURAT.SPRI, uuid,
-    buatPermintaan: (baris) =>
-      bentukUbahSpri({ noSuratSPRI: baris.no_surat, noKartu: baris.no_kartu, tglRencana: data.tglRencana || baris.tgl_rencana, user: pengguna }),
-    jalurVclaim: "/SPRI/update",
-    ambilNoSurat: (r) => r?.noSuratSPRI,
-    kolomBaru: () => ({ tglRencana: data.tglRencana }),
+    faskesUuid, pengguna, jenis: SPRI, uuid, data,
+    buatPermintaan: (baris, baru, user) =>
+      bentukUbahSpri({
+        noSuratSPRI: baris.no_surat, noKartu: baris.no_kartu, kodeDokter: baru.dpjp, poliKontrol: baru.poliTujuan, tglRencana: baru.tglRencana, user,
+      }),
+    jalurVclaim: JALUR_SURAT.SPRI_UBAH,
+    ambilNoSurat: noSuratSpri,
   });
 
-export const daftarSpri = (faskesUuid, q) => daftarSurat(faskesUuid, JENIS_SURAT.SPRI, q);
-export const detailSpri = (faskesUuid, uuid) => detailSurat(faskesUuid, JENIS_SURAT.SPRI, uuid);
-
-// Dipakai pendaftaran/SEP (KF-8): validasi surat sebelum nomornya dipakai mengisi noSuratKontrol.
-// Mengembalikan baris database (bukan bentuk petaSurat) agar buatSep bisa menandainya dipakai setelah sukses.
-export const validasiSuratUntukSep = async (faskesUuid, { suratUuid, patientUuid, jenisPelayanan }) => {
-  const baris = await satu(`SELECT * FROM bpjs_vclaim_surat WHERE faskes_uuid = $1 AND uuid = $2 AND deleted_at IS NULL`, [faskesUuid, suratUuid]);
-  if (!baris) throw new GalatBpjs("Surat tidak ditemukan", 404);
-  if (!baris.no_surat || baris.status_operasi !== "terkonfirmasi") throw new GalatBpjs("Surat belum terkonfirmasi BPJS", 422);
-  if (baris.status_pakai === "dipakai") throw new GalatBpjs("Surat sudah digunakan pada SEP lain", 422);
-  if (patientUuid && baris.patient_uuid && String(baris.patient_uuid) !== String(patientUuid)) {
-    throw new GalatBpjs("Surat tidak sesuai dengan pasien", 422);
-  }
-  const jenisSesuai =
-    jenisPelayanan === JENIS_PELAYANAN.RAWAT_INAP ? baris.jenis === JENIS_SURAT.SPRI : baris.jenis === JENIS_SURAT.RENCANA_KONTROL;
-  if (!jenisSesuai) throw new GalatBpjs("Jenis surat tidak sesuai dengan jenis pelayanan SEP", 422);
-  return baris;
-};
+export const hapusSpri = (faskesUuid, pengguna, uuid) => hapusSurat({ faskesUuid, pengguna, jenis: SPRI, uuid });
+export const cekStatusSpri = (faskesUuid, pengguna, uuid, data) => rekonsiliasiSurat({ faskesUuid, pengguna, jenis: SPRI, uuid, data });
+export const daftarSpri = (faskesUuid, q) => daftarSurat(faskesUuid, SPRI, q);
+export const detailSpri = (faskesUuid, uuid) => detailSurat(faskesUuid, SPRI, uuid);
 
 // --- SEP -----------------------------------------------------------------------------------------
 
-export const buatSep = async (faskesUuid, pengguna, data) => {
+/**
+ * @param {object} opsi
+ * @param {boolean|null} opsi.fiturSurat  status fitur vclaim_rencana_kontrol (null = tidak diketahui); diperiksa rute
+ *   bila permintaan memuat suratUuid/noSurat. Izin "PILIH SURAT SEP" juga diperiksa di rute (rute.js).
+ */
+export const buatSep = async (faskesUuid, pengguna, data, { fiturSurat = null } = {}) => {
   const k = await kredensialSiap(faskesUuid);
-  const jnsAwal = data.jnsPelayanan === JENIS_PELAYANAN.RAWAT_INAP ? JENIS_PELAYANAN.RAWAT_INAP : JENIS_PELAYANAN.RAWAT_JALAN;
-  let surat = null;
-  if (data.suratUuid) {
-    surat = await validasiSuratUntukSep(faskesUuid, { suratUuid: data.suratUuid, patientUuid: data.patientUuid, jenisPelayanan: jnsAwal });
-    data = { ...data, noSurat: surat.no_surat }; // nomor terverifikasi menggantikan masukan bebas (jangan terima noSurat bebas dari klien)
-  }
+  const jns = data.jnsPelayanan === JENIS_PELAYANAN.RAWAT_INAP ? JENIS_PELAYANAN.RAWAT_INAP : JENIS_PELAYANAN.RAWAT_JALAN;
+  // Nomor surat bebas dari klien tidak dipakai bila fitur Rencana Kontrol & SPRI aktif: surat harus dipilih lewat suratUuid
+  const cara = caraNoSuratSep({ suratUuid: data.suratUuid, noSurat: data.noSurat, fiturSurat });
   const wajib = { noKartu: "Nomor kartu", diagAwal: "Diagnosis awal", klsRawatHak: "Hak kelas" };
   for (const [f, nama] of Object.entries(wajib)) if (!data?.[f]) throw new DataBelumLengkap(`${nama} wajib diisi`);
-  const jns = jnsAwal;
+  const noKartu = String(data.noKartu).replace(/\D/g, "");
   if (jns === JENIS_PELAYANAN.RAWAT_JALAN) {
     if (!data.poliTujuan) throw new DataBelumLengkap("Poli tujuan wajib diisi untuk rawat jalan");
     // IGD (poli "IGD") tidak memerlukan rujukan
     if (data.poliTujuan !== "IGD" && !data.rujukan?.no) throw new DataBelumLengkap("Nomor rujukan wajib dipilih untuk rawat jalan");
   }
-  if (jns === JENIS_PELAYANAN.RAWAT_INAP && !data.noSurat) throw new DataBelumLengkap("Nomor SPRI wajib diisi untuk rawat inap");
+  if (jns === JENIS_PELAYANAN.RAWAT_INAP && cara === "tanpa") throw new DataBelumLengkap("SPRI wajib dipilih untuk rawat inap");
   if (!data.dpjp) throw new DataBelumLengkap("Dokter DPJP wajib dipilih");
+
+  let noSurat = cara === "manual" ? String(data.noSurat).trim() : "";
+  let surat = null;
+  if (cara === "surat") {
+    const baris = await satu(`${PILIH_SURAT} WHERE faskes_uuid = $1 AND uuid = $2`, [faskesUuid, pastikanUuid(data.suratUuid, "suratUuid")]);
+    periksaSuratUntukSep(baris, { patientUuid: data.patientUuid, noKartu, jenisPelayanan: jns, modeNyata: config.mode !== "mock" });
+    // Kunci atomik SEBELUM SEP dikirim: dua SEP bersamaan tidak dapat memakai surat yang sama
+    surat = await satu(
+      `UPDATE bpjs_vclaim_surat SET status_pakai = 'dipakai', sep_no_sep = NULL, sep_uuid = NULL, updated_at = $3
+       WHERE id = $1 AND faskes_uuid = $2 AND status_pakai = 'belum_dipakai' AND status_operasi = 'terkonfirmasi' AND deleted_at IS NULL
+       RETURNING id, no_surat`,
+      [baris.id, faskesUuid, sekarang()]
+    );
+    if (!surat) throw new GalatBpjs("Surat sedang atau sudah dipakai pada SEP lain", 409);
+    noSurat = surat.no_surat;
+  }
 
   const permintaan = bentukSep({
     ppkPelayanan: k.kdPpk,
-    noKartu: String(data.noKartu).replace(/\D/g, ""),
+    noKartu,
     tglSep: data.tglSep || Date.now(),
     jnsPelayanan: jns,
     klsRawatHak: data.klsRawatHak,
@@ -458,18 +640,39 @@ export const buatSep = async (faskesUuid, pengguna, data) => {
     // IGD / rawat inap tanpa rujukan eksternal: rujukan internal dari RS sendiri (rawat inap: nomor SPRI)
     rujukan: data.rujukan?.no
       ? data.rujukan
-      : { asal: "2", tgl: data.tglSep || Date.now(), no: jns === JENIS_PELAYANAN.RAWAT_INAP ? data.noSurat : "", ppk: k.kdPpk },
+      : { asal: "2", tgl: data.tglSep || Date.now(), no: jns === JENIS_PELAYANAN.RAWAT_INAP ? noSurat : "", ppk: k.kdPpk },
     diagAwal: data.diagAwal,
     poliTujuan: data.poliTujuan,
     dpjp: data.dpjp,
-    noSurat: data.noSurat,
+    noSurat,
     noTelp: data.noTelp,
     catatan: data.catatan,
     user: pengguna,
   });
-  const { response } = await vclaim(k, "POST", "/SEP/2.0/insert", permintaan);
-  const sep = response?.sep;
-  if (!sep?.noSep) throw new GalatBpjs("BPJS tidak mengembalikan nomor SEP", 502, response);
+
+  let sep;
+  let response;
+  try {
+    ({ response } = await vclaim(k, "POST", "/SEP/2.0/insert", permintaan));
+    sep = response?.sep;
+    if (!sep?.noSep) throw new GalatBpjs("BPJS tidak mengembalikan nomor SEP", 502, response);
+  } catch (error) {
+    if (surat) {
+      // Penolakan pasti BPJS: lepas kunci surat. Hasil tidak pasti: surat tetap terkunci sampai SEP diperiksa di VClaim.
+      if (gagalPasti(error)) {
+        await query(`UPDATE bpjs_vclaim_surat SET status_pakai = 'belum_dipakai', updated_at = $2 WHERE id = $1 AND sep_no_sep IS NULL`, [
+          surat.id, sekarang(),
+        ]);
+      } else {
+        await query(`UPDATE bpjs_vclaim_surat SET pesan_galat = $2, updated_at = $3 WHERE id = $1`, [
+          surat.id, `SEP dengan surat ini belum pasti terbit (${pesanGalat(error)}); periksa SEP peserta di VClaim`.slice(0, 500), sekarang(),
+        ]);
+      }
+    }
+    throw error;
+  }
+  // SEP sudah terbit: catat nomornya di surat lebih dulu agar kunci tidak dapat dilepas
+  if (surat) await query(`UPDATE bpjs_vclaim_surat SET sep_no_sep = $2, pesan_galat = NULL, updated_at = $3 WHERE id = $1`, [surat.id, sep.noSep, sekarang()]);
 
   const t = permintaan.request.t_sep;
   const t0 = sekarang();
@@ -484,12 +687,7 @@ export const buatSep = async (faskesUuid, pengguna, data) => {
       t.rujukan.asalRujukan, t.klsRawat.klsRawatHak, data.dpjp, t.catatan || null, JSON.stringify(permintaan), JSON.stringify(response), pengguna, t0,
     ]
   );
-  // Tandai surat (Rencana Kontrol/SPRI) terpakai hanya setelah SEP benar-benar berhasil (KT-10/G9)
-  if (surat) {
-    await query(`UPDATE bpjs_vclaim_surat SET status_pakai = 'dipakai', sep_no_sep = $2, sep_uuid = $3, updated_at = $4 WHERE id = $1`, [
-      surat.id, sep.noSep, baris?.uuid ?? null, sekarang(),
-    ]);
-  }
+  if (surat) await query(`UPDATE bpjs_vclaim_surat SET sep_uuid = $2, updated_at = $3 WHERE id = $1`, [surat.id, baris?.uuid ?? null, sekarang()]);
   return sep;
 };
 

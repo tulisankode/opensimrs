@@ -44,6 +44,10 @@ const rujukanTiruan = (noKartu, asal) => ({
   peserta: pesertaTiruan(noKartu),
 });
 
+// Surat Rencana Kontrol/SPRI simulasi (hanya mode mock, hilang saat proses dimulai ulang)
+const suratTiruan = new Map();
+let urutTiruan = 0;
+
 const tiruan = (metode, jalur, body) => {
   const s = jalur.replace(/^\//, "");
   const ok = (response) => ({ metaData: { code: "200", message: "Sukses" }, response });
@@ -77,6 +81,9 @@ const tiruan = (metode, jalur, body) => {
   if (metode === "POST" && s === "SEP/2.0/insert") {
     const t = body?.request?.t_sep;
     if (!t?.noKartu || !t?.diagAwal) return { metaData: { code: "201", message: "noKartu / diagAwal wajib diisi" }, response: null };
+    // Uji skenario kegagalan SEP: catatan "SIMULASI-TOLAK" = ditolak BPJS (pasti), "SIMULASI-PUTUS" = koneksi terputus
+    if (t.catatan === "SIMULASI-TOLAK") return { metaData: { code: "201", message: "SEP ditolak (simulasi)" }, response: null };
+    if (t.catatan === "SIMULASI-PUTUS") return { putus: true };
     const noSep = `${t.ppkPelayanan ?? "0000R000"}${t.tglSep.slice(2, 4)}${t.tglSep.slice(5, 7)}V${String(Date.now()).slice(-6)}`;
     return ok({
       sep: {
@@ -98,34 +105,80 @@ const tiruan = (metode, jalur, body) => {
   if (metode === "DELETE" && s === "SEP/2.0/delete") return ok(body?.request?.t_sep?.noSep ?? "");
   if (metode === "GET" && bagian[0] === "SEP") return ok({ noSep: bagian[1], tglSep: new Date().toISOString().slice(0, 10), jnsPelayanan: "Rawat Jalan" });
 
-  // Rencana Kontrol (STD-0021)
+  // Rencana Kontrol & SPRI (STD-0021). Surat simulasi disimpan di memori proses agar pencarian nomor/daftar peserta
+  // (rekonsiliasi status tidak_pasti) dapat diuji. Nomor kartu berakhiran 9 = surat tercatat di "BPJS" tetapi
+  // koneksi terputus sebelum respons diterima (menghasilkan status tidak_pasti di OpenSIMRS). Kode dokter "00000" =
+  // ditolak BPJS secara pasti (dokter tidak berjadwal).
+  const simpanSurat = (jnsKontrol, t, noSurat) => {
+    if (t.kodeDokter === "00000") return kosong("Dokter tidak memiliki jadwal praktik pada tanggal tersebut (simulasi)");
+    const surat = {
+      noSuratKontrol: noSurat,
+      jnsKontrol,
+      namaJnsKontrol: jnsKontrol === "1" ? "SPRI" : "Surat Kontrol",
+      noKartu: t.noKartu,
+      nama: "PESERTA SIMULASI",
+      tglRencanaKontrol: t.tglRencanaKontrol ?? t.tglRencana,
+      tglTerbitKontrol: new Date().toISOString().slice(0, 10),
+      kodeDokter: t.kodeDokter ?? "",
+      namaDokter: t.kodeDokter ? `dr. Simulasi (${t.kodeDokter})` : "",
+      poliTujuan: t.poliKontrol ?? "",
+      noSepAsalKontrol: t.noSEP ?? "",
+    };
+    suratTiruan.set(noSurat, surat);
+    return String(t.noKartu ?? "").endsWith("9") ? { putus: true } : ok(surat);
+  };
+  const nomorBaru = (awalan, noKartu) => `${awalan}${String(noKartu).slice(-6)}${String(Date.now()).slice(-6)}${String(++urutTiruan).padStart(3, "0")}`;
+  const ubahTiruan = (noSurat, t) => {
+    const ada = suratTiruan.get(noSurat);
+    if (ada) {
+      if (t.kodeDokter) Object.assign(ada, { kodeDokter: t.kodeDokter, namaDokter: `dr. Simulasi (${t.kodeDokter})` });
+      if (t.poliKontrol) ada.poliTujuan = t.poliKontrol;
+      if (t.tglRencanaKontrol ?? t.tglRencana) ada.tglRencanaKontrol = t.tglRencanaKontrol ?? t.tglRencana;
+    }
+    return ok({ ...(ada ?? {}), noSuratKontrol: noSurat });
+  };
+
   if (metode === "POST" && s === "RencanaKontrol/insert") {
     const t = body?.request?.t_rencontrol;
     if (!t?.noKartu || !t?.kodeDokter || !t?.poliKontrol || !t?.tglRencanaKontrol) {
       return { metaData: { code: "201", message: "noKartu / kodeDokter / poliKontrol / tglRencanaKontrol wajib diisi" }, response: null };
     }
-    return ok({ noSuratKontrol: `RK${String(t.noKartu).slice(-6)}${String(Date.now()).slice(-8)}` });
+    return simpanSurat("2", t, nomorBaru("RK", t.noKartu));
   }
   if (metode === "PUT" && s === "RencanaKontrol/update") {
     const t = body?.request?.t_rencontrol;
     if (!t?.noSuratKontrol) return { metaData: { code: "201", message: "noSuratKontrol wajib diisi" }, response: null };
-    return ok({ noSuratKontrol: t.noSuratKontrol });
+    return ubahTiruan(t.noSuratKontrol, t);
   }
-  if (metode === "DELETE" && s === "RencanaKontrol/delete") return ok(body?.request?.t_rencontrol?.noSuratKontrol ?? "");
-  if (metode === "GET" && s.startsWith("RencanaKontrol/")) return ok({ list: [] });
+  if (metode === "DELETE" && s === "RencanaKontrol/delete") {
+    const no = body?.request?.t_rencontrol?.noSuratKontrol ?? "";
+    suratTiruan.delete(no);
+    return ok(no);
+  }
+  if (metode === "GET" && s.startsWith("RencanaKontrol/noSuratKontrol/")) {
+    const surat = suratTiruan.get(decodeURIComponent(bagian[2] ?? ""));
+    return surat ? ok(surat) : kosong("Data tidak ditemukan");
+  }
+  if (metode === "GET" && s.startsWith("RencanaKontrol/ListRencanaKontrol/")) {
+    // .../Bulan/{MM}/Tahun/{YYYY}/Nokartu/{noKartu}/filter/{f}
+    const nilai = (kunci) => decodeURIComponent(bagian[bagian.indexOf(kunci) + 1] ?? "");
+    const awalan = `${nilai("Tahun")}-${nilai("Bulan")}`;
+    const list = [...suratTiruan.values()].filter((x) => x.noKartu === nilai("Nokartu") && String(x.tglRencanaKontrol).startsWith(awalan));
+    return list.length ? ok({ list }) : kosong("Data tidak ditemukan");
+  }
 
-  // SPRI (STD-0021)
   if (metode === "POST" && s === "SPRI/insert") {
     const t = body?.request?.t_sprirawat;
     if (!t?.noKartu || !t?.tglRencana) return { metaData: { code: "201", message: "noKartu / tglRencana wajib diisi" }, response: null };
-    return ok({ noSuratSPRI: `SPRI${String(t.noKartu).slice(-6)}${String(Date.now()).slice(-8)}` });
+    const hasil = simpanSurat("1", t, nomorBaru("SPRI", t.noKartu));
+    return hasil.putus || hasil.metaData.code !== "200" ? hasil : ok({ ...hasil.response, noSuratSPRI: hasil.response.noSuratKontrol });
   }
   if (metode === "PUT" && s === "SPRI/update") {
     const t = body?.request?.t_sprirawat;
     if (!t?.noSuratSPRI) return { metaData: { code: "201", message: "noSuratSPRI wajib diisi" }, response: null };
-    return ok({ noSuratSPRI: t.noSuratSPRI });
+    const hasil = ubahTiruan(t.noSuratSPRI, t);
+    return ok({ ...hasil.response, noSuratSPRI: t.noSuratSPRI });
   }
-  if (metode === "GET" && s.startsWith("SPRI/")) return ok({ list: [] });
 
   return { metaData: { code: "404", message: `simulasi: ${metode} ${s} tidak tersedia` }, response: null };
 };
@@ -140,7 +193,9 @@ export const vclaim = async (kred, metode, jalur, body) => {
   let json;
 
   if (config.mode === "mock") {
+    if (config.mockTundaMs > 0) await new Promise((r) => setTimeout(r, config.mockTundaMs));
     json = tiruan(metode, jalur, body);
+    if (json.putus) throw new GalatBpjs("Gagal menghubungi BPJS VClaim: koneksi terputus (simulasi)", 502);
     if (json.response != null) json.response = enkripsiRespons(json.response, kred.consId, kred.secretKey, timestamp);
   } else {
     const url = `${config.vclaimUrl}/${jalur.replace(/^\//, "")}`;

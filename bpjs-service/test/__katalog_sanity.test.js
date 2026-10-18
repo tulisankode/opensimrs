@@ -19,3 +19,13 @@ test("katalog-modul.json: fitur antrian_online_bpjs tersedia, mati bawaan, tanpa
     assert.ok(daftar.includes("antrian_online_bpjs"));
   }
 });
+
+// STD-0021: fitur vclaim_rencana_kontrol (modul bpjs_fkrtl) mendaftarkan rute halamannya agar menu & guard router
+// mengikuti status fitur; tetap mati bawaan di setiap segmen yang memakai bpjs_fkrtl.
+test("katalog-modul.json: fitur vclaim_rencana_kontrol punya rute & mati bawaan", () => {
+  const katalog = JSON.parse(readFileSync(join(ROOT, "database", "data", "katalog-modul.json"), "utf8"));
+  const fitur = katalog.fitur.find((f) => f.kode === "vclaim_rencana_kontrol");
+  assert.ok(fitur);
+  assert.equal(fitur.modul, "bpjs_fkrtl");
+  assert.deepEqual(fitur.rute, ["/admisi/rencana-kontrol", "/admisi/spri"]);
+});

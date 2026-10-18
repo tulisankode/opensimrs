@@ -109,6 +109,8 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/admisi/rawat-inap", permission: read("Admisi", "Admisi RI") },
   { path: "/admisi/igd", permission: any("Admisi", "Admisi IGD", ["READ", "CREATE PASIEN IGD", "UPDATE ADMISI IGD"]) },
   { path: "/admisi/sep", mode: "prefix", permission: read("Admisi", "SEP") },
+  { path: "/admisi/rencana-kontrol", permission: read("Admisi", "Rencana Kontrol & SPRI") },
+  { path: "/admisi/spri", permission: read("Admisi", "Rencana Kontrol & SPRI") },
   { path: "/admisi/data-pasien", permission: read("Admisi", "Data Pasien") },
   { path: "/admisi/monitoring-kamar", permission: read("Admisi", "Monitoring Kamar") },
   { path: "/admisi/laporan/kunjungan", permission: read("Admisi", "Laporan Admisi", "Kunjungan") },

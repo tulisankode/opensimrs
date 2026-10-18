@@ -92,6 +92,20 @@ export const usePermissionStore = defineStore('permission', () => {
           ],
         },
         {
+          // Rencana Kontrol & SPRI via VClaim (STD-0021) — sama dengan auth-service/src/helpers/permission-list.js
+          name: "Rencana Kontrol & SPRI",
+          allows: [
+            "READ",
+            "CREATE RENCANA KONTROL",
+            "UPDATE RENCANA KONTROL",
+            "DELETE RENCANA KONTROL",
+            "CREATE SPRI",
+            "UPDATE SPRI",
+            "DELETE SPRI",
+            "PILIH SURAT SEP",
+          ],
+        },
+        {
           name: "Data Pasien",
           allows: [
             "READ",
