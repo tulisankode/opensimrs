@@ -67,6 +67,28 @@ const kelompok = computed(() =>
   }))
 )
 
+// Keterangan singkat berbahasa awam di bawah judul indikator; rumus lengkap tetap di tooltip judul.
+const PENJELASAN: Record<string, string> = {
+  kunjungan_rj: "Jumlah pasien yang mendaftar rawat jalan",
+  kunjungan_ri: "Jumlah pasien yang mulai dirawat inap",
+  kunjungan_igd: "Jumlah pasien yang datang ke IGD",
+  bor: "Tingkat keterisian tempat tidur rawat inap (ideal 60–85%)",
+  alos: "Rata-rata lama pasien dirawat inap sampai pulang (ideal 6–9 hari)",
+  toi: "Rata-rata hari tempat tidur kosong sebelum terisi pasien berikutnya (ideal 1–3 hari)",
+  bto: "Berapa kali satu tempat tidur dipakai pasien dalam periode ini",
+  gdr: "Angka kematian semua pasien rawat inap yang pulang, per 1.000 pasien (ideal ≤ 45)",
+  ndr: "Angka kematian pasien setelah dirawat ≥ 48 jam, per 1.000 pasien pulang (ideal ≤ 25)",
+  waktu_tunggu_rj: "Rata-rata lama pasien menunggu sejak datang sampai diperiksa dokter",
+  pendapatan: "Total nilai tagihan pasien yang dibuat",
+  kas_diterima: "Total uang yang benar-benar diterima kasir",
+  piutang: "Tagihan yang belum dibayar lunas",
+  sep_bpjs: "Jumlah surat jaminan BPJS (SEP) yang terbit, dasar pengajuan klaim",
+  kesiapan_akreditasi: "Persentase elemen akreditasi yang sudah punya dokumen bukti disahkan",
+  kredensial_kedaluwarsa: "Jumlah STR/SIP/sertifikat staf yang sudah habis masa berlakunya",
+  jumlah_pegawai: "Jumlah pegawai yang masih aktif",
+  rasio_nakes_tt: "Jumlah tenaga kesehatan dibanding jumlah tempat tidur",
+};
+
 // Kelompok ditampilkan sebagai tab (Layanan · Keuangan · Mutu · SDM)
 const tabAktif = ref('layanan')
 const kelompokAktif = computed(() => kelompok.value.find((k) => k.kode === tabAktif.value) ?? kelompok.value[0])
@@ -211,6 +233,7 @@ const simpanTarget = async () => {
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <h3 class="text-sm font-medium truncate" :title="i.rumus">{{ i.nama }}</h3>
+              <p v-if="PENJELASAN[i.kode]" class="text-[11px] leading-snug text-grey-300" :title="i.rumus">{{ PENJELASAN[i.kode] }}</p>
               <p class="text-xs text-grey-300">
                 <span v-if="i.statusData === 'tersedia' && i.satuan !== '%'" class="font-semibold text-grey-500">{{ formatNilaiIndikator(i.nilai, i.satuan) }}</span>
                 <template v-if="data.targetBerlaku"> · target {{ formatTarget(i.target, i.satuan) }}</template>

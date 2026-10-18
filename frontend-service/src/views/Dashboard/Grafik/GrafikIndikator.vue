@@ -91,9 +91,10 @@ const tipeChart = computed(() => (jenis.value === 'gauge' ? 'doughnut' : jenis.v
         <span class="text-lg font-semibold" :style="{ color: warnaNilai }">{{ nilaiTeks }}</span>
       </div>
     </template>
-    <div v-else class="flex items-center justify-center h-full text-sm text-center"
+    <div v-else class="flex flex-col items-center justify-center h-full px-4 text-sm text-center"
       :class="indikator.statusData === 'gagal' ? 'text-danger-300' : 'text-grey-300'">
       {{ indikator.statusData === 'gagal' ? 'Gagal dimuat' : indikator.statusData === 'belum_dapat_dihitung' ? 'Belum dapat dihitung' : 'Belum tersedia' }}
+      <span v-if="indikator.keterangan" class="block mt-1 text-xs">{{ indikator.keterangan }}</span>
     </div>
   </div>
 </template>
