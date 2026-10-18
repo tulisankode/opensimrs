@@ -209,6 +209,15 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
   - **Codex sebagai agen coding di Windows** kini memakai sandbox Windows Codex (`windows.sandbox="unelevated"`); sebelumnya folder kerja menjadi hanya-baca sehingga coding selesai tanpa perubahan.
   - **Maksimal agen bersamaan** (bawaan 2): tugas berikutnya berstatus **Menunggu slot agen** dan dimulai otomatis saat ada agen yang selesai.
   - **Migrasi baru:** `20261018020000-studio_tugas_tahan_kuota` (kolom `lanjut_pada`, `lanjutan_dari`, `lanjutan_ke`, `menunggu_slot` di `studio_tugas`).
+- **SIMRS Studio: item paralel tanpa bentrok migrasi, CHANGELOG, dan katalog.**
+  - **Awalan migrasi per item.** Saat item masuk Coding, Studio memesan blok jam UTC `YYYYMMDDHH` yang lebih baru dari migrasi terakhir di branch dasar/lokal dan dari awalan item aktif lain. Prompt coding mewajibkan nama `database/migrations/<awalan>MMSS-*.cjs`, dan awalan tampil di panel Coding.
+  - **Pengurutan otomatis saat Terapkan.** Migrasi item yang tertinggal diganti namanya ke awalan baru dengan urutan relatif yang sama. Rujukan nama lama di branch item ikut diperbarui, lalu Studio membuat commit `chore(studio): urutkan migrasi …`. Migrasi yang sudah tercatat di `SequelizeMeta` tetap ditolak dengan pesan jelas.
+  - **Sinkronisasi branch item.** Tombol *Sinkronkan dengan <branch lokal>* di panel Coding/Rilis, yang juga dijalankan otomatis oleh Terapkan bila ada konflik, menyelesaikan otomatis konflik pada katalog modul (per entri, termasuk preset), `docs/MANAJEMEN-MODUL.md` (dibuat ulang), `CHANGELOG.md`, dan daftar sisipan izin/menu/rute. Pola lain dibatalkan dengan `git merge --abort` sehingga branch item tetap bersih. Setelah sinkronisasi, Studio menjalankan cek integritas.
+  - **Migrasi baru:** `20261018200000-studio_awalan_migrasi` (kolom `studio_item.awalan_migrasi`).
+- **Fragmen CHANGELOG** (`changelog.d/<nama>.md`). Setiap PR atau item Studio menulis catatan perubahan di berkas sendiri, sehingga tidak ada lagi konflik di `CHANGELOG.md`.
+  - `node scripts/gabung-changelog.mjs` menggabungkan semua fragmen ke [Belum dirilis] saat rilis; `--cek` hanya memvalidasi format.
+  - `node scripts/cek-integritas.mjs` memeriksa format fragmen.
+  - Panduannya ada di `changelog.d/README.md`, CONTRIBUTING §7, dan ALUR-GIT-RILIS.
 
 ### Diubah
 - **Panel menu "Lainnya" dikelompokkan per bidang dan instalasi** sesuai struktur organisasi rumah sakit/klinik. Menu yang tidak muat di menu atas kini tampil sebagai panel berkolom per bidang (Pelayanan Medis & Keperawatan, Penunjang Medis, Penunjang Umum, Keuangan & Administrasi, Manajemen & Mutu, Program Kesehatan Masyarakat, Sistem), bukan lagi satu kolom panjang yang perlu digulir.
@@ -219,6 +228,9 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
   - Isi dropdown **Penunjang** di menu atas kini diturunkan dari bidang Penunjang Medis/Umum, tidak lagi dari daftar tetap. Anggotanya tetap sama; urutannya mengikuti katalog.
 - **Katalog modul punya field `bidang` dan `instalasi`** (`database/data/katalog-modul.json`, tabel `ref_modul`) yang dikirim setting-service bersama katalog. Field `kelompok` untuk layar Manajemen Modul tidak berubah. Modul baru wajib mengisi keduanya; `node scripts/cek-integritas.mjs` memeriksa nilainya, dan `docs/MANAJEMEN-MODUL.md` memuat tabel struktur organisasi (bagian G).
   - **Migrasi baru:** `20261018140000-ref_modul_bidang_instalasi` (kolom `bidang`, `instalasi` di `ref_modul`, lalu sinkron katalog). Setelah `npm run db:migrate`, muat ulang aplikasi agar panel memakai data bidang.
+- **SIMRS Studio: pemeriksa kebijakan.**
+  - Migrasi yang lebih tua dari migrasi terakhir kini hanya menjadi peringatan, karena Terapkan mengurutkannya otomatis. Migrasi yang memakai awalan milik item lain tetap menggagalkan pemeriksaan.
+  - Cek CHANGELOG lulus bila ada fragmen `changelog.d/`. Entri `CHANGELOG.md` dari item lama tetap diterima.
 
 ### Diperbaiki
 - **SIMRS Studio › model Codex & form konektor.** Bila model tahap Codex kosong atau tidak tersedia untuk akun, Studio memakai model pertama dari daftar akun (sebelumnya Codex CLI memakai model bawaannya yang bisa ditolak akun ChatGPT). Kolom Kunci API konektor dan Token Git tidak lagi diisi otomatis oleh browser dengan sandi tersimpan; preset Ollama menyarankan `qwen3:8b`/`gpt-oss:20b`/`qwen3-coder:30b` dan tidak lagi menyebut biaya per pemakaian.

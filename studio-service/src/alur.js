@@ -9,8 +9,10 @@ import { audit, query, satu, sekarang, sisipkan, transaksi, ubah, uuidv7 } from 
 import { Galat, permintaanSalah, tidakDitemukan } from "./respons.js";
 import { bacaSemua } from "./pengaturan.js";
 import { berkasBerubah, branchSekarang, git, patchBerkas, potretKerja, saringBerkasKotor, statusBerkas, urlRepo } from "./git.js";
-import { branchDasar, branchLokal, direktoriKerja, hapusWorktree, modeLokal, pastikanDiBranch, siapkanKerja } from "./kerja.js";
+import { branchDasar, branchLokal, direktoriKerja, folderBranchTerbuka, hapusWorktree, modeLokal, pastikanDiBranch, siapkanKerja } from "./kerja.js";
 import { pathDiubahDalamDesain, periksaKebijakan, temukanDataPribadi, zonaTersentuh } from "./kebijakan.js";
+import { FOLDER_MIGRASI, awalanLayak, hitungAwalan, rencanaUrutMigrasi, terapkanUrutMigrasi } from "./migrasi.js";
+import { sinkronkan } from "./gabung.js";
 import { FOLDER_LAMPIRAN, estimasiBiaya, jalankanAgen, periksaBatas } from "./agen/index.js";
 import { CATATAN_LANJUTAN, susunRantai, waktuLanjut } from "./agen/kuota.js";
 import { NAMA_TAHAP, susunPromptCoding, susunPromptDokumen, uraiKeluaran } from "./agen/prompt.js";
@@ -109,7 +111,8 @@ const pindahTahap = (item, tahap, tambahan = {}) => ubah("studio_item", item.uui
 // Kembali ke tahap sebelumnya (revisi mundur / buka kembali). tahap_mulai baru → persetujuan lama tahap itu tidak berlaku,
 // sehingga tahap ini dan tahap sesudahnya disetujui ulang. Branch & kode item tetap (dipakai agen saat coding diulang).
 const mundurKeTahap = async (item, keTahap, catatan, oleh, peran = null, keputusan = "mundur") => {
-  const kembali = await pindahTahap(item, keTahap, { tahap_sebelum: null });
+  let kembali = await pindahTahap(item, keTahap, { tahap_sebelum: null });
+  if (keTahap === "coding") kembali = await pesanAwalanMigrasi(kembali);
   await sisipkan("studio_persetujuan", { item_uuid: item.uuid, tahap: keTahap, keputusan, alasan: catatan, pengguna: oleh, peran });
   await pesan(
     kembali, keTahap, "sistem",
@@ -189,7 +192,10 @@ export const pratinjauPrompt = async (item, tahap) => {
   const { nilai } = await bacaSemua();
   const tambahan = await konteksTambahan(item, tahap);
   if (tahap === "coding") {
-    return susunPromptCoding({ item, artefak: await artefakSebelum(item, "coding"), instruksi: null, aturanInstalasi: nilai.aturan_instalasi, branch: item.branch ?? "(dibuat saat coding dimulai)", revisi: false, ...tambahan });
+    return susunPromptCoding({
+      item, artefak: await artefakSebelum(item, "coding"), instruksi: null, aturanInstalasi: nilai.aturan_instalasi, branch: item.branch ?? "(dibuat saat coding dimulai)", revisi: false,
+      awalanMigrasi: item.awalan_migrasi ?? null, ...tambahan,
+    });
   }
   return susunPromptDokumen({
     item, tahap, artefakSebelumnya: await artefakSebelum(item, tahap), artefakTahapIni: await artefakTerbaru(item.uuid, tahap),
@@ -270,6 +276,8 @@ export const detailItem = async (uuid, req) => {
     modeKerja: item.worktree ? "worktree" : nilai.mode_kerja,
     modeRilis: nilai.mode_rilis ?? "lokal",
     branchLokal: await branchLokal(nilai, item),
+    // Tujuan tombol "Sinkronkan": branch lokal (mode lokal/keduanya) atau branch dasar PR.
+    branchSinkron: modeLokal(nilai) ? await branchLokal(nilai, item) : await branchDasar(nilai, item),
     aplikasi: await statusAplikasi(await branchLokal(nilai, item)).catch(() => null),
     estimasiCoding: item.tahap === "coding" ? await estimasiBiaya("coding", "coding") : null,
     branchSekarang: item.worktree ? item.branch : await branchSekarang().catch(() => null),
@@ -353,7 +361,7 @@ const mulaiTugasTersimpan = async (tugas) => {
     if (alasan) return await batalkanOtomatis(tugas, item, alasan);
     if (tugas.jenis === "coding") {
       if (nilai.mode_kerja !== "worktree" && !item.worktree) await pastikanRepoUtamaBebas(item.uuid);
-      const siap = await siapkanKerja(item);
+      const siap = await pesanAwalanMigrasi(await siapkanKerja(item));
       kerjakanCoding(tugas, siap, tugas.instruksi);
     } else kerjakanDokumen(tugas, item, tugas.tahap, tugas.instruksi);
   } catch (e) {
@@ -486,7 +494,7 @@ export const jalankanCoding = async (item, instruksi, oleh) => {
   if (nilai.mode_kerja !== "worktree" && !item.worktree) await pastikanRepoUtamaBebas();
   await periksaBatas(item, oleh);
 
-  const siap = await siapkanKerja(item);
+  const siap = await pesanAwalanMigrasi(await siapkanKerja(item));
   const tugas = await buatTugasAgen(siap, "coding", "coding", instruksi, oleh);
   await audit(oleh, "Menjalankan agen coding", item.uuid, { branch: siap.branch, worktree: siap.worktree });
   await mulaiAtauTunggu(tugas, siap, () => kerjakanCoding(tugas, siap, instruksi));
@@ -514,6 +522,7 @@ const kerjakanCoding = async (tugas, siap, instruksi) => {
       aturanInstalasi: nilai.aturan_instalasi,
       branch: siap.branch,
       revisi: Boolean(sesiLalu),
+      awalanMigrasi: siap.awalan_migrasi ?? null,
       ...(await konteksTambahan(siap, "coding")),
     });
     ({ hasil } = await jalankanAgen({
@@ -574,6 +583,52 @@ const migrasiTerakhir = async (dasar) => {
   return stempel.at(-1) ?? null;
 };
 
+// ---------- Awalan migrasi per item ----------
+
+// Migrasi terakhir di branch dasar & branch lokal (yang paling baru).
+const migrasiTerakhirTarget = async (item) => {
+  const { nilai } = await bacaSemua();
+  const refs = [...new Set([await branchDasar(nilai, item), await branchLokal(nilai, item)].filter(Boolean))];
+  return (await Promise.all(refs.map(migrasiTerakhir))).filter(Boolean).sort().at(-1) ?? null;
+};
+
+// Awalan yang dipesan item lain yang masih aktif (belum selesai/dibatalkan).
+const awalanItemLain = (itemUuid, k) =>
+  query(
+    `SELECT nomor, awalan_migrasi FROM studio_item
+      WHERE awalan_migrasi IS NOT NULL AND deleted_at IS NULL AND tahap NOT IN ('selesai', 'dibatalkan') AND uuid <> $1`,
+    [itemUuid], k,
+  );
+
+const adaMigrasiItem = (item) =>
+  [...(item.berkas ?? []).map((b) => b.path), ...(item.riwayat_commit ?? []).flatMap((c) => c.berkas ?? [])].some((p) => p.startsWith(`${FOLDER_MIGRASI}/`));
+
+// pg_advisory_xact_lock: dua item yang mulai coding bersamaan tidak mendapat awalan yang sama.
+const KUNCI_AWALAN = 80902027;
+
+// Pesan awalan migrasi (blok jam UTC YYYYMMDDHH) untuk item, idempoten. Awalan lama dipertahankan selama masih layak;
+// awalan yang tertinggal (item lain sudah diterapkan dengan migrasi lebih baru) diganti hanya bila item belum punya
+// migrasi — migrasi yang sudah ditulis diurutkan otomatis saat Terapkan. Gagal memesan tidak menghentikan coding.
+export const pesanAwalanMigrasi = async (item) => {
+  try {
+    const terakhir = await migrasiTerakhirTarget(item);
+    return await transaksi(async (k) => {
+      await query(`SELECT pg_advisory_xact_lock($1)`, [KUNCI_AWALAN], k);
+      const segar = (await satu(`SELECT * FROM studio_item WHERE uuid = $1`, [item.uuid], k)) ?? item;
+      const dipesan = (await awalanItemLain(item.uuid, k)).map((r) => r.awalan_migrasi);
+      const lama = segar.awalan_migrasi;
+      if (lama && (awalanLayak(lama, { terakhir, dipesan }) || (adaMigrasiItem(segar) && !dipesan.includes(lama)))) return { ...item, awalan_migrasi: lama };
+      const awalan = hitungAwalan({ terakhir, dipesan, sekarang: new Date() });
+      await ubah("studio_item", item.uuid, { awalan_migrasi: awalan }, k);
+      if (lama) await pesan(item, item.tahap, "sistem", `Awalan migrasi item diperbarui ${lama} → ${awalan} (awalan lama sudah tertinggal atau dipakai item lain).`);
+      return { ...item, awalan_migrasi: awalan };
+    });
+  } catch (e) {
+    console.error("[studio] memesan awalan migrasi:", e.message);
+    return item;
+  }
+};
+
 const hitungBaris = (patch) => {
   let tambah = 0;
   let hapus = 0;
@@ -623,7 +678,10 @@ export const perubahanItem = async (item) => {
     }
   }
   const { nilai } = await bacaSemua();
-  const kebijakan = periksaKebijakan(berkas, { risiko: item.risiko, migrasiTerakhir: await migrasiTerakhir(await branchDasar(nilai, item)), kriptoBaku: kriptoBaku() });
+  const kebijakan = periksaKebijakan(berkas, {
+    risiko: item.risiko, migrasiTerakhir: await migrasiTerakhir(await branchDasar(nilai, item)), kriptoBaku: kriptoBaku(),
+    awalanMigrasi: item.awalan_migrasi ?? null, awalanLain: await awalanItemLain(item.uuid).catch(() => []), fragmen: `changelog.d/${nomor(item)}.md`,
+  });
   berkas = berkas.map((b) => ({ ...b, ...hitungBaris(b.patch), patch: b.patch.length > BATAS ? `${b.patch.slice(0, BATAS)}\n… (dipotong)` : b.patch }));
   return { branch: item.branch, worktree: item.worktree, commitSha: item.commit_sha, berkas, kebijakan };
 };
@@ -637,10 +695,16 @@ export const siapkanManual = async (item, oleh) => {
   if (await tugasBerjalan(item.uuid)) throw new Galat(409, "Masih ada tugas agen yang berjalan untuk item ini");
   const { nilai } = await bacaSemua();
   if (nilai.mode_kerja !== "worktree" && !item.worktree) await pastikanRepoUtamaBebas(item.uuid);
-  const siap = await siapkanKerja(item);
+  const siap = await pesanAwalanMigrasi(await siapkanKerja(item));
   const potret = siap.snapshot ?? (await potretKerja(direktoriKerja(siap)));
   const baru = await ubah("studio_item", item.uuid, { snapshot: potret });
-  await pesan(baru, "coding", "sistem", `Branch ${baru.branch} siap${baru.worktree ? ` di ${baru.worktree}` : " di working tree repo"}. Kerjakan kode di VS Code, lalu klik "Pindai perubahan manual".`, oleh);
+  await pesan(
+    baru, "coding", "sistem",
+    `Branch ${baru.branch} siap${baru.worktree ? ` di ${baru.worktree}` : " di working tree repo"}. Kerjakan kode di VS Code, lalu klik "Pindai perubahan manual".` +
+      (baru.awalan_migrasi ? ` Migrasi baru item ini wajib bernama ${FOLDER_MIGRASI}/${baru.awalan_migrasi}MMSS-nama.cjs.` : "") +
+      ` Catatan perubahan ditulis di changelog.d/${nomor(baru)}.md (bukan CHANGELOG.md).`,
+    oleh,
+  );
   await audit(oleh, `Menyiapkan branch kerja manual ${baru.branch}`, item.uuid);
   return baru;
 };
@@ -940,6 +1004,8 @@ export const putuskan = async (item, { keputusan, alasan, peran, ke_tahap: keTah
   }
   const ke = tahapBerikut(tahap, nilai.fitur);
   const lanjut = await pindahTahap(item, ke);
+  // Masuk coding → awalan migrasi dipesan sekarang, agar terlihat di pratinjau prompt & panel coding.
+  if (ke === "coding") await pesanAwalanMigrasi(lanjut);
   if (ke === "selesai" && lanjut.worktree) await hapusWorktree(lanjut).catch((e) => pesan(lanjut, tahap, "sistem", `Worktree tidak terhapus: ${e.message}`));
   // Keputusan sudah tersimpan; agen tahap berikutnya yang gagal dimulai (mis. kuota/batas biaya) cukup dicatat.
   if (TAHAP_DOKUMEN.has(lanjut.tahap)) {
@@ -1197,15 +1263,108 @@ const pracekGabung = async (target, sumber) => {
   return [...new Set(berkas.filter(Boolean))];
 };
 
-// Migrasi baru milik item yang stempelnya lebih tua dari migrasi terakhir di branch tujuan (aturan repo: migrasi
-// harus berurutan paling akhir saat merge ke main).
-const migrasiTidakUrut = async (target, sumber) => {
-  const { keluaran: baru } = await git(["diff", "--name-only", "--diff-filter=A", `${target}...${sumber}`, "--", "database/migrations"], { izinkanGagal: true });
-  const milikItem = baru.split("\n").filter((p) => p.endsWith(".cjs"));
-  if (!milikItem.length) return [];
-  const { keluaran: ada } = await git(["ls-tree", "--name-only", target, "database/migrations/"], { izinkanGagal: true });
-  const terakhir = ada.split("\n").filter((p) => p.endsWith(".cjs") && !milikItem.includes(p)).map((p) => path.basename(p)).sort().pop();
-  return terakhir ? milikItem.map((p) => path.basename(p)).filter((n) => n < terakhir) : [];
+// Migrasi baru milik item & migrasi di branch tujuan (nama berkas). Aturan repo: migrasi item harus berurutan paling
+// akhir saat digabung; yang tertinggal diurutkan otomatis saat Terapkan (urutkanMigrasiItem).
+const migrasiItemDanTarget = async (target, sumber) => {
+  const { keluaran: baru } = await git(["diff", "--name-only", "--diff-filter=A", `${target}...${sumber}`, "--", FOLDER_MIGRASI], { izinkanGagal: true });
+  const milikItem = baru.split("\n").filter((p) => p.endsWith(".cjs")).map((p) => path.basename(p));
+  if (!milikItem.length) return { milikItem, diTarget: [] };
+  const { keluaran: ada } = await git(["ls-tree", "--name-only", target, `${FOLDER_MIGRASI}/`], { izinkanGagal: true });
+  return { milikItem, diTarget: ada.split("\n").filter((p) => p.endsWith(".cjs")).map((p) => path.basename(p)) };
+};
+
+// Jalankan fn(cwd) pada working tree yang sedang berada di branch item: worktree item, repo utama (mode workspace,
+// item sedang dibuka di sana), worktree lain yang membuka branch itu, atau worktree sementara.
+const diBranchItem = async (item, fn) => {
+  if (item.worktree && fs.existsSync(item.worktree)) return fn(item.worktree);
+  if ((await branchSekarang().catch(() => null)) === item.branch) {
+    await pastikanRepoUtamaBebas(item.uuid);
+    return fn(config.repoDir);
+  }
+  const terbuka = folderBranchTerbuka((await git(["worktree", "list", "--porcelain"], { izinkanGagal: true })).keluaran, item.branch);
+  if (terbuka) return fn(terbuka);
+  const lokasi = path.join(os.tmpdir(), `simrs-studio-item-${item.nomor}-${Date.now()}`);
+  try {
+    await git(["worktree", "add", lokasi, item.branch]);
+  } catch (e) {
+    throw new Galat(409, `Branch ${item.branch} tidak dapat dibuka (${e.message})`);
+  }
+  try {
+    return await fn(lokasi);
+  } finally {
+    await git(["worktree", "remove", "--force", lokasi], { izinkanGagal: true });
+  }
+};
+
+// Catat commit buatan Studio (urutkan migrasi / sinkronisasi) di riwayat item.
+const catatCommitStudio = async (item, sha, pesanCommit, berkas) =>
+  ubah("studio_item", item.uuid, {
+    commit_sha: sha,
+    riwayat_commit: [...(item.riwayat_commit ?? []), { sha, pesan: pesanCommit, berkas, pada: sekarang(), studio: true }],
+  });
+
+// Migrasi item tertinggal dari target (item lain diterapkan lebih dulu, atau awalan bentrok) → ganti nama ke awalan
+// baru yang lebih baru dari target, perbarui rujukan, commit di branch item. Migrasi yang sudah pernah dijalankan
+// (tercatat di SequelizeMeta database bersama) tidak boleh diganti namanya: Terapkan ditolak.
+// Mengembalikan { item, peta } (peta kosong bila sudah urut).
+export const urutkanMigrasiItem = async (item, target, oleh) => {
+  const { milikItem, diTarget } = await migrasiItemDanTarget(target, item.branch);
+  if (!milikItem.length) return { item, peta: [] };
+  const terakhir = diTarget.filter((n) => !milikItem.includes(n)).sort().at(-1)?.slice(0, 14) ?? null;
+  const dipesan = (await awalanItemLain(item.uuid)).map((r) => r.awalan_migrasi);
+  let peta;
+  try {
+    peta = rencanaUrutMigrasi({ milikItem, diTarget, awalanBaru: hitungAwalan({ terakhir, dipesan, sekarang: new Date() }) });
+  } catch (e) {
+    throw new Galat(409, `Migrasi item tidak dapat diurutkan otomatis: ${e.message}`);
+  }
+  if (!peta.length) return { item, peta };
+  const tercatat = await query(`SELECT name FROM "SequelizeMeta" WHERE name = ANY($1)`, [peta.map((p) => p.lama)]).catch(() => []);
+  if (tercatat.length) {
+    throw new Galat(409, `Migrasi ${tercatat.map((r) => r.name).join(", ")} lebih tua dari migrasi terakhir di ${target}, tetapi sudah pernah dijalankan di database ` +
+      `(tercatat di SequelizeMeta), sehingga namanya tidak diganti otomatis. Ganti nama manual di branch item beserta baris SequelizeMeta-nya, atau terapkan apa adanya lewat git setelah ditinjau.`);
+  }
+  const pesanCommit = `chore(studio): urutkan migrasi ${nomor(item)} setelah ${terakhir}`;
+  const hasil = await diBranchItem(item, async (cwd) => {
+    const kotor = (await git(["status", "--porcelain", "--untracked-files=no"], { cwd })).keluaran;
+    if (kotor.trim()) throw new Galat(409, `Migrasi item perlu diurutkan ulang, tetapi masih ada perubahan yang belum di-commit di ${cwd}`);
+    return terapkanUrutMigrasi(cwd, peta, `${pesanCommit}\n\n${peta.map((p) => `- ${p.lama} → ${p.baru}`).join("\n")}\n\nSIMRS Studio ${nomor(item)}\n`);
+  });
+  let baru = await catatCommitStudio(item, hasil.sha, pesanCommit, hasil.berkas);
+  baru = await ubah("studio_item", item.uuid, { awalan_migrasi: peta[0].baru.slice(0, 10) });
+  await pesan(baru, item.tahap, "sistem", `Migrasi item diurutkan ulang agar paling akhir terhadap ${target}: ${peta.map((p) => `${p.lama} → ${p.baru}`).join(", ")} (commit ${hasil.sha.slice(0, 7)}).`, oleh);
+  await audit(oleh, "Mengurutkan ulang migrasi item", item.uuid, { target, peta, sha: hasil.sha });
+  return { item: baru, peta };
+};
+
+// Ringkasan hasil sinkronisasi untuk diskusi & respons.
+const ringkasSinkron = (h, target) => {
+  const auto = h.otomatis?.length ? ` Diselesaikan otomatis: ${h.otomatis.map((o) => `${o.path} (${o.cara})`).join("; ")}.` : "";
+  if (h.status === "mutakhir") return `Branch item sudah memuat semua perubahan ${target}.`;
+  if (h.status === "digabung") return `${target} digabung ke branch item (commit ${h.sha.slice(0, 7)}).${auto}`;
+  if (h.status === "gagal_integritas") return `Sinkronisasi dengan ${target} dibatalkan: cek integritas gagal setelah konflik diselesaikan otomatis.${auto}\n${h.integritas ?? ""}`;
+  return `Sinkronisasi dengan ${target} dibatalkan (branch item tidak berubah): konflik pada ${h.tersisa.join(", ")} tidak dikenali pola otomatis. Selesaikan manual di worktree item atau minta agen merevisi.`;
+};
+
+// Sinkronkan branch item dengan branch lokal/dasar: gabungkan target ke branch item dengan penyelesaian konflik
+// otomatis (src/gabung.js). Galat 409 bila tidak berhasil (branch item tetap bersih).
+export const sinkronkanItem = async (item, oleh, { target = null } = {}) => {
+  pastikanBukanProduksi();
+  if (!item.branch) throw permintaanSalah("Item belum punya branch");
+  if (!["coding", "qa", "rilis", "selesai"].includes(item.tahap)) throw permintaanSalah("Sinkronisasi dilakukan pada tahap coding sampai rilis");
+  if (await tugasBerjalan(item.uuid)) throw new Galat(409, "Masih ada tugas agen yang berjalan untuk item ini");
+  const { nilai } = await bacaSemua();
+  const tujuan = target ?? (modeLokal(nilai) ? await branchLokal(nilai, item) : await branchDasar(nilai, item));
+  if (tujuan === item.branch) throw permintaanSalah("Branch tujuan sama dengan branch item");
+  if (!(await git(["rev-parse", "--verify", "--quiet", tujuan], { izinkanGagal: true })).ok) throw permintaanSalah(`Branch ${tujuan} tidak ditemukan`);
+  const pesanCommit = `chore(studio): sinkronkan ${item.branch} dengan ${tujuan}\n\nSIMRS Studio ${nomor(item)}`;
+  const hasil = await diBranchItem(item, (cwd) => sinkronkan({ cwd, target: tujuan, pesanCommit }));
+  const ringkasan = ringkasSinkron(hasil, tujuan);
+  await pesan(item, item.tahap, "sistem", ringkasan, oleh);
+  await audit(oleh, `Sinkronisasi branch item dengan ${tujuan}: ${hasil.status}`, item.uuid, { otomatis: hasil.otomatis, tersisa: hasil.tersisa, sha: hasil.sha });
+  if (!["digabung", "mutakhir"].includes(hasil.status)) throw new Galat(409, ringkasan);
+  const baru = hasil.status === "digabung" ? await catatCommitStudio(item, hasil.sha, pesanCommit.split("\n")[0], hasil.otomatis.map((o) => o.path)) : item;
+  return { item: baru, ...hasil, target: tujuan, ringkasan };
 };
 
 // Berkas masuk layanan yang dijalankan nodemon (scripts.dev "nodemon <berkas>", atau main).
@@ -1338,12 +1497,24 @@ export const terapkanLokal = async (item, oleh, faskesUuid = null) => {
   const target = await branchLokal(nilai, item);
   if (target === item.branch) throw permintaanSalah("Branch lokal sama dengan branch item — atur Branch lokal di Pengaturan & Agen");
   if (!(await git(["rev-parse", "--verify", "--quiet", `refs/heads/${target}`], { izinkanGagal: true })).ok) throw permintaanSalah(`Branch lokal ${target} tidak ditemukan`);
-  const bentrok = await pracekGabung(target, item.branch);
+  // Migrasi item yang tertinggal dari target diurutkan dulu (ganti nama + commit di branch item).
+  const urut = await urutkanMigrasiItem(item, target, oleh);
+  item = urut.item;
+  let bentrok = await pracekGabung(target, item.branch);
+  let catatanSinkron = "";
   if (bentrok.length) {
-    throw new Galat(409, `Penerapan dibatalkan sebelum menyentuh ${target}: branch item bentrok dengan ${target} pada ${bentrok.join(", ")}. ` +
-      `Gabungkan ${target} ke branch item dan selesaikan konfliknya di worktree item (atau minta agen merevisi), lalu terapkan lagi.`);
+    // Konflik berpola dikenal (katalog, daftar sisipan, CHANGELOG, dokumen katalog) → sinkronkan branch item dulu.
+    const sinkron = await sinkronkanItem(item, oleh, { target }).catch((e) => {
+      throw new Galat(409, `Penerapan dibatalkan sebelum menyentuh ${target}: branch item bentrok dengan ${target} pada ${bentrok.join(", ")}. ` +
+        `Sinkronisasi otomatis tidak berhasil — ${e.message} Selesaikan konfliknya di worktree item (atau minta agen merevisi), lalu terapkan lagi.`);
+    });
+    item = sinkron.item;
+    catatanSinkron = ` ${sinkron.ringkasan}`;
+    bentrok = await pracekGabung(target, item.branch);
+    if (bentrok.length) {
+      throw new Galat(409, `Penerapan dibatalkan sebelum menyentuh ${target}: setelah sinkronisasi branch item masih bentrok dengan ${target} pada ${bentrok.join(", ")}.`);
+    }
   }
-  const tidakUrut = await migrasiTidakUrut(target, item.branch);
   const adaMigrasi = (item.riwayat_commit ?? []).some((c) => (c.berkas ?? []).some((p) => p.startsWith("database/migrations/")));
   let migrasi = null;
   let aktivasi = item.sha_batal ? null : item.aktivasi ?? null;
@@ -1378,7 +1549,8 @@ export const terapkanLokal = async (item, oleh, faskesUuid = null) => {
     item, item.tahap, "sistem",
     `Diterapkan ke branch lokal ${target} (${sha.slice(0, 7)}).` +
       (adaMigrasi && migrasi === false && nilai.migrasi_otomatis ? " Ada migrasi baru: jalankan npm run db:migrate setelah aplikasi memakai branch itu." : "") +
-      (tidakUrut.length ? ` Perhatian: migrasi ${tidakUrut.join(", ")} lebih tua dari migrasi terakhir di ${target}; nomori ulang sebelum PR ke main.` : "") +
+      (urut.peta.length ? ` Migrasi diurutkan ulang: ${urut.peta.map((p) => `${p.lama} → ${p.baru}`).join(", ")}.` : "") +
+      catatanSinkron +
       catatanDependensi +
       catatanAktivasi +
       (aplikasi.sama
