@@ -2,7 +2,8 @@
 import Sidebar from "@/components/section/Sidebar.vue";
 import { linkType } from "@/utils/Enum";
 import type { SidebarBody } from "@/utils/Interface";
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import { fiturAktif, modulAktif } from "@/stores/modulFaskes";
 
 const sidebarBodyList = ref<SidebarBody[]>([
   {
@@ -55,6 +56,25 @@ const sidebarBodyList = ref<SidebarBody[]>([
             icon: "IGD",
             type: linkType.LINK,
             url: "/admisi/sep/igd",
+          },
+        ],
+      },
+      {
+        name: "Rencana Kontrol & SPRI",
+        icon: "PhCalendarCheck",
+        type: linkType.DROPDOWN,
+        child: [
+          {
+            name: "Rencana Kontrol",
+            icon: "Rencana Kontrol",
+            type: linkType.LINK,
+            url: "/admisi/rencana-kontrol",
+          },
+          {
+            name: "SPRI",
+            icon: "SPRI",
+            type: linkType.LINK,
+            url: "/admisi/spri",
           },
         ],
       },
@@ -128,6 +148,11 @@ const sidebarBodyList = ref<SidebarBody[]>([
     ],
   },
 ]);
+// Rencana Kontrol & SPRI hanya untuk faskes yang mengaktifkan fitur vclaim_rencana_kontrol (modul BPJS FKRTL, Manajemen Modul).
+const suratBpjsAktif = () => modulAktif("bpjs_fkrtl") && fiturAktif("vclaim_rencana_kontrol");
+const sidebarTampil = computed(() =>
+  sidebarBodyList.value.map((s) => ({ ...s, child: s.child?.filter((c) => c.name !== "Rencana Kontrol & SPRI" || suratBpjsAktif()) }))
+);
 </script>
 
 <template>
@@ -136,7 +161,7 @@ const sidebarBodyList = ref<SidebarBody[]>([
       sidebarTitle="Admisi"
       sidebarTitleUrl="/admisi"
       class="flex-none"
-      :sidebar-body-list="sidebarBodyList"
+      :sidebar-body-list="sidebarTampil"
       showStockBtn
     />
     <component

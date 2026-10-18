@@ -1068,7 +1068,10 @@
       "deskripsi": "Pembuatan surat kontrol dan SPRI lewat VClaim.",
       "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/admisi/rencana-kontrol",
+        "/admisi/spri"
+      ],
       "urutan": 45
     },
     {

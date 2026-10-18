@@ -5,13 +5,17 @@ import CustomButton from "@/components/Base/CustomButton.vue";
 import CustomChip from "@/components/Base/CustomChip.vue";
 import CustomSelect from "@/components/Base/CustomSelect.vue";
 import CustomTextfield from "@/components/Base/CustomTextfield.vue";
-import { useBpjsVclaimStore } from "@/stores/bpjsVclaim";
+import { useBpjsVclaimStore, bolehSurat } from "@/stores/bpjsVclaim";
+import { fiturAktif } from "@/stores/modulFaskes";
+import { tglIndo } from "@/utils/pdf/pdfBpjs/cetakSuratVclaim";
 import { utilsStore } from "@/stores/utils";
 import { epochToDate } from "@/utils/Helpers";
 
 // Pembuatan SEP BPJS VClaim: cari peserta → pilih rujukan (rawat jalan) → poli, DPJP, diagnosis awal
 // → kaitkan ke kunjungan OpenSIMRS (opsional) → kirim ke BPJS. IGD memakai poli "IGD" tanpa rujukan;
-// rawat inap memerlukan nomor SPRI.
+// rawat inap memerlukan SPRI. Bila fitur Rencana Kontrol & SPRI (vclaim_rencana_kontrol) aktif, SPRI/Rencana Kontrol
+// dipilih dari surat terdaftar milik pasien (dikirim sebagai suratUuid, divalidasi & dikunci bpjs-service); nomor
+// surat hanya diketik bebas bila fitur tidak aktif (surat dibuat di luar OpenSIMRS).
 const props = defineProps<{ pageType: string }>();
 const emit = defineEmits(["selesai", "batal"]);
 const store = useBpjsVclaimStore();
@@ -40,9 +44,22 @@ const kataDiagnosa = ref("");
 const opsiDiagnosa = ref<{ value: string; label: string }[]>([]);
 const diagAwal = ref("");
 const noSurat = ref("");
+// Surat terdaftar (STD-0021)
+const suratManual = !fiturAktif("vclaim_rencana_kontrol");
+const bolehPilihSurat = bolehSurat("PILIH SURAT SEP");
+const pakaiPilihanSurat = computed(() => !suratManual && !igd.value);
+const daftarSurat = ref<any[]>([]);
+const suratUuid = ref("");
+const pesanSurat = ref("");
 const noTelp = ref("");
 const catatan = ref("");
 
+const opsiSurat = computed(() =>
+  daftarSurat.value.map((x) => ({
+    value: x.uuid,
+    label: `${x.noSurat} · ${tglIndo(x.tglRencana)} · Poli ${x.poliTujuan ?? "-"} · DPJP ${x.namaDokter ?? x.dpjp ?? "-"}`,
+  }))
+);
 const pesertaAktif = computed(() => peserta.value?.statusPeserta?.kode === "0");
 const pasienTerpilih = computed(() => pasien.value.find((p) => p.uuid === pasienUuid.value));
 const opsiPasien = computed(() => pasien.value.map((p) => ({ value: p.uuid, label: `${p.noRm} – ${p.name}` })));
@@ -134,7 +151,34 @@ watch(kunjunganUuid, (uuid) => {
   if (k.kdPoliVclaim && !rawatInap.value && !igd.value) poliTujuan.value = k.kdPoliVclaim;
   if (k.kdDpjp) dpjp.value = k.kdDpjp;
 });
+// Surat aktif (belum dipakai, belum jatuh tempo) milik pasien & kartu ini: SPRI untuk rawat inap, Rencana Kontrol untuk rawat jalan
+const muatSurat = async () => {
+  daftarSurat.value = [];
+  suratUuid.value = "";
+  pesanSurat.value = "";
+  if (!pakaiPilihanSurat.value || !pasienUuid.value || !peserta.value) return;
+  const res = await store.getSurat(rawatInap.value ? "spri" : "rencana-kontrol", {
+    patientUuid: pasienUuid.value, noKartu: peserta.value.noKartu, status: "aktif", limit: 50,
+  });
+  if (res?.gagal) {
+    pesanSurat.value = res.message;
+    return;
+  }
+  daftarSurat.value = res?.payload ?? [];
+  if (rawatInap.value && daftarSurat.value.length === 1 && bolehPilihSurat) suratUuid.value = daftarSurat.value[0].uuid;
+};
+watch(suratUuid, (uuid) => {
+  const x = daftarSurat.value.find((s) => s.uuid === uuid);
+  if (!x) return;
+  if (x.poliTujuan && !rawatInap.value && !igd.value) {
+    tambahOpsi(opsiPoli.value, x.poliTujuan, x.poliTujuan);
+    poliTujuan.value = x.poliTujuan;
+  }
+  if (x.dpjp) dpjp.value = x.dpjp;
+});
+
 watch(pasienUuid, () => {
+  muatSurat();
   kunjunganUuid.value = "";
   if (!noTelp.value && pasienTerpilih.value?.phone) noTelp.value = pasienTerpilih.value.phone;
 });
@@ -164,7 +208,8 @@ const kirim = async () => {
     diagAwal: diagAwal.value,
     poliTujuan: igd.value ? "IGD" : rawatInap.value ? "" : poliTujuan.value,
     dpjp: dpjp.value,
-    noSurat: noSurat.value,
+    // nomor surat bebas hanya bila fitur Rencana Kontrol & SPRI tidak aktif; selain itu surat terdaftar (suratUuid)
+    ...(suratManual ? { noSurat: noSurat.value } : suratUuid.value ? { suratUuid: suratUuid.value } : {}),
     noTelp: noTelp.value,
     catatan: catatan.value,
     patientUuid: pasienUuid.value || null,
@@ -245,7 +290,19 @@ onMounted(muatPoli);
       <div class="grid grid-cols-3 gap-3">
         <CustomSelect v-model="pasienUuid" label="Pasien OpenSIMRS" :options="opsiPasien" optionValue="value" optionLabel="label" :placeHolder="pasien.length ? 'Pilih pasien' : 'Tidak ada pasien dengan kartu ini'" :disabled="!pasien.length" />
         <CustomSelect v-model="kunjunganUuid" label="Kunjungan (30 hari terakhir)" :options="opsiKunjungan" optionValue="value" optionLabel="label" placeHolder="Opsional" :disabled="!opsiKunjungan.length" clearable />
-        <CustomTextfield v-if="rawatInap" v-model="noSurat" label="No. SPRI" required />
+        <CustomTextfield v-if="rawatInap && suratManual" v-model="noSurat" label="No. SPRI" required />
+        <CustomSelect
+          v-else-if="pakaiPilihanSurat"
+          v-model="suratUuid"
+          :label="rawatInap ? 'SPRI' : 'Rencana Kontrol (opsional)'"
+          :options="opsiSurat"
+          optionValue="value"
+          optionLabel="label"
+          :placeHolder="!bolehPilihSurat ? 'Tidak berhak memilih surat' : opsiSurat.length ? 'Pilih surat' : 'Tidak ada surat aktif'"
+          :disabled="!bolehPilihSurat || !opsiSurat.length"
+          :required="rawatInap"
+          clearable
+        />
         <div v-else />
 
         <CustomSelect
@@ -269,7 +326,12 @@ onMounted(muatPoli);
         <CustomTextfield v-model="noTelp" label="No. Telepon" />
         <CustomTextfield v-model="catatan" class="col-span-3" label="Catatan" placeholder="Opsional" />
       </div>
+      <div v-if="pesanSurat" class="p-3 mt-3 text-sm rounded-md bg-[#FEF0C7] text-[#B54708]">Surat Rencana Kontrol/SPRI tidak dapat dimuat: {{ pesanSurat }}</div>
+      <div v-else-if="rawatInap && pakaiPilihanSurat && pasienUuid && !opsiSurat.length" class="p-3 mt-3 text-sm rounded-md bg-[#FEF0C7] text-[#B54708]">
+        Belum ada SPRI aktif untuk pasien ini. Buat SPRI di Admisi › Rencana Kontrol & SPRI atau dari rekam medis rawat jalan/IGD.
+      </div>
       <div class="flex flex-wrap gap-2 mt-3">
+        <CustomChip v-if="suratUuid" :label="`Surat ${daftarSurat.find((x) => x.uuid === suratUuid)?.noSurat ?? '-'}`" :show-checked-icon="false" bg-color="bg-opensimrs-50" border-color="border-transparent" text-color="text-opensimrs-300" />
         <CustomChip v-if="rujukanDipilih" :label="`Rujukan ${rujukanDipilih.noKunjungan}`" :show-checked-icon="false" bg-color="bg-opensimrs-50" border-color="border-transparent" text-color="text-opensimrs-300" />
         <CustomChip :label="`Kelas ${peserta.hakKelas?.kode ?? '-'}`" :show-checked-icon="false" bg-color="bg-opensimrs-50" border-color="border-transparent" text-color="text-opensimrs-300" />
       </div>
@@ -277,7 +339,7 @@ onMounted(muatPoli);
 
     <div class="flex justify-end gap-3">
       <CustomButton label="Batal" textColor="text-[#9DA4B1]" backgroundColor="bg-transparent" borderColor="border-2 border-[#9DA4B1]" @click="emit('batal')" />
-      <CustomButton label="Buat SEP" icon="PhPaperPlaneTilt" :disabled="!peserta || !pesertaAktif" @click="kirim" />
+      <CustomButton label="Buat SEP" icon="PhPaperPlaneTilt" :disabled="!peserta || !pesertaAktif || (rawatInap && !suratManual && !suratUuid)" @click="kirim" />
     </div>
   </div>
 </template>

@@ -71,8 +71,10 @@ test("kredensial tidak lengkap ditolak sebelum menghubungi BPJS", async () => {
 test("payload Rencana Kontrol: buat, ubah, hapus", () => {
   const b = buatRencanaKontrol({ noKartu: "0001234567891", kodeDokter: "31486", poliKontrol: "INT", tglRencanaKontrol: "2026-11-01", user: "petugas" });
   assert.deepEqual(b.request.t_rencontrol, {
-    noKartu: "0001234567891", kodeDokter: "31486", poliKontrol: "INT", tglRencanaKontrol: "2026-11-01", user: "petugas",
+    noSEP: "", noKartu: "0001234567891", kodeDokter: "31486", poliKontrol: "INT", tglRencanaKontrol: "2026-11-01", user: "petugas",
   });
+  const denganSep = buatRencanaKontrol({ noKartu: "0001234567891", noSep: "0301R0011026V000001", kodeDokter: "31486", poliKontrol: "INT", tglRencanaKontrol: "2026-11-01" });
+  assert.equal(denganSep.request.t_rencontrol.noSEP, "0301R0011026V000001");
 
   const u = ubahRencanaKontrol({ noSuratKontrol: "RK123", noKartu: "0001234567891", kodeDokter: "31487", poliKontrol: "ANA", tglRencanaKontrol: "2026-11-05", user: "petugas" });
   assert.equal(u.request.t_rencontrol.noSuratKontrol, "RK123");
@@ -84,8 +86,8 @@ test("payload Rencana Kontrol: buat, ubah, hapus", () => {
 });
 
 test("payload SPRI: buat & ubah", () => {
-  const b = buatSpri({ noKartu: "0001234567891", tglRencana: "2026-11-01", user: "petugas" });
-  assert.deepEqual(b.request.t_sprirawat, { noKartu: "0001234567891", tglRencana: "2026-11-01", user: "petugas" });
+  const b = buatSpri({ noKartu: "0001234567891", kodeDokter: "31486", poliKontrol: "INT", tglRencana: "2026-11-01", user: "petugas" });
+  assert.deepEqual(b.request.t_sprirawat, { noKartu: "0001234567891", kodeDokter: "31486", poliKontrol: "INT", tglRencana: "2026-11-01", user: "petugas" });
 
   const u = ubahSpri({ noSuratSPRI: "SPRI123", noKartu: "0001234567891", tglRencana: "2026-11-02", user: "petugas" });
   assert.equal(u.request.t_sprirawat.noSuratSPRI, "SPRI123");
