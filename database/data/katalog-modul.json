@@ -220,6 +220,17 @@
       "urutan": 7
     },
     {
+      "kode": "audit_trail",
+      "nama": "Audit Trail",
+      "kelompok": "Inti",
+      "inti": true,
+      "tersedia": true,
+      "deskripsi": "Jejak login, akses rekam medis, dan perubahan data lintas layanan (rantai hash). Selalu aktif; akses lihat/ekspor lewat izin Setting › Audit Trail.",
+      "menu": [],
+      "rute": [],
+      "urutan": 7
+    },
+    {
       "kode": "antrian",
       "nama": "Antrian & Layar Panggil",
       "kelompok": "Layanan",
