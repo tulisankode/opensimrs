@@ -30,6 +30,9 @@ export const BAWAAN = {
   branch_dasar: "origin/main",
   // Konektor per tahap: "claude_code" (CLI langganan) atau uuid studio_konektor.
   konektor_tahap: {},
+  // Rantai cadangan saat kuota konektor tahap habis: larik berurutan "claude_code" | "codex" | uuid konektor API aktif.
+  // Hanya antar konektor yang dikonfigurasi admin (jalur berbayar resmi / penyedia berbeda), bukan memutar akun langganan.
+  konektor_cadangan: [],
   // Model per tahap; "" = bawaan konektor. Kunci: permintaan, usecase, prd, desain, coding, qa, rilis, ekstensi.
   model_tahap: {},
   // Aturan prompt lapis instalasi (ditambahkan ke setiap tugas agen).
@@ -42,6 +45,8 @@ export const BAWAAN = {
   batas_biaya_item: null,
   batas_biaya_bulan: null,
   batas_kuota_persen: 95,
+  // Tugas agen (dokumen/coding) yang berjalan bersamaan; null/0 = tanpa batas. Selebihnya menunggu slot (status antri).
+  maks_agen_bersamaan: 2,
   // Batas jumlah tugas agen yang dimulai per pengguna per jam.
   batas_tugas_per_jam: 30,
   // Integrasi Git hosting untuk Pull Request: github | gitea | "" (tanpa; Studio memberi tautan compare).

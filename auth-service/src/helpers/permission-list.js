@@ -1055,6 +1055,24 @@ export const cssdPermission = {
   ],
 };
 
+// Manajemen Ambulans (STD-0024, penunjang-service). "Catatan Pendamping" dipisah dari izin Perjalanan & Laporan:
+// catatan pendamping adalah catatan perjalanan beraksesibilitas terbatas (KF-10), tidak tampil di laporan umum.
+export const ambulansPermission = {
+  module: "Manajemen Ambulans",
+  subModules: [
+    { name: "Permintaan", allows: ["READ", "CREATE", "BATAL"] },
+    { name: "Penugasan", allows: ["READ", "CREATE", "BATAL"] },
+    { name: "Perjalanan", allows: ["READ", "CATAT TAHAP", "SELESAIKAN"] },
+    { name: "Catatan Pendamping", allows: ["READ"] },
+    { name: "Armada", allows: ["READ", "CREATE", "UPDATE", "UBAH STATUS"] },
+    { name: "Servis Armada", allows: ["READ", "CREATE"] },
+    { name: "Kru & Jadwal Jaga", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "Tarif", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Biaya & Kuitansi", allows: ["READ", "TERUSKAN"] },
+    { name: "Laporan Ambulans", allows: ["READ", "EKSPOR"] },
+  ],
+};
+
 export const trainingPermission = {
   module: "Training",
   subModules: [
@@ -1508,6 +1526,7 @@ export function mapPermission(permissionList) {
     utd: utdPermission,
     "bank darah rs (bdrs)": bankDarahPermission,
     cssd: cssdPermission,
+    "manajemen ambulans": ambulansPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,
     stok: stokPermission,

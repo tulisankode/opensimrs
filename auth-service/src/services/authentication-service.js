@@ -70,9 +70,11 @@ export default class AuthenticationService {
         }
       )
     }
-    const { permissions } = await AuthenticationRepository.findByUsername(username);
+    // login() mengembalikan permissions sebagai larik (findByUsername mengembalikan teks mentah kolom permissions,
+    // sehingga cache sesi Redis berisi teks dan permission-sdk gagal: "permissions.find is not a function").
+    const { permissions, uuid } = await AuthenticationRepository.login(username);
     const { name: faskesName} = await FaskesRepository.findByUuid(faskesUuid);
-    const { token: newToken, refreshToken: newRefreshToken } = genereateAuthToken({role, username, faskesUuid, name});
+    const { token: newToken, refreshToken: newRefreshToken } = genereateAuthToken({role, username, faskesUuid, name, user_uuid: uuid});
     await redisClient.set(`token-${generateRedisKeyByJwtToken(newToken)}`, JSON.stringify({permissions}), { EX: 3 * (60 * 60), NX: true });
     await redisClient.del(`token-${generateRedisKeyByJwtToken(token)}`);
     return {
@@ -103,11 +105,15 @@ export default class AuthenticationService {
   static async refreshToken(request){
     ZodValidator.validate(AuthenticationValidation.REFRESH_TOKEN, request);
     const decodeToken = JwtHelper.verifyRefreshToken(request.refreshToken);
-    const user = await AuthenticationRepository.findByUsername(decodeToken.username);
+    // login() menyertakan nama peran & permissions berbentuk larik (findByUsername tidak memuat peran, sehingga token
+    // hasil refresh kehilangan role/user_uuid dan izin sesi tersimpan sebagai teks).
+    const user = await AuthenticationRepository.login(decodeToken.username);
+    if (!user) throw new UnauthorizeException({ message: "Gagal refresh token", errors: [{ message: "pengguna tidak ditemukan" }] });
     const { token, refreshToken } = genereateAuthToken({
       role: user.role,
       username: user.username,
-      faskesUuid: user.faskesUuid
+      faskesUuid: user.faskesUuid,
+      user_uuid: user.uuid,
     });
     await redisClient.set(`token-${generateRedisKeyByJwtToken(token)}`, JSON.stringify({permissions: user.permissions}), { EX: 3 * (60 * 60), NX: true });
     await redisClient.del(`token-${generateRedisKeyByJwtToken(request.token)}`);

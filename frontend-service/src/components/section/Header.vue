@@ -160,6 +160,11 @@ const templistMenu = ref<ListMenu[]>([
     url: "/utd",
   },
   {
+    title: "Manajemen Ambulans",
+    icon: "PhAmbulance",
+    url: "/ambulans",
+  },
+  {
     title: "Training",
     icon: "TrainingIcon",
     url: "/training",
@@ -342,7 +347,7 @@ const susunMenu = () => {
     .map((m) => ({ title: NAMA_SEGERA[m.kode] ?? m.nama, icon: IKON_SEGERA[m.kode] ?? "PhPuzzlePiece", url: `/segera/${m.kode}`, segera: true }))
     .filter((s) => !menu.some((x) => x.title === s.title));
 };
-const MODUL_PENUNJANG = ["Laboratorium", "Patologi Anatomi", "Mikrobiologi", "Radiologi", "Fisioterapi", "CSSD", "Bank Darah RS (BDRS)", "UTD", "Laundry"];
+const MODUL_PENUNJANG = ["Laboratorium", "Patologi Anatomi", "Mikrobiologi", "Radiologi", "Fisioterapi", "CSSD", "Bank Darah RS (BDRS)", "UTD", "Manajemen Ambulans", "Laundry"];
 const menuAktif = (m: ListMenu) =>
   m.anak ? m.anak.some((a) => checkActiveTab(a.url)) : checkActiveTab(m.url) || route.path === m.url;
 const popupGrup = ref();

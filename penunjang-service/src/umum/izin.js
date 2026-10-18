@@ -86,3 +86,4 @@ export const izinLaundry = (submodul, aksi, fitur = null) => wajibIzin("Laundry"
 export const izinOk = (submodul, aksi, fitur = null) => wajibIzin("Kamar Operasi", submodul, aksi, fitur);
 export const izinKoding = (submodul, aksi, fitur = null) => wajibIzin("Koding Rekam Medis", submodul, aksi, fitur);
 export const izinTraining = (submodul, aksi, fitur = null) => wajibIzin("Training", submodul, aksi, fitur);
+export const izinAmbulans = (submodul, aksi, fitur = null) => wajibIzin("Manajemen Ambulans", submodul, aksi, fitur);
