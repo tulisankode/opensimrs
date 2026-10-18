@@ -12,6 +12,7 @@ import {dbSeeder} from "./seeders/db-seeder.js";
 import EventListener from "./listeners/event-listener.js";
 import efp from "express-fileupload";
 import redis from "./configurations/redis-instance.js";
+import { auditContextMiddleware } from "@opensimrs/model-sdk/audit-context";
 const app = express();
 const port = process.env.APP_PORT || 8080;
 //TODO DIGANTI SAAT MERGE
@@ -39,6 +40,8 @@ app.use(cors(corsConfig));
 app.use(efp());
 // Konteks per permintaan (author/token) — harus sebelum rute.
 app.use(Context.middleware);
+// Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
+app.use(auditContextMiddleware());
 app.use("/api/v3/admisi", routes);
 app.use(errorMiddleware);
 

@@ -21,6 +21,7 @@ import FisioterapiView from "@/views/Fisioterapi/FisioterapiView.vue";
 // NOTE Admisi
 import AdmisiPage from "@/views/Admisi/AdmisiPage.vue";
 import SEPAdmisiPage from "@/views/Admisi/SEPAdmisiPage.vue";
+import RencanaKontrolSpriPage from "@/views/Admisi/RencanaKontrolSpriPage.vue";
 import PatientDataPage from "@/views/Admisi/PatientDataPage.vue";
 import RoomMonitoringPage from "@/views/Admisi/RoomMonitoringPage.vue";
 import AdmisiReportPage from "@/views/Admisi/AdmisiReportPage.vue";
@@ -74,6 +75,7 @@ import PrintOutPage from "../views/SettingPage/Template/PrintOut/PrintOutPage.vu
 import ProfilAkunPage from "../views/SettingPage/Template/ProfilAkun/ProfilAkunPage.vue";
 import ProfilAkunView from "@/views/SettingPage/ProfilAkunView.vue";
 import SystemPage from "@/views/SettingPage/Template/System/SystemPage.vue";
+import AuditTrailPage from "@/views/SettingPage/Template/AuditTrail/AuditTrailPage.vue";
 
 // NOTE Page View Datamaster
 import UserPage from "@/views/Datamaster/User/UserPage.vue";
@@ -523,6 +525,12 @@ const router = createRouter({
       meta: { layout: SidebarLayout, page: SystemPage, requiresAuth: true },
       component: SettingView,
     },
+    {
+      path: "/setting/audit-trail",
+      name: "setting-audit-trail",
+      meta: { layout: SidebarLayout, page: AuditTrailPage, requiresAuth: true },
+      component: SettingView,
+    },
     // !SECTION
 
     // SECTION Router Ekstensi tanpa kode (dirakit di SIMRS Studio, dijalankan laporan-service; akses dicek backend per ekstensi)
@@ -762,6 +770,19 @@ const router = createRouter({
         page: SEPAdmisiPage,
         requiresAuth: true,
       },
+      component: AdmisiView,
+    },
+    // Rencana Kontrol & SPRI via VClaim (fitur vclaim_rencana_kontrol, izin Admisi › Rencana Kontrol & SPRI) — STD-0021
+    {
+      path: "/admisi/rencana-kontrol",
+      name: "admisi-rencana-kontrol",
+      meta: { layout: SidebarLayout, page: RencanaKontrolSpriPage, requiresAuth: true },
+      component: AdmisiView,
+    },
+    {
+      path: "/admisi/spri",
+      name: "admisi-spri",
+      meta: { layout: SidebarLayout, page: RencanaKontrolSpriPage, requiresAuth: true },
       component: AdmisiView,
     },
     {

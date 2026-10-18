@@ -13,6 +13,10 @@ import { useBpjsVclaimStore } from "@/stores/bpjsVclaim";
 import { utilsStore } from "@/stores/utils";
 import { epochToDate } from "@/utils/Helpers";
 
+// Template berakar ganda (Card + Dialog): kelas tata letak dari wadah (grow, overflow) diteruskan ke Card
+// agar halaman memenuhi lebar area konten.
+defineOptions({ inheritAttrs: false });
+
 // Admisi › SEP: daftar SEP BPJS VClaim yang diterbitkan dari OpenSIMRS per jenis pelayanan, pembuatan & penghapusan SEP
 const route = useRoute();
 const store = useBpjsVclaimStore();
@@ -104,7 +108,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Card pt:body:class="h-full pt-0 overflow-auto" pt:content:class="h-full overflow-auto">
+  <Card v-bind="$attrs" pt:body:class="h-full pt-0 overflow-auto" pt:content:class="h-full overflow-auto">
     <template #header>
       <!-- Header satu baris (PageToolbar): komponen Base di dalamnya tampil ringkas tanpa label. -->
       <PageToolbar>

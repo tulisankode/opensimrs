@@ -5,6 +5,7 @@ import routes from "./routes/routes.js";
 import errorMiddleware from "./middlewares/error-middleware.js";
 import {dbSeeder} from "./seeders/db-seeder.js";
 import authorizationSdk from "@opensimrs/authorization-sdk";
+import { auditContextMiddleware } from "@opensimrs/model-sdk/audit-context";
 
 const APPLICATION_PORT = process.env.APPLICATION_PORT;
 const APPLICATION_HOST = process.env.APPLICATION_HOST;
@@ -23,6 +24,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Konteks per permintaan (author/token) — harus sebelum rute.
 app.use(Context.middleware);
+// Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
+app.use(auditContextMiddleware());
 app.use(BASE_URL, routes);
 app.use(errorMiddleware);
 app.listen(APPLICATION_PORT, APPLICATION_HOST, async () => {

@@ -8,6 +8,7 @@ import morgan from "morgan";
 import EventListener from "./listeners/event-listener.js";
 import MODELMERGE from "./models/postgres/modelMerge.js";
 import authorizationMiddleware from "./middlewares/authorization-middleware.js";
+import { auditContextMiddleware } from "@opensimrs/model-sdk/audit-context";
 
 const APPLICATION_PORT = process.env.APPLICATION_PORT || 3000;
 const APPLICATION_HOST = process.env.APPLICATION_HOST || "localhost";
@@ -26,6 +27,8 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(morgan("dev"));
 // app.use(authorizationSdk([]));
 app.use(authorizationMiddleware);
+// Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
+app.use(auditContextMiddleware());
 await mongooseInstance();
 app.use(`/${apiBase}/${apiVersion}`, routes);
 app.use(errorMiddleware);

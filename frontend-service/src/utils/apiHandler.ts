@@ -118,6 +118,7 @@ const errorApiHandler = (error: any) => {
       localStorage.removeItem("user");
       localStorage.removeItem("faskes");
       localStorage.removeItem("faskes_profile");
+      localStorage.removeItem("simrs_studio_mode"); // cache status SIMRS Studio (stores/simrsStudio.ts)
       window.location.reload();
     }
     // NOTE Refresh Token
@@ -1048,7 +1049,8 @@ const apiBpjsKirim = async (metode: "get" | "post" | "put" | "delete", url: stri
     errorApiHandler(error);
   }
 };
-const toPesanGalat = (data: any) => ({ message: data.message, payload: data.payload });
+// detail: keterangan bentrok (409) dari bpjs-service, mis. { uuid } surat yang sedang diproses
+const toPesanGalat = (data: any) => ({ message: data.message, payload: data.payload, detail: data.detail });
 const apiBpjsGet = (url: string) => apiBpjsKirim("get", url);
 const apiBpjsPost = (url: string, data: object = {}) => apiBpjsKirim("post", url, data);
 const apiBpjsPut = (url: string, data: object = {}) => apiBpjsKirim("put", url, data);

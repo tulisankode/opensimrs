@@ -80,6 +80,7 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/setting/profil-akun", permission: read("Setting", "Profile Saya") },
   { path: "/setting/manajemen-modul", permission: read("Setting", "System") },
   { path: "/setting/system", permission: read("Setting", "System") },
+  { path: "/setting/audit-trail", permission: read("Setting", "Audit Trail", null, "LIHAT") },
 
   { path: "/datamaster/user", permission: read("Datamaster", "User") },
   { path: "/datamaster/role", permission: read("Datamaster", "Role") },
@@ -109,6 +110,8 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/admisi/rawat-inap", permission: read("Admisi", "Admisi RI") },
   { path: "/admisi/igd", permission: any("Admisi", "Admisi IGD", ["READ", "CREATE PASIEN IGD", "UPDATE ADMISI IGD"]) },
   { path: "/admisi/sep", mode: "prefix", permission: read("Admisi", "SEP") },
+  { path: "/admisi/rencana-kontrol", permission: read("Admisi", "Rencana Kontrol & SPRI") },
+  { path: "/admisi/spri", permission: read("Admisi", "Rencana Kontrol & SPRI") },
   { path: "/admisi/data-pasien", permission: read("Admisi", "Data Pasien") },
   { path: "/admisi/monitoring-kamar", permission: read("Admisi", "Monitoring Kamar") },
   { path: "/admisi/laporan/kunjungan", permission: read("Admisi", "Laporan Admisi", "Kunjungan") },

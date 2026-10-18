@@ -52,6 +52,7 @@ const sidebarBodyList = computed<SidebarBody[]>(() => [
           { name: "Print Out", type: linkType.LINK, url:'/setting/print-out', icon:"GearFillIcon" },
           { name: "Manajemen Modul", type: linkType.LINK, url:'/setting/manajemen-modul', icon:'GearFillIcon' },
           { name: "System", type: linkType.LINK, url:'/setting/system', icon:'GearFillIcon' },
+          { name: "Audit Trail", type: linkType.LINK, url:'/setting/audit-trail', icon:'GearFillIcon' },
           // Ekstensi tanpa kode (impor paket SIMRS Studio): superadmin saja
           ...(JSON.parse(localStorage.getItem("user") ?? "{}").role === "super admin" ? [{ name: "Ekstensi", type: linkType.LINK, url: "/setting/ekstensi", icon: "GearFillIcon" }] : []),
     ],

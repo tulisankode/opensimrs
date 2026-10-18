@@ -220,6 +220,17 @@
       "urutan": 7
     },
     {
+      "kode": "audit_trail",
+      "nama": "Audit Trail",
+      "kelompok": "Inti",
+      "inti": true,
+      "tersedia": true,
+      "deskripsi": "Jejak login, akses rekam medis, dan perubahan data lintas layanan (rantai hash). Selalu aktif; akses lihat/ekspor lewat izin Setting › Audit Trail.",
+      "menu": [],
+      "rute": [],
+      "urutan": 7
+    },
+    {
       "kode": "antrian",
       "nama": "Antrian & Layar Panggil",
       "kelompok": "Layanan",
@@ -1081,9 +1092,12 @@
       "modul": "bpjs_fkrtl",
       "nama": "Rencana Kontrol & SPRI",
       "deskripsi": "Pembuatan surat kontrol dan SPRI lewat VClaim.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/admisi/rencana-kontrol",
+        "/admisi/spri"
+      ],
       "urutan": 45
     },
     {
@@ -1863,7 +1877,8 @@
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol"
       ],
       "puskesmas": [
         "bayar_diskon_voucher",
@@ -1878,27 +1893,31 @@
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol"
       ],
       "rs_c": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol"
       ],
       "rs_b": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
         "bdrs_bridging",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol"
       ],
       "rs_a": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
         "bdrs_bridging",
-        "antrian_online_bpjs"
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol"
       ]
     },
     "bagian_mati": {

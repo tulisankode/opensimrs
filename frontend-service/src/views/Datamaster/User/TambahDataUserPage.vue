@@ -57,6 +57,10 @@ const schema = computed(() =>
         password: yup.string().notRequired(),
         confirmPassword: yup
           .string()
+          .when("password", {
+            is: (v: string | undefined) => !!v,
+            then: (s) => s.required("Ulangi password"),
+          })
           .oneOf([yup.ref("password")], "Password tidak sama")
           .notRequired(),
         status: yup.bool().default(true),
@@ -534,7 +538,8 @@ onBeforeMount(async () => {
             <CustomTextfield
               v-model="password"
               label="Password"
-              placeholder="********"
+              :placeholder="method === 'edit' ? 'Kosongkan bila tidak diubah' : '********'"
+              autocomplete="new-password"
               :type="showPassword ? 'text' : 'password'"
               :invalid="errors.password ? true : false"
               :invalidMessage="errors.password"
@@ -546,6 +551,7 @@ onBeforeMount(async () => {
               v-model="confirmPassword"
               label="Verify Password"
               placeholder="********"
+              autocomplete="new-password"
               :type="showConfirmPassword ? 'text' : 'password'"
               :invalid="errors.confirmPassword ? true : false"
               :invalidMessage="errors.confirmPassword"

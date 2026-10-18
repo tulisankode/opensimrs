@@ -72,6 +72,11 @@ export const admisiPermission = {
       allows: ["READ", "CREATE SEP", "CREATE SEP MANUAL", "DELETE", "SIMPAN SEP MANUAL", "DELETE PASIEN"],
     },
     {
+      // Rencana Kontrol & SPRI via VClaim (fitur vclaim_rencana_kontrol, modul bpjs_fkrtl) — STD-0021
+      name: "Rencana Kontrol & SPRI",
+      allows: ["READ", "CREATE RENCANA KONTROL", "UPDATE RENCANA KONTROL", "DELETE RENCANA KONTROL", "CREATE SPRI", "UPDATE SPRI", "DELETE SPRI", "PILIH SURAT SEP"],
+    },
+    {
       name: "Data Pasien",
       allows: [
         "READ",
@@ -1431,6 +1436,12 @@ export const settingPermission = {
     {
       name: "Profile Saya",
       allows: ["READ", "UPDATE FOTO PROFILE DAN NAMA LENGKAP", "UPDATE USERNAME DAN PASSWORD"],
+    },
+    // Audit Trail terpusat (STD-0029): tidak diberikan otomatis ke peran faskes mana pun — hanya superadmin lewat
+    // migrasi database/migrations/20261018000001-izin_audit_trail_setting.cjs. Admin faskes lain diberi manual.
+    {
+      name: "Audit Trail",
+      allows: ["LIHAT", "EKSPOR"],
     },
   ],
 };

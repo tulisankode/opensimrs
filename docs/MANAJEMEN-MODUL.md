@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **31 modul** (7 inti, 1 berstatus Segera), **76 fitur** (2 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **32 modul** (8 inti, 1 berstatus Segera), **76 fitur** (1 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -247,6 +247,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `datamaster` | Data Master | Pegawai, praktisi, lokasi/poli, tarif, penjamin. | Inti (selalu aktif) | Datamaster |
 | `laporan` | Laporan | Laporan kunjungan, diagnosis, keuangan. | Inti (selalu aktif) | Laporan |
 | `satusehat` | SATUSEHAT | Integrasi wajib Kemenkes (RME). | Inti (selalu aktif) | – |
+| `audit_trail` | Audit Trail | Jejak login, akses rekam medis, dan perubahan data lintas layanan (rantai hash). Selalu aktif; akses lihat/ekspor lewat izin Setting › Audit Trail. | Inti (selalu aktif) | – |
 
 #### Layanan
 
@@ -310,6 +311,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Data Master (`datamaster`) | Inti | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Laporan (`laporan`) | Inti | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | SATUSEHAT (`satusehat`) | Inti | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Audit Trail (`audit_trail`) | Inti | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Antrian & Layar Panggil (`antrian`) | Tersedia | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Farmasi (`farmasi`) | Tersedia | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Gudang & Pengadaan (`inventory`) | Tersedia | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -436,7 +438,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
-| `vclaim_rencana_kontrol` | Rencana Kontrol & SPRI | Pembuatan surat kontrol dan SPRI lewat VClaim. | Segera | – | – | – |
+| `vclaim_rencana_kontrol` | Rencana Kontrol & SPRI | Pembuatan surat kontrol dan SPRI lewat VClaim. | Tersedia | – | – | KU, RS D, RS C, RS B, RS A |
 
 #### Program Puskesmas (`program_puskesmas`)
 

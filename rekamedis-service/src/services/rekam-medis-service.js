@@ -6,16 +6,25 @@ import RekamMedisValidation from "../validations/rekam-medis-validation.js";
 import PelayananRepository from "../repositories/pelayanan-repository.js";
 import LokasiRepository from "../repositories/lokasi-repository.js";
 import PartOfLokasiRepository from "../repositories/partof-lokasi-repository.js";
+import { catatAksesBacaRme, catatPerubahanRme } from "../helpers/audit-rme.js";
 
 export default class RekamMedisService {
     static async get(request) {
         ZodValidator.validate(RekamMedisValidation.GET, request);
 
         const rekamMedis = await RekamMedisRepository.get(request);
-        console.log("rekamMedis:", rekamMedis); 
+        console.log("rekamMedis:", rekamMedis);
         if (rekamMedis == null) {
             throw new NotfoundException("Rekam Medis tidak ditemukan");
         }
+        // STD-0029 — Audit Trail: satu catatan `baca` per akses detail RME (bukan per item daftar massal).
+        // faskes_uuid dari token (request.query.faskes_uuid, diisi controller), bukan dokumen Mongo.
+        await catatAksesBacaRme({
+            faskesUuid: request.faskes_uuid,
+            rekamMedisUuid: rekamMedis._id,
+            pelayanan: rekamMedis.pelayanan,
+            noPelayanan: rekamMedis.no_pelayanan,
+        });
 
         const dates = rekamMedis.daily_records.map((daily_record, index) => {
             return {
@@ -105,6 +114,19 @@ export default class RekamMedisService {
             faskesUuid: request.faskes_uuid
         })
 
+        // STD-0029 — Audit Trail: dokumen RME baru dibuat (ringkasan metadata saja, bukan isi klinis).
+        await catatPerubahanRme({
+            faskesUuid: request.faskes_uuid,
+            rekamMedisUuid: rekamMedis._id,
+            pelayanan: request.pelayanan,
+            noPelayanan: request.no_pelayanan,
+            aksi: "buat",
+            ringkasanPerubahan: {
+                pelayanan: { lama: null, baru: request.pelayanan },
+                no_pelayanan: { lama: null, baru: request.no_pelayanan },
+            },
+        });
+
         return {
             dates: dates,
             sessions: sessions,
@@ -125,6 +147,17 @@ export default class RekamMedisService {
         const validReq = ZodValidator.validate(RekamMedisValidation.ADDRECORD, request);
         const rekamMedis = await RekamMedisRepository.addRecord(validReq.rekam_medis_uuid, validReq.date);
         const dailyRecords = rekamMedis.daily_records;
+
+        // STD-0029 — Audit Trail: catatan harian baru ditambahkan ke dokumen RME (tanggal saja, bukan isi klinis).
+        // faskes_uuid dari token (request.faskes_uuid, diisi controller), bukan dokumen Mongo.
+        await catatPerubahanRme({
+            faskesUuid: request.faskes_uuid,
+            rekamMedisUuid: rekamMedis._id,
+            pelayanan: rekamMedis.pelayanan,
+            noPelayanan: rekamMedis.no_pelayanan,
+            aksi: "ubah",
+            ringkasanPerubahan: { daily_record: { lama: null, baru: validReq.date } },
+        });
 
         const dates = dailyRecords.map((daily_record) => {
             return {

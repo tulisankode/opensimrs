@@ -15,6 +15,7 @@ import {
   UserModel,
 } from "@opensimrs/model-sdk/datamaster";
 import { initAdmin, initSueprAdmin } from "./seeders/db-seed.js";
+import { auditContextMiddleware } from "@opensimrs/model-sdk/audit-context";
 
 const APPLICATION_PORT = process.env.APPLICATION_PORT;
 const APPLICATION_HOST = process.env.APPLICATION_HOST;
@@ -32,6 +33,8 @@ app.use(
   })
 );
 app.use(express.urlencoded({ extended: true }));
+// Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
+app.use(auditContextMiddleware());
 app.use(requestResponseFormatterMidddleware);
 app.use(BASE_URL, publicRoutes);
 app.use(BASE_URL, privateRoute);

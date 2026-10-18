@@ -58,6 +58,12 @@ const props = defineProps({
     type: Number,
     default: 8,
   },
+  // Diteruskan ke elemen input (atribut biasa jatuh ke div pembungkus), mis. "new-password" agar browser tidak
+  // mengisi otomatis sandi tersimpan.
+  autocomplete: {
+    type: String,
+    default: undefined,
+  },
 });
 
 // const value = ref(props.modelValue);
@@ -114,6 +120,7 @@ const emit = defineEmits(["update:modelValue", "clickPrepend", "clickAppend"]);
         <InputText
           :aria-label="compactToolbar ? (showLabel ? label : placeholder) : undefined"
           :type="type"
+          :autocomplete="autocomplete"
           v-model="value"
           class="h-10 pt-1 text-black rounded-lg text-SM"
           :class="{
