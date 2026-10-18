@@ -1083,6 +1083,8 @@ export const ambulansPermission = {
 // Mutu & Akreditasi (penunjang-service /mutu). Submodul fitur Dokumen Akreditasi & Kredensial Staf (STD-0028); fitur mutu
 // berikutnya (indikator mutu, IKP, PPI) menambah submodul baru di modul yang sama. "Akses Surveior" terpisah dari
 // "Dokumen Akreditasi" › READ: surveior hanya membaca dokumen yang dibagikan & belum lewat batas waktunya.
+// "Indikator Mutu" (STD-0025, fitur mutu_indikator): pengumpul data (INPUT DATA) dipisah dari validator (VALIDASI);
+// TINDAK LANJUT = analisis & rencana perbaikan; EKSPOR = laporan capaian.
 export const mutuPermission = {
   module: "Mutu & Akreditasi",
   subModules: [
@@ -1091,6 +1093,7 @@ export const mutuPermission = {
     { name: "Dokumen Akreditasi", allows: ["READ", "CREATE", "UPDATE", "REVISI", "UBAH STATUS", "TINJAU", "PETAKAN ELEMEN", "BAGIKAN SURVEIOR", "DELETE"] },
     { name: "Kredensial Staf", allows: ["READ", "CREATE", "UPDATE", "VERIFIKASI", "CABUT", "DELETE"] },
     { name: "Akses Surveior", allows: ["READ"] },
+    { name: "Indikator Mutu", allows: ["READ", "CREATE", "UPDATE", "DELETE", "INPUT DATA", "VALIDASI", "TINDAK LANJUT", "EKSPOR"] },
   ],
 };
 

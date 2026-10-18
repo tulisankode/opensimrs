@@ -309,6 +309,11 @@ import InstrumenMutuPage from "@/views/Mutu/InstrumenPage.vue";
 import DokumenMutuPage from "@/views/Mutu/DokumenPage.vue";
 import KredensialMutuPage from "@/views/Mutu/KredensialPage.vue";
 import SurveiorMutuPage from "@/views/Mutu/SurveiorPage.vue";
+// NOTE Mutu & Akreditasi — indikator mutu INM/IMP-RS/IMPU (STD-0025, fitur mutu_indikator)
+import CapaianIndikatorPage from "@/views/Mutu/Indikator/CapaianPage.vue";
+import MasterIndikatorPage from "@/views/Mutu/Indikator/MasterPage.vue";
+import DataIndikatorPage from "@/views/Mutu/Indikator/DataPage.vue";
+import TindakLanjutIndikatorPage from "@/views/Mutu/Indikator/TindakLanjutPage.vue";
 
 // NOTE Sarana dan Prasarana (IPSRS) — aset, work order perbaikan, pemeliharaan, kalibrasi, utilitas (STD-0022, penunjang-service)
 import SarprasView from "@/views/Sarpras/SarprasView.vue";
@@ -347,7 +352,7 @@ import KuitansiAmbulansPage from "@/views/Ambulans/KuitansiPage.vue";
 import LaporanAmbulansPage from "@/views/Ambulans/LaporanPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
-const HALAMAN_MUTU = ["/mutu/dasbor", "/mutu/dokumen", "/mutu/kredensial", "/mutu/instrumen", "/mutu/surveior"];
+const HALAMAN_MUTU = ["/mutu/dasbor", "/mutu/dokumen", "/mutu/kredensial", "/mutu/instrumen", "/mutu/surveior", "/mutu/indikator"];
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
   daftar.map(([path, name, page]) => ({ path, name, meta: { layout: SidebarLayout, page, requiresAuth: true }, component: view }));
 
@@ -1868,6 +1873,10 @@ const router = createRouter({
       ["/mutu/dokumen", "mutu-dokumen", DokumenMutuPage],
       ["/mutu/kredensial", "mutu-kredensial", KredensialMutuPage],
       ["/mutu/surveior", "mutu-surveior", SurveiorMutuPage],
+      ["/mutu/indikator", "mutu-indikator", CapaianIndikatorPage],
+      ["/mutu/indikator/master", "mutu-indikator-master", MasterIndikatorPage],
+      ["/mutu/indikator/data", "mutu-indikator-data", DataIndikatorPage],
+      ["/mutu/indikator/tindak-lanjut", "mutu-indikator-tindak-lanjut", TindakLanjutIndikatorPage],
     ]),
     // !SECTION
 

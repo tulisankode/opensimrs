@@ -116,3 +116,106 @@ export const hapusKredensial = (uuid: string, basis: BasisKredensial = "/mutu") 
 // ── Surveior (baca saja)
 export const daftarDokumenSurveior = (params: Record<string, any> = {}) => apiPenunjangGet(`/mutu/surveior/dokumen${qs(params)}`);
 export const unduhBerkasSurveior = (uuid: string) => apiPenunjangGet(`/mutu/surveior/dokumen/${uuid}/berkas`);
+
+// ── Indikator Mutu (STD-0025, fitur mutu_indikator; izin "Mutu & Akreditasi › Indikator Mutu")
+export const SUB_INDIKATOR = "Indikator Mutu";
+export const JENIS_INDIKATOR: Record<string, string> = { inm: "INM", imp_rs: "IMP-RS", impu: "IMPU" };
+export const STATUS_DATA_INDIKATOR: Record<string, Gaya> = {
+  draf: { label: "Draf", ...abu },
+  diajukan: { label: "Diajukan", ...biru },
+  tervalidasi: { label: "Tervalidasi", ...hijau },
+  dikembalikan: { label: "Dikembalikan", ...oranye },
+};
+export const STATUS_CAPAIAN: Record<string, Gaya> = {
+  tercapai: { label: "Tercapai", ...hijau },
+  tidak_tercapai: { label: "Tidak Tercapai", ...merah },
+  belum_lengkap: { label: "Data Belum Lengkap", ...kuning },
+  tanpa_target: { label: "Target Belum Ditetapkan", ...abu },
+  belum_ada_data: { label: "Belum Ada Data", ...abu },
+};
+export const STATUS_TINDAK_LANJUT: Record<string, Gaya> = {
+  rencana: { label: "Rencana", ...abu },
+  berjalan: { label: "Berjalan", ...biru },
+  selesai: { label: "Selesai", ...hijau },
+};
+export const gayaStatusData = gaya(STATUS_DATA_INDIKATOR);
+export const gayaCapaian = gaya(STATUS_CAPAIAN);
+export const gayaTindakLanjut = gaya(STATUS_TINDAK_LANJUT);
+
+const angkaId = (n: number) => n.toLocaleString("id-ID", { maximumFractionDigits: 2 });
+export const capaianTeks = (nilai?: number | string | null, satuan = "persen") =>
+  nilai === null || nilai === undefined || nilai === "" ? "-" : `${angkaId(Number(nilai))}${satuan === "persen" ? "%" : ""}`;
+export const targetTeks = (target?: number | string | null, arah = "naik", satuan = "persen") =>
+  target === null || target === undefined || target === "" ? "Belum ditetapkan" : `${arah === "turun" ? "≤" : "≥"} ${capaianTeks(target, satuan)}`;
+// Capaian satu data di sisi klien (pratinjau formulir); pembagi nol → null, sama dengan backend.
+export const hitungCapaianIndikator = (num: any, den: any, satuan = "persen") => {
+  const n = Number(String(num ?? "").replace(",", "."));
+  const d = Number(String(den ?? "").replace(",", "."));
+  if (!Number.isFinite(n) || !Number.isFinite(d) || d <= 0) return null;
+  return Math.round((n / d) * (satuan === "persen" ? 100 : 1) * 100) / 100;
+};
+
+// Periode Asia/Jakarta: "YYYY-MM" (bulanan) atau "YYYY-Qn" (triwulan).
+const NAMA_BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const ROMAWI = ["I", "II", "III", "IV"];
+const bulanWib = (d = new Date()) => {
+  const w = new Date(d.getTime() + 7 * 3600 * 1000);
+  return { tahun: w.getUTCFullYear(), bulan: w.getUTCMonth() + 1 };
+};
+export const bulanIni = () => {
+  const { tahun, bulan } = bulanWib();
+  return `${tahun}-${String(bulan).padStart(2, "0")}`;
+};
+export const labelPeriode = (kode?: string | null) => {
+  const q = String(kode ?? "").match(/^(\d{4})-Q([1-4])$/);
+  if (q) return `Triwulan ${ROMAWI[Number(q[2]) - 1]} ${q[1]}`;
+  const m = String(kode ?? "").match(/^(\d{4})-(\d{2})$/);
+  return m ? `${NAMA_BULAN[Number(m[2]) - 1]} ${m[1]}` : kode || "-";
+};
+// Pilihan periode mundur dari bulan/triwulan berjalan.
+export const opsiBulan = (n = 24) => {
+  const { tahun, bulan } = bulanWib();
+  return Array.from({ length: n }, (_, i) => {
+    const total = tahun * 12 + (bulan - 1) - i;
+    const kode = `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}`;
+    return { value: kode, label: labelPeriode(kode) };
+  });
+};
+export const opsiTriwulan = (n = 8) => {
+  const { tahun, bulan } = bulanWib();
+  return Array.from({ length: n }, (_, i) => {
+    const total = tahun * 4 + Math.ceil(bulan / 3) - 1 - i;
+    const kode = `${Math.floor(total / 4)}-Q${(total % 4) + 1}`;
+    return { value: kode, label: labelPeriode(kode) };
+  });
+};
+// "YYYY-MM" mundur n-1 bulan (awal rentang n bulan yang berakhir di `sampai`).
+export const bulanMundur = (sampai: string, n: number) => {
+  const [t, b] = sampai.split("-").map(Number);
+  const total = t * 12 + (b - 1) - (n - 1);
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}`;
+};
+
+export const izinIndikator = (aksi: string) => izinMutu(SUB_INDIKATOR, aksi);
+export const referensiIndikator = () => apiPenunjangGet("/mutu/indikator/referensi");
+export const daftarIndikator = (params: Record<string, any> = {}) => apiPenunjangGet(`/mutu/indikator${qs(params)}`);
+export const detailIndikator = (uuid: string) => apiPenunjangGet(`/mutu/indikator/${uuid}`);
+export const simpanIndikator = (data: Record<string, any>, uuid?: string) => (uuid ? apiPenunjangPut(`/mutu/indikator/${uuid}`, data) : apiPenunjangPost("/mutu/indikator", data));
+export const hapusIndikator = (uuid: string) => apiPenunjangDelete(`/mutu/indikator/${uuid}`);
+export const pasangInm = (kodeBawaan: string[]) => apiPenunjangPost("/mutu/indikator/pasang-inm", { kodeBawaan });
+export const daftarDataIndikator = (params: Record<string, any> = {}) => apiPenunjangGet(`/mutu/indikator/data${qs(params)}`);
+export const detailDataIndikator = (uuid: string) => apiPenunjangGet(`/mutu/indikator/data/${uuid}`);
+export const simpanDataIndikator = (data: Record<string, any>, uuid?: string) =>
+  uuid ? apiPenunjangPut(`/mutu/indikator/data/${uuid}`, data) : apiPenunjangPost("/mutu/indikator/data", data);
+export const hitungOtomatisIndikator = (data: Record<string, any>) => apiPenunjangPost("/mutu/indikator/data/hitung-otomatis", data, !data.simpan);
+export const ajukanDataIndikator = (uuid: string) => apiPenunjangPost(`/mutu/indikator/data/${uuid}/ajukan`);
+export const validasiDataIndikator = (uuid: string, keputusan: "setujui" | "kembalikan", catatan?: string) => apiPenunjangPost(`/mutu/indikator/data/${uuid}/validasi`, { keputusan, catatan });
+export const bukaDataIndikator = (uuid: string, alasan: string) => apiPenunjangPost(`/mutu/indikator/data/${uuid}/buka`, { alasan });
+export const hapusDataIndikator = (uuid: string) => apiPenunjangDelete(`/mutu/indikator/data/${uuid}`);
+export const dasborIndikator = (params: Record<string, any> = {}) => apiPenunjangGet(`/mutu/indikator/dasbor${qs(params)}`);
+export const trenIndikator = (uuid: string, params: Record<string, any> = {}) => apiPenunjangGet(`/mutu/indikator/${uuid}/tren${qs(params)}`);
+export const laporanIndikator = (params: Record<string, any> = {}) => apiPenunjangGet(`/mutu/indikator/laporan${qs(params)}`);
+export const daftarTindakLanjut = (params: Record<string, any> = {}) => apiPenunjangGet(`/mutu/indikator/tindak-lanjut${qs(params)}`);
+export const simpanTindakLanjut = (data: Record<string, any>, uuid?: string) =>
+  uuid ? apiPenunjangPut(`/mutu/indikator/tindak-lanjut/${uuid}`, data) : apiPenunjangPost("/mutu/indikator/tindak-lanjut", data);
+export const hapusTindakLanjut = (uuid: string) => apiPenunjangDelete(`/mutu/indikator/tindak-lanjut/${uuid}`);

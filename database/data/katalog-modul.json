@@ -698,7 +698,7 @@
       "instalasi": "Manajemen Mutu",
       "inti": false,
       "tersedia": true,
-      "deskripsi": "Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dan dasbor kesiapan akreditasi.",
+      "deskripsi": "Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dasbor kesiapan akreditasi, dan indikator mutu (INM, IMP-RS, IMPU) dengan validasi data, capaian, dan tindak lanjut.",
       "menu": ["Mutu & Akreditasi"],
       "rute": ["/mutu"],
       "urutan": 34
@@ -1708,6 +1708,16 @@
       "wajib": false,
       "rute": ["/mutu/dasbor", "/mutu/instrumen", "/mutu/dokumen", "/mutu/kredensial", "/mutu/surveior"],
       "urutan": 82
+    },
+    {
+      "kode": "mutu_indikator",
+      "modul": "mutu",
+      "nama": "Indikator Mutu (INM, IMP-RS, IMPU)",
+      "deskripsi": "Profil indikator dengan set INM bawaan (perlu disahkan Komite Mutu) dan IMP-RS/IMPU buatan faskes, pengumpulan data per tanggal & unit (manual; waktu tunggu rawat jalan dapat dihitung otomatis), validasi pengumpul → validator, capaian & tren bulanan/triwulanan terhadap target, tindak lanjut, dan ekspor laporan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/mutu/indikator"],
+      "urutan": 102
     },
     {
       "kode": "dashboard_eksekutif",
