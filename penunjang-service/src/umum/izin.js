@@ -88,4 +88,5 @@ export const izinOk = (submodul, aksi, fitur = null) => wajibIzin("Kamar Operasi
 export const izinKoding = (submodul, aksi, fitur = null) => wajibIzin("Koding Rekam Medis", submodul, aksi, fitur);
 export const izinTraining = (submodul, aksi, fitur = null) => wajibIzin("Training", submodul, aksi, fitur);
 export const izinAmbulans = (submodul, aksi, fitur = null) => wajibIzin("Manajemen Ambulans", submodul, aksi, fitur);
+export const izinMutu = (submodul, aksi, fitur = null) => wajibIzin("Mutu & Akreditasi", submodul, aksi, fitur);
 export const izinSarpras = (submodul, aksi, fitur = null) => wajibIzin("Sarana dan Prasarana (IPSRS)", submodul, aksi, fitur);

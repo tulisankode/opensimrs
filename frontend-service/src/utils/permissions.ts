@@ -327,6 +327,13 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/hemodialisa/datamaster/mapping-hdis", permission: read("Hemodialisa", "Datamaster", "Mapping HDIS") },
   { path: "/hemodialisa/laporan", permission: read("Hemodialisa", "Laporan Hemodialisa") },
   { path: "/hemodialisa", mode: "prefix", permission: read("Hemodialisa", null, null, null) },
+  // Mutu & Akreditasi — penunjang-service (STD-0028: dokumen akreditasi & kredensial staf)
+  { path: "/mutu/dasbor", permission: read("Mutu & Akreditasi", "Dasbor Kesiapan") },
+  { path: "/mutu/instrumen", permission: read("Mutu & Akreditasi", "Instrumen Akreditasi") },
+  { path: "/mutu/dokumen", permission: read("Mutu & Akreditasi", "Dokumen Akreditasi") },
+  { path: "/mutu/kredensial", permission: read("Mutu & Akreditasi", "Kredensial Staf") },
+  { path: "/mutu/surveior", permission: read("Mutu & Akreditasi", "Akses Surveior") },
+  { path: "/mutu", mode: "prefix", permission: read("Mutu & Akreditasi", null, null, null) },
 
   // Bank Darah RS (BDRS) — penunjang-service
   { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },

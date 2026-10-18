@@ -12,7 +12,7 @@ import { Galat } from "../respons.js";
 import { bacaSemua } from "../pengaturan.js";
 import { daftarkanPembatal, jalankanClaude, lepaskanPembatal } from "./claude.js";
 import { jalankanApi } from "./api.js";
-import { jalankanCodex, modelCodex } from "./codex.js";
+import { jalankanCodex, modelCodex, pilihModelCodex } from "./codex.js";
 import { cocokModel } from "./model.js";
 import { CATATAN_LANJUTAN, GalatKuota, JEDA_BAWAAN, NAMA_BAWAAN, kenaliGalatKuota, konektorBerikutnya, susunRantai } from "./kuota.js";
 
@@ -80,10 +80,7 @@ const statusTugas = async (tugasUuid) => (await satu(`SELECT status FROM studio_
 // Jalankan satu konektor tertentu.
 const jalankanKonektor = async (konektor, { tugasUuid, prompt, mode, model, base, item, sesiClaude, batasBiaya }) => {
   if (konektor.penyedia === "codex") {
-    // Model yang tidak ada di daftar akun (mis. akun berganti) → bawaan akun, bukan galat dari OpenAI.
-    const tersedia = modelCodex();
-    const modelCodexDipakai = model && tersedia.length && !tersedia.some((m) => m.kode === model) ? "" : model;
-    return jalankanCodex({ tugasUuid, prompt, mode, model: modelCodexDipakai, base });
+    return jalankanCodex({ tugasUuid, prompt, mode, model: pilihModelCodex(model, modelCodex()), base });
   }
   if (konektor.penyedia === "claude_code") {
     const lampiran = item ? path.join(FOLDER_LAMPIRAN, item.uuid) : null;
