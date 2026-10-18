@@ -13,6 +13,18 @@ import sequelizeInstance from "@opensimrs/model-sdk/instance";
 import PractitionerRepository from "../repositories/practitioner-repository.js";
 import PegawaiRepository from "../repositories/pegawai-repository.js";
 
+// Frontend mengirim body snake_case (sub_modules), sedangkan permission-sdk & sesi login membaca bentuk
+// [{ module, subModules: [{ name, allows, features: [{ name, allows }] }] }] → simpan dalam bentuk itu.
+const normalisasiIzin = (permissions) =>
+  (permissions ?? []).map((m) => ({
+    module: m.module,
+    subModules: (m.subModules ?? m.sub_modules ?? []).map((s) => ({
+      name: s.name,
+      allows: s.allows ?? [],
+      ...(s.features?.length ? { features: s.features.map((f) => ({ name: f.name, allows: f.allows ?? [] })) } : {}),
+    })),
+  }));
+
 export default class UserService {
 
   static async findAllUser(request){
@@ -35,7 +47,7 @@ export default class UserService {
       phone: request.phone,
       password: request.password,
       email: request.email,
-      permissions: JSON.stringify(request.permissions),
+      permissions: JSON.stringify(normalisasiIzin(request.permissions)),
       status: request.status,
     };
 
@@ -61,6 +73,9 @@ export default class UserService {
       user.practitionerUuid = request.practitioner_uuid;
       if(request.password){
         user.password = await bcrypt.hash(request.password, 10);
+      }
+      if (Array.isArray(request.permissions)) {
+        user.permissions = JSON.stringify(normalisasiIzin(request.permissions));
       }
       const affected = await UserRepository.update(user, tr);
       if (affected !== 1) {

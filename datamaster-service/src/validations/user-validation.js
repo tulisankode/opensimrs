@@ -54,6 +54,8 @@ export default class UserValidation {
       username: z.string({required_error: requiredMessage("username")}).min(1, usernameRequired),
       password: z.string().optional().nullable(),
       confirm_password: z.string().optional().nullable(),
+      // Izin pengguna dari editor Datamaster › User (opsional: tanpa field ini izin lama tidak diubah).
+      permissions: this.#PERMISSIONS.optional(),
       status: z.boolean({required_error: requiredMessage("status")}),
     })
     .superRefine((data, ctx) => {
