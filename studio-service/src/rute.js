@@ -59,10 +59,11 @@ rute.use((req, res, next) =>
   config.aktifInstalasi ? next() : res.status(503).json({ message: "SIMRS Studio belum diaktifkan di instalasi ini (STUDIO_PENGEMBANG=aktif di studio-service/.env)" }),
 );
 
+// Termasuk tugas yang menunggu slot agen atau menunggu kuota (tunda_kuota) — tidak boleh dilanjutkan otomatis.
 const hentikanSemuaTugas = async () => {
-  const berjalan = await query(`SELECT uuid FROM studio_tugas WHERE status IN ('antri', 'jalan')`);
+  const berjalan = await query(`SELECT uuid FROM studio_tugas WHERE status IN ('antri', 'jalan', 'tunda_kuota')`);
   for (const t of berjalan) batalkanProses(t.uuid);
-  await query(`UPDATE studio_tugas SET status = 'dibatalkan', selesai = $1, updated_at = $1 WHERE status IN ('antri', 'jalan')`, [sekarang()]);
+  await query(`UPDATE studio_tugas SET status = 'dibatalkan', selesai = $1, updated_at = $1 WHERE status IN ('antri', 'jalan', 'tunda_kuota')`, [sekarang()]);
   return berjalan.length;
 };
 
@@ -110,9 +111,10 @@ rute.get("/item", tangani(async (req, res) => {
   const rows = await query(
     `SELECT i.uuid, i.nomor, i.judul, i.jenis, i.tahap, i.risiko, i.prioritas, i.branch, i.commit_sha, i.pr_url, i.pr_status, i.ci_status,
             i.tag_rilis, i.modul_terdampak, i.dibuat_oleh, i.created_at, i.updated_at, jsonb_array_length(i.berkas) AS jumlah_berkas,
-            (SELECT status FROM studio_tugas t WHERE t.item_uuid = i.uuid ORDER BY t.id DESC LIMIT 1) AS status_tugas,
+            tt.status AS status_tugas, tt.lanjut_pada AS lanjut_pada_tugas, tt.menunggu_slot AS menunggu_slot_tugas,
             (SELECT COALESCE(SUM(biaya_usd), 0) FROM studio_tugas t WHERE t.item_uuid = i.uuid) AS biaya_usd
        FROM studio_item i
+       LEFT JOIN LATERAL (SELECT status, lanjut_pada, menunggu_slot FROM studio_tugas t WHERE t.item_uuid = i.uuid ORDER BY t.id DESC LIMIT 1) tt ON true
       WHERE i.deleted_at IS NULL AND ($1::text IS NULL OR i.tahap = $1)
       ORDER BY i.updated_at DESC`,
     [tahap || null],
@@ -174,7 +176,7 @@ rute.post("/item/:uuid/agen", tangani(async (req, res) => {
   const tugas = it.tahap === "coding"
     ? await alur.jalankanCoding(it, req.body?.instruksi ?? null, req.author.username)
     : await alur.jalankanDokumen(it, it.tahap, req.body?.instruksi ?? null, req.author.username);
-  kirim(res, tugas, "Agen mulai bekerja");
+  kirim(res, tugas, tugas.menunggu_slot ? "Tugas masuk antrean: menunggu slot agen" : "Agen mulai bekerja");
 }));
 
 rute.post("/item/:uuid/keputusan", tangani(async (req, res) => {
@@ -276,7 +278,7 @@ rute.post("/item/:uuid/buka-kembali", tangani(async (req, res) => {
 // ---------- Tugas ----------
 
 rute.get("/tugas/:uuid/log", tangani(async (req, res) => {
-  const tugas = await satu(`SELECT uuid, status, jenis, tahap, pesan_galat, biaya_usd, kuota, mulai, selesai, hasil FROM studio_tugas WHERE uuid = $1`, [req.params.uuid]);
+  const tugas = await satu(`SELECT uuid, status, jenis, tahap, pesan_galat, biaya_usd, kuota, mulai, selesai, hasil, lanjut_pada, menunggu_slot, lanjutan_dari FROM studio_tugas WHERE uuid = $1`, [req.params.uuid]);
   if (!tugas) throw tidakDitemukan("Tugas");
   const log = await query(`SELECT id, jenis, teks, waktu FROM studio_tugas_log WHERE tugas_uuid = $1 AND id > $2 ORDER BY id LIMIT 500`, [req.params.uuid, Number(req.query.sejak) || 0]);
   if (tugas.jenis !== "cek" && tugas.tahap !== "ekstensi") delete tugas.hasil;
@@ -287,7 +289,7 @@ rute.post("/tugas/:uuid/batal", tangani(async (req, res) => {
   const tugas = await satu(`SELECT * FROM studio_tugas WHERE uuid = $1`, [req.params.uuid]);
   if (!tugas) throw tidakDitemukan("Tugas");
   if (tugas.dibuat_oleh !== req.author.username) await pastikan(req, "Coding", "JALANKAN AGEN");
-  if (!["antri", "jalan"].includes(tugas.status)) throw permintaanSalah("Tugas sudah tidak berjalan");
+  if (!alur.STATUS_BERJALAN.includes(tugas.status)) throw permintaanSalah("Tugas sudah tidak berjalan");
   await query(`UPDATE studio_tugas SET status = 'dibatalkan', selesai = $2, updated_at = $2 WHERE uuid = $1`, [tugas.uuid, sekarang()]);
   batalkanProses(tugas.uuid);
   await audit(req.author.username, "Menghentikan tugas agen", tugas.item_uuid);
@@ -442,7 +444,7 @@ rute.put("/pengaturan", tangani(async (req, res) => {
   const body = req.body ?? {};
   const BOLEH = ["branch_dasar", "konektor_tahap", "model_tahap", "aturan_instalasi", "atribusi_commit", "cek_build_frontend", "fitur", "pemisahan_tugas", "mode_kerja",
     "direktori_worktree", "batas_biaya_tugas", "batas_biaya_item", "batas_biaya_bulan", "batas_kuota_persen", "batas_tugas_per_jam", "git_penyedia", "git_api_url", "git_repo", "git_token", "mode_rilis", "branch_lokal", "migrasi_otomatis",
-    "aktivasi_otomatis", "aktivasi_faskes"];
+    "aktivasi_otomatis", "aktivasi_faskes", "konektor_cadangan", "maks_agen_bersamaan"];
   // Model per tahap harus cocok dengan agennya. Tahap berkonektor API memakai model konektornya (model tahap dibuang).
   if (body.konektor_tahap || body.model_tahap) {
     const { nilai: lama } = await bacaSemua();
@@ -476,6 +478,21 @@ rute.put("/pengaturan", tangani(async (req, res) => {
     if (k === "git_penyedia" && !["", "github", "gitea"].includes(v ?? "")) throw permintaanSalah("Penyedia Git harus github, gitea, atau kosong");
     if (k === "git_repo" && v && !/^[\w.-]+\/[\w.-]+$/.test(v)) throw permintaanSalah("Repo harus berformat owner/nama");
     if (k === "model_tahap" && Object.values(v ?? {}).some((m) => m && !/^[\w.:/-]+$/.test(String(m)))) throw permintaanSalah("Nama model tidak valid");
+    // Rantai cadangan: hanya Claude Code, Codex, atau konektor API yang ada & aktif; urutan dipertahankan, duplikat dibuang.
+    if (k === "konektor_cadangan") {
+      if (!Array.isArray(v ?? [])) throw permintaanSalah("Rantai cadangan konektor harus berupa daftar");
+      const daftar = [...new Set((v ?? []).map(String).filter(Boolean))];
+      if (daftar.length > 10) throw permintaanSalah("Rantai cadangan konektor paling banyak 10 konektor");
+      const api = daftar.filter((x) => !["claude_code", "codex"].includes(x));
+      const ada = api.length ? (await query(`SELECT uuid::text AS uuid FROM studio_konektor WHERE uuid::text = ANY($1) AND deleted_at IS NULL AND aktif`, [api])).map((r) => r.uuid) : [];
+      const salah = api.filter((x) => !ada.includes(x));
+      if (salah.length) throw permintaanSalah("Rantai cadangan memuat konektor yang tidak ada/nonaktif — muat ulang halaman lalu susun ulang");
+      nilai = daftar;
+    }
+    if (k === "maks_agen_bersamaan") {
+      nilai = v === "" || v === null || v === undefined ? null : Number(v);
+      if (nilai !== null && (!Number.isInteger(nilai) || nilai < 0 || nilai > 20)) throw permintaanSalah("Maksimal agen bersamaan harus bilangan bulat 0–20 (0/kosong = tanpa batas)");
+    }
     if (k === "git_token") {
       if (!v || String(v).startsWith("••")) continue; // tidak diubah
       nilai = enkripsi(String(v));

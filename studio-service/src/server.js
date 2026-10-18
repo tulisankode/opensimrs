@@ -2,6 +2,7 @@ import express from "express";
 import config from "./config.js";
 import rute from "./rute.js";
 import { query, sekarang } from "./db.js";
+import { mulaiPenjadwal } from "./penjadwal.js";
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use(config.basePath, rute);
 
 // Tugas yang tertinggal saat layanan berhenti tidak bisa dilanjutkan → tandai gagal. Hanya tugas yang proses agennya
 // sudah tidak ada (atau masih antri > 5 menit), agar tugas milik instans lain yang masih hidup tidak ikut tertutup.
+// Tugas yang menunggu slot agen (menunggu_slot) dan tunda_kuota tidak disentuh: penjadwal melanjutkannya.
 const prosesHidup = (pid) => {
   try {
     process.kill(pid, 0);
@@ -26,7 +28,7 @@ const prosesHidup = (pid) => {
     return e.code === "EPERM";
   }
 };
-query(`SELECT uuid, status, pid, created_at FROM studio_tugas WHERE status IN ('antri', 'jalan')`)
+query(`SELECT uuid, status, pid, created_at FROM studio_tugas WHERE status IN ('antri', 'jalan') AND NOT COALESCE(menunggu_slot, false)`)
   .then(async (tertinggal) => {
     for (const t of tertinggal) {
       const hidup = t.pid ? prosesHidup(Number(t.pid)) : t.status === "antri" && sekarang() - Number(t.created_at) < 300;
@@ -38,6 +40,8 @@ query(`SELECT uuid, status, pid, created_at FROM studio_tugas WHERE status IN ('
     }
   })
   .catch((e) => console.error("[studio] tabel studio_* belum ada? jalankan npm run db:migrate —", e.message));
+
+mulaiPenjadwal();
 
 app.listen(config.port, config.host, () => {
   console.log(`studio-service berjalan di ${config.host}:${config.port}${config.basePath} (repo: ${config.repoDir}, instalasi ${config.aktifInstalasi ? "aktif" : "NONAKTIF"})`);

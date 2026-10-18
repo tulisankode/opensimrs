@@ -14,7 +14,7 @@ import PanelPerubahan from "../Komponen/PanelPerubahan.vue";
 import PanelGerbang from "../Komponen/PanelGerbang.vue";
 import ChecklistUji from "../Komponen/ChecklistUji.vue";
 import PanelLampiran from "../Komponen/PanelLampiran.vue";
-import { NAMA_JENIS, NAMA_TAHAP, TAHAP, WARNA_RISIKO, formatUsd, formatWaktu, nomorItem } from "../umum";
+import { NAMA_JENIS, NAMA_TAHAP, TAHAP, WARNA_RISIKO, formatUsd, formatWaktu, keteranganTunggu, nomorItem, tugasMasihBerjalan } from "../umum";
 
 const route = useRoute();
 const router = useRouter();
@@ -45,7 +45,9 @@ watch(() => route.params.uuid, () => {
   muat();
 });
 
-const tugasBerjalan = computed(() => data.value?.tugas.find((t: any) => ["antri", "jalan"].includes(t.status)) ?? null);
+// Termasuk tugas yang menunggu slot agen / menunggu kuota (tunda_kuota): tombol agen tetap dikunci sampai selesai/dibatalkan.
+const tugasBerjalan = computed(() => data.value?.tugas.find((t: any) => tugasMasihBerjalan(t.status)) ?? null);
+const tungguTugas = computed(() => keteranganTunggu(tugasBerjalan.value?.status, tugasBerjalan.value?.lanjutPada, tugasBerjalan.value?.menungguSlot));
 const tugasTerakhir = (jenis: string) => data.value?.tugas.find((t: any) => t.jenis === jenis) ?? null;
 const hasilCek = computed(() => {
   const t = tugasTerakhir("cek");
@@ -498,7 +500,7 @@ const WARNA_CI: Record<string, string> = { sukses: "bg-success-50 text-success-4
             </div>
             <div class="p-3">
               <Markdown v-if="artefakTampil" :isi="artefakTampil.isi" />
-              <div v-else class="py-6 text-center text-SM text-grey-300">{{ tugasBerjalan ? "Agen sedang menulis…" : "Belum ada dokumen pada tahap ini." }}</div>
+              <div v-else class="py-6 text-center text-SM text-grey-300">{{ tungguTugas ? `${tungguTugas}.` : tugasBerjalan ? "Agen sedang menulis…" : "Belum ada dokumen pada tahap ini." }}</div>
             </div>
           </div>
 

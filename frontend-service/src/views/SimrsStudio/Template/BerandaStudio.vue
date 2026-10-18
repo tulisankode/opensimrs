@@ -5,7 +5,7 @@ import { useRouter } from "vue-router";
 import PageToolbar from "@/components/Base/PageToolbar.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import { apiStudioGet } from "@/utils/apiHandler";
-import { NAMA_JENIS, TAHAP, WARNA_RISIKO, formatUsd, formatWaktu, nomorItem, ringkasKuota } from "../umum";
+import { NAMA_JENIS, TAHAP, WARNA_RISIKO, agenBekerja, formatUsd, formatWaktu, keteranganTunggu, nomorItem, ringkasKuota } from "../umum";
 
 const router = useRouter();
 const items = ref<any[]>([]);
@@ -32,9 +32,15 @@ const kolom = computed(() => [
 ]);
 
 const kuota = computed(() => ringkasKuota(sistem.value?.kuota));
+const tunggu = (i: any) => keteranganTunggu(i.statusTugas, i.lanjutPadaTugas, i.menungguSlotTugas);
+const jumlahMenunggu = computed(() => items.value.filter((i) => tunggu(i)).length);
 const ringkasan = computed(() => [
   { label: "Item berjalan", nilai: items.value.filter((i) => !["selesai", "dibatalkan"].includes(i.tahap)).length, ikon: "PhKanban" },
-  { label: "Agen sedang bekerja", nilai: items.value.filter((i) => ["antri", "jalan"].includes(i.statusTugas)).length, ikon: "PhRobot" },
+  {
+    label: jumlahMenunggu.value ? `Agen sedang bekerja (${jumlahMenunggu.value} menunggu kuota/slot)` : "Agen sedang bekerja",
+    nilai: items.value.filter((i) => agenBekerja(i.statusTugas, i.menungguSlotTugas)).length,
+    ikon: "PhRobot",
+  },
   { label: "Selesai", nilai: items.value.filter((i) => i.tahap === "selesai").length, ikon: "PhRocketLaunch" },
   {
     label: kuota.value ? `Kuota langganan (${kuota.value.jenis})` : "Kuota langganan",
@@ -92,12 +98,14 @@ const ringkasan = computed(() => [
             <div class="text-SM font-semibold leading-tight text-grey-500">{{ i.judul }}</div>
             <div class="flex items-center justify-between text-[10px] text-grey-400">
               <span class="flex items-center gap-1">
-                <PhSpinnerGap v-if="['antri', 'jalan'].includes(i.statusTugas)" :size="12" class="animate-spin text-opensimrs-300" aria-hidden="true" />
+                <PhHourglassMedium v-if="tunggu(i)" :size="12" class="text-warning-400" aria-hidden="true" />
+                <PhSpinnerGap v-else-if="agenBekerja(i.statusTugas, i.menungguSlotTugas)" :size="12" class="animate-spin text-opensimrs-300" aria-hidden="true" />
                 <PhWarningCircle v-else-if="i.statusTugas === 'gagal'" :size="12" class="text-danger-300" aria-hidden="true" />
                 {{ i.prioritas }}<template v-if="i.tahap === 'dibatalkan'"> · dibatalkan</template>
               </span>
               <span>{{ formatWaktu(i.updatedAt) }}</span>
             </div>
+            <div v-if="tunggu(i)" class="rounded bg-warning-50 px-1.5 py-0.5 text-[10px] text-warning-400">{{ tunggu(i) }}</div>
           </button>
           <div v-if="!k.item.length" class="py-4 text-center text-XS text-grey-300">Kosong</div>
         </div>
