@@ -304,6 +304,9 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/laundry/koreksi", permission: any("Laundry", "Koreksi Stok", ["READ", "CREATE"]) },
   { path: "/laundry/master", permission: read("Laundry", "Datamaster", "Jenis Linen") },
   { path: "/laundry/laporan", permission: read("Laundry", "Laporan Laundry") },
+  { path: "/laundry/unit", permission: read("Laundry", "Unit Linen") },
+  { path: "/laundry/pemindaian-unit", permission: read("Laundry", "Pemindaian Unit") },
+  { path: "/laundry/laporan-unit", permission: read("Laundry", "Laporan Unit") },
   { path: "/laundry", mode: "prefix", permission: read("Laundry", null, null, null) },
 
   // Sarana dan Prasarana (IPSRS) — penunjang-service (STD-0022)

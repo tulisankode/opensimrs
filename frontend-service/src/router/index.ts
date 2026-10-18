@@ -298,6 +298,9 @@ import BatchLaundryPage from "@/views/Laundry/BatchPage.vue";
 import DistribusiLaundryPage from "@/views/Laundry/DistribusiPage.vue";
 import KoreksiLaundryPage from "@/views/Laundry/KoreksiPage.vue";
 import LaporanLaundryPage from "@/views/Laundry/LaporanPage.vue";
+import UnitLaundryPage from "@/views/Laundry/UnitPage.vue";
+import PemindaianUnitLaundryPage from "@/views/Laundry/PemindaianUnitPage.vue";
+import LaporanUnitLaundryPage from "@/views/Laundry/LaporanUnitPage.vue";
 
 // NOTE Mutu & Akreditasi — dokumen akreditasi, instrumen, kredensial staf, dasbor kesiapan (STD-0028, penunjang-service)
 import MutuView from "@/views/Mutu/MutuView.vue";
@@ -1928,6 +1931,9 @@ const router = createRouter({
       ["/laundry/distribusi", "laundry-distribusi", DistribusiLaundryPage],
       ["/laundry/koreksi", "laundry-koreksi", KoreksiLaundryPage],
       ["/laundry/laporan", "laundry-laporan", LaporanLaundryPage],
+      ["/laundry/unit", "laundry-unit", UnitLaundryPage],
+      ["/laundry/pemindaian-unit", "laundry-pemindaian-unit", PemindaianUnitLaundryPage],
+      ["/laundry/laporan-unit", "laundry-laporan-unit", LaporanUnitLaundryPage],
     ]),
     // !SECTION
 

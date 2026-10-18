@@ -4,10 +4,14 @@ import { tangani, kirim, wajib, permintaanSalah, tidakDitemukan } from "../umum/
 import { izinLaundry } from "../umum/izin.js";
 import { STATUS_DISTRIBUSI, STATUS_PERMINTAAN, angkaWajib, bulatPositif, cekPilihan, konflik, periode, rincianUnik, statusPermintaan, teks } from "./bersama.js";
 import { catatTransaksiStok, keluarkanStok, validasiJenis, validasiRuangan } from "./stok.js";
+import { cekUnitAlur, daftarKode, jumlahDariKode, kunciUnitDariKode, kunciUnitRincian, pilahDiterima, pindahkanUnit } from "./unit-alur.js";
 
 // Permintaan & distribusi linen bersih (UC-3): ruangan meminta → laundry mengirim dari stok bersih (ditolak bila
 // saldo tidak cukup — KT-10) → ruangan (≠ pengirim) mengonfirmasi jumlah diterima → stok ruangan bertambah.
 // Distribusi sebagian membuat permintaan tetap "sebagian" sampai seluruh jumlah terpenuhi (KT-11).
+// Jenis per unit (STD-0030): unit stok bersih dipindai saat dikirim (kode_unit → jumlah_dikirim) dan dipindai lagi
+// saat diterima ruangan; unit yang tidak diterima ditandai hilang beralasan (sama dengan selisih jumlah yang tidak
+// kembali ke buku stok mana pun).
 
 export const rute = express.Router();
 
@@ -139,7 +143,12 @@ rute.post(
   tangani(async (req, res) => {
     const b = req.body ?? {};
     wajib(b, ["lokasi_tujuan_uuid", "rincian"]);
-    const rincian = rincianUnik(b.rincian, "jenis_linen_uuid", "Rincian distribusi");
+    const rincian = rincianUnik(b.rincian, "jenis_linen_uuid", "Rincian distribusi").map((x) => ({
+      ...x,
+      kode: x.kode_unit === undefined || x.kode_unit === null ? null : daftarKode(x.kode_unit),
+    }));
+    const semuaKode = rincian.flatMap((x) => x.kode ?? []);
+    if (semuaKode.length) daftarKode(semuaKode);
     const f = req.author.faskesUuid;
     const hasil = await transaksi(async (k) => {
       const ruang = await validasiRuangan(b.lokasi_tujuan_uuid, f, k, "Ruangan tujuan");
@@ -150,6 +159,9 @@ rute.post(
         if (!["menunggu", "sebagian"].includes(permintaan.status)) throw konflik("Permintaan sudah selesai atau dibatalkan");
         if (permintaan.lokasi_uuid !== ruang.uuid) throw permintaanSalah("Ruangan tujuan berbeda dengan ruangan peminta");
       }
+      // Unit dikunci sebelum kunci stok (urutan kunci: unit → stok, sama di seluruh alur).
+      const unitPindai = semuaKode.length ? await kunciUnitDariKode(k, f, semuaKode) : [];
+      const unitKode = new Map(semuaKode.map((x, i) => [x, unitPindai[i]]));
       const waktu = sekarang();
       const d = await sisipkan(
         "laundry_distribusi",
@@ -158,13 +170,28 @@ rute.post(
       );
       for (const x of rincian) {
         const j = await validasiJenis(x.jenis_linen_uuid, f, k);
-        const jumlah = bulatPositif(x.jumlah_dikirim, "jumlah_dikirim");
+        if (j.cara_pencatatan === "per_unit" && !x.kode) throw permintaanSalah(`${j.nama} dilacak per unit: pindai kode unit yang dikirim (menu Pemindaian Unit)`);
+        if (j.cara_pencatatan !== "per_unit" && x.kode) throw permintaanSalah(`${j.nama} dihitung per jumlah; kode unit tidak dipakai`);
+        // Unit nonaktif atau bukan stok bersih laundry tidak dapat didistribusikan (KF-12).
+        const units = x.kode
+          ? cekUnitAlur(x.kode.map((kd) => unitKode.get(kd)), { jenisLinenUuid: j.uuid, namaJenis: j.nama, lokasiTipe: "laundry", keterangan: "unit tidak berada di stok bersih laundry" })
+          : [];
+        const jumlah = x.kode ? jumlahDariKode(x.kode, x.jumlah_dikirim, "jumlah_dikirim") : bulatPositif(x.jumlah_dikirim, "jumlah_dikirim");
         await keluarkanStok(
           k,
           { faskesUuid: f, lokasiTipe: "laundry", jenisLinenUuid: j.uuid, sumberTipe: "distribusi_kirim", sumberUuid: d.uuid, jumlah, alasan: `Distribusi ke ${ruang.nama}`, petugasUuid: req.author.username, waktuTransaksi: waktu },
           j.nama,
         );
-        await sisipkan("laundry_distribusi_rincian", { faskes_uuid: f, distribusi_uuid: d.uuid, jenis_linen_uuid: j.uuid, jumlah_dikirim: jumlah }, k);
+        const r = await sisipkan("laundry_distribusi_rincian", { faskes_uuid: f, distribusi_uuid: d.uuid, jenis_linen_uuid: j.uuid, jumlah_dikirim: jumlah }, k);
+        if (units.length)
+          await pindahkanUnit(k, units, { lokasi_tipe: "dalam_perjalanan", lokasi_uuid: ruang.uuid, dokumen_uuid: d.uuid, rincian_uuid: r.uuid }, {
+            faskes: f,
+            peristiwa: "distribusi",
+            dokumenTipe: "distribusi",
+            dokumenUuid: d.uuid,
+            pelaku: req.author.username,
+            waktu,
+          });
       }
       return d;
     });
@@ -200,11 +227,25 @@ rute.post(
       const waktu = sekarang();
       for (const item of tersimpan) {
         const x = masukan.get(item.uuid);
-        const n = angkaWajib(x.jumlah_diterima, "jumlah_diterima");
+        // Rincian yang memegang unit: unit diterima = hasil pindai ruangan (lihat pilahDiterima).
+        const unitRincian = await kunciUnitRincian(k, f, "rincian_uuid", item.uuid, "dalam_perjalanan");
+        let pilah = null;
+        if (unitRincian.length) {
+          const kode = x.kode_unit === undefined || x.kode_unit === null ? null : x.kode_unit.length ? daftarKode(x.kode_unit) : [];
+          if (!kode && (x.jumlah_diterima === undefined || x.jumlah_diterima === null || x.jumlah_diterima === ""))
+            throw permintaanSalah(`kode_unit atau jumlah_diterima wajib diisi untuk ${item.nama_linen}`);
+          pilah = pilahDiterima(unitRincian, kode, x.jumlah_diterima, item.nama_linen);
+        } else if (x.kode_unit?.length) throw permintaanSalah(`${item.nama_linen} pada distribusi ini dihitung per jumlah; kode unit tidak dipakai`);
+        const n = pilah ? pilah.diterima.length : angkaWajib(x.jumlah_diterima, "jumlah_diterima");
         if (!Number.isInteger(n) || n < 0) throw permintaanSalah("jumlah_diterima harus berupa bilangan bulat tidak negatif");
         if (n > Number(item.jumlah_dikirim)) throw permintaanSalah(`Jumlah diterima ${item.nama_linen} tidak boleh melebihi jumlah dikirim`);
         const alasan = teks(x.alasan_selisih) ?? null;
         if (n !== Number(item.jumlah_dikirim) && !alasan) throw permintaanSalah(`Alasan selisih wajib diisi untuk ${item.nama_linen}`);
+        if (pilah) {
+          const opsi = { faskes: f, dokumenTipe: "distribusi", dokumenUuid: d.uuid, pelaku: req.author.username, waktu };
+          await pindahkanUnit(k, pilah.diterima, { lokasi_tipe: "ruangan", lokasi_uuid: d.lokasi_uuid, dokumen_uuid: null, rincian_uuid: null }, { ...opsi, peristiwa: "terima_ruangan" });
+          await pindahkanUnit(k, pilah.tidak, { status: "hilang", dokumen_uuid: null, rincian_uuid: null }, { ...opsi, peristiwa: "selisih_distribusi", alasan: `Tidak diterima ruangan: ${alasan}` });
+        }
         await query(`UPDATE laundry_distribusi_rincian SET jumlah_diterima = $1, alasan_selisih = $2, updated_at = $3 WHERE uuid = $4`, [n, alasan, waktu, item.uuid], k);
         if (n > 0)
           await catatTransaksiStok(k, {

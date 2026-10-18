@@ -3,10 +3,13 @@ import { query, satu, sisipkan, sekarang, transaksi } from "../db.js";
 import { tangani, kirim, wajib, permintaanSalah, tidakDitemukan } from "../umum/respons.js";
 import { izinLaundry } from "../umum/izin.js";
 import { angkaOpsional, cekPilihan, JENIS_KOREKSI, LOKASI_TIPE, bulatPositif, periode, teks } from "./bersama.js";
+import { unitTerlacak } from "./unit-alur.js";
 
 // Stok linen: saldo dibentuk dari buku transaksi laundry_transaksi_stok (bukan kolom yang diubah langsung), per
 // lokasi (ruangan, atau "laundry" = stok bersih pusat laundry dengan lokasi_uuid NULL) dan jenis linen. Par level
 // (acuan pemantauan/permintaan distribusi) disimpan terpisah di laundry_stok_lokasi, khusus ruangan.
+// Jenis per unit (STD-0030) memakai buku yang sama; saldo ditampilkan bersama rinciannya: unit_terlacak (unit aktif
+// berlabel di lokasi itu) dan saldo_tanpa_unit (stok lama yang belum diregistrasi) — tidak dijumlahkan ganda (KT-23).
 
 export const kunciStok = (faskesUuid, lokasiTipe, lokasiUuid, jenisLinenUuid) =>
   `laundry_stok:${faskesUuid}:${lokasiTipe}:${lokasiTipe === "laundry" ? "-" : lokasiUuid ?? "-"}:${jenisLinenUuid}`;
@@ -60,7 +63,7 @@ export const keluarkanStok = async (k, data, namaLinen = "Linen") => {
 };
 
 export const validasiJenis = async (uuid, faskes, k, { aktif = false } = {}) => {
-  const j = await satu(`SELECT uuid, kode, nama, aktif FROM laundry_jenis_linen WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [String(uuid ?? ""), faskes], k);
+  const j = await satu(`SELECT uuid, kode, nama, aktif, cara_pencatatan FROM laundry_jenis_linen WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [String(uuid ?? ""), faskes], k);
   if (!j) throw permintaanSalah("Jenis linen tidak ditemukan pada faskes ini");
   if (aktif && !j.aktif) throw permintaanSalah(`Jenis linen ${j.nama} nonaktif`);
   return j;
@@ -74,6 +77,24 @@ export const validasiRuangan = async (uuid, faskes, k, nama = "Ruangan") => {
 
 export const rute = express.Router();
 
+// Banyaknya unit aktif per lokasi/jenis yang ikut saldo buku (lihat unit-alur.js) → kunci "lokasi|jenis".
+const unitPerLokasi = async (faskes, lokasiTipe) => {
+  const rows = await query(
+    lokasiTipe === "laundry"
+      ? `SELECT NULL AS lokasi_uuid, jenis_linen_uuid, count(*)::int AS n FROM laundry_unit
+          WHERE faskes_uuid = $1 AND status = 'aktif' AND lokasi_tipe = 'laundry' AND deleted_at IS NULL GROUP BY jenis_linen_uuid`
+      : `SELECT lokasi_uuid, jenis_linen_uuid, count(*)::int AS n FROM laundry_unit
+          WHERE faskes_uuid = $1 AND status = 'aktif' AND lokasi_tipe IN ('ruangan','serah_kotor') AND deleted_at IS NULL GROUP BY lokasi_uuid, jenis_linen_uuid`,
+    [faskes],
+  );
+  return new Map(rows.map((r) => [`${r.lokasi_uuid ?? "-"}|${r.jenis_linen_uuid}`, r.n]));
+};
+const rincianUnit = (r, peta, lokasiUuid) => {
+  if (r.cara_pencatatan !== "per_unit") return { cara_pencatatan: r.cara_pencatatan ?? "per_jumlah", unit_terlacak: null, saldo_tanpa_unit: null };
+  const n = peta.get(`${lokasiUuid ?? "-"}|${r.jenis_linen_uuid}`) ?? 0;
+  return { cara_pencatatan: "per_unit", unit_terlacak: n, saldo_tanpa_unit: Number(r.saldo) - n };
+};
+
 // Saldo & par level per ruangan (lokasi_tipe=ruangan, bawaan) atau saldo bersih laundry (lokasi_tipe=laundry).
 // Pasangan ruangan/jenis tampil bila par level dikonfigurasi ATAU sudah punya transaksi.
 rute.get(
@@ -85,7 +106,7 @@ rute.get(
 
     if (lokasiTipe === "laundry") {
       const rows = await query(
-        `SELECT jl.uuid AS jenis_linen_uuid, jl.kode, jl.nama, jl.satuan, jl.aktif,
+        `SELECT jl.uuid AS jenis_linen_uuid, jl.kode, jl.nama, jl.satuan, jl.aktif, jl.cara_pencatatan,
                 COALESCE(SUM(CASE WHEN t.arah = 'masuk' THEN t.jumlah WHEN t.arah = 'keluar' THEN -t.jumlah END), 0)::numeric AS saldo
            FROM laundry_jenis_linen jl
            LEFT JOIN laundry_transaksi_stok t ON t.jenis_linen_uuid = jl.uuid AND t.faskes_uuid = jl.faskes_uuid
@@ -111,10 +132,12 @@ rute.get(
           WHERE a.faskes_uuid = $1 AND b.status = 'proses' AND a.deleted_at IS NULL AND b.deleted_at IS NULL GROUP BY d.jenis_linen_uuid`,
         [faskes],
       );
+      const unitBersih = await unitPerLokasi(faskes, "laundry");
       return kirim(
         res,
         rows.map((r) => ({
           ...r,
+          ...rincianUnit(r, unitBersih, null),
           lokasi_tipe: "laundry",
           lokasi_uuid: null,
           saldo: Number(r.saldo),
@@ -145,7 +168,7 @@ rute.get(
            FROM laundry_transaksi_stok WHERE faskes_uuid = $1 AND lokasi_tipe = 'ruangan' AND deleted_at IS NULL
           GROUP BY lokasi_uuid, jenis_linen_uuid
        )
-       SELECT x.lokasi_uuid, l.name AS nama_lokasi, x.jenis_linen_uuid, jl.kode, jl.nama, jl.satuan,
+       SELECT x.lokasi_uuid, l.name AS nama_lokasi, x.jenis_linen_uuid, jl.kode, jl.nama, jl.satuan, jl.cara_pencatatan,
               COALESCE(sl.par_level, 0)::numeric AS par_level, COALESCE(s.saldo, 0)::numeric AS saldo, COALESCE(s.ada_saldo_awal, false) AS ada_saldo_awal
          FROM pasangan x
          JOIN laundry_jenis_linen jl ON jl.uuid = x.jenis_linen_uuid AND jl.faskes_uuid = $1
@@ -156,10 +179,11 @@ rute.get(
         ORDER BY l.name, jl.nama`,
       p,
     );
+    const unitRuangan = await unitPerLokasi(faskes, "ruangan");
     let hasil = rows.map((r) => {
       const saldo = Number(r.saldo);
       const par = Number(r.par_level);
-      return { ...r, lokasi_tipe: "ruangan", saldo, par_level: par, selisih_par: saldo - par };
+      return { ...r, ...rincianUnit(r, unitRuangan, r.lokasi_uuid), lokasi_tipe: "ruangan", saldo, par_level: par, selisih_par: saldo - par };
     });
     if (req.query.di_bawah_par === "1" || req.query.di_bawah_par === "true") hasil = hasil.filter((r) => r.selisih_par < 0);
     kirim(res, hasil);
@@ -308,6 +332,15 @@ rute.post(
         const bt = await satu(`SELECT uuid FROM laundry_batch WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [String(b.batch_uuid), f], k);
         if (!bt) throw tidakDitemukan("Batch");
         batchUuid = bt.uuid;
+      }
+      // Jenis per unit: koreksi jumlah hanya untuk saldo yang belum berlabel; unit berlabel dikoreksi lewat status unit
+      // agar buku stok dan posisi unit tetap cocok. Saldo dibaca sebelum unit, di bawah kunci stok yang sama.
+      if (j.cara_pencatatan === "per_unit") {
+        await kunci(k, kunciStok(f, lokasiTipe, ruang?.uuid ?? null, j.uuid));
+        const saldo = await saldoLinen(f, lokasiTipe, ruang?.uuid ?? null, j.uuid, k);
+        const tanpaUnit = saldo - (await unitTerlacak(f, lokasiTipe, ruang?.uuid ?? null, j.uuid, k));
+        if (jumlah > tanpaUnit)
+          throw permintaanSalah(`${j.nama} dilacak per unit; saldo tanpa label hanya ${Math.max(tanpaUnit, 0)}. Koreksi unit berlabel lewat ubah status unit (Unit Linen)`);
       }
       return keluarkanStok(
         k,
