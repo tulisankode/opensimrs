@@ -1,5 +1,6 @@
 import { Sequelize } from "sequelize";
 import "dotenv/config";
+import { pasangAuditSequelize } from "@opensimrs/model-sdk/audit-sequelize";
 
 const DB_NAME = process.env.DB_NAME;
 const DB_USERNAME = process.env.DB_USERNAME;
@@ -15,5 +16,8 @@ const sequelizeInstance = new Sequelize(DB_NAME, DB_USERNAME, DB_PASSWORD, {
     max: 10,
   },
 });
+
+// Audit Trail terpusat (STD-0029): hook global untuk model lokal igd-service.
+pasangAuditSequelize(sequelizeInstance, { layanan: "igd" });
 
 export default sequelizeInstance;

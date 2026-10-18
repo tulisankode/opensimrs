@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { apiSettingGet, apiSettingPut } from "@/utils/apiHandler";
+import { apiSettingGet, apiSettingPut, apiSettingPost } from "@/utils/apiHandler";
 
 export const useSettingStore = defineStore({
     id: "setting",
@@ -59,6 +59,35 @@ export const useSettingStore = defineStore({
         },
         putPPN(payload = {}) {
             return apiSettingPut("ppn", payload)
-        }
+        },
+
+        // Audit Trail (STD-0029)
+        getAuditTrailApi(params: Record<string, unknown> = {}) {
+            const query = new URLSearchParams(
+                Object.entries(params).reduce((acc, [k, v]) => {
+                    if (v !== undefined && v !== null && v !== "") acc[k] = String(v);
+                    return acc;
+                }, {} as Record<string, string>)
+            ).toString();
+            return apiSettingGet(`audit-trail${query ? `?${query}` : ""}`, {});
+        },
+        getAuditTrailDetailApi(uuid: string) {
+            return apiSettingGet(`audit-trail/${uuid}`, {});
+        },
+        getRiwayatAuditPasienApi(patientUuid: string, params: Record<string, unknown> = {}) {
+            const query = new URLSearchParams(
+                Object.entries(params).reduce((acc, [k, v]) => {
+                    if (v !== undefined && v !== null && v !== "") acc[k] = String(v);
+                    return acc;
+                }, {} as Record<string, string>)
+            ).toString();
+            return apiSettingGet(`audit-trail/pasien/${patientUuid}${query ? `?${query}` : ""}`, {});
+        },
+        eksporAuditTrailApi(payload: Record<string, unknown> = {}) {
+            return apiSettingPost("audit-trail/ekspor", payload);
+        },
+        verifikasiAuditTrailApi(payload: Record<string, unknown> = {}) {
+            return apiSettingPost("audit-trail/verifikasi", payload);
+        },
     },
 });

@@ -80,6 +80,7 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/setting/profil-akun", permission: read("Setting", "Profile Saya") },
   { path: "/setting/manajemen-modul", permission: read("Setting", "System") },
   { path: "/setting/system", permission: read("Setting", "System") },
+  { path: "/setting/audit-trail", permission: read("Setting", "Audit Trail", null, "LIHAT") },
 
   { path: "/datamaster/user", permission: read("Datamaster", "User") },
   { path: "/datamaster/role", permission: read("Datamaster", "Role") },

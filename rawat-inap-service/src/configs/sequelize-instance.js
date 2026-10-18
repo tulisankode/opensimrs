@@ -1,5 +1,6 @@
 import {Sequelize} from "sequelize";
 import "dotenv/config";
+import { pasangAuditSequelize } from "@opensimrs/model-sdk/audit-sequelize";
 
 const DB_NAME = process.env.DB_NAME;
 const DB_USERNAME = process.env.DB_USERNAME;
@@ -19,5 +20,8 @@ const sequelizeInstace = new Sequelize(DB_NAME, DB_USERNAME, DB_PASSWORD, {
         underscoredAll: true,
     }
 });
+
+// Audit Trail terpusat (STD-0029): hook global untuk model lokal rawat-inap-service.
+pasangAuditSequelize(sequelizeInstace, { layanan: "rawat-inap" });
 
 export default sequelizeInstace;

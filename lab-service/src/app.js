@@ -5,6 +5,7 @@ import { mulaiPemantauBatch } from "./lis/lis-batch.js";
 import errorMiddleware from "./middlewares/error-middleware.js";
 import cors from "cors";
 import authorizationSdk from "@opensimrs/authorization-sdk";
+import { auditContextMiddleware } from "@opensimrs/model-sdk/audit-context";
 
 const APPLICATION_PORT = process.env.APPLICATION_PORT || 8080;
 const APPLICATION_HOST = process.env.APPLICATION_HOST || 'localhost';
@@ -20,6 +21,8 @@ app.use(express.urlencoded({ extended: true }));
 // hasil dari LIS memakai kunci masuk per koneksi, bukan token login
 app.use(express.json({ limit: "5mb" }), ruteMasuk);
 app.use(authorizationSdk([]))
+// Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
+app.use(auditContextMiddleware());
 app.use(ruteLis);
 app.use(routes);
 app.use(errorMiddleware);

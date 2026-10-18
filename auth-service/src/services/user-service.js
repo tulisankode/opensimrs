@@ -12,6 +12,8 @@ import { generateErrorMessage, generateSuccessMessage } from "../helpers/generat
 import { HttpException, HttpStatus } from "../errors/http-exception.js";
 import { isThereDuplicate } from "../helpers/helper.js";
 import { UserModel } from "@opensimrs/model-sdk/datamaster";
+import sequelizeInstance from "@opensimrs/model-sdk/instance";
+import { catatPeristiwaAudit } from "@opensimrs/model-sdk/audit-sequelize";
 
 export default class UserService {
   
@@ -65,6 +67,18 @@ export default class UserService {
     const { newPassword: password, uuid } = userReq;
     const user = await UserRepository.updatePassword(password, uuid);
     if(!user) throw new BadRequestException(`password gagal di perbarui`);
+    // STD-0029 — Audit Trail: peristiwa `ganti_sandi` dicatat eksplisit (bukan `ubah` generik dari hook model),
+    // tanpa menyimpan sandi lama/baru. `pengguna_uuid`/`peran` adalah pelaku (admin), `entitas_uuid` adalah akun target.
+    await catatPeristiwaAudit(sequelizeInstance, {
+      faskes_uuid: author.faskesUuid,
+      layanan: "auth",
+      aksi: "ganti_sandi",
+      entitas: "Pengguna",
+      entitas_uuid: uuid,
+      pengguna_uuid: author.user_uuid,
+      identitas_akun: author.username,
+      peran: author.role,
+    });
     return { message: `password ${user.username} berhasil di update` }
   }
 
