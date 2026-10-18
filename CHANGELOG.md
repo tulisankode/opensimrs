@@ -28,7 +28,7 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 ### Ditambahkan
 - **Pembelian BMHP via Marketplace mitra** (Inventory, fitur `inv_marketplace`): konfigurasi koneksi per faskes, pencarian penawaran, pemetaan produk dan satuan, pengajuan serta persetujuan permintaan, checkout idempoten, pembaruan status/webhook berkunci, catatan tagihan, laporan, dan server marketplace tiruan. Penerimaan barang tetap memakai PO dan alur Penerimaan Pembelian Inventory yang sudah ada.
   - Rute API ditolak bila fitur belum aktif untuk faskes; izin submodul **Inventory › Pembelian Marketplace** per aksi. Aksi berisiko (konfigurasi koneksi, pemetaan, persetujuan, checkout, laporan) tidak diberikan otomatis ke peran yang ada.
-  - **Migrasi baru:** `20261018100000-inv_marketplace`, `20261018100100-sinkron_katalog_inv_marketplace`, `20261018100200-izin_inv_marketplace`.
+  - **Migrasi baru:** `20261018120000-inv_marketplace`, `20261018120100-sinkron_katalog_inv_marketplace`, `20261018120200-izin_inv_marketplace`.
   - **Variabel lingkungan baru (opsional):** `INVENTORY_MARKETPLACE_KUNCI_RAHASIA` (bawaan memakai `SECRET_KEY`).
 - **Laundry & Linen** (menu Laundry, modul katalog `laundry` — tersedia bawaan untuk klinik utama dan RS kelas D–A): siklus linen kotor → cuci → bersih → distribusi dengan stok linen per ruangan.
   - **Buku stok**: saldo ruangan & stok bersih laundry dihitung dari `laundry_transaksi_stok` (saldo awal sekali, serah terima kotor, batch selesai, distribusi, koreksi hilang/rusak/afkir). Setiap pengeluaran dikunci `pg_advisory_xact_lock` per faskes/lokasi/jenis linen dan ditolak bila melebihi saldo, sehingga stok tidak pernah negatif walau transaksi serentak.
