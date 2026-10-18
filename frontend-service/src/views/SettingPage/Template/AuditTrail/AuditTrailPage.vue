@@ -179,9 +179,9 @@ onMounted(() => {
       </div>
       <div class="flex gap-2 flex-wrap">
         <CustomButton label="Cari" @click="terapkanFilter" />
-        <CustomButton label="Reset" outlined @click="resetFilter" />
-        <CustomButton label="Verifikasi Rantai Hash" outlined @click="verifikasiRantai" />
-        <CustomButton v-if="bolehEkspor" label="Ekspor Excel" outlined @click="eksporExcel" />
+        <CustomButton label="Reset" text-color="text-opensimrs-300" border-color="border-opensimrs-300" outlined @click="resetFilter" />
+        <CustomButton label="Verifikasi Rantai Hash" text-color="text-opensimrs-300" border-color="border-opensimrs-300" outlined @click="verifikasiRantai" />
+        <CustomButton v-if="bolehEkspor" label="Ekspor Excel" text-color="text-opensimrs-300" border-color="border-opensimrs-300" outlined @click="eksporExcel" />
       </div>
 
       <div

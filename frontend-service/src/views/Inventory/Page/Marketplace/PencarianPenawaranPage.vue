@@ -235,11 +235,16 @@ onMounted(() => {
         <CustomTextfield v-model="q" label="Cari Produk" placeholder="mis. Spuit 3 ml" prependIcon="PhMagnifyingGlass" @keydown.enter="cariPenawaran" />
         <CustomButton label="Cari" icon="PhMagnifyingGlass" @click="cariPenawaran" />
         <CustomButton :label="`Keranjang (${keranjang.length})`" icon="PhShoppingCart" @click="bukaDialogAjukan" />
-        <CustomButton label="Konfigurasi Koneksi" icon="PhGear" outlined @click="bukaDialogKonfigurasi" />
+        <CustomButton label="Konfigurasi Koneksi" icon="PhGear" text-color="text-opensimrs-300" border-color="border-opensimrs-300" outlined @click="bukaDialogKonfigurasi" />
       </PageToolbar>
     </template>
     <template #content>
-      <NoData v-if="!hasilPenawaran.length" title="Belum ada hasil pencarian. Pilih koneksi lalu cari produk." />
+      <div v-if="!semuaKoneksi.length" class="flex flex-col items-center gap-3 py-16 text-center">
+        <NoData title="Belum ada koneksi marketplace mitra." />
+        <div class="max-w-xl text-SM text-grey-400">Tambahkan koneksi mitra (URL, API key, supplier) lewat <b>Konfigurasi Koneksi</b>. Untuk uji coba, jalankan <code>node scripts/marketplace-tiruan.mjs</code> lalu isi URL <code>http://localhost:2414</code> dan API key <code>kunci-uji-marketplace</code>.</div>
+        <CustomButton label="Konfigurasi Koneksi" icon="PhGear" @click="bukaDialogKonfigurasi" />
+      </div>
+      <NoData v-else-if="!hasilPenawaran.length" title="Belum ada hasil pencarian. Pilih koneksi lalu cari produk." />
       <DataTable v-else :value="hasilPenawaran" stripedRows class="text-xs" scrollable scrollHeight="flex">
         <Column header="Produk" headerClass="bg-opensimrs-50 font-semibold text-SM">
           <template #body="slotProps">
@@ -292,7 +297,7 @@ onMounted(() => {
           </Column>
           <Column header="">
             <template #body="slotProps">
-              <CustomButton icon="PhTrash" size="small" outlined @click="hapusDariKeranjang(slotProps.data.produkMitraId)" />
+              <CustomButton icon="PhTrash" size="small" text-color="text-danger-300" border-color="border-danger-300" outlined @click="hapusDariKeranjang(slotProps.data.produkMitraId)" />
             </template>
           </Column>
         </DataTable>
@@ -309,7 +314,7 @@ onMounted(() => {
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <CustomButton label="Batal" outlined @click="dialogAjukanTampil = false" />
+        <CustomButton label="Batal" text-color="text-opensimrs-300" border-color="border-opensimrs-300" outlined @click="dialogAjukanTampil = false" />
         <CustomButton label="Ajukan Permintaan" @click="ajukanPermintaan" />
       </div>
     </template>
@@ -333,7 +338,7 @@ onMounted(() => {
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <CustomButton label="Batal" outlined @click="dialogKonfigurasiTampil = false" />
+        <CustomButton label="Batal" text-color="text-opensimrs-300" border-color="border-opensimrs-300" outlined @click="dialogKonfigurasiTampil = false" />
         <CustomButton label="Simpan" @click="simpanKonfigurasi" />
       </div>
     </template>

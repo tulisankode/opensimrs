@@ -235,10 +235,10 @@ onMounted(fetchList);
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <CustomButton v-if="bisaSetujui" label="Tolak" outlined @click="tolak" />
+        <CustomButton v-if="bisaSetujui" label="Tolak" text-color="text-danger-300" border-color="border-danger-300" outlined @click="tolak" />
         <CustomButton v-if="bisaSetujui" label="Setujui" @click="setujui" />
         <CustomButton v-if="bisaCheckout" label="Checkout" @click="checkout" />
-        <CustomButton v-if="bisaSinkron" label="Sinkron Status" outlined @click="sinkronStatus" />
+        <CustomButton v-if="bisaSinkron" label="Sinkron Status" text-color="text-opensimrs-300" border-color="border-opensimrs-300" outlined @click="sinkronStatus" />
       </div>
     </template>
   </CustomDialog>
