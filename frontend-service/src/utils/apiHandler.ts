@@ -999,6 +999,20 @@ const apiLaporanGet = async (url: string, data: object = {}) => {
     errorApiHandler(error);
   }
 };
+// POST/PUT laporan-service (mis. Dashboard Eksekutif: ekspor & target KPI). Body dikirim apa adanya (snake_case);
+// toast sukses hanya bila diminta.
+const apiLaporanKirim = async (metode: "post" | "put", url: string, data: object = {}, toastSukses = false) => {
+  url = cekHost(import.meta.env.VITE_BASE_DASHBOARD, url);
+  try {
+    const response = await baseInstanceLaporan[metode](url, data);
+    if (toastSukses) {
+      app.config.globalProperties.$toast.add({ severity: "success", summary: response.data.message, life: 3000 });
+    }
+    return response.data;
+  } catch (error) {
+    errorApiHandler(error);
+  }
+};
 //SATUSEHAT
 const apiSatuSehatGet = async (url: string, data: object = {}) => {
   url = cekHost(import.meta.env.VITE_BASE_SATUSEHAT, url);
@@ -1218,6 +1232,7 @@ export {
   apiSatuSehatGet,
   apiSatuSehatPost,
   apiLaporanGet,
+  apiLaporanKirim,
   apiBasePost,
   apiBaseGet,
   apiBasePut,

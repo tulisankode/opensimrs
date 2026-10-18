@@ -449,6 +449,13 @@ const router = createRouter({
       meta: { layout: SidebarLayout, requiresAuth: true },
       component: DashboardView,
     },
+    // Dashboard Eksekutif pimpinan (STD-0034): izin Dashboard › Eksekutif (permissions.ts) + fitur dashboard_eksekutif.
+    {
+      path: "/dashboard/eksekutif",
+      name: "dashboard-eksekutif",
+      meta: { layout: SidebarLayout, requiresAuth: true },
+      component: () => import("@/views/Dashboard/DashboardEksekutifView.vue"),
+    },
     // Pratinjau modul segmen yang masih "Segera" (Setting › Manajemen Modul)
     {
       path: "/segera/:kode",

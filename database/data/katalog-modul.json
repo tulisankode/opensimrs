@@ -1710,6 +1710,16 @@
       "urutan": 82
     },
     {
+      "kode": "dashboard_eksekutif",
+      "modul": "dashboard",
+      "nama": "Dashboard Eksekutif",
+      "deskripsi": "Indikator pimpinan lintas modul: kunjungan RJ/RI/IGD, BOR/ALOS/TOI/BTO/NDR/GDR, waktu tunggu, pendapatan/kas/piutang, SEP BPJS, kesiapan akreditasi, kredensial & SDM; target KPI per faskes dengan warna status, tren, rincian agregat, dan ekspor PDF tanpa identitas pasien.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/dashboard/eksekutif"],
+      "urutan": 83
+    },
+    {
       "kode": "sdm_kepegawaian",
       "modul": "sdm",
       "nama": "Kepegawaian",

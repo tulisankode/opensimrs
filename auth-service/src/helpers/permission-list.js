@@ -1558,6 +1558,14 @@ export const dashboardPermission = {
   subModules: [],
 };
 
+// Dashboard Eksekutif (STD-0034, laporan-service): indikator layanan, keuangan, mutu & SDM untuk pimpinan. Modul sama
+// dengan dashboardPermission (digabung di katalog izin) tetapi objek terpisah agar seeder peran yang memberi
+// dashboardPermission tidak ikut memberi akses eksekutif. Aksi dipisah: lihat agregat, rincian, ekspor PDF, atur target.
+export const dashboardEksekutifPermission = {
+  module: "Dashboard",
+  subModules: [{ name: "Eksekutif", allows: ["READ", "RINCIAN", "EKSPOR PDF", "ATUR TARGET"] }],
+};
+
 /**
  *
  * @param {Array<string>} permissionList
@@ -1618,6 +1626,7 @@ export function mapPermission(permissionList) {
     inventory: inventoryPermission,
     datamaster: datamasterPermission,
     dashboard: dashboardPermission,
+    "dashboard eksekutif": dashboardEksekutifPermission,
     setting: settingPermission,
     profile: profilePermission,
     laporan: laporanPermission,
