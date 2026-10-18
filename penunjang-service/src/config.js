@@ -8,6 +8,10 @@ export default {
   basePath: "/api/v3/penunjang",
   secretKey: process.env.SECRET_KEY,
   pembayaranUrl: (process.env.BASE_URL_API_PEMBAYARAN || "http://localhost:8089/api/v3/payment/internal").replace(/\/$/, ""),
+  // Gudang & Pengadaan (inventory-service) — pengurangan stok suku cadang dari work order Sarana & Prasarana (STD-0022).
+  inventoryUrl: (process.env.BASE_URL_API_INVENTORY || "http://localhost:8086/api/v3/inventory").replace(/\/$/, ""),
+  // Batas ukuran foto kerusakan & sertifikat kalibrasi Sarana & Prasarana (MB, PDF/JPG/PNG; 1–20, bawaan 5).
+  berkasSarprasMaksMb: Math.min(Math.max(angka(process.env.MAX_UPLOAD_BERKAS_SARPRAS_MB, 5), 1), 20),
   // Status fitur (Manajemen Modul) untuk pemeriksaan rad_bridging_pacs, lihat pacs/izin.js.
   // SETTING_SERVICE_URL berisi host saja (http://localhost:8094), sama seperti lab-service/src/helpers/fitur-aktif.js;
   // path /api/v3/setting ditambahkan di sini (nilai yang sudah memuat path tetap diterima).

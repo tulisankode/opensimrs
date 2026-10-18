@@ -306,6 +306,16 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/laundry/laporan", permission: read("Laundry", "Laporan Laundry") },
   { path: "/laundry", mode: "prefix", permission: read("Laundry", null, null, null) },
 
+  // Sarana dan Prasarana (IPSRS) — penunjang-service (STD-0022)
+  { path: "/sarpras/aset", permission: read("Sarana dan Prasarana (IPSRS)", "Aset") },
+  { path: "/sarpras/laporan-kerusakan", permission: read("Sarana dan Prasarana (IPSRS)", "Laporan Kerusakan") },
+  { path: "/sarpras/pemeliharaan", permission: read("Sarana dan Prasarana (IPSRS)", "Pemeliharaan") },
+  { path: "/sarpras/kalibrasi", permission: read("Sarana dan Prasarana (IPSRS)", "Kalibrasi") },
+  { path: "/sarpras/utilitas", permission: read("Sarana dan Prasarana (IPSRS)", "Utilitas") },
+  { path: "/sarpras/pengaturan", permission: read("Sarana dan Prasarana (IPSRS)", "Pengaturan") },
+  { path: "/sarpras/laporan", permission: read("Sarana dan Prasarana (IPSRS)", "Laporan Sarpras") },
+  { path: "/sarpras", mode: "prefix", permission: read("Sarana dan Prasarana (IPSRS)", null, null, null) },
+
   // Bank Darah RS (BDRS) — penunjang-service
   { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },
   { path: "/bank-darah/crossmatch", permission: read("Bank Darah RS (BDRS)", "Uji Silang Serasi") },

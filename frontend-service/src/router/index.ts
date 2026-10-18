@@ -299,6 +299,16 @@ import DistribusiLaundryPage from "@/views/Laundry/DistribusiPage.vue";
 import KoreksiLaundryPage from "@/views/Laundry/KoreksiPage.vue";
 import LaporanLaundryPage from "@/views/Laundry/LaporanPage.vue";
 
+// NOTE Sarana dan Prasarana (IPSRS) — aset, work order perbaikan, pemeliharaan, kalibrasi, utilitas (STD-0022, penunjang-service)
+import SarprasView from "@/views/Sarpras/SarprasView.vue";
+import AsetSarprasPage from "@/views/Sarpras/AsetPage.vue";
+import LaporanKerusakanSarprasPage from "@/views/Sarpras/LaporanKerusakanPage.vue";
+import PemeliharaanSarprasPage from "@/views/Sarpras/PemeliharaanPage.vue";
+import KalibrasiSarprasPage from "@/views/Sarpras/KalibrasiPage.vue";
+import UtilitasSarprasPage from "@/views/Sarpras/UtilitasPage.vue";
+import PengaturanSarprasPage from "@/views/Sarpras/PengaturanPage.vue";
+import LaporanSarprasPage from "@/views/Sarpras/LaporanPage.vue";
+
 // NOTE Manajemen Ambulans — permintaan & penugasan, perjalanan, armada & kru, tarif, biaya/kuitansi (STD-0024, penunjang-service)
 import AmbulansView from "@/views/Ambulans/AmbulansView.vue";
 import PermintaanAmbulansPage from "@/views/Ambulans/PermintaanPage.vue";
@@ -1808,6 +1818,19 @@ const router = createRouter({
       ["/ambulans/tarif", "ambulans-tarif", TarifAmbulansPage],
       ["/ambulans/kuitansi", "ambulans-kuitansi", KuitansiAmbulansPage],
       ["/ambulans/laporan", "ambulans-laporan", LaporanAmbulansPage],
+    ]),
+    // !SECTION
+
+    // SECTION Sarana dan Prasarana (IPSRS) (STD-0022, penunjang-service)
+    { path: "/sarpras", name: "sarpras", redirect: "/sarpras/aset" },
+    ...halamanModul(SarprasView, [
+      ["/sarpras/aset", "sarpras-aset", AsetSarprasPage],
+      ["/sarpras/laporan-kerusakan", "sarpras-laporan-kerusakan", LaporanKerusakanSarprasPage],
+      ["/sarpras/pemeliharaan", "sarpras-pemeliharaan", PemeliharaanSarprasPage],
+      ["/sarpras/kalibrasi", "sarpras-kalibrasi", KalibrasiSarprasPage],
+      ["/sarpras/utilitas", "sarpras-utilitas", UtilitasSarprasPage],
+      ["/sarpras/pengaturan", "sarpras-pengaturan", PengaturanSarprasPage],
+      ["/sarpras/laporan", "sarpras-laporan", LaporanSarprasPage],
     ]),
     // !SECTION
 

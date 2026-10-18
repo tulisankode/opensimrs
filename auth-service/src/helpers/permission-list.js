@@ -1073,6 +1073,21 @@ export const ambulansPermission = {
   ],
 };
 
+export const sarprasPermission = {
+  module: "Sarana dan Prasarana (IPSRS)",
+  subModules: [
+    { name: "Aset", allows: ["READ", "CREATE", "UPDATE", "PINDAH LOKASI", "UBAH STATUS", "CETAK QR"] },
+    { name: "Laporan Kerusakan", allows: ["READ", "CREATE", "TUGASKAN", "UPDATE STATUS", "TUTUP"] },
+    { name: "Suku Cadang", allows: ["READ", "CATAT PEMAKAIAN"] },
+    { name: "Pemeliharaan", allows: ["READ", "CREATE JADWAL", "UPDATE JADWAL", "NONAKTIFKAN JADWAL", "CATAT PELAKSANAAN"] },
+    { name: "Kalibrasi", allows: ["READ", "CREATE", "UPDATE JADWAL", "UNGGAH SERTIFIKAT"] },
+    { name: "Berkas", allows: ["READ"] },
+    { name: "Utilitas", allows: ["READ", "CREATE"] },
+    { name: "Laporan Sarpras", allows: ["READ", "EKSPOR"] },
+    { name: "Pengaturan", allows: ["READ", "UPDATE"] },
+  ],
+};
+
 export const trainingPermission = {
   module: "Training",
   subModules: [
@@ -1542,6 +1557,7 @@ export function mapPermission(permissionList) {
     "bank darah rs (bdrs)": bankDarahPermission,
     cssd: cssdPermission,
     "manajemen ambulans": ambulansPermission,
+    "sarana dan prasarana (ipsrs)": sarprasPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,
     stok: stokPermission,
