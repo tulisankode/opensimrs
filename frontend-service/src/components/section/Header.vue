@@ -329,10 +329,8 @@ const susunMenu = () => {
   });
   // Urutan menu mengikuti templistMenu (alur klinis dulu, administrasi belakangan), bukan urutan permission.
   menu.sort((a, b) => templistMenu.value.indexOf(a) - templistMenu.value.indexOf(b));
-  // Modul penunjang medik dikelompokkan dalam satu menu dropdown "Penunjang" (semua segmen).
-  const anakPenunjang = menu
-    .filter((m) => MODUL_PENUNJANG.includes(m.title))
-    .sort((a, b) => MODUL_PENUNJANG.indexOf(a.title) - MODUL_PENUNJANG.indexOf(b.title));
+  // Modul penunjang dikelompokkan dalam satu menu dropdown "Penunjang" (semua segmen).
+  const anakPenunjang = menu.filter(masukPenunjang).sort(bandingOrganisasi);
   if (anakPenunjang.length) {
     const posisi = menu.indexOf(anakPenunjang[0]);
     const grup: ListMenu = { title: "Penunjang", icon: "PhFirstAidKit", url: "", anak: anakPenunjang };
@@ -352,7 +350,86 @@ const susunMenu = () => {
     .map((m) => ({ title: NAMA_SEGERA[m.kode] ?? m.nama, icon: IKON_SEGERA[m.kode] ?? "PhPuzzlePiece", url: `/segera/${m.kode}`, segera: true }))
     .filter((s) => !menu.some((x) => x.title === s.title));
 };
-const MODUL_PENUNJANG = ["Laboratorium", "Patologi Anatomi", "Mikrobiologi", "Radiologi", "Fisioterapi", "CSSD", "Bank Darah RS (BDRS)", "UTD", "Manajemen Ambulans", "Laundry", "Sarana dan Prasarana (IPSRS)"];
+
+// Struktur organisasi faskes (bidang → instalasi) untuk panel "Lainnya" & dropdown "Penunjang". Bidang & instalasi
+// tiap modul berasal dari katalog modul (database/data/katalog-modul.json → ref_modul); menu non-modul dipetakan di
+// BIDANG_MENU_NONMODUL. Bidang tanpa menu aktif otomatis tidak tampil (klinik/puskesmas memakai struktur yang sama).
+const URUTAN_BIDANG = [
+  "Pelayanan Medis & Keperawatan",
+  "Penunjang Medis",
+  "Penunjang Umum",
+  "Keuangan & Administrasi",
+  "Manajemen & Mutu",
+  "Program Kesehatan Masyarakat",
+  "Sistem",
+];
+const BIDANG_LAIN = "Lainnya";
+const BIDANG_MENU_NONMODUL: Record<string, { bidang: string; instalasi: string }> = {
+  Datamaster: { bidang: "Sistem", instalasi: "Data Master" },
+  Training: { bidang: "Sistem", instalasi: "Pelatihan" },
+  Ekstensi: { bidang: "Sistem", instalasi: "Ekstensi" },
+};
+// Dropdown "Penunjang" = bidang penunjang, kecuali instalasi yang dipakai harian (tetap jadi menu sendiri).
+const BIDANG_PENUNJANG = ["Penunjang Medis", "Penunjang Umum"];
+const INSTALASI_MENU_SENDIRI = ["Instalasi Farmasi", "Instalasi Gizi", "Instalasi Rekam Medis", "Logistik & Gudang"];
+// Cadangan bila katalog di cache belum memuat bidang (migrasi 20261018140000 belum dijalankan).
+const MODUL_PENUNJANG_CADANGAN = ["Laboratorium", "Patologi Anatomi", "Mikrobiologi", "Radiologi", "Fisioterapi", "CSSD", "Bank Darah RS (BDRS)", "UTD", "Manajemen Ambulans", "Laundry", "Sarana dan Prasarana (IPSRS)"];
+// Judul panjang dipersingkat hanya di panel (nama lengkap jadi tooltip); judul asli tetap dipakai izin & routing.
+const NAMA_RINGKAS: Record<string, string> = {
+  "Sarana dan Prasarana (IPSRS)": "Sarana & Prasarana",
+  "Manajemen Ambulans": "Ambulans",
+  "Bank Darah RS (BDRS)": "Bank Darah (BDRS)",
+};
+const namaRingkas = (judul: string) => NAMA_RINGKAS[judul] ?? judul;
+
+// Modul katalog pemilik menu: menu "Segera" lewat kodenya, selain itu lewat judul menu (= nama izin) atau rute.
+const modulMenu = (m: ListMenu) => {
+  const katalog = modulStore.konfigurasi?.katalog ?? [];
+  if (m.segera) return katalog.find((x) => `/segera/${x.kode}` === m.url);
+  return katalog.find((x) => x.menu?.includes(m.title)) ?? katalog.find((x) => x.rute?.includes(m.url));
+};
+const URUTAN_AKHIR = 9999;
+const posisiOrganisasi = (m: ListMenu) => {
+  const katalog = modulStore.konfigurasi?.katalog ?? [];
+  const modul = modulMenu(m);
+  if (modul?.bidang) {
+    // Instalasi diurutkan menurut modul pertamanya di katalog (urutan katalog = alur layanan).
+    const urutanInstalasi = katalog.findIndex((x) => x.bidang === modul.bidang && (x.instalasi || x.nama) === (modul.instalasi || modul.nama));
+    return { bidang: modul.bidang, instalasi: modul.instalasi || modul.nama, urutanInstalasi, urutan: katalog.indexOf(modul) };
+  }
+  const tetap = BIDANG_MENU_NONMODUL[m.title];
+  return { bidang: tetap?.bidang ?? BIDANG_LAIN, instalasi: tetap?.instalasi ?? "", urutanInstalasi: URUTAN_AKHIR, urutan: URUTAN_AKHIR };
+};
+const indeksBidang = (bidang: string) => {
+  const i = URUTAN_BIDANG.indexOf(bidang);
+  return i < 0 ? URUTAN_BIDANG.length : i;
+};
+const bandingOrganisasi = (a: ListMenu, b: ListMenu) => {
+  const pa = posisiOrganisasi(a);
+  const pb = posisiOrganisasi(b);
+  return indeksBidang(pa.bidang) - indeksBidang(pb.bidang) || pa.urutanInstalasi - pb.urutanInstalasi || pa.urutan - pb.urutan;
+};
+const masukPenunjang = (m: ListMenu) => {
+  const modul = modulMenu(m);
+  if (!modul?.bidang) return MODUL_PENUNJANG_CADANGAN.includes(m.title);
+  return BIDANG_PENUNJANG.includes(modul.bidang) && !INSTALASI_MENU_SENDIRI.includes(modul.instalasi ?? "");
+};
+interface KelompokBidang {
+  bidang: string;
+  instalasi: Array<{ nama: string; menu: ListMenu[] }>;
+}
+const kelompokkanBidang = (daftar: ListMenu[]): KelompokBidang[] => {
+  const hasil: KelompokBidang[] = [];
+  for (const m of [...daftar].sort(bandingOrganisasi)) {
+    const { bidang, instalasi } = posisiOrganisasi(m);
+    let b = hasil.find((x) => x.bidang === bidang);
+    if (!b) hasil.push((b = { bidang, instalasi: [] }));
+    let i = b.instalasi.find((x) => x.nama === instalasi);
+    if (!i) b.instalasi.push((i = { nama: instalasi, menu: [] }));
+    i.menu.push(m);
+  }
+  return hasil;
+};
 const menuAktif = (m: ListMenu) =>
   m.anak ? m.anak.some((a) => checkActiveTab(a.url)) : checkActiveTab(m.url) || route.path === m.url;
 const popupGrup = ref();
@@ -394,6 +471,34 @@ const bukaLainnya = (url: string) => {
   popupLainnya.value?.hide();
   goToPage(url);
 };
+// Panel "Lainnya": kolom per bidang, instalasi sebagai subjudul; menu "Segera" ikut di kolom bidangnya.
+// SIMRS Studio (alat pengembang) dipisah di bagian bawah panel.
+const cariLainnya = ref("");
+const inputCariLainnya = ref<HTMLInputElement>();
+const URL_STUDIO = "/studio";
+const itemLainnya = computed(() => [
+  ...menuLainnya.value.flatMap((m) => m.anak ?? [m]).filter((m) => m.url !== URL_STUDIO),
+  ...menuSegera.value,
+]);
+const cocokCari = (m: ListMenu) => {
+  const q = cariLainnya.value.trim().toLowerCase();
+  return !q || m.title.toLowerCase().includes(q) || namaRingkas(m.title).toLowerCase().includes(q);
+};
+const panelLainnya = computed(() => kelompokkanBidang(itemLainnya.value.filter(cocokCari)));
+const studioLainnya = computed(() => menuLainnya.value.find((m) => m.url === URL_STUDIO && cocokCari(m)));
+// Jumlah kolom dari isi tanpa filter agar lebar panel tidak berubah saat mengetik di kotak cari.
+const jumlahKolomLainnya = computed(() => Math.max(1, Math.min(4, kelompokkanBidang(itemLainnya.value).length)));
+const KELAS_KOLOM = ["", "", "sm:grid-cols-2", "sm:grid-cols-2 lg:grid-cols-3", "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"];
+const KELAS_LEBAR = ["", "w-[min(90vw,260px)]", "w-[min(90vw,500px)]", "w-[min(90vw,740px)]", "w-[min(90vw,980px)]"];
+const saatLainnyaTerbuka = () => {
+  cariLainnya.value = "";
+  nextTick(() => inputCariLainnya.value?.focus());
+};
+const bukaHasilPertama = () => {
+  const pertama = panelLainnya.value[0]?.instalasi[0]?.menu[0] ?? studioLainnya.value;
+  if (pertama) bukaLainnya(pertama.url);
+};
+const itemLainnyaAktif = (m: ListMenu) => (m.segera ? route.path === m.url : checkActiveTab(m.url));
 let pengamatLebar: ResizeObserver | undefined;
 watch(listMenu, () => nextTick(hitungMenuTampil));
 // Izin sesi diperbarui (mis. setelah Manajemen Modul disimpan) → susun ulang menu.
@@ -611,24 +716,75 @@ const isSuperAdmin = getUserRole() === "super admin";
           </button>
         </div>
       </Popover>
-      <Popover ref="popupLainnya">
-        <div class="flex min-w-[220px] flex-col gap-1" role="menu" aria-label="Modul lainnya">
-          <template v-for="menu in menuLainnya" :key="menu.title">
-            <div v-if="menu.anak" class="px-2 pt-2 text-[10px] font-bold uppercase tracking-wide text-grey-300">
-              {{ menu.title }}
+      <!-- Panel "Lainnya": kolom per bidang, subjudul instalasi, kotak cari; SIMRS Studio terpisah di bawah. -->
+      <Popover ref="popupLainnya" @show="saatLainnyaTerbuka">
+        <div class="flex max-w-full flex-col gap-3" :class="KELAS_LEBAR[jumlahKolomLainnya]">
+          <div class="relative">
+            <PhMagnifyingGlass
+              :size="14"
+              class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-grey-300"
+              aria-hidden="true"
+            />
+            <input
+              ref="inputCariLainnya"
+              v-model="cariLainnya"
+              type="search"
+              placeholder="Cari menu…"
+              aria-label="Cari menu lainnya"
+              class="h-8 w-full rounded-lg border border-grey-100 pl-8 pr-2 text-SM text-grey-500 outline-none focus:border-opensimrs-300"
+              @keydown.enter.prevent="bukaHasilPertama"
+            />
+          </div>
+          <div
+            class="grid max-h-[65vh] grid-cols-1 gap-x-5 gap-y-4 overflow-y-auto"
+            :class="KELAS_KOLOM[jumlahKolomLainnya]"
+            role="menu"
+            aria-label="Modul lainnya"
+          >
+            <section v-for="b in panelLainnya" :key="b.bidang" class="flex min-w-0 flex-col gap-0.5" :aria-label="b.bidang">
+              <div class="mb-1 border-b border-grey-100 px-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-opensimrs-300">
+                {{ b.bidang }}
+              </div>
+              <template v-for="ins in b.instalasi" :key="ins.nama">
+                <div v-if="ins.nama" class="px-2 pt-1.5 text-[10px] font-semibold text-grey-300">{{ ins.nama }}</div>
+                <button
+                  v-for="item in ins.menu"
+                  :key="item.url"
+                  v-tooltip.right="namaRingkas(item.title) !== item.title ? item.title : undefined"
+                  type="button"
+                  role="menuitem"
+                  class="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
+                  :class="{ 'bg-opensimrs-50 font-semibold text-opensimrs-300': itemLainnyaAktif(item) }"
+                  :aria-label="item.title"
+                  @click="bukaLainnya(item.url)"
+                >
+                  <component :is="item.icon" weight="fill" class="shrink-0 text-opensimrs-300" aria-hidden="true" />
+                  <span class="grow truncate">{{ namaRingkas(item.title) }}</span>
+                  <span
+                    v-if="item.segera"
+                    class="rounded-full bg-danger-300 px-1.5 py-[1px] text-[9px] font-bold uppercase leading-3 text-white"
+                  >Soon</span>
+                </button>
+              </template>
+            </section>
+            <p v-if="!panelLainnya.length && !studioLainnya" class="col-span-full py-4 text-center text-SM text-grey-400">
+              Tidak ada menu yang cocok dengan "{{ cariLainnya }}".
+            </p>
+          </div>
+          <template v-if="studioLainnya">
+            <div class="border-t border-grey-100 pt-2">
+              <div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-grey-300">Alat pengembang</div>
+              <button
+                type="button"
+                role="menuitem"
+                class="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
+                :class="{ 'bg-opensimrs-50 font-semibold text-opensimrs-300': checkActiveTab(studioLainnya.url) }"
+                @click="bukaLainnya(studioLainnya.url)"
+              >
+                <component :is="studioLainnya.icon" weight="fill" class="shrink-0 text-opensimrs-300" aria-hidden="true" />
+                <span class="grow">{{ studioLainnya.title }}</span>
+              </button>
             </div>
-            <button
-              v-for="item in menu.anak ?? [menu]"
-              :key="item.url"
-              type="button"
-              role="menuitem"
-              class="flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
-              :class="{ 'bg-opensimrs-50 font-semibold text-opensimrs-300': checkActiveTab(item.url), 'pl-4': menu.anak }"
-              @click="bukaLainnya(item.url)"
-            >
-              <component :is="item.icon" weight="fill" class="shrink-0 text-opensimrs-300" aria-hidden="true" />
-              <span class="grow">{{ item.title }}</span>
-            </button>
           </template>
         </div>
       </Popover>

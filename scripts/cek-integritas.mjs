@@ -5,6 +5,8 @@
 //      modul tetap "Segera").
 //   2. Menu navbar: setiap `menu` modul yang tersedia harus ada di templistMenu Header.vue (selain itu menu
 //      tidak pernah tampil walau modul aktif); modul tersedia tidak boleh masih tercantum di daftar menu "Segera".
+//      Setiap modul wajib punya `bidang` (salah satu URUTAN_BIDANG di Header.vue) dan `instalasi` agar menunya
+//      masuk kolom yang benar di panel "Lainnya".
 //   3. Migrasi: stempel waktu nama berkas tidak boleh kembar.
 //   4. Frontend: tidak boleh ada import "@/main" (import melingkar main → router → halaman → main membuat layar
 //      putih "Cannot access 'router' before initialization" saat Vite memuat main.ts dua kali).
@@ -48,6 +50,11 @@ const potong = (awal, penutup) => {
 };
 const menuNavbar = new Set([...potong("const templistMenu", "\n]);").matchAll(/title:\s*"([^"]+)"/g)].map((m) => m[1]));
 const segera = potong("const NAMA_SEGERA", "\n};");
+const bidangNavbar = new Set([...potong("const URUTAN_BIDANG", "\n];").matchAll(/"([^"]+)"/g)].map((m) => m[1]));
+for (const m of katalog.modul) {
+  if (!m.bidang || !m.instalasi) salah("Menu navbar", `Modul ${m.kode} belum punya "bidang" dan/atau "instalasi" di katalog-modul.json — menunya masuk kolom "Lainnya" di panel menu.`);
+  else if (!bidangNavbar.has(m.bidang)) salah("Menu navbar", `Modul ${m.kode} memakai bidang "${m.bidang}" yang tidak ada di URUTAN_BIDANG Header.vue. Pilih salah satu: ${[...bidangNavbar].join(", ")}.`);
+}
 for (const m of katalog.modul.filter((x) => x.tersedia)) {
   for (const judul of m.menu ?? []) {
     if (!menuNavbar.has(judul)) salah("Menu navbar", `Modul ${m.kode} punya menu "${judul}" tetapi tidak ada di templistMenu Header.vue — menu tidak akan tampil walau modul aktif.`);

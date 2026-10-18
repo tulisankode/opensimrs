@@ -210,6 +210,16 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
   - **Maksimal agen bersamaan** (bawaan 2): tugas berikutnya berstatus **Menunggu slot agen** dan dimulai otomatis saat ada agen yang selesai.
   - **Migrasi baru:** `20261018020000-studio_tugas_tahan_kuota` (kolom `lanjut_pada`, `lanjutan_dari`, `lanjutan_ke`, `menunggu_slot` di `studio_tugas`).
 
+### Diubah
+- **Panel menu "Lainnya" dikelompokkan per bidang dan instalasi** sesuai struktur organisasi rumah sakit/klinik. Menu yang tidak muat di menu atas kini tampil sebagai panel berkolom per bidang (Pelayanan Medis & Keperawatan, Penunjang Medis, Penunjang Umum, Keuangan & Administrasi, Manajemen & Mutu, Program Kesehatan Masyarakat, Sistem), bukan lagi satu kolom panjang yang perlu digulir.
+  - Instalasi tampil sebagai subjudul di dalam kolom bidangnya. Bidang tanpa menu aktif disembunyikan, jadi klinik dan puskesmas memakai struktur yang sama.
+  - Ada kotak cari di atas panel (tidak membedakan huruf besar/kecil; tekan Enter untuk membuka hasil pertama). Panel menyesuaikan lebar layar (2–4 kolom, satu kolom bergulir di layar sempit).
+  - Menu aktif tetap disorot. Modul berstatus Segera ikut tampil di kolom bidangnya dengan badge *Soon*. SIMRS Studio dipisah di bagian bawah panel sebagai alat pengembang.
+  - Judul panjang dipersingkat hanya di panel, dengan nama lengkap sebagai tooltip (mis. "Sarana dan Prasarana (IPSRS)" menjadi "Sarana & Prasarana", "Manajemen Ambulans" menjadi "Ambulans"). Judul untuk izin dan routing tidak berubah.
+  - Isi dropdown **Penunjang** di menu atas kini diturunkan dari bidang Penunjang Medis/Umum, tidak lagi dari daftar tetap. Anggotanya tetap sama; urutannya mengikuti katalog.
+- **Katalog modul punya field `bidang` dan `instalasi`** (`database/data/katalog-modul.json`, tabel `ref_modul`) yang dikirim setting-service bersama katalog. Field `kelompok` untuk layar Manajemen Modul tidak berubah. Modul baru wajib mengisi keduanya; `node scripts/cek-integritas.mjs` memeriksa nilainya, dan `docs/MANAJEMEN-MODUL.md` memuat tabel struktur organisasi (bagian G).
+  - **Migrasi baru:** `20261018140000-ref_modul_bidang_instalasi` (kolom `bidang`, `instalasi` di `ref_modul`, lalu sinkron katalog). Setelah `npm run db:migrate`, muat ulang aplikasi agar panel memakai data bidang.
+
 ### Diperbaiki
 - **Bank Darah RS (BDRS) › validasi kecocokan ABO/Rh & status kedaluwarsa otomatis (STD-0016).** Backend sebelumnya menerima hasil crossmatch mayor/minor yang diinput petugas tanpa memeriksa kecocokan golongan ABO/Rh pasien terhadap kantong, dan kantong yang melewati tanggal kedaluwarsa tetap terhitung stok tersedia sampai statusnya diperbarui manual.
   - **Uji Silang Serasi & Serah Terima** kini memvalidasi ABO/Rh pasien-kantong memakai matriks bertabel (`penunjang-service/src/bank-darah/kompatibilitas.js`, dengan uji unit) per kelompok komponen: sel darah merah (PRC/WB/WE), plasma (FFP/kriopresipitat/plasma cair), dan trombosit (ABO non-identik diperbolehkan dengan **peringatan**, bukan penolakan). Ketidakcocokan ditolak **HTTP 409** menyebut golongan kantong, golongan pasien, dan komponen; serah terima memvalidasi ulang kecocokan yang sama sebelum menyimpan transaksi. **Matriks bawaan mengikuti Permenkes 91/2015 dan wajib disahkan dokter penanggung jawab pelayanan darah/kepala BDRS sebelum dipakai di produksi.**

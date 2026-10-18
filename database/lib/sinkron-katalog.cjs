@@ -20,11 +20,15 @@ async function sinkronKatalog(queryInterface, transaction) {
     await q(`INSERT INTO ref_segmen (kode, nama, urutan, ringkas) VALUES (:kode, :nama, :urutan, :ringkas)
              ON CONFLICT (kode) DO UPDATE SET nama = EXCLUDED.nama, urutan = EXCLUDED.urutan, ringkas = EXCLUDED.ringkas`, s);
   }
+  // ref_modul.bidang & instalasi ditambahkan migrasi 20261018140000; migrasi sebelumnya memanggil fungsi ini sebelum kolom ada.
+  const [kolomBidang] = await q(`SELECT 1 FROM information_schema.columns WHERE table_name = 'ref_modul' AND column_name = 'bidang'`);
+  const adaBidang = kolomBidang.length > 0;
   for (const m of modul) {
-    await q(`INSERT INTO ref_modul (kode, nama, kelompok, deskripsi, inti, tersedia, urutan)
-             VALUES (:kode, :nama, :kelompok, :deskripsi, ${ON(m.inti)}, ${ON(m.tersedia)}, :urutan)
+    await q(`INSERT INTO ref_modul (kode, nama, kelompok, deskripsi, inti, tersedia, urutan${adaBidang ? ', bidang, instalasi' : ''})
+             VALUES (:kode, :nama, :kelompok, :deskripsi, ${ON(m.inti)}, ${ON(m.tersedia)}, :urutan${adaBidang ? ', :bidang, :instalasi' : ''})
              ON CONFLICT (kode) DO UPDATE SET nama = EXCLUDED.nama, kelompok = EXCLUDED.kelompok, deskripsi = EXCLUDED.deskripsi,
-               inti = EXCLUDED.inti, tersedia = EXCLUDED.tersedia, urutan = EXCLUDED.urutan`, m);
+               inti = EXCLUDED.inti, tersedia = EXCLUDED.tersedia, urutan = EXCLUDED.urutan${adaBidang ? ', bidang = EXCLUDED.bidang, instalasi = EXCLUDED.instalasi' : ''}`,
+      { ...m, bidang: m.bidang ?? null, instalasi: m.instalasi ?? null });
   }
   // ref_fitur.modul_syarat ditambahkan migrasi 20261014130000; migrasi sebelumnya memanggil fungsi ini sebelum kolom ada.
   const [kolom] = await q(`SELECT 1 FROM information_schema.columns WHERE table_name = 'ref_fitur' AND column_name = 'modul_syarat'`);
