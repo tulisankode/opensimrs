@@ -316,6 +316,9 @@ import KalibrasiSarprasPage from "@/views/Sarpras/KalibrasiPage.vue";
 import UtilitasSarprasPage from "@/views/Sarpras/UtilitasPage.vue";
 import PengaturanSarprasPage from "@/views/Sarpras/PengaturanPage.vue";
 import LaporanSarprasPage from "@/views/Sarpras/LaporanPage.vue";
+import SdmView from "@/views/Sdm/SdmView.vue";
+import KepegawaianSdmPage from "@/views/Sdm/KepegawaianPage.vue";
+import KredensialSdmPage from "@/views/Sdm/KredensialPage.vue";
 
 // NOTE Manajemen Ambulans — permintaan & penugasan, perjalanan, armada & kru, tarif, biaya/kuitansi (STD-0024, penunjang-service)
 import AmbulansView from "@/views/Ambulans/AmbulansView.vue";
@@ -1856,6 +1859,11 @@ const router = createRouter({
       ["/sarpras/utilitas", "sarpras-utilitas", UtilitasSarprasPage],
       ["/sarpras/pengaturan", "sarpras-pengaturan", PengaturanSarprasPage],
       ["/sarpras/laporan", "sarpras-laporan", LaporanSarprasPage],
+    ]),
+    { path: "/sdm", name: "sdm", redirect: "/sdm/kepegawaian" },
+    ...halamanModul(SdmView, [
+      ["/sdm/kepegawaian", "sdm-kepegawaian", KepegawaianSdmPage],
+      ["/sdm/kredensial", "sdm-kredensial", KredensialSdmPage],
     ]),
     // !SECTION
 

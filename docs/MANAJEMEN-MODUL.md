@@ -220,7 +220,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **35 modul** (8 inti, 1 berstatus Segera), **89 fitur** (0 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **36 modul** (8 inti, 1 berstatus Segera), **91 fitur** (0 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -278,6 +278,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `laundry` | Laundry & Linen | Siklus linen kotor–bersih: serah terima linen kotor dua petugas, batch cuci bertahap, distribusi linen bersih, stok & par level per ruangan, koreksi, rekonsiliasi, dan laporan beban cucian. | Tersedia | Penunjang Umum › Instalasi Laundry | Laundry |
 | `sarpras` | Sarana dan Prasarana (IPSRS) | Register aset medis & nonmedis, laporan kerusakan dan perbaikan (work order), pemeliharaan preventif, serta kalibrasi dan uji fungsi alat untuk Instalasi Pemeliharaan Sarana RS (IPSRS). | Tersedia | Penunjang Umum › IPSRS | Sarana dan Prasarana (IPSRS) |
 | `mutu` | Mutu & Akreditasi | Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dan dasbor kesiapan akreditasi. | Tersedia | Manajemen & Mutu › Manajemen Mutu | Mutu & Akreditasi |
+| `sdm` | HR / SDM | Data kepegawaian, kredensial, jadwal dinas, kehadiran, pelatihan, dan penggajian dasar. | Tersedia | Keuangan & Administrasi › SDM & Kepegawaian | HR / SDM |
 
 #### Penjaminan
 
@@ -345,6 +346,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Laundry & Linen (`laundry`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 | Sarana dan Prasarana (IPSRS) (`sarpras`) | Tersedia | – | – | – | – | – | – | – | – |
 | Mutu & Akreditasi (`mutu`) | Tersedia | – | – | – | – | – | – | – | – |
+| HR / SDM (`sdm`) | Tersedia | – | – | – | – | – | – | – | – |
 
 ### D. Fitur per modul
 
@@ -559,6 +561,13 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 |---|---|---|---|---|---|---|
 | `mutu_dokumen_kredensial` | Dokumen Akreditasi & Kredensial Staf | Instrumen akreditasi milik faskes (bab/standar/elemen, impor CSV), dokumen akreditasi berversi dengan pemetaan bukti & pengingat tinjau ulang, kredensial staf (STR/SIP/sertifikat/RKK/SPK) dengan peringatan 90/30 hari, dasbor kesiapan, dan akses baca surveior. | Tersedia | – | – | – |
 
+#### HR / SDM (`sdm`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `sdm_kepegawaian` | Kepegawaian | Data status, unit, jabatan, golongan, pendidikan, dan riwayat kepegawaian. | Tersedia | Ya | – | – |
+| `sdm_kredensial` | Kredensial Pegawai | Pencatatan STR, SIP, sertifikat kompetensi, verifikasi, dan masa berlaku. | Tersedia | – | – | – |
+
 ### E. Bagian (unit terkecil)
 
 Bagian adalah potongan form/daftar di dalam sebuah fitur, mis. satu form asesmen atau satu jenis surat. **Khusus poli**: bagian hanya tampil di lokasi berjenis poli tersebut. **Dimatikan bawaan di**: dari `preset.bagian_mati`.
@@ -652,6 +661,7 @@ Field `bidang` dan `instalasi` menempatkan menu modul di panel **Lainnya** pada 
 | Keuangan & Administrasi | Pendaftaran & Admisi | Pendaftaran Pasien (`pendaftaran`), Antrian & Layar Panggil (`antrian`) |
 | Keuangan & Administrasi | Kasir & Penjaminan | Kasir & Pembayaran (`pembayaran`), BPJS FKTP (PCare) (`bpjs_fktp`), BPJS FKRTL (VClaim/SEP) (`bpjs_fkrtl`) |
 | Keuangan & Administrasi | Akuntansi & Remunerasi | Akuntansi & Remunerasi (`akuntansi`) |
+| Keuangan & Administrasi | SDM & Kepegawaian | HR / SDM (`sdm`) |
 | Manajemen & Mutu | Pelaporan | Dashboard (`dashboard`), Laporan (`laporan`) |
 | Manajemen & Mutu | Audit Trail | Audit Trail (`audit_trail`) |
 | Manajemen & Mutu | Manajemen Mutu | Mutu & Akreditasi (`mutu`) |
