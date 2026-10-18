@@ -533,7 +533,10 @@ export default class PatientRepository{
                             faskesUuid,
                             status: { [Op.is]: true }
                         },
-                        transaction: t
+                        transaction: t,
+                        // STD-0029: baris dicatat satu per satu lewat hook afterUpdate (bukan afterBulkUpdate) agar
+                        // audit trail mendapat nilai lama/baru per pasien, bukan hanya kriteria WHERE.
+                        individualHooks: true
                     }
                 );
             });
@@ -552,7 +555,11 @@ export default class PatientRepository{
         }
         const [jumlah] = await PatientModel.update(
             { status: true, updatedAt: moment().unix() },
-            { where: { uuid: data.listUuid, faskesUuid, status: { [Op.is]: false } } }
+            {
+                where: { uuid: data.listUuid, faskesUuid, status: { [Op.is]: false } },
+                // STD-0029: lihat catatan individualHooks di deletePatient().
+                individualHooks: true
+            }
         );
         return { diaktifkan: jumlah };
     }
@@ -611,7 +618,11 @@ export default class PatientRepository{
         if (boleh.length) {
             await PatientModel.update(
                 { deletedAt: moment().unix(), updatedAt: moment().unix() },
-                { where: { uuid: boleh.map((p) => p.uuid), faskesUuid } }
+                {
+                    where: { uuid: boleh.map((p) => p.uuid), faskesUuid },
+                    // STD-0029: lihat catatan individualHooks di deletePatient().
+                    individualHooks: true
+                }
             );
         }
         return {
@@ -768,7 +779,9 @@ export default class PatientRepository{
                                 { faskesUuid },
                             ]
                         },
-                        transaction: t
+                        transaction: t,
+                        // STD-0029: lihat catatan individualHooks di deletePatient().
+                        individualHooks: true
                     }
                 );
             });

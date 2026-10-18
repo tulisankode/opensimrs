@@ -4,6 +4,8 @@ import successResponse from "../responses/success-response.js";
 export default class RekamMedisController {
     static async get(request, response, nextFunction) {
         try {
+            // STD-0029 — Audit Trail: faskes_uuid untuk pencatatan akses baca selalu dari token, bukan dokumen Mongo.
+            request.query.faskes_uuid = request.author.faskesUuid;
             const result = await RekamMedisService.get(request.query);
             response.status(200).json(successResponse("data berhasil didapat", result));
         } catch (error) {
@@ -23,6 +25,8 @@ export default class RekamMedisController {
 
     static async addRecord(request, response, nextFunction){
         try {
+            // STD-0029 — Audit Trail: faskes_uuid untuk pencatatan perubahan selalu dari token, bukan dokumen Mongo.
+            request.body.faskes_uuid = request.author.faskesUuid;
             const result = await RekamMedisService.addRecord(request.body);
             response.status(201).json(successResponse("data berhasil disimpan", result));
         } catch (error) {

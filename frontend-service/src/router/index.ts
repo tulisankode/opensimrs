@@ -74,6 +74,7 @@ import PrintOutPage from "../views/SettingPage/Template/PrintOut/PrintOutPage.vu
 import ProfilAkunPage from "../views/SettingPage/Template/ProfilAkun/ProfilAkunPage.vue";
 import ProfilAkunView from "@/views/SettingPage/ProfilAkunView.vue";
 import SystemPage from "@/views/SettingPage/Template/System/SystemPage.vue";
+import AuditTrailPage from "@/views/SettingPage/Template/AuditTrail/AuditTrailPage.vue";
 
 // NOTE Page View Datamaster
 import UserPage from "@/views/Datamaster/User/UserPage.vue";
@@ -509,6 +510,12 @@ const router = createRouter({
       path: "/setting/system",
       name: "setting-system",
       meta: { layout: SidebarLayout, page: SystemPage, requiresAuth: true },
+      component: SettingView,
+    },
+    {
+      path: "/setting/audit-trail",
+      name: "setting-audit-trail",
+      meta: { layout: SidebarLayout, page: AuditTrailPage, requiresAuth: true },
       component: SettingView,
     },
     // !SECTION

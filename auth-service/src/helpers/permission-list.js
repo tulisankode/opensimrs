@@ -1407,6 +1407,12 @@ export const settingPermission = {
       name: "Profile Saya",
       allows: ["READ", "UPDATE FOTO PROFILE DAN NAMA LENGKAP", "UPDATE USERNAME DAN PASSWORD"],
     },
+    // Audit Trail terpusat (STD-0029): tidak diberikan otomatis ke peran faskes mana pun — hanya superadmin lewat
+    // migrasi database/migrations/20261018000001-izin_audit_trail_setting.cjs. Admin faskes lain diberi manual.
+    {
+      name: "Audit Trail",
+      allows: ["LIHAT", "EKSPOR"],
+    },
   ],
 };
 

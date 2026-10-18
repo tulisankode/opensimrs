@@ -191,7 +191,10 @@ export default class RoleRepository extends BaseRePosiotry {
         faskes_uuid: request.faskes_uuid,
         uuid: request.uuid,
         deletedAt: null
-      }
+      },
+      // STD-0029: afterUpdate per baris mencatat audit `ubah_izin` bila `permissions` berubah (lihat
+      // packages/model-sdk/umum/audit-core.js DAFTAR_PUTIH_TABEL.role.fieldIzin).
+      individualHooks: true
     });
     if(result[0] !== 1){
       throw new HttpException(generateErrorResponse("Gagal update", "internal server error", "gagal update role", HttpStatus.INTERNAL_SERVER_ERROR));
@@ -218,7 +221,9 @@ export default class RoleRepository extends BaseRePosiotry {
         },
         faskes_uuid: request.faskes_uuid
       },
-      returning: false
+      returning: false,
+      // STD-0029: afterUpdate per baris mencatat audit `hapus` (soft delete) dengan konteks pelaku.
+      individualHooks: true
     });
     return affected[0];
   }

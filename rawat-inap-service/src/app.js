@@ -8,6 +8,7 @@ import { rateLimit } from 'express-rate-limit';
 import cors from 'cors';
 import MODELMERGE from "./models/model-merge.js";
 import router from "./routes/router.js";
+import { auditContextMiddleware } from "@opensimrs/model-sdk/audit-context";
 
 const app = express();
 const port = process.env.APP_PORT || 8085;
@@ -34,6 +35,8 @@ const limiter = rateLimit({
 app.use(limiter);
 // Konteks per permintaan (author/token) — harus sebelum rute.
 app.use(Context.middleware);
+// Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
+app.use(auditContextMiddleware());
 app.use("/api/v3/ranap", router);
 app.use(errorMiddleware);
 

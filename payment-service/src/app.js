@@ -9,6 +9,7 @@ import cors from 'cors';
 import MODEL_MERGE from './models/model-merge.js';
 import router from './routes/router.js';
 import { setContext } from './middlewares/set-context.js';
+import { auditContextMiddleware } from '@opensimrs/model-sdk/audit-context';
 const app = express();
 const port = process.env.APP_PORT || 8080;
 const host = process.env.APP_HOST || 'localhost';
@@ -35,6 +36,8 @@ app.use(limiter);
 // Konteks per permintaan (author/token) — harus sebelum rute.
 app.use(Context.middleware);
 app.use(setContext);
+// Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
+app.use(auditContextMiddleware());
 app.use('/api/v3/payment', router);
 app.use(errorMiddleware);
 if (process.env.SYNC_DB === 'true') {

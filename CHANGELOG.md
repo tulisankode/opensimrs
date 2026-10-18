@@ -26,6 +26,15 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 ## [Belum dirilis]
 
 ### Ditambahkan
+- **Audit Trail terpusat** (Setting › Audit Trail): jejak login/logout, akses baca rekam medis, perubahan data, ekspor, dan perubahan izin lintas layanan, dicatat ke tabel append-only `audit_trail` dengan rantai hash SHA-256 per faskes (`pg_advisory_xact_lock` menjaga urutan penulisan serentak).
+  - **Penangkapan perubahan**: hook global pada setiap instance Sequelize (`@opensimrs/model-sdk` 1.3.0, helper baru `./audit-context`, `./audit-sequelize`, `./audit-core`) mencatat perubahan entitas daftar putih (pasien, kunjungan, resep, tagihan/pembayaran, pengguna/peran, dll.) tanpa menyentuh `packages/authorization-sdk`/`packages/permission-sdk`. Soft delete dicatat sebagai `hapus`; perubahan `permissions`/`roleUuid` dicatat sebagai `ubah_izin`.
+  - **Login/logout**: `auth-service` mencatat `login`, `login_gagal`, dan `logout` tanpa pernah menyimpan sandi.
+  - **Akses rekam medis**: `rekamedis-service` mencatat satu peristiwa `baca` per akses detail RME (bukan per item daftar massal) serta ringkasan metadata saat dokumen RME baru dibuat atau catatan harian ditambahkan, tanpa menyalin isi klinis.
+  - **Nilai sensitif** (sandi, token, kunci API, NIK) disamarkan sebelum disimpan atau ditampilkan.
+  - **Setting › Audit Trail**: cari & filter (pasien, pengguna, aksi, entitas, layanan, rentang waktu), detail perubahan lama → baru, riwayat akses per pasien, ekspor Excel, dan verifikasi rantai hash. Submodul izin baru **Audit Trail** (LIHAT, EKSPOR) pada modul Setting, diberikan hanya ke superadmin secara bawaan.
+  - API baru `setting-service`: `GET/POST /api/v3/setting/audit-trail`, `GET /api/v3/setting/audit-trail/:uuid`, `GET /api/v3/setting/audit-trail/pasien/:patientUuid`, `POST /api/v3/setting/audit-trail/ekspor`, `POST /api/v3/setting/audit-trail/verifikasi`. Semua kueri dibatasi `faskes_uuid` dari token.
+  - **Migrasi baru:** `20261018000000-buat_audit_trail`, `20261018000001-izin_audit_trail_setting`.
+  - Kegagalan penulisan audit tidak menggagalkan transaksi utama (bawaan); helper `catatAudit` untuk layanan `pg` langsung (penunjang/BPJS/SATUSEHAT) belum tercakup di rilis ini.
 - **Bridging PACS/RIS** (Radiologi, fitur `rad_bridging_pacs`, pola sama dengan Bridging LIS): order radiologi dikirim ke PACS/RIS saat **Validasi & Kirim ke PACS**, dengan Accession Number unik per pemeriksaan sebagai kunci idempotensi; **Validasi Saja** tetap tersedia sebagai jalur darurat.
   - **Konfigurasi PACS** & **Pengiriman PACS** di Setting › Konfigurasi Integrasi: multi-koneksi per faskes (satu bawaan), API key & kunci masuk tersimpan terenkripsi dan tersamar, **Uji Koneksi**, riwayat pengiriman (Terkirim/Gagal/Sedang dikirim/Tidak pasti/Hasil diterima/Hasil sebagian) dengan **Kirim Ulang/Kirim Lagi** dan **Cek Status**.
   - **Radiologi › Mapping PACS**: tindakan → kode prosedur & modalitas PACS, unit asal/dokter pengirim/penjamin → kode PACS, ruang/alat → AE Title (data referensi worklist, bukan endpoint DICOM MWL).

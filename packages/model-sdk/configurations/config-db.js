@@ -2,6 +2,7 @@ import { createSequelizeInstance } from "./sequelize-instance.js";
 import "dotenv/config";
 import { env } from "node:process";
 import { Sequelize } from "sequelize";
+import { pasangAuditSequelize } from "../umum/audit-sequelize.js";
 
 const { DB_NAME, DB_USERNAME, DB_PASSWORD, DB_DIALECT, DB_HOST, DB_PORT, DB_POOL_MAX, DB_POOL_MIN, DB_POOL_ACQUIRE, DB_POOL_IDLE } = env;
 /**
@@ -23,5 +24,10 @@ const sequelizeInstance = createSequelizeInstance({
     idle: DB_POOL_IDLE ?? 10000,
   },
 });
+
+// Audit Trail terpusat (STD-0029): hook global dipasang di sini agar setiap layanan yang memakai model bersama
+// lewat `@opensimrs/model-sdk/instance` (mis. admisi-service) otomatis tercatat tanpa konfigurasi tambahan.
+pasangAuditSequelize(sequelizeInstance, { layanan: env.APPLICATION_MODULE || env.API_MODULE || "model-sdk" });
+
 export default sequelizeInstance;
 
