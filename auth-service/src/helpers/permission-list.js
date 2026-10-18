@@ -1102,6 +1102,24 @@ export const sarprasPermission = {
   ],
 };
 
+// Unit Hemodialisa (STD-0033, penunjang-service/src/hemodialisa). Resep HD › SAHKAN untuk dokter; Sesi HD › KOREKSI
+// untuk koreksi observasi/adekuasi beraudit; Datamaster › Mapping HDIS juga membuka koneksi HDIS (selain Setting).
+export const hemodialisaPermission = {
+  module: "Hemodialisa",
+  subModules: [
+    { name: "Registrasi & Jadwal", allows: ["READ", "CREATE", "UPDATE", "BATAL"] },
+    { name: "Resep HD", allows: ["READ", "CREATE", "UPDATE", "SAHKAN"] },
+    { name: "Sesi HD", allows: ["READ", "ASESMEN", "MULAI", "OBSERVASI", "TUTUP", "KOREKSI", "BATAL"] },
+    { name: "Pemakaian BHP", allows: ["READ", "CREATE"] },
+    { name: "Datamaster", features: [
+      { name: "Mesin & Shift", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+      { name: "Aturan Reuse Dializer", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+      { name: "Mapping HDIS", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    ] },
+    { name: "Laporan Hemodialisa", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
 // HR / SDM (STD-0035): izin dipisah per area agar akses data kepegawaian dan penggajian dapat diberikan minimum.
 export const sdmPermission = {
   module: "HR / SDM",
@@ -1594,6 +1612,7 @@ export function mapPermission(permissionList) {
     "mutu & akreditasi": mutuPermission,
     "hr / sdm": sdmPermission,
     "sarana dan prasarana (ipsrs)": sarprasPermission,
+    hemodialisa: hemodialisaPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,
     stok: stokPermission,
