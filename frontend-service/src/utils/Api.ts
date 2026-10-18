@@ -790,19 +790,6 @@ baseInstanceProgramPuskesmas.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-
-// Mutu & Akreditasi (mutu-service): request snake_case, respons camelCase.
-const baseInstanceMutu = axios.create({ headers: { common: { Accept: "application/json" } }, baseURL: import.meta.env.VITE_BASE_MUTU });
-baseInstanceMutu.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
-  config.headers["Authorization"] = token ? `${token}` : "";
-  if (config.data) config.data = toSnakeCase(config.data);
-  return config;
-}, (error) => Promise.reject(error));
-baseInstanceMutu.interceptors.response.use((response: AxiosResponse) => {
-  if (response.data) response.data = toCamelCase(response.data);
-  return response;
-}, (error) => Promise.reject(error));
 baseInstanceProgramPuskesmas.interceptors.response.use(
   (response: AxiosResponse) => {
     if (response.data) response.data = toCamelCase(response.data);
@@ -827,7 +814,6 @@ export {
   baseInstanceStudio,
   baseInstancePenunjang,
   baseInstanceProgramPuskesmas,
-  baseInstanceMutu,
   baseInstance,
   authInstance,
   settingInstance,

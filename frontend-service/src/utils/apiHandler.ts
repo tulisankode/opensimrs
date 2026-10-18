@@ -19,7 +19,6 @@ import {
   baseInstanceBpjs,
   baseInstancePenunjang,
   baseInstanceProgramPuskesmas,
-  baseInstanceMutu,
   baseInstanceStudio,
   baseInstanceMentah,
 } from "./Api";
@@ -1165,19 +1164,6 @@ const apiProgramPuskesmasGet = (url: string) => apiProgramPuskesmasKirim("get", 
 const apiProgramPuskesmasPost = (url: string, data: object = {}, diam = false) => apiProgramPuskesmasKirim("post", url, data, diam);
 const apiProgramPuskesmasPut = (url: string, data: object = {}, diam = false) => apiProgramPuskesmasKirim("put", url, data, diam);
 const apiProgramPuskesmasDelete = (url: string) => apiProgramPuskesmasKirim("delete", url);
-
-const apiMutuKirim = async (metode: "get" | "post" | "put" | "delete", url: string, data: object = {}) => {
-  url = cekHost(import.meta.env.VITE_BASE_MUTU, url);
-  try {
-    const response = metode === "get" || metode === "delete" ? await baseInstanceMutu[metode](url) : await baseInstanceMutu[metode](url, data);
-    if (metode !== "get" && response.data?.message) app.config.globalProperties.$toast.add({ severity: "success", summary: response.data.message, life: 3000 });
-    return response.data;
-  } catch (error) { try { errorApiHandler(error); } catch { /* sudah ditampilkan */ } return undefined; }
-};
-export const apiMutuGet = (url: string) => apiMutuKirim("get", url);
-export const apiMutuPost = (url: string, data: object = {}) => apiMutuKirim("post", url, data);
-export const apiMutuPut = (url: string, data: object = {}) => apiMutuKirim("put", url, data);
-export const apiMutuDelete = (url: string) => apiMutuKirim("delete", url);
 // Ekspor Excel (laporan Dinkes): respons berkas (blob), bukan {message, payload}.
 export const apiProgramPuskesmasDownload = async (url: string) => {
   const dasar = import.meta.env.VITE_BASE_PROGRAM_PUSKESMAS;

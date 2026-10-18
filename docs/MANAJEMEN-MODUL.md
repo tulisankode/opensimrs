@@ -220,7 +220,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 1 berstatus Segera), **99 fitur** (4 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 1 berstatus Segera), **100 fitur** (4 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -277,7 +277,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `ambulans` | Manajemen Ambulans | Permintaan & penugasan ambulans, perjalanan (jarak/BBM/catatan pendamping), armada & kru, tarif, serta penerusan biaya ke tagihan kunjungan/kuitansi umum. | Tersedia | Penunjang Umum › Transportasi & Ambulans | Manajemen Ambulans |
 | `laundry` | Laundry & Linen | Siklus linen kotor–bersih: serah terima linen kotor dua petugas, batch cuci bertahap, distribusi linen bersih, stok & par level per ruangan, koreksi, rekonsiliasi, dan laporan beban cucian. | Tersedia | Penunjang Umum › Instalasi Laundry | Laundry |
 | `sarpras` | Sarana dan Prasarana (IPSRS) | Register aset medis & nonmedis, laporan kerusakan dan perbaikan (work order), pemeliharaan preventif, serta kalibrasi dan uji fungsi alat untuk Instalasi Pemeliharaan Sarana RS (IPSRS). | Tersedia | Penunjang Umum › IPSRS | Sarana dan Prasarana (IPSRS) |
-| `mutu` | Mutu & Akreditasi | Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dan dasbor kesiapan akreditasi. | Tersedia | Manajemen & Mutu › Manajemen Mutu | Mutu & Akreditasi |
+| `mutu` | Mutu & Akreditasi | Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dasbor kesiapan akreditasi, dan indikator mutu (INM, IMP-RS, IMPU) dengan validasi data, capaian, dan tindak lanjut. | Tersedia | Manajemen & Mutu › Manajemen Mutu | Mutu & Akreditasi |
 | `sdm` | HR / SDM | Kepegawaian tertaut pegawai Data Master (status, unit, jabatan, golongan, pendidikan, riwayat bertanggal berlaku) dan kredensial pegawai yang satu sumber dengan Kredensial Staf Mutu & Akreditasi. Jadwal dinas, kehadiran/cuti, pelatihan, dan penggajian menyusul. | Tersedia | Keuangan & Administrasi › SDM & Kepegawaian | HR / SDM |
 
 #### Penjaminan
@@ -565,6 +565,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
 | `mutu_dokumen_kredensial` | Dokumen Akreditasi & Kredensial Staf | Instrumen akreditasi milik faskes (bab/standar/elemen, impor CSV), dokumen akreditasi berversi dengan pemetaan bukti & pengingat tinjau ulang, kredensial staf (STR/SIP/sertifikat/RKK/SPK) dengan peringatan 90/30 hari, dasbor kesiapan, dan akses baca surveior. | Tersedia | – | – | – |
+| `mutu_indikator` | Indikator Mutu (INM, IMP-RS, IMPU) | Profil indikator dengan set INM bawaan (perlu disahkan Komite Mutu) dan IMP-RS/IMPU buatan faskes, pengumpulan data per tanggal & unit (manual; waktu tunggu rawat jalan dapat dihitung otomatis), validasi pengumpul → validator, capaian & tren bulanan/triwulanan terhadap target, tindak lanjut, dan ekspor laporan. | Tersedia | – | – | – |
 
 #### Unit Hemodialisa (`hemodialisa`)
 

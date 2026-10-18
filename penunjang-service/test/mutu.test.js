@@ -158,7 +158,8 @@ test("petakanGalatPg & validasi masukan menghasilkan 4xx, bukan 500", () => {
 
 test("izin Mutu & Akreditasi terdaftar dengan submodul fitur dokumen & kredensial", () => {
   const nama = mutuPermission.subModules.map((s) => s.name);
-  assert.deepEqual(nama, ["Dasbor Kesiapan", "Instrumen Akreditasi", "Dokumen Akreditasi", "Kredensial Staf", "Akses Surveior"]);
+  // Submodul fitur berikutnya (mis. Indikator Mutu, STD-0025) ditambahkan di belakang tanpa mengubah submodul ini.
+  assert.deepEqual(nama.slice(0, 5), ["Dasbor Kesiapan", "Instrumen Akreditasi", "Dokumen Akreditasi", "Kredensial Staf", "Akses Surveior"]);
   assert.deepEqual(mapPermission(["mutu & akreditasi"]).map((m) => m.module), ["Mutu & Akreditasi"]);
   const dokumen = mutuPermission.subModules.find((s) => s.name === "Dokumen Akreditasi").allows;
   for (const aksi of ["READ", "CREATE", "UPDATE", "REVISI", "UBAH STATUS", "TINJAU", "PETAKAN ELEMEN", "BAGIKAN SURVEIOR", "DELETE"]) assert.ok(dokumen.includes(aksi), aksi);

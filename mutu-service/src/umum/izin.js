@@ -1,3 +1,0 @@
-import { satu } from "../db.js";
-const norm=x=>String(x??"").trim().toLowerCase();
-export const izinMutu=(submodul,aksi)=>(req,res,next)=>{ (async()=>{const u=await satu("SELECT permissions FROM users WHERE username=$1 AND deleted_at IS NULL",[req.author.username]); let p=u?.permissions??[]; if(typeof p==="string")try{p=JSON.parse(p)}catch{p=[]} if(norm(req.author.role)==="super admin"&&!p.length)return true; return (p||[]).some(m=>norm(m.module)==="mutu & akreditasi"&&(m.subModules||m.submodules||[]).some(s=>norm(s.name)===norm(submodul)&&(s.allows||[]).some(a=>norm(typeof a==="string"?a:a.name)===norm(aksi))));})().then(ok=>ok?next():res.status(403).json({message:`Akses ditolak: ${submodul} › ${aksi}`})).catch(next); };

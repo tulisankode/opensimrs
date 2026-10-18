@@ -336,6 +336,8 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/mutu/dokumen", permission: read("Mutu & Akreditasi", "Dokumen Akreditasi") },
   { path: "/mutu/kredensial", permission: read("Mutu & Akreditasi", "Kredensial Staf") },
   { path: "/mutu/surveior", permission: read("Mutu & Akreditasi", "Akses Surveior") },
+  // Mutu & Akreditasi — indikator mutu (STD-0025, fitur mutu_indikator): capaian, master, data, tindak lanjut
+  { path: "/mutu/indikator", mode: "prefix", permission: read("Mutu & Akreditasi", "Indikator Mutu") },
   { path: "/mutu", mode: "prefix", permission: read("Mutu & Akreditasi", null, null, null) },
 
   // HR / SDM — penunjang-service (STD-0035 fase 1: kepegawaian & kredensial pegawai; kredensial satu sumber dengan Mutu)

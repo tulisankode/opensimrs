@@ -1064,19 +1064,6 @@ export const cssdPermission = {
 
 // Manajemen Ambulans (STD-0024, penunjang-service). "Catatan Pendamping" dipisah dari izin Perjalanan & Laporan:
 // catatan pendamping adalah catatan perjalanan beraksesibilitas terbatas (KF-10), tidak tampil di laporan umum.
-// Mutu & Akreditasi (STD-0025): pengelolaan indikator, pengumpulan, validasi, dan laporan.
-export const mutuPermission = {
-  module: "Mutu & Akreditasi",
-  subModules: [
-    { name: "Profil Indikator", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
-    { name: "Datamaster PIC Unit", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
-    { name: "Pengumpulan Data", allows: ["READ", "CREATE", "UPDATE", "AJUKAN", "TIMPA MANUAL", "LINTAS UNIT"] },
-    { name: "Validasi & Penguncian", allows: ["READ", "VALIDASI", "TOLAK", "KUNCI", "BUKA KEMBALI"] },
-    { name: "Analisis & PDSA", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
-    { name: "Laporan Mutu", allows: ["READ", "EKSPOR", "LINTAS UNIT"] },
-  ],
-};
-
 export const ambulansPermission = {
   module: "Manajemen Ambulans",
   subModules: [
@@ -1096,6 +1083,8 @@ export const ambulansPermission = {
 // Mutu & Akreditasi (penunjang-service /mutu). Submodul fitur Dokumen Akreditasi & Kredensial Staf (STD-0028); fitur mutu
 // berikutnya (indikator mutu, IKP, PPI) menambah submodul baru di modul yang sama. "Akses Surveior" terpisah dari
 // "Dokumen Akreditasi" › READ: surveior hanya membaca dokumen yang dibagikan & belum lewat batas waktunya.
+// "Indikator Mutu" (STD-0025, fitur mutu_indikator): pengumpul data (INPUT DATA) dipisah dari validator (VALIDASI);
+// TINDAK LANJUT = analisis & rencana perbaikan; EKSPOR = laporan capaian.
 export const mutuPermission = {
   module: "Mutu & Akreditasi",
   subModules: [
@@ -1104,6 +1093,7 @@ export const mutuPermission = {
     { name: "Dokumen Akreditasi", allows: ["READ", "CREATE", "UPDATE", "REVISI", "UBAH STATUS", "TINJAU", "PETAKAN ELEMEN", "BAGIKAN SURVEIOR", "DELETE"] },
     { name: "Kredensial Staf", allows: ["READ", "CREATE", "UPDATE", "VERIFIKASI", "CABUT", "DELETE"] },
     { name: "Akses Surveior", allows: ["READ"] },
+    { name: "Indikator Mutu", allows: ["READ", "CREATE", "UPDATE", "DELETE", "INPUT DATA", "VALIDASI", "TINDAK LANJUT", "EKSPOR"] },
   ],
 };
 
