@@ -7,6 +7,22 @@ export const pool = new pg.Pool({ ...config.pg, max: 10 });
 export const query = async (sql, params = [], k = pool) => (await k.query(sql, params)).rows;
 export const satu = async (sql, params = [], k = pool) => (await query(sql, params, k))[0] ?? null;
 
+// Jalankan fn(klien) dalam satu transaksi.
+export const transaksi = async (fn) => {
+  const k = await pool.connect();
+  try {
+    await k.query("BEGIN");
+    const hasil = await fn(k);
+    await k.query("COMMIT");
+    return hasil;
+  } catch (e) {
+    await k.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
+    k.release();
+  }
+};
+
 export const sekarang = () => Math.floor(Date.now() / 1000);
 
 export const uuidv7 = () => {

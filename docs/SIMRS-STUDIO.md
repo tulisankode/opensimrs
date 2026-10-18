@@ -64,6 +64,7 @@ Studio dijalankan di **mesin pengembang atau staging**, bukan di server produksi
      - *Workspace*: agen bekerja di working tree repo ini, dan `npm run dev` langsung jadi pratinjau.
      - *Worktree*: salinan terpisah per item, sehingga working tree Anda tidak tersentuh.
    - **Batas**: biaya per tugas/item/bulan, berhenti pada persentase kuota langganan, dan jumlah tugas per jam.
+   - **Rantai cadangan konektor** dan **Maksimal agen bersamaan** (bawaan 2): lihat [Agen tahan kuota](#agen-tahan-kuota).
 3. Beri peran lewat **Datamaster › Role**, modul izin **SIMRS Studio**:
 
    | Peran | Hak (submodul › aksi) |
@@ -208,6 +209,25 @@ Buka **SIMRS Studio › Aturan & Pengetahuan** (yang mengubah: superadmin).
   - **Alat Studio**: `daftar_item`, `baca_item`, `kirim_artefak` (dokumen versi baru, tetap perlu persetujuan), `kirim_pesan`.
   - Alat tulis berkas hanya aktif bila `STUDIO_MCP_TULIS=aktif`.
 
+### Agen tahan kuota
+
+Kuota langganan (Claude Code, Codex) dan rate limit API bisa habis di tengah pekerjaan. Studio menanganinya tanpa membuat tugas gagal.
+
+- **Rantai cadangan konektor** (Pengaturan & Agen › Rantai cadangan konektor): daftar berurutan berisi Claude Code, Codex, atau konektor API yang aktif. Konektor tahap selalu dicoba lebih dulu. Bila gagal **karena kuota** (mis. `You've hit your session limit · resets 11:10am (Asia/Jakarta)`, `You've hit your usage limit … try again at …`, HTTP 429/529 dari API), agen beralih ke konektor berikutnya yang belum dicoba. Galat lain tetap membuat tugas gagal seperti biasa.
+  - Prompt tetap sama. Pada coding, agen pengganti diberi catatan bahwa worktree sudah berisi sebagian perubahan, jadi agen memeriksa `git status`/`git diff` dan melanjutkan pekerjaan, tidak mengulang dari nol.
+  - Sesi Claude hanya dilanjutkan bila konektornya Claude Code. Konektor cadangan memakai model bawaannya, dan konektor yang akhirnya dipakai tercatat di kolom model tugas.
+  - Konektor API cadangan tetap tunduk pada batas biaya per tugas/item/bulan.
+  - Diskusi item mendapat pesan sistem, mis. "Kuota Claude Code (langganan) habis — beralih ke Anthropic API".
+  - Contoh susunan: tahap memakai **Claude Code (langganan)** → cadangan **konektor API Anthropic** → **Codex**.
+- **Menunggu kuota (lanjut otomatis)**: bila semua konektor dalam rantai habis, tugas berstatus **Menunggu kuota** dengan waktu lanjut paling awal di antara jam reset yang terbaca (tanpa jam reset: 15 menit lagi). Diskusi item mencatat "Kuota habis; dilanjutkan otomatis pukul HH.MM WIB".
+  - Penjadwal di studio-service memeriksa tiap ±60 detik. Saat waktunya tiba, tugas dijalankan ulang dengan jenis, tahap, dan instruksi yang sama (coding diberi catatan lanjutan). Klaimnya atomik, jadi aman bila ada beberapa proses studio-service.
+  - Selama menunggu, item dianggap masih punya tugas berjalan sehingga tidak dijalankan ganda. Tombol **Batalkan** di panel tugas menghentikannya.
+  - Tugas tidak dilanjutkan, dan ditandai dibatalkan dengan alasan, bila item sudah pindah tahap, ditunda, dibatalkan, atau dihapus. Kill switch dan mematikan Mode Pengembang juga membatalkan tugas yang menunggu. Setelah 20 kali tertunda berturut-turut, tugas tidak dilanjutkan lagi.
+  - **Henti di kuota (%)** tidak lagi menolak permintaan dengan galat. Bila pemakaian langganan Claude Code melewati batas itu, Studio langsung memakai cadangan, atau menunda tugas sampai jam reset kuota. Batas biaya tetap menolak permintaan.
+- **Maksimal agen bersamaan** (bawaan 2; kosong/0 = tanpa batas): bila jumlah tugas agen dokumen/coding yang berjalan sudah mencapai batas, tugas baru berstatus **Menunggu slot agen** dan dimulai otomatis (tertua dulu) saat ada agen yang selesai.
+
+> **Catatan pemakaian yang wajar.** Rantai cadangan ditujukan untuk jalur berbayar resmi (konektor API yang dibayar per pemakaian) atau penyedia yang berbeda. Rantai ini **bukan** untuk memutar beberapa akun langganan pribadi dari penyedia yang sama. Studio hanya beralih antar konektor yang dikonfigurasi admin, satu akun per konektor, sesuai ketentuan masing-masing penyedia.
+
 ## 6. Ekstensi tanpa kode
 
 Ekstensi dibuat di **SIMRS Studio › Ekstensi** (fitur Ekstensi harus aktif). Ada tiga jenis:
@@ -251,6 +271,7 @@ Pengamannya:
 | Layar putih "Cannot access 'router' before initialization" | Ada berkas yang mengimpor `@/main` (import melingkar). Cek integritas menandainya. Sementara itu, tekan Ctrl+Shift+R |
 | Modul diterapkan tetapi masih "Segera" | Migrasi katalog belum jalan atau gagal. Klik **Aktifkan di aplikasi** untuk menjalankan ulang migrasi. Bila gagal, baca penyebabnya di diskusi item (mis. rute ganda di katalog) |
 | "Branch … masih terbuka di repo utama" (mode worktree) | Satu branch hanya boleh terbuka di satu folder. Biasanya branch itu sisa mode workspace. Pindahkan repo utama ke branch lain lewat **Pindahkan aplikasi ke …**, atau **Buka branch item** pada item yang kodenya masih ada di repo utama, lalu ulangi |
-| "Kuota langganan Claude sudah …%" | Tunggu reset, naikkan batas kuota, atau pilih model Haiku untuk tahap dokumen |
+| Tugas **Menunggu kuota — lanjut otomatis HH.MM WIB** | Kuota semua konektor dalam rantai habis. Tunggu (dilanjutkan otomatis), tambahkan konektor API di **Rantai cadangan konektor**, naikkan **Henti di kuota (%)**, atau klik **Batalkan**. Pastikan migrasi `20261018020000-studio_tugas_tahan_kuota` sudah dijalankan |
+| Tugas **Menunggu slot agen** | **Maksimal agen bersamaan** tercapai. Tugas dimulai otomatis saat agen lain selesai. Naikkan batasnya bila mesin cukup kuat |
 | Perubahan kode `studio-service` belum berlaku | `npm run dev:studio` sengaja tidak memakai mode watch agar tugas agen yang panjang tidak terputus oleh restart. Jalankan ulang layanan secara manual |
 | Impor paket ditolak "tanda tangan tidak sah" | `EKSTENSI_KUNCI_PUBLIK` produksi tidak sama dengan kunci Studio, atau paket diubah |
