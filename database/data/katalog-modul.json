@@ -676,6 +676,19 @@
       "menu": ["Sarana dan Prasarana (IPSRS)"],
       "rute": ["/sarpras"],
       "urutan": 33
+    },
+    {
+      "kode": "hemodialisa",
+      "nama": "Unit Hemodialisa",
+      "kelompok": "Rumah Sakit",
+      "bidang": "Pelayanan Medis & Keperawatan",
+      "instalasi": "Unit Hemodialisa",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Registrasi HD akut/kronis, jadwal per mesin & shift, resep HD, asesmen pra-HD, pemantauan intradialitik, Kt/V & URR, pemakaian BHP & reuse dializer, tagihan tindakan, dan laporan unit.",
+      "menu": ["Hemodialisa"],
+      "rute": ["/hemodialisa"],
+      "urutan": 35
     }
   ],
   "fitur": [
@@ -1619,6 +1632,16 @@
       "wajib": true,
       "rute": ["/sarpras/laporan"],
       "urutan": 81
+    },
+    {
+      "kode": "hd_bridging_hdis",
+      "modul": "hemodialisa",
+      "nama": "Bridging HDIS",
+      "deskripsi": "Kirim jadwal & data pasien minimum ke HDIS dan terima parameter mesin per sesi secara idempoten (kontrak REST generik).",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/hemodialisa/datamaster/mapping-hdis"],
+      "urutan": 101
     }
   ],
   "bagian": [

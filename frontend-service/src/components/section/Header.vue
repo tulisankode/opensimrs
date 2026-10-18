@@ -91,6 +91,7 @@ const templistMenu = ref<ListMenu[]>([
     icon: "PhKnife",
     url: "/kamar-operasi",
   },
+  { title: "Hemodialisa", icon: "PhDrop", url: "/hemodialisa" },
   {
     title: "Gizi",
     icon: "PhBowlFood",

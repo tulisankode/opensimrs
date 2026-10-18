@@ -26,6 +26,8 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 ## [Belum dirilis]
 
 ### Ditambahkan
+- **Unit Hemodialisa**: registrasi, jadwal, resep, sesi, pemantauan, adekuasi, pemakaian dializer/BHP, laporan, dan bridging HDIS per faskes.
+  - **Migrasi baru:** `20261018150000-hemodialisa`, `20261018150010-hemodialisa_bridging_hdis`, `20261018150020-katalog_hemodialisa`, `20261018150030-izin_hemodialisa`.
 - **Pembelian BMHP via Marketplace mitra** (Inventory, fitur `inv_marketplace`): konfigurasi koneksi per faskes, pencarian penawaran, pemetaan produk dan satuan, pengajuan serta persetujuan permintaan, checkout idempoten, pembaruan status/webhook berkunci, catatan tagihan, laporan, dan server marketplace tiruan. Penerimaan barang tetap memakai PO dan alur Penerimaan Pembelian Inventory yang sudah ada.
   - Rute API ditolak bila fitur belum aktif untuk faskes; izin submodul **Inventory › Pembelian Marketplace** per aksi. Aksi berisiko (konfigurasi koneksi, pemetaan, persetujuan, checkout, laporan) tidak diberikan otomatis ke peran yang ada.
   - **Migrasi baru:** `20261018120000-inv_marketplace`, `20261018120100-sinkron_katalog_inv_marketplace`, `20261018120200-izin_inv_marketplace`.

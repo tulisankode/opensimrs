@@ -301,6 +301,7 @@ import LaporanLaundryPage from "@/views/Laundry/LaporanPage.vue";
 
 // NOTE Sarana dan Prasarana (IPSRS) — aset, work order perbaikan, pemeliharaan, kalibrasi, utilitas (STD-0022, penunjang-service)
 import SarprasView from "@/views/Sarpras/SarprasView.vue";
+import HemodialisaView from "@/views/Hemodialisa/HemodialisaView.vue";
 import AsetSarprasPage from "@/views/Sarpras/AsetPage.vue";
 import LaporanKerusakanSarprasPage from "@/views/Sarpras/LaporanKerusakanPage.vue";
 import PemeliharaanSarprasPage from "@/views/Sarpras/PemeliharaanPage.vue";
@@ -1921,6 +1922,18 @@ const router = createRouter({
       ["/kamar-operasi/jadwal", "kamar-operasi-jadwal", JadwalOkPage],
       ["/kamar-operasi/datamaster/ruang", "kamar-operasi-datamaster-ruang", MasterRuangOkPage],
       ["/kamar-operasi/laporan/rekap", "kamar-operasi-laporan-rekap", LaporanRekapOkPage],
+    ]),
+    // !SECTION
+    // SECTION Hemodialisa
+    { path: "/hemodialisa", name: "hemodialisa", redirect: "/hemodialisa/jadwal" },
+    ...halamanModul(HemodialisaView, [
+      ["/hemodialisa/jadwal", "hemodialisa-jadwal", HemodialisaView],
+      ["/hemodialisa/registrasi", "hemodialisa-registrasi", HemodialisaView],
+      ["/hemodialisa/sesi", "hemodialisa-sesi", HemodialisaView],
+      ["/hemodialisa/pemakaian", "hemodialisa-pemakaian", HemodialisaView],
+      ["/hemodialisa/datamaster/mesin-shift", "hemodialisa-mesin-shift", HemodialisaView],
+      ["/hemodialisa/datamaster/aturan-reuse", "hemodialisa-aturan-reuse", HemodialisaView],
+      ["/hemodialisa/laporan", "hemodialisa-laporan", HemodialisaView],
     ]),
     // !SECTION
 

@@ -220,7 +220,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **34 modul** (8 inti, 1 berstatus Segera), **88 fitur** (0 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **35 modul** (8 inti, 1 berstatus Segera), **89 fitur** (0 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -302,6 +302,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Penunjang Medis › Pelayanan Darah | Bank Darah RS (BDRS) |
 | `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Tersedia | Penunjang Medis › Pelayanan Darah | UTD |
 | `akuntansi` | Akuntansi & Remunerasi | Jurnal, laporan keuangan, jasa pelayanan. | Segera | Keuangan & Administrasi › Akuntansi & Remunerasi | – |
+| `hemodialisa` | Unit Hemodialisa | Registrasi HD akut/kronis, jadwal per mesin & shift, resep HD, asesmen pra-HD, pemantauan intradialitik, Kt/V & URR, pemakaian BHP & reuse dializer, tagihan tindakan, dan laporan unit. | Tersedia | Pelayanan Medis & Keperawatan › Unit Hemodialisa | Hemodialisa |
 
 ### C. Matriks modul × segmen (preset bawaan)
 
@@ -343,6 +344,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Manajemen Ambulans (`ambulans`) | Tersedia | – | – | – | – | – | – | – | – |
 | Laundry & Linen (`laundry`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 | Sarana dan Prasarana (IPSRS) (`sarpras`) | Tersedia | – | – | – | – | – | – | – | – |
+| Unit Hemodialisa (`hemodialisa`) | Tersedia | – | – | – | – | – | – | – | – |
 
 ### D. Fitur per modul
 
@@ -551,6 +553,12 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `sarpras_utilitas` | Pencatatan Utilitas | Pencatatan meter listrik/air serta genset/oksigen sentral. | Tersedia | – | – | – |
 | `sarpras_laporan` | Laporan Sarpras | Daftar dan riwayat aset, kepatuhan pemeliharaan dan kalibrasi, waktu respons perbaikan, serta biaya pemeliharaan. | Tersedia | Ya | – | – |
 
+#### Unit Hemodialisa (`hemodialisa`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `hd_bridging_hdis` | Bridging HDIS | Kirim jadwal & data pasien minimum ke HDIS dan terima parameter mesin per sesi secara idempoten (kontrak REST generik). | Tersedia | – | – | – |
+
 ### E. Bagian (unit terkecil)
 
 Bagian adalah potongan form/daftar di dalam sebuah fitur, mis. satu form asesmen atau satu jenis surat. **Khusus poli**: bagian hanya tampil di lokasi berjenis poli tersebut. **Dimatikan bawaan di**: dari `preset.bagian_mati`.
@@ -629,6 +637,7 @@ Field `bidang` dan `instalasi` menempatkan menu modul di panel **Lainnya** pada 
 | Pelayanan Medis & Keperawatan | Instalasi Bedah Sentral | Kamar Operasi (`kamar_operasi`) |
 | Pelayanan Medis & Keperawatan | Instalasi Perawatan Intensif | ICU / Intensif (`icu`) |
 | Pelayanan Medis & Keperawatan | Medical Check Up | Medical Check Up (MCU) (`mcu`) |
+| Pelayanan Medis & Keperawatan | Unit Hemodialisa | Unit Hemodialisa (`hemodialisa`) |
 | Penunjang Medis | Instalasi Farmasi | Farmasi (`farmasi`) |
 | Penunjang Medis | Instalasi Laboratorium | Laboratorium (`laboratorium`), Patologi Anatomi (`patologi_anatomi`), Mikrobiologi (`mikrobiologi`) |
 | Penunjang Medis | Instalasi Rehabilitasi Medik | Fisioterapi / Rehabilitasi Medik (`fisioterapi`) |
