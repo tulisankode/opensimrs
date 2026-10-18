@@ -7,6 +7,9 @@ const OFFSET_WIB_DETIK = 7 * 3600;
 
 // epoch (detik/ms) → dd-mm-yyyy (tanggal WIB), format tanggal PCare
 export const keTanggalPcare = (epoch) => {
+  // Tanggal kalender 'YYYY-MM-DD' (mis. tanggal MCU dari penunjang-service) langsung diubah tanpa geser zona waktu.
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(epoch ?? "").trim());
+  if (iso) return `${iso[3]}-${iso[2]}-${iso[1]}`;
   const n = Number(epoch);
   if (!n) return null;
   const d = new Date((n > 1e12 ? n : n * 1000) + OFFSET_WIB_DETIK * 1000);
@@ -97,3 +100,28 @@ export const buatKunjungan = ({
     bmhp: null,
   };
 };
+
+// Kode kesimpulan MCU → PCare. DRAF (belum dikonfirmasi ke spesifikasi resmi, lihat config.mcuPcareDikonfirmasi):
+// dipetakan ke kesan pemeriksaan umum (1 = sehat/baik, 2 = perlu tindak lanjut) sebagai representasi sementara.
+export const KESAN_MCU_PCARE = { fit: 1, fit_catatan: 2, unfit: 2 };
+
+/**
+ * STD-0020 — Pelaporan MCU ke PCare. DRAF versi 1: nama & bentuk field belum dikonfirmasi ke spesifikasi resmi
+ * layanan MCU PCare (lihat bpjs-service/src/pcare.js#operasiMcu & config.mcuPcareDikonfirmasi). Nilai yang tidak
+ * diperiksa di SIMRS dikirim null (kosong) sesuai KF-3/KF-4 — tidak boleh diisi dengan nilai perkiraan.
+ * @param {object} p { noKunjungan, kdProviderPeserta, tglPeriksa (epoch), tandaVital, kesimpulan }
+ */
+export const buatMcu = ({ noKunjungan, kdProviderPeserta, tglPeriksa, tandaVital = null, kesimpulan = null }) => ({
+  noKunjungan,
+  kdProviderPeserta,
+  tglPeriksa: keTanggalPcare(tglPeriksa),
+  sistole: tandaVital?.sistole != null ? angka(tandaVital.sistole) : null,
+  diastole: tandaVital?.diastole != null ? angka(tandaVital.diastole) : null,
+  beratBadan: tandaVital?.berat_badan != null ? desimal(tandaVital.berat_badan) : null,
+  tinggiBadan: tandaVital?.tinggi_badan != null ? desimal(tandaVital.tinggi_badan) : null,
+  lingkarPerut: tandaVital?.lingkar_perut != null ? desimal(tandaVital.lingkar_perut) : null,
+  gulaDarah: tandaVital?.gula_darah != null ? desimal(tandaVital.gula_darah) : null,
+  keteranganGulaDarah: tandaVital?.keterangan_gula_darah ?? null,
+  kolesterolTotal: tandaVital?.kolesterol_total != null ? desimal(tandaVital.kolesterol_total) : null,
+  kesimpulan: kesimpulan ? (KESAN_MCU_PCARE[kesimpulan] ?? null) : null,
+});

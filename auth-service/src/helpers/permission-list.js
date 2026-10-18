@@ -20,6 +20,10 @@ export const antrianPermission = {
       name: "Apm",
       allows: ["CREATE PASIEN JKN", "CREATE PASIEN NON-JKN", "CHECKIN", "PRINT"],
     },
+    {
+      name: "Antrean Online BPJS",
+      allows: ["READ", "KONFIGURASI", "KIRIM ULANG"],
+    },
   ],
 };
 
@@ -66,6 +70,11 @@ export const admisiPermission = {
     {
       name: "SEP",
       allows: ["READ", "CREATE SEP", "CREATE SEP MANUAL", "DELETE", "SIMPAN SEP MANUAL", "DELETE PASIEN"],
+    },
+    {
+      // Rencana Kontrol & SPRI via VClaim (fitur vclaim_rencana_kontrol, modul bpjs_fkrtl) — STD-0021
+      name: "Rencana Kontrol & SPRI",
+      allows: ["READ", "CREATE RENCANA KONTROL", "UPDATE RENCANA KONTROL", "DELETE RENCANA KONTROL", "CREATE SPRI", "UPDATE SPRI", "PILIH SURAT SEP"],
     },
     {
       name: "Data Pasien",
@@ -854,6 +863,9 @@ export const mcuPermission = {
     },
     { name: "Tagihan Korporasi", allows: ["READ", "CREATE", "UPDATE", "PEMBAYARAN", "CETAK"] },
     { name: "Laporan MCU", allows: ["READ", "CETAK LAPORAN"] },
+    // Pelaporan hasil MCU ke BPJS PCare (STD-0020): KIRIM mencakup kirim pertama & kirim ulang; UBAH/HAPUS
+    // dipisah karena mengubah/menghapus laporan yang sudah terkirim di PCare berisiko lebih tinggi.
+    { name: "MCU PCare", allows: ["READ", "KIRIM", "UBAH", "HAPUS"] },
   ],
 };
 

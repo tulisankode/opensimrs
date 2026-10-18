@@ -1052,11 +1052,13 @@
       "kode": "antrian_online_bpjs",
       "modul": "antrian",
       "nama": "Antrean Online BPJS (Mobile JKN)",
-      "deskripsi": "Sinkron antrean & task id ke BPJS, ambil antrean dari Mobile JKN.",
-      "tersedia": false,
+      "deskripsi": "Sinkron antrean & task id ke BPJS, ambil antrean dari Mobile JKN. Perlu BPJS FKRTL atau BPJS FKTP aktif.",
+      "tersedia": true,
       "wajib": false,
-      "modul_syarat": "bpjs_fkrtl",
-      "rute": [],
+      "modul_syarat": null,
+      "rute": [
+        "/antrian/monitoring-bpjs"
+      ],
       "urutan": 44
     },
     {
@@ -1064,7 +1066,7 @@
       "modul": "bpjs_fkrtl",
       "nama": "Rencana Kontrol & SPRI",
       "deskripsi": "Pembuatan surat kontrol dan SPRI lewat VClaim.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
       "rute": [],
       "urutan": 45
@@ -1143,8 +1145,8 @@
       "kode": "mcu_pcare",
       "modul": "mcu",
       "nama": "MCU PCare (BPJS)",
-      "deskripsi": "Pelaporan MCU peserta BPJS ke PCare.",
-      "tersedia": false,
+      "deskripsi": "Pelaporan hasil MCU peserta JKN ke layanan MCU PCare (tambah/ubah/hapus, status & kirim ulang).",
+      "tersedia": true,
       "wajib": false,
       "rute": [],
       "modul_syarat": "bpjs_fktp",
@@ -1750,19 +1752,24 @@
         "daftar_general_consent",
         "farmasi_retur",
         "inv_pengadaan_po",
-        "inv_retur_supplier"
+        "inv_retur_supplier",
+        "antrian_online_bpjs"
       ],
       "klinik_pratama": [
         "lab_bridging_lis",
         "lab_expertise",
         "farmasi_ruangan",
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "mcu_pcare",
+        "antrian_online_bpjs"
       ],
       "klinik_utama": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol"
       ],
       "puskesmas": [
         "bayar_diskon_voucher",
@@ -1770,29 +1777,38 @@
         "inv_pengadaan_po",
         "inv_retur_supplier",
         "rme_soap_ringkas",
-        "daftar_ringkas"
+        "daftar_ringkas",
+        "antrian_online_bpjs"
       ],
       "rs_d": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol"
       ],
       "rs_c": [
         "rme_soap_ringkas",
         "daftar_ringkas",
-        "rad_bridging_pacs"
+        "rad_bridging_pacs",
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol"
       ],
       "rs_b": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
-        "bdrs_bridging"
+        "bdrs_bridging",
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol"
       ],
       "rs_a": [
         "rme_soap_ringkas",
         "daftar_ringkas",
         "rad_bridging_pacs",
-        "bdrs_bridging"
+        "bdrs_bridging",
+        "antrian_online_bpjs",
+        "vclaim_rencana_kontrol"
       ]
     },
     "bagian_mati": {

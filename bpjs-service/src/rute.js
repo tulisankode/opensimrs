@@ -4,8 +4,11 @@ import { wajibLogin } from "./auth.js";
 import {
   konfigurasiTersamar, simpanKonfigurasi, ujiKoneksi, referensi, cekPeserta,
   daftarPemetaan, simpanPemetaan, sinkronKunjungan, daftarKunjungan, jalankanPekerja,
+  kandidatKunjunganMcu, operasiMcu, statusMcu,
 } from "./pcare.js";
 import * as vc from "./vclaim.js";
+import fiturAktif from "./fitur-aktif.js";
+import { ruteInternal as ruteAntrean } from "./antrean-route.js";
 
 const rute = express.Router();
 const tangani = (fn) => (req, res) =>
@@ -68,6 +71,33 @@ rute.post(
   })
 );
 
+// MCU PCare (STD-0020) — dipanggil dari penunjang-service (lihat penunjang-service/src/mcu/pcare.js), yang
+// meneruskan token pengguna apa adanya sehingga wajibLogin di atas tetap berlaku sebagai otorisasi layanan.
+rute.get(
+  "/pcare/mcu/kunjungan",
+  tangani(async (req, res) => kirim(res, await kandidatKunjunganMcu(req.author.faskesUuid, req.query.patient_uuid)))
+);
+rute.get("/pcare/mcu/status/:pesertaUuid", tangani(async (req, res) => kirim(res, await statusMcu(req.author.faskesUuid, req.params.pesertaUuid))));
+rute.post(
+  "/pcare/mcu/operasi",
+  tangani(async (req, res) => {
+    // Kontrak penunjang-service → bpjs-service memakai snake_case (penunjang-service/src/mcu/pcare.js); dipetakan
+    // eksplisit ke parameter operasiMcu (camelCase) agar field tidak hilang diam-diam.
+    const b = req.body ?? {};
+    const hasil = await operasiMcu(req.author.faskesUuid, {
+      pesertaUuid: b.peserta_uuid,
+      rawatJalanUuid: b.rawat_jalan_uuid,
+      operasi: b.operasi,
+      payload: b.payload ?? {},
+      alasan: b.alasan,
+      konfirmasi: !!b.konfirmasi,
+      dikirimOleh: req.author.username ?? null,
+    });
+    const berhasil = !["gagal", "tidak_pasti"].includes(hasil.status);
+    res.status(berhasil ? 200 : 422).json({ message: berhasil ? "Laporan MCU PCare diproses" : hasil.pesan, payload: hasil });
+  })
+);
+
 // --- BPJS VClaim (FKRTL / rumah sakit) ---------------------------------------------------------------
 const fk = (req) => req.author.faskesUuid;
 rute.get("/vclaim/konfigurasi", tangani(async (req, res) => kirim(res, await vc.konfigurasiTersamar(fk(req)))));
@@ -100,5 +130,54 @@ rute.put(
   "/vclaim/pemetaan-poli",
   tangani(async (req, res) => kirim(res, await vc.simpanPemetaanPoli(fk(req), req.body?.poli ?? []), "Pemetaan poli VClaim disimpan"))
 );
+
+// Rencana Kontrol & SPRI (fitur vclaim_rencana_kontrol, modul bpjs_fkrtl, mati bawaan — STD-0021)
+const wajibFiturRencanaKontrol = async (req, res, next) => {
+  const aktif = await fiturAktif("vclaim_rencana_kontrol", req.headers.authorization);
+  if (aktif === false) return res.status(403).json({ message: "Fitur Rencana Kontrol & SPRI (VClaim) belum diaktifkan untuk faskes ini" });
+  next();
+};
+rute.use(["/vclaim/rencana-kontrol", "/vclaim/spri"], wajibFiturRencanaKontrol);
+
+rute.get(
+  "/vclaim/rencana-kontrol",
+  tangani(async (req, res) => {
+    const { data, pagination } = await vc.daftarRencanaKontrol(fk(req), req.query);
+    res.json({ message: "Data berhasil ditampilkan", payload: data, pagination });
+  })
+);
+rute.post(
+  "/vclaim/rencana-kontrol",
+  tangani(async (req, res) => kirim(res, await vc.buatRencanaKontrol(fk(req), req.author.username, req.body ?? {}), "Rencana Kontrol berhasil dibuat"))
+);
+rute.get("/vclaim/rencana-kontrol/:uuid", tangani(async (req, res) => kirim(res, await vc.detailRencanaKontrol(fk(req), req.params.uuid))));
+rute.put(
+  "/vclaim/rencana-kontrol/:uuid",
+  tangani(async (req, res) =>
+    kirim(res, await vc.ubahRencanaKontrol(fk(req), req.author.username, req.params.uuid, req.body ?? {}), "Rencana Kontrol berhasil diubah")
+  )
+);
+rute.delete(
+  "/vclaim/rencana-kontrol/:uuid",
+  tangani(async (req, res) => kirim(res, await vc.hapusRencanaKontrol(fk(req), req.author.username, req.params.uuid), "Rencana Kontrol dihapus"))
+);
+
+rute.get(
+  "/vclaim/spri",
+  tangani(async (req, res) => {
+    const { data, pagination } = await vc.daftarSpri(fk(req), req.query);
+    res.json({ message: "Data berhasil ditampilkan", payload: data, pagination });
+  })
+);
+rute.post("/vclaim/spri", tangani(async (req, res) => kirim(res, await vc.buatSpri(fk(req), req.author.username, req.body ?? {}), "SPRI berhasil dibuat")));
+rute.get("/vclaim/spri/:uuid", tangani(async (req, res) => kirim(res, await vc.detailSpri(fk(req), req.params.uuid))));
+rute.put(
+  "/vclaim/spri/:uuid",
+  tangani(async (req, res) => kirim(res, await vc.ubahSpri(fk(req), req.author.username, req.params.uuid, req.body ?? {}), "SPRI berhasil diubah"))
+);
+
+// --- Antrean Online BPJS (Mobile JKN): konfigurasi & monitoring (izin "Antrian > Antrean Online BPJS") ----------
+// Rute WS Antrean yang dipanggil BPJS (token WS, bukan JWT) dipasang terpisah di server.js: lihat antrean-route.js.
+rute.use("/antrean", ruteAntrean);
 
 export default rute;

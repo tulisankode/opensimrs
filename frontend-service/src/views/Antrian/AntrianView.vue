@@ -2,7 +2,8 @@
 import Sidebar from "@/components/section/Sidebar.vue";
 import { linkType } from "@/utils/Enum";
 import type { SidebarBody } from "@/utils/Interface";
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import { fiturAktif } from "@/stores/modulFaskes";
 
 const sidebarBodyList = ref<SidebarBody[]>([
   {
@@ -54,7 +55,21 @@ const sidebarBodyList = ref<SidebarBody[]>([
       },
     ],
   },
+  {
+    name: "antrean-bpjs",
+    type: linkType.SECTION,
+    child: [
+      {
+        name: "Antrean Online BPJS",
+        icon: "PhWifiHigh",
+        type: linkType.LINK,
+        url: "/antrian/monitoring-bpjs",
+      },
+    ],
+  },
 ]);
+// Antrean Online BPJS (Mobile JKN) hanya untuk faskes yang mengaktifkan fitur antrian_online_bpjs (Manajemen Modul).
+const sidebarTampil = computed(() => sidebarBodyList.value.filter((s) => s.name !== "antrean-bpjs" || fiturAktif("antrian_online_bpjs")));
 </script>
 
 <template>
@@ -63,7 +78,7 @@ const sidebarBodyList = ref<SidebarBody[]>([
       sidebarTitle="Antrian"
       sidebarTitleUrl="/antrian"
       class="flex-none"
-      :sidebar-body-list="sidebarBodyList"
+      :sidebar-body-list="sidebarTampil"
       showStockBtn
     />
     <component

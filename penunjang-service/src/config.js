@@ -24,6 +24,8 @@ export default {
   farmasiUrl: (process.env.BASE_URL_API_FARMASI || "http://localhost:8084/api/v3/farmasi").replace(/\/$/, ""),
   // Rekam Medis (RME) — modul Gizi membaca alergi tercatat (read-only, tidak mengubah data/struktur RME).
   rmeUrl: (process.env.BASE_URL_API_RME || "http://localhost:8093/api/v3/rekam-medis").replace(/\/$/, ""),
+  // BPJS (bpjs-service) — MCU PCare (STD-0020): satu-satunya jalur pengiriman hasil MCU peserta JKN ke PCare.
+  bpjsUrl: (process.env.BASE_URL_API_BPJS || "http://localhost:8098/api/v3/bpjs").replace(/\/$/, ""),
   pg: {
     host: process.env.DB_HOST || "localhost",
     port: angka(process.env.DB_PORT, 5432),

@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 
 process.env.SECRET_KEY = process.env.SECRET_KEY || "kunci-uji";
 process.env.BPJS_MODE = "mock";
-const { buatSep, hapusSep, keTanggalVclaim, JENIS_PELAYANAN } = await import("../src/vclaim-peta.js");
+const {
+  buatSep, hapusSep, keTanggalVclaim, JENIS_PELAYANAN,
+  buatRencanaKontrol, ubahRencanaKontrol, hapusRencanaKontrol, buatSpri, ubahSpri,
+} = await import("../src/vclaim-peta.js");
 const { vclaim } = await import("../src/klien-vclaim.js");
 
 const kred = { consId: "12345", secretKey: "rahasia", userKey: "uk", kdPpk: "0301R001" };
@@ -61,4 +64,57 @@ test("simulasi: buat SEP mengembalikan nomor SEP", async () => {
 
 test("kredensial tidak lengkap ditolak sebelum menghubungi BPJS", async () => {
   await assert.rejects(vclaim({ consId: "1" }, "GET", "/referensi/propinsi"), (e) => e.status === 422);
+});
+
+// --- Rencana Kontrol & SPRI (STD-0021) -------------------------------------------------------------
+
+test("payload Rencana Kontrol: buat, ubah, hapus", () => {
+  const b = buatRencanaKontrol({ noKartu: "0001234567891", kodeDokter: "31486", poliKontrol: "INT", tglRencanaKontrol: "2026-11-01", user: "petugas" });
+  assert.deepEqual(b.request.t_rencontrol, {
+    noKartu: "0001234567891", kodeDokter: "31486", poliKontrol: "INT", tglRencanaKontrol: "2026-11-01", user: "petugas",
+  });
+
+  const u = ubahRencanaKontrol({ noSuratKontrol: "RK123", noKartu: "0001234567891", kodeDokter: "31487", poliKontrol: "ANA", tglRencanaKontrol: "2026-11-05", user: "petugas" });
+  assert.equal(u.request.t_rencontrol.noSuratKontrol, "RK123");
+  assert.equal(u.request.t_rencontrol.poliKontrol, "ANA");
+
+  const h = hapusRencanaKontrol({ noSuratKontrol: "RK123", user: "x".repeat(40) });
+  assert.equal(h.request.t_rencontrol.noSuratKontrol, "RK123");
+  assert.equal(h.request.t_rencontrol.user.length, 30);
+});
+
+test("payload SPRI: buat & ubah", () => {
+  const b = buatSpri({ noKartu: "0001234567891", tglRencana: "2026-11-01", user: "petugas" });
+  assert.deepEqual(b.request.t_sprirawat, { noKartu: "0001234567891", tglRencana: "2026-11-01", user: "petugas" });
+
+  const u = ubahSpri({ noSuratSPRI: "SPRI123", noKartu: "0001234567891", tglRencana: "2026-11-02", user: "petugas" });
+  assert.equal(u.request.t_sprirawat.noSuratSPRI, "SPRI123");
+  assert.equal(u.request.t_sprirawat.tglRencana, "2026-11-02");
+});
+
+test("simulasi: buat Rencana Kontrol mengembalikan noSuratKontrol, data tidak lengkap ditolak (201)", async () => {
+  const body = buatRencanaKontrol({ noKartu: "0001234567891", kodeDokter: "31486", poliKontrol: "INT", tglRencanaKontrol: "2026-11-01", user: "petugas" });
+  const { response } = await vclaim(kred, "POST", "/RencanaKontrol/insert", body);
+  assert.match(response.noSuratKontrol, /^RK\d+$/);
+
+  await assert.rejects(
+    vclaim(kred, "POST", "/RencanaKontrol/insert", { request: { t_rencontrol: { noKartu: "1" } } }),
+    (e) => e.status === 422
+  );
+});
+
+test("simulasi: ubah & hapus Rencana Kontrol", async () => {
+  const u = await vclaim(kred, "PUT", "/RencanaKontrol/update", { request: { t_rencontrol: { noSuratKontrol: "RK123" } } });
+  assert.equal(u.response.noSuratKontrol, "RK123");
+  const h = await vclaim(kred, "DELETE", "/RencanaKontrol/delete", { request: { t_rencontrol: { noSuratKontrol: "RK123" } } });
+  assert.equal(h.response, "RK123");
+});
+
+test("simulasi: buat & ubah SPRI mengembalikan noSuratSPRI", async () => {
+  const body = buatSpri({ noKartu: "0001234567891", tglRencana: "2026-11-01", user: "petugas" });
+  const { response } = await vclaim(kred, "POST", "/SPRI/insert", body);
+  assert.match(response.noSuratSPRI, /^SPRI\d+$/);
+
+  const u = await vclaim(kred, "PUT", "/SPRI/update", { request: { t_sprirawat: { noSuratSPRI: response.noSuratSPRI } } });
+  assert.equal(u.response.noSuratSPRI, response.noSuratSPRI);
 });

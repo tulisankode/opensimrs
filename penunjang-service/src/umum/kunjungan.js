@@ -41,6 +41,24 @@ export const kunjunganDariRekamMedis = (rekamMedisUuid, faskesUuid) =>
         [rekamMedisUuid, faskesUuid],
       ).then((r) => (r ? cariKunjungan(r.no_reg, faskesUuid) : null));
 
+// Penjamin kunjungan berdasarkan No. Registrasi. Tabel kunjungan (rawat_jalans/rawat_inaps/IGD) hanya menyimpan
+// payment_method; penjamin dicatat Admisi di insurance_admissions (per no_reg) → insurance_accounts (code & name disalin
+// dari penjamin saat pendaftaran, lihat admisi-service insurance-admission-repository.js) → penjamin.code faskes yang sama.
+// null bila kunjungan tidak memiliki akun penjamin atau kode penjamin tidak lagi ada di datamaster.
+export const penjaminKunjungan = (noReg, faskesUuid) =>
+  !noReg
+    ? null
+    : satu(
+        `SELECT pj.uuid, pj.code AS kode, pj.name AS nama
+           FROM insurance_admissions ia
+           JOIN insurance_accounts acc ON acc.uuid = ia.insurance_account_uuid AND acc.faskes_uuid = ia.faskes_uuid AND acc.deleted_at IS NULL
+           JOIN penjamin pj ON pj.faskes_uuid = ia.faskes_uuid AND pj.code = acc.code AND pj.deleted_at IS NULL
+          WHERE ia.no_reg = $1 AND ia.faskes_uuid = $2 AND ia.deleted_at IS NULL
+          ORDER BY ia.status DESC, ia.created_at DESC
+          LIMIT 1`,
+        [noReg, faskesUuid],
+      );
+
 export const pasien = (patientUuid, faskesUuid) =>
   satu(
     `SELECT p.uuid, p.no_rm, p.name, p.gender, p.phone, bd.birth_date

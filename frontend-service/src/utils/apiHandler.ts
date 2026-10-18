@@ -118,6 +118,7 @@ const errorApiHandler = (error: any) => {
       localStorage.removeItem("user");
       localStorage.removeItem("faskes");
       localStorage.removeItem("faskes_profile");
+      localStorage.removeItem("simrs_studio_mode"); // cache status SIMRS Studio (stores/simrsStudio.ts)
       window.location.reload();
     }
     // NOTE Refresh Token

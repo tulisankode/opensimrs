@@ -4,7 +4,8 @@ import PageToolbar from "@/components/Base/PageToolbar.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import CustomDatePicker from "@/components/Base/CustomDatePicker.vue";
 import CustomSelect from "@/components/Base/CustomSelect.vue";
-import { laporanMcu, daftarPerusahaanMcu, daftarPaketMcu, izinMcu, JENIS_MCU, tglIso, tglIndo, rupiah } from "@/stores/penunjang/mcu";
+import { laporanMcu, daftarPerusahaanMcu, daftarPaketMcu, izinMcu, JENIS_MCU, tglIso, tglIndo, rupiah, STATUS_PCARE_MCU, type StatusPcareMcu } from "@/stores/penunjang/mcu";
+import { fiturAktif } from "@/stores/modulFaskes";
 
 // Laporan MCU: rekap peserta per periode / perusahaan / paket, distribusi kesimpulan, pendapatan.
 const n = new Date();
@@ -41,6 +42,13 @@ const distribusi = computed(() => {
 });
 const totalKesimpulan = computed(() => distribusi.value.reduce((a, d) => a + d.n, 0));
 
+const pcareAktif = computed(() => fiturAktif("mcu_pcare"));
+// Rekap status pengiriman MCU PCare (STD-0020), hanya peserta berpenjamin BPJS sesuai filter rekap (KT-17).
+const pcareRingkasan = computed(() => {
+  const dasar: Record<string, number> = { belum: 0, mengirim: 0, terkirim: 0, gagal: 0, tidak_pasti: 0 };
+  for (const p of data.value?.pcare ?? []) dasar[p.status] = p.jumlah;
+  return dasar;
+});
 const tabel = computed(() => {
   if (!data.value) return [];
   if (tab.value === "perusahaan") return data.value.perPerusahaan;
@@ -138,6 +146,17 @@ onMounted(async () => {
                 <span>{{ d.label }}</span>
                 <b>{{ d.n }}</b>
                 <span class="text-grey-400">({{ d.persen }}%)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- MCU PCare (STD-0020) -->
+          <div v-if="pcareAktif" class="p-3 border rounded-lg border-grey-100">
+            <div class="mb-2 font-semibold">Status Pengiriman MCU PCare <span class="font-normal text-grey-400">(peserta berpenjamin BPJS)</span></div>
+            <div class="flex flex-wrap gap-4">
+              <div v-for="(s, kode) in STATUS_PCARE_MCU" :key="kode" class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-full font-semibold" :class="[s.bg, s.text]">{{ s.label }}</span>
+                <b>{{ pcareRingkasan[kode as StatusPcareMcu] ?? 0 }}</b>
               </div>
             </div>
           </div>

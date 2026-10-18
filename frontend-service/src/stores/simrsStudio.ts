@@ -49,8 +49,19 @@ export const isSuperadmin = () => {
 export const mungkinPunyaAkses = () =>
   isSuperadmin() || getStoredPermissions().some((m) => String(m.module).toLowerCase() === MODUL_IZIN.toLowerCase());
 
-// Dipakai guard router & menu atas (sinkron).
-export const studioAktif = () => bacaCache().aktif;
+// Dipakai guard router & menu atas (sinkron). Cache status hanya dimuat ulang untuk pengguna yang mungkin berakses,
+// jadi akses pengguna saat ini diperiksa lagi di sini: cache sisa sesi superadmin sebelumnya di peramban yang sama
+// tidak boleh memunculkan menu bagi pengguna lain.
+export const studioAktif = () => mungkinPunyaAkses() && bacaCache().aktif;
+
+// Hapus cache status saat login/logout agar status pengguna sebelumnya tidak terbawa.
+export const bersihkanStatusStudio = () => {
+  try {
+    localStorage.removeItem(KUNCI);
+  } catch {
+    /* abaikan */
+  }
+};
 
 // Hak aksi Studio dari cache status: boleh("PRD", "SETUJUI")
 export const bolehStudio = (submodul: string, aksi: string | string[]) => {
