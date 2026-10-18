@@ -6,7 +6,7 @@ import { ambilKoneksi, dekripsi, koneksiKirim, timeoutMs } from "./koneksi.js";
 import { petaMesin } from "./peta.js";
 
 // Pengiriman jadwal + data pasien minimum ke HDIS (kontrak REST generik, scripts/README-hdis-tiruan.md). Satu baris
-// hd_hdis_pesan per koneksi + kunci idempoten (`jadwal:<uuid>:<updated_at>`): percobaan ulang memakai baris & kunci yang
+// hd_hdis_pesan per koneksi + kunci idempoten (`jadwal:<uuid>:v<versi>`): percobaan ulang memakai baris & kunci yang
 // sama (header Idempotency-Key) sehingga HDIS tidak menggandakan jadwal; perubahan jadwal (pindah/batal) menghasilkan kunci
 // baru. Kegagalan tidak membatalkan penyimpanan jadwal (best-effort, status dapat dikirim ulang dari riwayat).
 //   terkirim     HDIS menjawab 2xx
@@ -44,7 +44,7 @@ const sanitasi = (p) => ({ ...p, pasien: { ...p.pasien, nama: undefined } });
 
 const ambilJadwalKirim = (jadwalUuid, faskesUuid) =>
   satu(
-    `SELECT j.uuid, to_char(j.tanggal, 'YYYY-MM-DD') AS tanggal, j.status, j.mesin_uuid, j.created_at, j.updated_at,
+    `SELECT j.uuid, to_char(j.tanggal, 'YYYY-MM-DD') AS tanggal, j.status, j.mesin_uuid, j.versi, j.created_at, j.updated_at,
             s.kode AS kode_shift, s.nama AS nama_shift, s.jam_mulai, s.jam_selesai,
             r.no_reg_hd, r.jenis, p.no_rm, p.name AS nama_pasien, p.gender, to_char(bd.birth_date, 'YYYY-MM-DD') AS birth_date
        FROM hd_jadwal j JOIN hd_shift s ON s.uuid = j.shift_uuid JOIN hd_registrasi r ON r.uuid = j.registrasi_uuid

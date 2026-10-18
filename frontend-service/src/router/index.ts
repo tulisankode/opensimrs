@@ -301,7 +301,6 @@ import LaporanLaundryPage from "@/views/Laundry/LaporanPage.vue";
 
 // NOTE Sarana dan Prasarana (IPSRS) — aset, work order perbaikan, pemeliharaan, kalibrasi, utilitas (STD-0022, penunjang-service)
 import SarprasView from "@/views/Sarpras/SarprasView.vue";
-import HemodialisaView from "@/views/Hemodialisa/HemodialisaView.vue";
 import AsetSarprasPage from "@/views/Sarpras/AsetPage.vue";
 import LaporanKerusakanSarprasPage from "@/views/Sarpras/LaporanKerusakanPage.vue";
 import PemeliharaanSarprasPage from "@/views/Sarpras/PemeliharaanPage.vue";
@@ -309,6 +308,18 @@ import KalibrasiSarprasPage from "@/views/Sarpras/KalibrasiPage.vue";
 import UtilitasSarprasPage from "@/views/Sarpras/UtilitasPage.vue";
 import PengaturanSarprasPage from "@/views/Sarpras/PengaturanPage.vue";
 import LaporanSarprasPage from "@/views/Sarpras/LaporanPage.vue";
+
+// NOTE Unit Hemodialisa — jadwal, sesi HD, dializer, bridging HDIS (STD-0033, penunjang-service)
+import HemodialisaView from "@/views/Hemodialisa/HemodialisaView.vue";
+import JadwalHdPage from "@/views/Hemodialisa/JadwalPage.vue";
+import RegistrasiHdPage from "@/views/Hemodialisa/RegistrasiPage.vue";
+import ResepHdPage from "@/views/Hemodialisa/ResepPage.vue";
+import SesiHdPage from "@/views/Hemodialisa/SesiPage.vue";
+import DializerHdPage from "@/views/Hemodialisa/DializerPage.vue";
+import MesinShiftHdPage from "@/views/Hemodialisa/Datamaster/MesinShiftPage.vue";
+import AturanReuseHdPage from "@/views/Hemodialisa/Datamaster/AturanReusePage.vue";
+import MappingHdisPage from "@/views/Hemodialisa/Datamaster/MappingHdisPage.vue";
+import LaporanHdPage from "@/views/Hemodialisa/LaporanPage.vue";
 
 // NOTE Manajemen Ambulans — permintaan & penugasan, perjalanan, armada & kru, tarif, biaya/kuitansi (STD-0024, penunjang-service)
 import AmbulansView from "@/views/Ambulans/AmbulansView.vue";
@@ -1927,13 +1938,15 @@ const router = createRouter({
     // SECTION Hemodialisa
     { path: "/hemodialisa", name: "hemodialisa", redirect: "/hemodialisa/jadwal" },
     ...halamanModul(HemodialisaView, [
-      ["/hemodialisa/jadwal", "hemodialisa-jadwal", HemodialisaView],
-      ["/hemodialisa/registrasi", "hemodialisa-registrasi", HemodialisaView],
-      ["/hemodialisa/sesi", "hemodialisa-sesi", HemodialisaView],
-      ["/hemodialisa/pemakaian", "hemodialisa-pemakaian", HemodialisaView],
-      ["/hemodialisa/datamaster/mesin-shift", "hemodialisa-mesin-shift", HemodialisaView],
-      ["/hemodialisa/datamaster/aturan-reuse", "hemodialisa-aturan-reuse", HemodialisaView],
-      ["/hemodialisa/laporan", "hemodialisa-laporan", HemodialisaView],
+      ["/hemodialisa/jadwal", "hemodialisa-jadwal", JadwalHdPage],
+      ["/hemodialisa/registrasi", "hemodialisa-registrasi", RegistrasiHdPage],
+      ["/hemodialisa/resep", "hemodialisa-resep", ResepHdPage],
+      ["/hemodialisa/sesi", "hemodialisa-sesi", SesiHdPage],
+      ["/hemodialisa/dializer", "hemodialisa-dializer", DializerHdPage],
+      ["/hemodialisa/datamaster/mesin-shift", "hemodialisa-mesin-shift", MesinShiftHdPage],
+      ["/hemodialisa/datamaster/aturan-reuse", "hemodialisa-aturan-reuse", AturanReuseHdPage],
+      ["/hemodialisa/datamaster/mapping-hdis", "hemodialisa-mapping-hdis", MappingHdisPage],
+      ["/hemodialisa/laporan", "hemodialisa-laporan", LaporanHdPage],
     ]),
     // !SECTION
 

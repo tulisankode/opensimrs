@@ -316,6 +316,18 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/sarpras/laporan", permission: read("Sarana dan Prasarana (IPSRS)", "Laporan Sarpras") },
   { path: "/sarpras", mode: "prefix", permission: read("Sarana dan Prasarana (IPSRS)", null, null, null) },
 
+  // Unit Hemodialisa — penunjang-service (STD-0033)
+  { path: "/hemodialisa/jadwal", permission: read("Hemodialisa", "Registrasi & Jadwal") },
+  { path: "/hemodialisa/registrasi", permission: read("Hemodialisa", "Registrasi & Jadwal") },
+  { path: "/hemodialisa/resep", permission: read("Hemodialisa", "Resep HD") },
+  { path: "/hemodialisa/sesi", permission: read("Hemodialisa", "Sesi HD") },
+  { path: "/hemodialisa/dializer", permission: read("Hemodialisa", "Pemakaian BHP") },
+  { path: "/hemodialisa/datamaster/mesin-shift", permission: read("Hemodialisa", "Datamaster", "Mesin & Shift") },
+  { path: "/hemodialisa/datamaster/aturan-reuse", permission: read("Hemodialisa", "Datamaster", "Aturan Reuse Dializer") },
+  { path: "/hemodialisa/datamaster/mapping-hdis", permission: read("Hemodialisa", "Datamaster", "Mapping HDIS") },
+  { path: "/hemodialisa/laporan", permission: read("Hemodialisa", "Laporan Hemodialisa") },
+  { path: "/hemodialisa", mode: "prefix", permission: read("Hemodialisa", null, null, null) },
+
   // Bank Darah RS (BDRS) — penunjang-service
   { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },
   { path: "/bank-darah/crossmatch", permission: read("Bank Darah RS (BDRS)", "Uji Silang Serasi") },

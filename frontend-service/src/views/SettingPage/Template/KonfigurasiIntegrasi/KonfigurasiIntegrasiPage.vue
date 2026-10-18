@@ -19,6 +19,7 @@ import PengirimanLis from './PengirimanLis.vue';
 import KonfigurasiPacs from './KonfigurasiPacs.vue';
 import PengirimanPacs from './PengirimanPacs.vue';
 import KonfigurasiHdis from './KonfigurasiHdis.vue';
+import PengirimanHdis from './PengirimanHdis.vue';
 import KonfigurasiLisPa from './KonfigurasiLisPa.vue';
 import PengirimanLisPa from './PengirimanLisPa.vue';
 import KonfigurasiLisMikrobiologi from './KonfigurasiLisMikrobiologi.vue';
@@ -179,9 +180,13 @@ const handleKonfigurasiSatuSehat = (updatedKonfigurasiSatuSehat: any) => {
                 </template>
                 <p v-else class="text-sm text-gray-500">Fitur Bridging PACS/RIS belum aktif. Aktifkan di Setting › Manajemen Modul.</p>
             </template>
+            <!-- Bridging HDIS Unit Hemodialisa (fitur hd_bridging_hdis): koneksi & kredensial + riwayat pertukaran. Mapping mesin ada di Hemodialisa › Mapping HDIS -->
             <template v-else-if="bagian === 'hdis'">
-                <KonfigurasiHdis v-if="fiturAktif('hd_bridging_hdis')" />
-                <p v-else class="text-sm text-gray-500">Fitur Bridging HDIS belum aktif untuk faskes ini.</p>
+                <template v-if="fiturAktif('hd_bridging_hdis')">
+                    <KonfigurasiHdis />
+                    <PengirimanHdis />
+                </template>
+                <p v-else class="text-sm text-gray-500">Fitur Bridging HDIS belum aktif. Aktifkan di Setting › Manajemen Modul.</p>
             </template>
             <!-- Bridging Bank Darah ke UTD (fitur bdrs_bridging): koneksi & kredensial + riwayat pengiriman. Mapping kode ada di Bank Darah › Mapping UTD -->
             <template v-else-if="bagian === 'bdrs-utd'">

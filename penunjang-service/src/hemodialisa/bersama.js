@@ -202,5 +202,7 @@ export const ramah = (e, pesan) => {
   throw e;
 };
 
-// Kunci idempoten pengiriman jadwal ke HDIS: berubah bila jadwal berubah (updated_at), tetap sama pada percobaan ulang.
-export const kunciKirimJadwal = (jadwal) => `jadwal:${jadwal.uuid}:${Number(jadwal.updated_at ?? jadwal.created_at ?? 0)}`;
+// Kunci idempoten pengiriman jadwal ke HDIS: berubah bila slot/status jadwal berubah (kolom versi dinaikkan saat
+// pindah/batal), tetap sama pada percobaan ulang. Tidak memakai updated_at karena dua perubahan dalam detik yang sama
+// akan menghasilkan kunci kembar.
+export const kunciKirimJadwal = (jadwal) => `jadwal:${jadwal.uuid}:v${Number(jadwal.versi ?? 1)}`;

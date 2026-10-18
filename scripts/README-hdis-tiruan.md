@@ -38,13 +38,13 @@ Gunakan hanya data fiktif (pasien uji, NIK berawalan `9999`), jangan data pasien
 ### SIMRS → HDIS: `POST <URL Penerima Jadwal>`
 
 Header `x-api-key` (API key koneksi) dan `Idempotency-Key` (= `kunci_idempoten`). Dikirim saat jadwal dibuat,
-dipindah, atau dibatalkan. Kunci idempoten `jadwal:<uuid>:<updated_at>` sama pada setiap percobaan ulang sehingga HDIS
+dipindah, atau dibatalkan. Kunci idempoten `jadwal:<uuid>:v<versi>` (versi naik saat jadwal dipindah/dibatalkan) sama pada setiap percobaan ulang sehingga HDIS
 wajib menganggap kunci yang sama sebagai pesan yang sama.
 
 ```json
 {
   "versi_kontrak": "1",
-  "kunci_idempoten": "jadwal:0192…:1760770000",
+  "kunci_idempoten": "jadwal:0192…:v1",
   "aksi": "jadwal",
   "jadwal": { "kode_jadwal_simrs": "0192…", "tanggal": "2026-10-19", "shift": { "kode": "PAGI", "nama": "Pagi", "jam_mulai": "07:00", "jam_selesai": "12:00" }, "kode_mesin_hdis": "MSN-03", "status": "terjadwal" },
   "pasien": { "no_rm": "RM-000123", "nama": "Pasien Fiktif", "jenis_kelamin": "P", "tanggal_lahir": "1980-01-01" },

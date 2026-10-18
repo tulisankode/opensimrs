@@ -39,7 +39,7 @@ Dengan Docker, kedua server memakai `deploy/server/deploy.sh` dengan `.env` masi
 2. **Satu berkas per lingkungan**, disimpan di server, di luar folder repo: `~/.opensimrs/.env` (lokasi bisa diganti dengan `OPENSIMRS_STATE_DIR`), atau di secret manager. Hak akses berkas dibatasi (`chmod 600`).
 3. **`SECRET_KEY` berbeda di setiap lingkungan** (dan sama di semua layanan dalam satu lingkungan). Token dari staging tidak boleh berlaku di production.
 4. Semua kunci dibuat **acak**: `openssl rand -hex 32`. Jangan memakai contoh dari dokumentasi.
-5. **Rotasi kunci** bila bocor, saat pegawai yang memegangnya keluar, atau secara berkala. Perhatikan: `SECRET_KEY` (atau `BPJS_KUNCI_RAHASIA`/`LIS_KUNCI_RAHASIA`/`INVENTORY_MARKETPLACE_KUNCI_RAHASIA`) juga dipakai mengenkripsi kredensial integrasi; rotasi kunci enkripsi membutuhkan pengisian ulang kredensial integrasi ([Petunjuk Instalasi 5.4](./INSTALLATION_GUIDE.md#54-konfigurasi-integrasi-per-faskes)). Merotasi `SECRET_KEY` membuat semua pengguna harus login ulang.
+5. **Rotasi kunci** bila bocor, saat pegawai yang memegangnya keluar, atau secara berkala. Perhatikan: `SECRET_KEY` (atau `BPJS_KUNCI_RAHASIA`/`LIS_KUNCI_RAHASIA`/`INVENTORY_MARKETPLACE_KUNCI_RAHASIA`/`HD_HDIS_KUNCI_RAHASIA`) juga dipakai mengenkripsi kredensial integrasi; rotasi kunci enkripsi membutuhkan pengisian ulang kredensial integrasi ([Petunjuk Instalasi 5.4](./INSTALLATION_GUIDE.md#54-konfigurasi-integrasi-per-faskes)). Merotasi `SECRET_KEY` membuat semua pengguna harus login ulang.
 6. **`SYNC_DB=false`** di staging dan production: skema hanya berubah lewat migrasi (`npm run db:migrate`), tidak pernah lewat ORM.
 7. **`NODE_ENV`**: `development` di laptop; `production` di staging dan production (mengurangi log debug).
 8. **`DEMO_PASSWORD` dan data demo HANYA di development/staging.** Di production, `db:demo:seed` dan `db:demo:reset` **dilarang** dijalankan; jangan isi `DEMO_PASSWORD`. *Pengecualian sementara* sampai wizard instalasi (B-40 di [Roadmap](./ROADMAP.md)) tersedia: membuat superadmin pertama lewat `db:demo:seed` **sekali, sebelum ada data nyata**, dengan `DEMO_PASSWORD` kuat, lalu segera mengganti sandi superadmin, menonaktifkan faskes & akun demo, dan mengosongkan `DEMO_PASSWORD` ([Petunjuk Instalasi 7.3](./INSTALLATION_GUIDE.md#73-akun-superadmin-pertama)).
@@ -72,11 +72,12 @@ Keterangan: **Wajib** = harus diisi; **Rahasia** = jangan dibagikan atau di-comm
 | `SATUSEHAT_MODE` / `SATUSEHAT_LINGKUNGAN` | `mock` / `sandbox` | `nyata` / `sandbox` | `nyata` / `produksi` | Bila modul aktif | – |
 | `BPJS_MODE` / `BPJS_LINGKUNGAN` | `mock` / `development` | `nyata` / `development` | `nyata` / `production` | Bila modul aktif | – |
 | `LIS_MODE` | `mock` atau LIS tiruan | endpoint uji LIS | endpoint LIS produksi | Bila fitur aktif | – |
-| `BPJS_KUNCI_RAHASIA`, `LIS_KUNCI_RAHASIA`, `INVENTORY_MARKETPLACE_KUNCI_RAHASIA` | kosong (pakai `SECRET_KEY`) | `<acak>` | `<acak>` | Disarankan | Ya |
+| `BPJS_KUNCI_RAHASIA`, `LIS_KUNCI_RAHASIA`, `INVENTORY_MARKETPLACE_KUNCI_RAHASIA`, `HD_HDIS_KUNCI_RAHASIA` (penunjang-service, Bridging HDIS) | kosong (pakai `SECRET_KEY`) | `<acak>` | `<acak>` | Disarankan | Ya |
 | `PUBLIC_API_URL` | – | `https://api-staging.simrs.contoh.id` | `https://api.simrs.contoh.id` | Server | – |
 | `FRONTEND_ALLOWED_HOSTS` | – | `staging.simrs.contoh.id` | `simrs.contoh.id` | Server | – |
 | `BASE_URL_API_INVENTORY` (penunjang-service) | bawaan `http://localhost:8086/api/v3/inventory` | alamat inventory-service | alamat inventory-service | Tidak | – |
 | `MAX_UPLOAD_BERKAS_SARPRAS_MB` (penunjang-service) | bawaan `5` (1–20) | `5` | `5` | Tidak | – |
+| `HD_HDIS_TIMEOUT_MS` (penunjang-service) | bawaan `10000` (batas waktu kirim jadwal ke HDIS; lewat batas → status "tidak pasti") | `10000` | `10000` | Tidak | – |
 
 Kredensial integrasi per faskes (SATUSEHAT Client ID/Secret, BPJS cons-id/secret/user key, API key LIS) **tidak** ditaruh di `.env`; semuanya diisi di **Setting › Konfigurasi Integrasi** dan disimpan terenkripsi. Isi kredensial sandbox di staging dan kredensial produksi hanya di production.
 
