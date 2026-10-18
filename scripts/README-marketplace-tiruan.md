@@ -10,7 +10,7 @@ node scripts/marketplace-tiruan.mjs                             # http://localho
 PORT=2499 MARKETPLACE_KUNCI=rahasia node scripts/marketplace-tiruan.mjs
 ```
 
-Isi koneksi di **Setting Inventory › Pembelian via Marketplace › Konfigurasi Koneksi** (data fiktif — jangan
+Isi koneksi lewat tombol **Konfigurasi Koneksi** di **Inventory › Pembelian via Marketplace › Pencarian & Penawaran** (butuh izin Pembelian Marketplace › KONFIGURASI KONEKSI) (data fiktif — jangan
 memakai data pasien/faskes asli):
 
 | Kolom | Nilai |

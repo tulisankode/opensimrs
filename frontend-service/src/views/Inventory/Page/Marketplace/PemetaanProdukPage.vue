@@ -164,7 +164,7 @@ onMounted(fetchData);
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <CustomButton label="Batal" outlined @click="dialogTampil = false" />
+        <CustomButton label="Batal" text-color="text-opensimrs-300" border-color="border-opensimrs-300" outlined @click="dialogTampil = false" />
         <CustomButton label="Simpan" @click="simpanPemetaan" />
       </div>
     </template>
