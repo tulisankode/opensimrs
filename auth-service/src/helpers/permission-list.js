@@ -983,6 +983,22 @@ export const giziPermission = {
   ],
 };
 
+// Laundry & Linen (STD-0023, penunjang-service). Konfirmasi serah terima & distribusi dipisah dari CREATE (dua
+// petugas berbeda — KF-5/KF-10); "Permintaan Linen" untuk petugas ruangan.
+export const laundryPermission = {
+  module: "Laundry",
+  subModules: [
+    { name: "Stok & Par Level", allows: ["READ", "UPDATE"] },
+    { name: "Penerimaan", allows: ["READ", "CREATE", "KONFIRMASI"] },
+    { name: "Batch", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Permintaan Linen", allows: ["READ", "CREATE", "BATAL"] },
+    { name: "Distribusi", allows: ["READ", "CREATE", "KONFIRMASI"] },
+    { name: "Koreksi Stok", allows: ["READ", "CREATE"] },
+    { name: "Datamaster", features: [{ name: "Jenis Linen", allows: ["READ", "CREATE", "UPDATE", "DELETE"] }] },
+    { name: "Laporan Laundry", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
 // UTD / UPTD Produksi Darah (penunjang-service). "Lihat Hasil Reaktif" dipisah dari IMLTD READ (KF-18): hasil reaktif
 // & identitas donor terkait hanya tampil bagi peran yang diberi izin ini secara eksplisit.
 export const utdPermission = {
@@ -1506,6 +1522,7 @@ export function mapPermission(permissionList) {
     "koding rekam medis": kodingRmPermission,
     "kamar operasi": kamarOperasiPermission,
     gizi: giziPermission,
+    laundry: laundryPermission,
     utd: utdPermission,
     "bank darah rs (bdrs)": bankDarahPermission,
     cssd: cssdPermission,

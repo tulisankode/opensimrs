@@ -289,6 +289,15 @@ import MasterDietPage from "@/views/Gizi/MasterDietPage.vue";
 import BentukMakananGiziPage from "@/views/Gizi/BentukMakananPage.vue";
 import StandarPorsiGiziPage from "@/views/Gizi/StandarPorsiPage.vue";
 import LaporanGiziPage from "@/views/Gizi/LaporanGiziPage.vue";
+// NOTE Laundry & Linen (penunjang-service)
+import LaundryView from "@/views/Laundry/LaundryView.vue";
+import StokLaundryPage from "@/views/Laundry/StokPage.vue";
+import MasterLinenLaundryPage from "@/views/Laundry/MasterLinenPage.vue";
+import PenerimaanLaundryPage from "@/views/Laundry/PenerimaanPage.vue";
+import BatchLaundryPage from "@/views/Laundry/BatchPage.vue";
+import DistribusiLaundryPage from "@/views/Laundry/DistribusiPage.vue";
+import KoreksiLaundryPage from "@/views/Laundry/KoreksiPage.vue";
+import LaporanLaundryPage from "@/views/Laundry/LaporanPage.vue";
 
 // NOTE Manajemen Ambulans — permintaan & penugasan, perjalanan, armada & kru, tarif, biaya/kuitansi (STD-0024, penunjang-service)
 import AmbulansView from "@/views/Ambulans/AmbulansView.vue";
@@ -1834,6 +1843,19 @@ const router = createRouter({
       ["/cssd/datamaster/master-set", "cssd-datamaster-master-set", MasterSetCssdPage],
       ["/cssd/datamaster/mesin", "cssd-datamaster-mesin", MasterMesinCssdPage],
       ["/cssd/laporan", "cssd-laporan", LaporanCssdPage],
+    ]),
+    // !SECTION
+
+    // SECTION Laundry & Linen (penunjang-service)
+    { path: "/laundry", name: "laundry", redirect: "/laundry/stok" },
+    ...halamanModul(LaundryView, [
+      ["/laundry/stok", "laundry-stok", StokLaundryPage],
+      ["/laundry/master", "laundry-master", MasterLinenLaundryPage],
+      ["/laundry/penerimaan", "laundry-penerimaan", PenerimaanLaundryPage],
+      ["/laundry/batch", "laundry-batch", BatchLaundryPage],
+      ["/laundry/distribusi", "laundry-distribusi", DistribusiLaundryPage],
+      ["/laundry/koreksi", "laundry-koreksi", KoreksiLaundryPage],
+      ["/laundry/laporan", "laundry-laporan", LaporanLaundryPage],
     ]),
     // !SECTION
 
