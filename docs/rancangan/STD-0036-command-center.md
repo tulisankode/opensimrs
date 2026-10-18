@@ -45,15 +45,15 @@ Lapisan kejadian mencatat ID kejadian, sumber, jenis, versi skema, waktu kejadia
 
 Fase pertama menampilkan indikator dari sumber yang benar-benar terhubung: ketersediaan bed per ruangan, alur IGD ke rawat inap, antrean/waktu tunggu, status kamar operasi dan ambulans, alat kritis, serta stok kritis. Indikator yang sumbernya belum tersedia ditandai belum tersedia, tertunda, kedaluwarsa, atau tidak lengkap; data lama tidak boleh disebut real-time.
 
-Endpoint berikut merupakan usulan dan belum tersedia sebagai kontrak implementasi:
+Endpoint berikut merupakan usulan dan belum tersedia sebagai kontrak implementasi. Mengikuti konvensi repo (`/api/v3/<layanan>/…`), titik awalnya laporan-service yang sudah memegang endpoint dashboard (`laporan-service/src/routes/dashboard-routes.js`); lokasi final ditetapkan saat desain implementasi fase 1.
 
 | Metode dan jalur | Tujuan |
 |---|---|
-| `GET /api/command-center/ringkasan` | Ringkasan indikator, status data, dan sumber. |
-| `GET /api/command-center/indikator` | Indikator terpilih beserta definisi, sumber, waktu pembaruan, dan kesegaran. |
-| `GET /api/command-center/peringatan` | Peringatan berbasis ambang yang telah ditetapkan. |
-| `POST /api/command-center/peringatan/:id/tinjauan` | Mencatat tinjauan, eskalasi, atau pengabaian oleh petugas berwenang. |
-| `GET /api/command-center/status-sumber` | Ketersediaan dan waktu pembaruan sumber. |
+| `GET /api/v3/laporan/command-center/ringkasan` | Ringkasan indikator, status data, dan sumber. |
+| `GET /api/v3/laporan/command-center/indikator` | Indikator terpilih beserta definisi, sumber, waktu pembaruan, dan kesegaran. |
+| `GET /api/v3/laporan/command-center/peringatan` | Peringatan berbasis ambang yang telah ditetapkan. |
+| `POST /api/v3/laporan/command-center/peringatan/:id/tinjauan` | Mencatat tinjauan, eskalasi, atau pengabaian oleh petugas berwenang. |
+| `GET /api/v3/laporan/command-center/status-sumber` | Ketersediaan dan waktu pembaruan sumber. |
 | Kanal real-time | WebSocket atau mekanisme setara, hanya setelah autentikasi dan cakupan akses divalidasi. |
 
 Respons HTTP mengikuti bentuk `{message,payload}`. Autentikasi dan izin diperiksa di backend untuk setiap permintaan. `faskes_uuid` selalu berasal dari token, tidak dari body atau parameter; cakupan unit berasal dari izin/kebijakan sistem. Akses Command Center tidak memperluas izin detail pada modul sumber. Tindakan transaksi tetap melalui modul sumber.
