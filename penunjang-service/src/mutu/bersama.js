@@ -26,8 +26,25 @@ export {
 
 export const JENIS_DOKUMEN = { kebijakan: "Kebijakan", pedoman: "Pedoman", spo: "SPO", program: "Program", bukti: "Bukti" };
 export const STATUS_DOKUMEN = { draf: "Draf", disahkan: "Disahkan", kedaluwarsa: "Kedaluwarsa", dicabut: "Dicabut" };
-export const JENIS_KREDENSIAL = { str: "STR", sip: "SIP", sertifikat: "Sertifikat Pelatihan", rkk: "RKK", spk: "SPK" };
+// Kredensial staf adalah SATU sumber data untuk Mutu & Akreditasi (Kredensial Staf) dan HR / SDM (Kredensial Pegawai):
+// keduanya membaca/menulis tabel mutu_kredensial lewat buatRuteKredensial() (kredensial.js). Jenis sertifikat_kompetensi
+// & lainnya berasal dari rancangan STD-0035 (data lama hr_kredensial dipindahkan migrasi 20261018210010).
+export const JENIS_KREDENSIAL = {
+  str: "STR",
+  sip: "SIP",
+  sertifikat: "Sertifikat Pelatihan",
+  sertifikat_kompetensi: "Sertifikat Kompetensi",
+  rkk: "RKK",
+  spk: "SPK",
+  lainnya: "Lainnya",
+};
 export const STATUS_KREDENSIAL = { aktif: "Aktif", dicabut: "Dicabut" };
+// Verifikasi keaslian dokumen (STD-0035 KF-8). Perubahan data inti/berkas mengembalikan status ke belum_diverifikasi.
+export const STATUS_VERIFIKASI = { belum_diverifikasi: "Belum Diverifikasi", terverifikasi: "Terverifikasi", ditolak: "Ditolak" };
+export const KOLOM_INTI_KREDENSIAL = ["jenis", "nomor", "penerbit", "tanggal_mulai", "tanggal_berakhir", "practitioner_uuid"];
+// true bila perubahan menyentuh data inti kredensial (BIGINT dibaca pg sebagai string → dibandingkan sebagai teks).
+export const perluVerifikasiUlang = (lama, perubahan) =>
+  KOLOM_INTI_KREDENSIAL.some((k) => perubahan?.[k] !== undefined && String(perubahan[k] ?? "") !== String(lama?.[k] ?? ""));
 export const MASA_BERLAKU = { aktif: "Berlaku", peringatan_90: "Berakhir ≤ 90 hari", peringatan_30: "Berakhir ≤ 30 hari", kedaluwarsa: "Kedaluwarsa" };
 
 // Status dokumen selalu diubah manual (KF-7: tinjau ulang tidak mencabut otomatis).

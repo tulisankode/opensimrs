@@ -984,7 +984,10 @@ export const giziPermission = {
 };
 
 // Laundry & Linen (STD-0023, penunjang-service). Konfirmasi serah terima & distribusi dipisah dari CREATE (dua
-// petugas berbeda — KF-5/KF-10); "Permintaan Linen" untuk petugas ruangan.
+// petugas berbeda — KF-5/KF-10); "Permintaan Linen" untuk petugas ruangan. Pelacakan per unit (STD-0030): pindai di
+// setiap titik alur memakai aksi submodul alur di atas; "Pemindaian Unit" hanya membaca hasil pindai, "Unit Linen"
+// registrasi/tautan bed/cetak label, "Koreksi Unit" ubah status & pindah lokasi beralasan, cara pencatatan per jenis
+// mengikuti Datamaster › Jenis Linen › UPDATE.
 export const laundryPermission = {
   module: "Laundry",
   subModules: [
@@ -996,6 +999,10 @@ export const laundryPermission = {
     { name: "Koreksi Stok", allows: ["READ", "CREATE"] },
     { name: "Datamaster", features: [{ name: "Jenis Linen", allows: ["READ", "CREATE", "UPDATE", "DELETE"] }] },
     { name: "Laporan Laundry", allows: ["READ", "CETAK LAPORAN"] },
+    { name: "Unit Linen", allows: ["READ", "CREATE", "UPDATE", "CETAK LABEL"] },
+    { name: "Pemindaian Unit", allows: ["READ"] },
+    { name: "Koreksi Unit", allows: ["READ", "UPDATE"] },
+    { name: "Laporan Unit", allows: ["READ", "CETAK LAPORAN"] },
   ],
 };
 
@@ -1082,7 +1089,7 @@ export const mutuPermission = {
     { name: "Dasbor Kesiapan", allows: ["READ"] },
     { name: "Instrumen Akreditasi", allows: ["READ", "CREATE", "UPDATE", "DELETE", "IMPORT"] },
     { name: "Dokumen Akreditasi", allows: ["READ", "CREATE", "UPDATE", "REVISI", "UBAH STATUS", "TINJAU", "PETAKAN ELEMEN", "BAGIKAN SURVEIOR", "DELETE"] },
-    { name: "Kredensial Staf", allows: ["READ", "CREATE", "UPDATE", "CABUT", "DELETE"] },
+    { name: "Kredensial Staf", allows: ["READ", "CREATE", "UPDATE", "VERIFIKASI", "CABUT", "DELETE"] },
     { name: "Akses Surveior", allows: ["READ"] },
   ],
 };
@@ -1099,6 +1106,36 @@ export const sarprasPermission = {
     { name: "Utilitas", allows: ["READ", "CREATE"] },
     { name: "Laporan Sarpras", allows: ["READ", "EKSPOR"] },
     { name: "Pengaturan", allows: ["READ", "UPDATE"] },
+  ],
+};
+
+// Unit Hemodialisa (STD-0033, penunjang-service/src/hemodialisa). Resep HD › SAHKAN untuk dokter; Sesi HD › KOREKSI
+// untuk koreksi observasi/adekuasi beraudit; Datamaster › Mapping HDIS juga membuka koneksi HDIS (selain Setting).
+export const hemodialisaPermission = {
+  module: "Hemodialisa",
+  subModules: [
+    { name: "Registrasi & Jadwal", allows: ["READ", "CREATE", "UPDATE", "BATAL"] },
+    { name: "Resep HD", allows: ["READ", "CREATE", "UPDATE", "SAHKAN"] },
+    { name: "Sesi HD", allows: ["READ", "ASESMEN", "MULAI", "OBSERVASI", "TUTUP", "KOREKSI", "BATAL"] },
+    { name: "Pemakaian BHP", allows: ["READ", "CREATE"] },
+    { name: "Datamaster", features: [
+      { name: "Mesin & Shift", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+      { name: "Aturan Reuse Dializer", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+      { name: "Mapping HDIS", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    ] },
+    { name: "Laporan Hemodialisa", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
+// HR / SDM (STD-0035, penunjang-service /hr). Fase 1: kepegawaian & kredensial pegawai. Kredensial adalah data yang sama
+// dengan Mutu & Akreditasi › Kredensial Staf (satu tabel), tetapi diatur izin modul ini. Submodul fase berikutnya
+// (jadwal dinas, kehadiran/cuti, pelatihan, penggajian) ditambahkan bersama fiturnya agar Hak Akses tidak menjanjikan
+// fitur yang belum ada.
+export const sdmPermission = {
+  module: "HR / SDM",
+  subModules: [
+    { name: "Kepegawaian", allows: ["READ", "CREATE", "UPDATE", "DELETE", "TAUTKAN AKUN"] },
+    { name: "Kredensial", allows: ["READ", "CREATE", "UPDATE", "UNGGAH DOKUMEN", "VERIFIKASI", "CABUT", "DELETE"] },
   ],
 };
 
@@ -1580,7 +1617,9 @@ export function mapPermission(permissionList) {
     cssd: cssdPermission,
     "manajemen ambulans": ambulansPermission,
     "mutu & akreditasi": mutuPermission,
+    "hr / sdm": sdmPermission,
     "sarana dan prasarana (ipsrs)": sarprasPermission,
+    hemodialisa: hemodialisaPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,
     stok: stokPermission,

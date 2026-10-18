@@ -5,6 +5,7 @@ import { ruteMasuk as ruteMasukLisMikro } from "./mikrobiologi/lis-rute.js";
 import { ruteMasuk as ruteMasukLisPa } from "./patologi/lis-pa/lis-pa-rute.js";
 import { ruteMasuk as ruteMasukPacs } from "./pacs/pacs-rute.js";
 import { ruteMasuk as ruteMasukBdrsUtd } from "./bank-darah/utd/utd-push-rute.js";
+import { ruteMasuk as ruteMasukHdis } from "./hemodialisa/hdis/push-rute.js";
 
 const app = express();
 
@@ -21,12 +22,15 @@ app.use((req, res, next) => {
 app.use(`${config.basePath}/sarpras`, express.json({ limit: `${Math.ceil(config.berkasSarprasMaksMb * 1.4) + 1}mb` }));
 // Mutu & Akreditasi: berkas dokumen/kredensial juga base64 di JSON, batas mengikuti MAX_UPLOAD_MUTU_MB (juga impor CSV).
 app.use(`${config.basePath}/mutu`, express.json({ limit: `${Math.ceil(config.maxUploadMutuMb * 1.4) + 1}mb` }));
+// Kredensial pegawai HR / SDM memakai batas berkas yang sama dengan Mutu (satu sumber data mutu_kredensial, STD-0035).
+app.use(`${config.basePath}/hr`, express.json({ limit: `${Math.ceil(config.maxUploadMutuMb * 1.4) + 1}mb` }));
 app.use(express.json({ limit: "5mb" }));
 // Hasil dari PACS/RIS, sistem PA, dan LIS Mikrobiologi memakai kunci masuk per koneksi, bukan token login (dipasang sebelum wajibLogin di rute.js)
 app.use(ruteMasukPacs);
 app.use(ruteMasukLisPa);
 app.use(ruteMasukLisMikro);
 app.use(ruteMasukBdrsUtd);
+app.use(ruteMasukHdis);
 app.use(config.basePath, rute);
 // Galat pembaca badan JSON (terlalu besar / JSON rusak) → JSON { message } dengan status aslinya (413/400), bukan halaman HTML.
 app.use((err, req, res, next) => {

@@ -3,7 +3,7 @@ import config from "../config.js";
 import { query } from "../db.js";
 import { kirim } from "../umum/respons.js";
 import { wajibSalahSatu } from "../umum/izin.js";
-import { JENIS_DOKUMEN, JENIS_KREDENSIAL, MASA_BERLAKU, STATUS_DOKUMEN, STATUS_KREDENSIAL, TIPE_BERKAS_DOKUMEN, TIPE_BERKAS_KREDENSIAL, pilihan } from "./bersama.js";
+import { JENIS_DOKUMEN, JENIS_KREDENSIAL, MASA_BERLAKU, STATUS_DOKUMEN, STATUS_KREDENSIAL, STATUS_VERIFIKASI, TIPE_BERKAS_DOKUMEN, TIPE_BERKAS_KREDENSIAL, pilihan } from "./bersama.js";
 import { FITUR_MUTU, fiturMutuAktif, wajibFiturMutu } from "./fitur.js";
 import { NAMA_PEGAWAI, tanganiMutu } from "./dasar.js";
 import instrumen from "./instrumen.js";
@@ -46,6 +46,7 @@ rute.get(
       status_dokumen: pilihan(STATUS_DOKUMEN),
       jenis_kredensial: pilihan(JENIS_KREDENSIAL),
       status_kredensial: pilihan(STATUS_KREDENSIAL),
+      status_verifikasi: pilihan(STATUS_VERIFIKASI),
       masa_berlaku: pilihan(MASA_BERLAKU),
       pegawai: await query(`SELECT p.uuid, ${NAMA_PEGAWAI("p")} AS nama FROM pegawai p WHERE p.faskes_uuid = $1 AND p.deleted_at IS NULL AND p.status = true ORDER BY p.name`, [f]),
       practitioner: await query(

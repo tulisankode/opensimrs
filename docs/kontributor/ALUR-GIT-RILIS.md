@@ -69,7 +69,8 @@ Perpindahan tahap (alpha ke beta ke rc ke stabil) diputuskan Core Maintainer dan
 ### 1.5 Migrasi database
 
 - Nama berkas: `database/migrations/YYYYMMDDHHMMSS-deskripsi_singkat.cjs` dengan cap waktu **UTC saat berkas dibuat**.
-- Saat PR di-merge, migrasi baru harus berurutan **paling akhir** dibanding semua migrasi di `main`. Bila `main` sudah punya migrasi yang lebih baru, ganti cap waktu berkas Anda sebelum merge.
+- Saat PR di-merge, migrasi baru harus berurutan **paling akhir** dibanding semua migrasi di `main`. Bila `main` sudah punya migrasi yang lebih baru, ganti cap waktu berkas Anda sebelum merge (beserta rujukannya di fragmen CHANGELOG dan komentar).
+- Item SIMRS Studio mendapat **awalan migrasi** sendiri (blok jam UTC `YYYYMMDDHH`) saat coding dimulai, sehingga item yang dikerjakan bersamaan tidak memakai cap waktu yang sama. Migrasi item yang tertinggal diganti namanya otomatis saat **Terapkan** ([SIMRS Studio](../SIMRS-STUDIO.md#bekerja-paralel-migrasi-changelog-dan-sinkronisasi)).
 - **Jangan pernah mengubah migrasi yang sudah ada di `main`.** Faskes mungkin sudah menjalankannya. Perbaikan selalu ditulis sebagai migrasi baru.
 - Migrasi wajib **idempoten**. CI menjalankannya dua kali dan kali kedua tidak boleh mengubah apa pun.
 - Isi `down()` bila memungkinkan. Bila tidak, tulis alasannya di komentar berkas.
@@ -134,7 +135,7 @@ Berlaku mulai tahap beta.
 - [ ] **Jumlah persetujuan** sesuai tabel [3.2](#32-siapa-yang-harus-menyetujui). Penulis PR tidak menyetujui PR-nya sendiri.
 - [ ] **Semua percakapan review sudah ditandai selesai** (*resolved*).
 - [ ] **Branch mutakhir** terhadap target (`main` atau `release/X.Y`) dan tanpa konflik.
-- [ ] **Entri CHANGELOG** di bagian *[Belum dirilis]* untuk perubahan yang terasa oleh pengguna atau implementator ([CONTRIBUTING bagian 7](../../CONTRIBUTING.md#7-changelog)).
+- [ ] **Fragmen CHANGELOG** `changelog.d/<nama-branch>.md` untuk perubahan yang terasa oleh pengguna atau implementator ([CONTRIBUTING bagian 7](../../CONTRIBUTING.md#7-changelog)). PR tidak mengedit `CHANGELOG.md` langsung.
 - [ ] **Dokumen ikut diperbarui** bila perilaku, perintah, `.env`, atau langkah instalasi berubah.
 - [ ] **Tanpa rahasia dan data nyata**: tidak ada `.env`, kunci, IP server faskes, atau data atau screenshot pasien asli.
 - [ ] **Migrasi baru** (bila ada) berurutan paling akhir dan idempoten ([1.5](#15-migrasi-database)).
@@ -187,6 +188,7 @@ git push --force-with-lease       # perbarui branch di fork Anda
 - **Setelah review dimulai:** jangan force-push kecuali diminta reviewer. Untuk mengejar `main`, gunakan `git merge upstream/main` di branch Anda. Riwayatnya tetap bersih karena PR akan di-squash.
 - **Konflik diselesaikan oleh penulis PR.** Setelah menyelesaikan konflik, jalankan ulang uji yang relevan.
 - **Konflik migrasi:** bila PR lain menambah migrasi dengan cap waktu lebih baru, ganti nama berkas migrasi Anda dengan cap waktu terbaru lalu jalankan `npm run db:migrate` di database lokal.
+- **CHANGELOG** tidak lagi konflik karena setiap PR menulis fragmen sendiri di `changelog.d/`. Untuk PR lama yang masih mengedit `CHANGELOG.md`, pertahankan entri kedua sisi.
 - **Konflik `package-lock.json`:** ambil versi dari `main`, lalu jalankan `npm install` di folder terkait. Jangan menyunting lock file secara manual.
 
 ---
@@ -197,6 +199,7 @@ Dilakukan oleh Core Maintainer.
 
 1. **Persiapan:** umumkan freeze ([3.4](#34-masa-beku-freeze-sebelum-rilis)). Pastikan tidak ada issue P1 terbuka untuk tonggak ini.
 2. **PR rilis** `chore(rilis): vX.Y.Z[-tahap.N]`:
+   - gabungkan fragmen dengan `node scripts/gabung-changelog.mjs`. Skrip ini memindahkan semua `changelog.d/*.md` ke *[Belum dirilis]* per kategori, lalu menghapus fragmennya (`--cek` hanya memeriksa format);
    - pindahkan isi *[Belum dirilis]* di CHANGELOG ke bagian versi baru beserta tanggalnya;
    - perbarui tautan perbandingan di bawah CHANGELOG;
    - naikkan `version` di `package.json` root (dan `package-lock.json` root dengan `npm install --package-lock-only`).

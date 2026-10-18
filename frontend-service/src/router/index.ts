@@ -298,6 +298,9 @@ import BatchLaundryPage from "@/views/Laundry/BatchPage.vue";
 import DistribusiLaundryPage from "@/views/Laundry/DistribusiPage.vue";
 import KoreksiLaundryPage from "@/views/Laundry/KoreksiPage.vue";
 import LaporanLaundryPage from "@/views/Laundry/LaporanPage.vue";
+import UnitLaundryPage from "@/views/Laundry/UnitPage.vue";
+import PemindaianUnitLaundryPage from "@/views/Laundry/PemindaianUnitPage.vue";
+import LaporanUnitLaundryPage from "@/views/Laundry/LaporanUnitPage.vue";
 
 // NOTE Mutu & Akreditasi — dokumen akreditasi, instrumen, kredensial staf, dasbor kesiapan (STD-0028, penunjang-service)
 import MutuView from "@/views/Mutu/MutuView.vue";
@@ -316,6 +319,21 @@ import KalibrasiSarprasPage from "@/views/Sarpras/KalibrasiPage.vue";
 import UtilitasSarprasPage from "@/views/Sarpras/UtilitasPage.vue";
 import PengaturanSarprasPage from "@/views/Sarpras/PengaturanPage.vue";
 import LaporanSarprasPage from "@/views/Sarpras/LaporanPage.vue";
+import SdmView from "@/views/Sdm/SdmView.vue";
+import KepegawaianSdmPage from "@/views/Sdm/KepegawaianPage.vue";
+import KredensialSdmPage from "@/views/Sdm/KredensialPage.vue";
+
+// NOTE Unit Hemodialisa — jadwal, sesi HD, dializer, bridging HDIS (STD-0033, penunjang-service)
+import HemodialisaView from "@/views/Hemodialisa/HemodialisaView.vue";
+import JadwalHdPage from "@/views/Hemodialisa/JadwalPage.vue";
+import RegistrasiHdPage from "@/views/Hemodialisa/RegistrasiPage.vue";
+import ResepHdPage from "@/views/Hemodialisa/ResepPage.vue";
+import SesiHdPage from "@/views/Hemodialisa/SesiPage.vue";
+import DializerHdPage from "@/views/Hemodialisa/DializerPage.vue";
+import MesinShiftHdPage from "@/views/Hemodialisa/Datamaster/MesinShiftPage.vue";
+import AturanReuseHdPage from "@/views/Hemodialisa/Datamaster/AturanReusePage.vue";
+import MappingHdisPage from "@/views/Hemodialisa/Datamaster/MappingHdisPage.vue";
+import LaporanHdPage from "@/views/Hemodialisa/LaporanPage.vue";
 
 // NOTE Manajemen Ambulans — permintaan & penugasan, perjalanan, armada & kru, tarif, biaya/kuitansi (STD-0024, penunjang-service)
 import AmbulansView from "@/views/Ambulans/AmbulansView.vue";
@@ -1864,6 +1882,11 @@ const router = createRouter({
       ["/sarpras/pengaturan", "sarpras-pengaturan", PengaturanSarprasPage],
       ["/sarpras/laporan", "sarpras-laporan", LaporanSarprasPage],
     ]),
+    { path: "/sdm", name: "sdm", redirect: "/sdm/kepegawaian" },
+    ...halamanModul(SdmView, [
+      ["/sdm/kepegawaian", "sdm-kepegawaian", KepegawaianSdmPage],
+      ["/sdm/kredensial", "sdm-kredensial", KredensialSdmPage],
+    ]),
     // !SECTION
 
     // SECTION Program Puskesmas (program-puskesmas-service)
@@ -1915,6 +1938,9 @@ const router = createRouter({
       ["/laundry/distribusi", "laundry-distribusi", DistribusiLaundryPage],
       ["/laundry/koreksi", "laundry-koreksi", KoreksiLaundryPage],
       ["/laundry/laporan", "laundry-laporan", LaporanLaundryPage],
+      ["/laundry/unit", "laundry-unit", UnitLaundryPage],
+      ["/laundry/pemindaian-unit", "laundry-pemindaian-unit", PemindaianUnitLaundryPage],
+      ["/laundry/laporan-unit", "laundry-laporan-unit", LaporanUnitLaundryPage],
     ]),
     // !SECTION
 
@@ -1953,6 +1979,20 @@ const router = createRouter({
       ["/kamar-operasi/jadwal", "kamar-operasi-jadwal", JadwalOkPage],
       ["/kamar-operasi/datamaster/ruang", "kamar-operasi-datamaster-ruang", MasterRuangOkPage],
       ["/kamar-operasi/laporan/rekap", "kamar-operasi-laporan-rekap", LaporanRekapOkPage],
+    ]),
+    // !SECTION
+    // SECTION Hemodialisa
+    { path: "/hemodialisa", name: "hemodialisa", redirect: "/hemodialisa/jadwal" },
+    ...halamanModul(HemodialisaView, [
+      ["/hemodialisa/jadwal", "hemodialisa-jadwal", JadwalHdPage],
+      ["/hemodialisa/registrasi", "hemodialisa-registrasi", RegistrasiHdPage],
+      ["/hemodialisa/resep", "hemodialisa-resep", ResepHdPage],
+      ["/hemodialisa/sesi", "hemodialisa-sesi", SesiHdPage],
+      ["/hemodialisa/dializer", "hemodialisa-dializer", DializerHdPage],
+      ["/hemodialisa/datamaster/mesin-shift", "hemodialisa-mesin-shift", MesinShiftHdPage],
+      ["/hemodialisa/datamaster/aturan-reuse", "hemodialisa-aturan-reuse", AturanReuseHdPage],
+      ["/hemodialisa/datamaster/mapping-hdis", "hemodialisa-mapping-hdis", MappingHdisPage],
+      ["/hemodialisa/laporan", "hemodialisa-laporan", LaporanHdPage],
     ]),
     // !SECTION
 

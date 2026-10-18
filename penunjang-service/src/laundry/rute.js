@@ -8,6 +8,7 @@ import { rute as penerimaan } from "./penerimaan.js";
 import { rute as batch } from "./batch.js";
 import { rute as distribusi } from "./distribusi.js";
 import { rute as laporan } from "./laporan.js";
+import { rute as unit } from "./unit.js";
 
 // Laundry & Linen (STD-0023) — /api/v3/penunjang/laundry/...
 //   /referensi                                         jenis linen aktif, ruangan, pilihan enum
@@ -18,6 +19,7 @@ import { rute as laporan } from "./laporan.js";
 //   /penerimaan/antrean, /batch, /batch/:uuid/tahap/:t  antrean cuci & pemrosesan batch
 //   /permintaan, /distribusi, /distribusi/:uuid/konfirmasi  permintaan & distribusi linen bersih
 //   /laporan, /laporan/rekonsiliasi, /laporan/ekspor   laporan
+//   /unit/...                                          pelacakan per unit linen QR/barcode (STD-0030, unit.js)
 const rute = express.Router();
 
 const MODUL = "Laundry";
@@ -36,7 +38,7 @@ rute.get(
   tangani(async (req, res) => {
     const f = req.author.faskesUuid;
     kirim(res, {
-      jenis_linen: await query(`SELECT uuid, kode, nama, satuan, aktif FROM laundry_jenis_linen WHERE faskes_uuid = $1 AND deleted_at IS NULL ORDER BY nama`, [f]),
+      jenis_linen: await query(`SELECT uuid, kode, nama, satuan, aktif, cara_pencatatan FROM laundry_jenis_linen WHERE faskes_uuid = $1 AND deleted_at IS NULL ORDER BY nama`, [f]),
       ruangan: await query(`SELECT uuid, name AS nama, pelayanan FROM lokasi WHERE faskes_uuid = $1 AND deleted_at IS NULL ORDER BY name`, [f]),
       kategori: pilihan(KATEGORI_LINEN),
       jenis_koreksi: pilihan(JENIS_KOREKSI),
@@ -133,6 +135,8 @@ rute.delete(
       [f, req.params.uuid],
     );
     if (Number(sisa?.saldo ?? 0) !== 0) throw konflik("Jenis linen masih memiliki saldo; nonaktifkan saja atau koreksi saldonya terlebih dahulu");
+    const unitAktif = await satu(`SELECT 1 FROM laundry_unit WHERE faskes_uuid = $1 AND jenis_linen_uuid = $2 AND status = 'aktif' AND deleted_at IS NULL LIMIT 1`, [f, req.params.uuid]);
+    if (unitAktif) throw konflik("Jenis linen masih memiliki unit aktif (dilacak per unit)");
     const rows = await query(`UPDATE laundry_jenis_linen SET deleted_at = $1, updated_at = $1 WHERE uuid = $2 AND faskes_uuid = $3 AND deleted_at IS NULL RETURNING uuid`, [sekarang(), req.params.uuid, f]);
     if (!rows.length) throw tidakDitemukan("Jenis linen");
     kirim(res, { uuid: rows[0].uuid }, "Jenis linen berhasil diarsipkan");
@@ -144,5 +148,6 @@ rute.use("/", penerimaan);
 rute.use("/", batch);
 rute.use("/", distribusi);
 rute.use("/", laporan);
+rute.use("/", unit);
 
 export default rute;

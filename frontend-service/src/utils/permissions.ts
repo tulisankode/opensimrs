@@ -304,6 +304,9 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/laundry/koreksi", permission: any("Laundry", "Koreksi Stok", ["READ", "CREATE"]) },
   { path: "/laundry/master", permission: read("Laundry", "Datamaster", "Jenis Linen") },
   { path: "/laundry/laporan", permission: read("Laundry", "Laporan Laundry") },
+  { path: "/laundry/unit", permission: read("Laundry", "Unit Linen") },
+  { path: "/laundry/pemindaian-unit", permission: read("Laundry", "Pemindaian Unit") },
+  { path: "/laundry/laporan-unit", permission: read("Laundry", "Laporan Unit") },
   { path: "/laundry", mode: "prefix", permission: read("Laundry", null, null, null) },
 
   // Sarana dan Prasarana (IPSRS) — penunjang-service (STD-0022)
@@ -319,6 +322,17 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   // Dashboard Eksekutif — laporan-service (STD-0034)
   { path: "/dashboard/eksekutif", permission: read("Dashboard", "Eksekutif") },
 
+  // Unit Hemodialisa — penunjang-service (STD-0033)
+  { path: "/hemodialisa/jadwal", permission: read("Hemodialisa", "Registrasi & Jadwal") },
+  { path: "/hemodialisa/registrasi", permission: read("Hemodialisa", "Registrasi & Jadwal") },
+  { path: "/hemodialisa/resep", permission: read("Hemodialisa", "Resep HD") },
+  { path: "/hemodialisa/sesi", permission: read("Hemodialisa", "Sesi HD") },
+  { path: "/hemodialisa/dializer", permission: read("Hemodialisa", "Pemakaian BHP") },
+  { path: "/hemodialisa/datamaster/mesin-shift", permission: read("Hemodialisa", "Datamaster", "Mesin & Shift") },
+  { path: "/hemodialisa/datamaster/aturan-reuse", permission: read("Hemodialisa", "Datamaster", "Aturan Reuse Dializer") },
+  { path: "/hemodialisa/datamaster/mapping-hdis", permission: read("Hemodialisa", "Datamaster", "Mapping HDIS") },
+  { path: "/hemodialisa/laporan", permission: read("Hemodialisa", "Laporan Hemodialisa") },
+  { path: "/hemodialisa", mode: "prefix", permission: read("Hemodialisa", null, null, null) },
   // Mutu & Akreditasi — penunjang-service (STD-0028: dokumen akreditasi & kredensial staf)
   { path: "/mutu/dasbor", permission: read("Mutu & Akreditasi", "Dasbor Kesiapan") },
   { path: "/mutu/instrumen", permission: read("Mutu & Akreditasi", "Instrumen Akreditasi") },
@@ -326,6 +340,11 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/mutu/kredensial", permission: read("Mutu & Akreditasi", "Kredensial Staf") },
   { path: "/mutu/surveior", permission: read("Mutu & Akreditasi", "Akses Surveior") },
   { path: "/mutu", mode: "prefix", permission: read("Mutu & Akreditasi", null, null, null) },
+
+  // HR / SDM — penunjang-service (STD-0035 fase 1: kepegawaian & kredensial pegawai; kredensial satu sumber dengan Mutu)
+  { path: "/sdm/kepegawaian", permission: read("HR / SDM", "Kepegawaian") },
+  { path: "/sdm/kredensial", permission: read("HR / SDM", "Kredensial") },
+  { path: "/sdm", mode: "prefix", permission: read("HR / SDM", null, null, null) },
 
   // Bank Darah RS (BDRS) — penunjang-service
   { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },
