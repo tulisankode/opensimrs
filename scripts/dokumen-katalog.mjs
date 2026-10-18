@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SUMBER = join(ROOT, "database", "data", "katalog-modul.json");
 const DOKUMEN = join(ROOT, "docs", "MANAJEMEN-MODUL.md");
+const HEADER = join(ROOT, "frontend-service", "src", "components", "section", "Header.vue");
 const MULAI = "<!-- KATALOG:MULAI -->";
 const SELESAI = "<!-- KATALOG:SELESAI -->";
 
@@ -61,6 +62,13 @@ const syaratModul = (nilai) =>
         .join(" atau ")
     : "–";
 
+// Urutan bidang = urutan kolom panel menu "Lainnya" (URUTAN_BIDANG di Header.vue); bidang lain menyusul.
+const kodeHeader = readFileSync(HEADER, "utf8").replace(/\r\n/g, "\n");
+const awalBidang = kodeHeader.indexOf("const URUTAN_BIDANG");
+const urutanBidang = awalBidang < 0 ? [] : [...kodeHeader.slice(awalBidang, kodeHeader.indexOf("\n];", awalBidang)).matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+const bidang = [...new Set([...urutanBidang, ...modul.map((m) => m.bidang ?? "–")])].filter((b) => modul.some((m) => (m.bidang ?? "–") === b));
+const posisi = (m) => (m.bidang ? `${m.bidang} › ${m.instalasi ?? "–"}` : "–");
+
 const statusModul = (m) => (m.inti ? "Inti (selalu aktif)" : m.tersedia ? "Tersedia" : "Segera");
 const segmenYang = (peta, kodeItem) =>
   segmen.filter((s) => (peta[s.kode] ?? []).includes(kodeItem)).map((s) => singkat(s.kode));
@@ -103,8 +111,8 @@ for (const g of kelompok) {
   tulis(`#### ${g}`);
   tulis();
   tabel(
-    ["Kode", "Nama", "Deskripsi", "Status", "Nama izin (menu)"],
-    modul.filter((m) => m.kelompok === g).map((m) => [kode(m.kode), m.nama, m.deskripsi, statusModul(m), daftar(m.menu ?? [])]),
+    ["Kode", "Nama", "Deskripsi", "Status", "Bidang › Instalasi", "Nama izin (menu)"],
+    modul.filter((m) => m.kelompok === g).map((m) => [kode(m.kode), m.nama, m.deskripsi, statusModul(m), posisi(m), daftar(m.menu ?? [])]),
   );
 }
 
@@ -183,6 +191,26 @@ if (jenisPoli.length) {
   tulis();
   tabel(["Kode", "Nama"], jenisPoli.map((p) => [kode(p.kode), p.nama]));
 }
+
+// 7. Struktur organisasi
+tulis("### G. Struktur organisasi (bidang › instalasi)");
+tulis();
+tulis(
+  "Field `bidang` dan `instalasi` menempatkan menu modul di panel **Lainnya** pada menu atas: satu kolom per bidang, " +
+    "instalasi sebagai subjudul. Bidang tanpa menu aktif di faskes tidak ditampilkan. Menu non-modul (mis. Ekstensi) dipetakan di `Header.vue`.",
+);
+tulis();
+tabel(
+  ["Bidang", "Instalasi", "Modul"],
+  bidang.flatMap((b) => {
+    const isi = modul.filter((m) => (m.bidang ?? "–") === b);
+    return [...new Set(isi.map((m) => m.instalasi ?? "–"))].map((ins) => [
+      b,
+      ins,
+      isi.filter((m) => (m.instalasi ?? "–") === ins).map((m) => `${m.nama} (${kode(m.kode)})`).join(", "),
+    ]);
+  }),
+);
 
 const dok = readFileSync(DOKUMEN, "utf8");
 // Ikuti akhir baris dokumen (LF di Linux/CI, CRLF bila git autocrlf aktif di Windows) agar --cek konsisten.

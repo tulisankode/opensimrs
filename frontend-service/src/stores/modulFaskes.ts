@@ -9,6 +9,10 @@ export interface ModulKatalog {
   kode: string;
   nama: string;
   kelompok: string;
+  // Hierarki organisasi faskes (katalog-modul.json): mis. bidang "Penunjang Medis", instalasi "Instalasi Laboratorium".
+  // Kosong bila migrasi 20261018140000 belum dijalankan.
+  bidang?: string | null;
+  instalasi?: string | null;
   deskripsi: string;
   inti?: boolean;
   tersedia: boolean;

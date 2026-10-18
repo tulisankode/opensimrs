@@ -15,10 +15,12 @@ const kelompokkan = (baris, kunci, nilai) => baris.reduce((acc, r) => {
 
 export const muatKatalog = async ({ segar = false } = {}) => {
   if (!segar && cache && Date.now() - cache.waktu < CACHE_MS) return cache.data;
+  // Kolom bidang & instalasi (hierarki organisasi untuk menu) baru ada setelah migrasi 20261018140000.
+  const adaBidang = (await pilih(`SELECT 1 FROM information_schema.columns WHERE table_name = 'ref_modul' AND column_name = 'bidang'`)).length > 0;
   const [jenisPoli, segmen, modul, menu, fitur, bagian, bagianPoli, rute, presetModul, fiturMati, bagianMati] = await Promise.all([
     pilih(`SELECT kode, nama FROM ref_jenis_poli ORDER BY urutan, kode`),
     pilih(`SELECT kode, nama, urutan, ringkas FROM ref_segmen ORDER BY urutan`),
-    pilih(`SELECT kode, nama, kelompok, deskripsi, inti, tersedia FROM ref_modul ORDER BY urutan, kode`),
+    pilih(`SELECT kode, nama, kelompok, ${adaBidang ? "bidang, instalasi, " : ""}deskripsi, inti, tersedia FROM ref_modul ORDER BY urutan, kode`),
     pilih(`SELECT modul_kode, judul FROM ref_modul_menu`),
     pilih(`SELECT kode, modul_kode, nama, deskripsi, wajib, tersedia, modul_syarat FROM ref_fitur ORDER BY urutan, kode`),
     pilih(`SELECT kode, fitur_kode, label, nama, wajib, modul_syarat FROM ref_bagian ORDER BY urutan, kode`),

@@ -129,6 +129,8 @@ Ubah `database/data/katalog-modul.json`:
   "kode": "patologi_anatomi",          // snake_case, unik, tidak boleh diganti setelah dipakai
   "nama": "Patologi Anatomi",
   "kelompok": "Penunjang",             // Inti / Layanan / Penunjang / Penjaminan / Puskesmas / Rumah Sakit
+  "bidang": "Penunjang Medis",         // wajib: bidang struktur organisasi (lihat daftar di bawah)
+  "instalasi": "Instalasi Laboratorium", // wajib: unit/instalasi di dalam bidang (subjudul di panel menu)
   "inti": false,
   "tersedia": true,                    // false = tampil sebagai "Segera"
   "deskripsi": "Histopatologi, sitologi & potong beku: ...",
@@ -138,6 +140,7 @@ Ubah `database/data/katalog-modul.json`:
 }
 ```
 
+- **`bidang` dan `instalasi` wajib diisi** untuk setiap modul (diperiksa `node scripts/cek-integritas.mjs`). Keduanya menempatkan menu modul di panel **Lainnya** pada menu atas, yang disusun per kolom bidang dengan subjudul instalasi mengikuti struktur organisasi rumah sakit/klinik. Isi `bidang` dengan salah satu nilai berikut (urutannya = urutan kolom panel, didefinisikan di `URUTAN_BIDANG` pada `Header.vue`): *Pelayanan Medis & Keperawatan*, *Penunjang Medis*, *Penunjang Umum*, *Keuangan & Administrasi*, *Manajemen & Mutu*, *Program Kesehatan Masyarakat*, *Sistem*. Untuk `instalasi`, pakai nama instalasi yang sudah ada bila modul masuk unit yang sama (mis. Patologi Anatomi dan Mikrobiologi masuk *Instalasi Laboratorium*); bila tidak ada, buat nama baru. Instalasi diurutkan menurut `urutan` modul pertamanya. Modul bidang *Penunjang Medis*/*Penunjang Umum* juga otomatis masuk dropdown **Penunjang** di menu atas, kecuali instalasi yang tercantum di `INSTALASI_MENU_SENDIRI` (Farmasi, Gizi, Rekam Medis, Logistik & Gudang). Field `kelompok` tetap dipakai layar Manajemen Modul dan tidak berubah maknanya.
 - Tambahkan kode modul ke `preset.segmen_modul.<segmen>` untuk setiap segmen yang mengaktifkannya secara bawaan (PA: `rs_c`, `rs_b`, `rs_a`; Mikrobiologi: `rs_b`, `rs_a`).
 - Untuk **fitur** baru, tambahkan objek di array `fitur` (`kode`, `modul`, `nama`, `deskripsi`, `tersedia`, `wajib`, `rute`, `urutan`, opsional `modul_syarat`). Bila fitur tidak boleh menyala di segmen tertentu, tambahkan kodenya ke `preset.fitur_mati.<segmen>`. **Item yang tidak disebut akan aktif di semua segmen.**
 - Untuk **bagian** baru, tambahkan di array `bagian` (`fitur`, `poli` bila khusus jenis poli, `modul_syarat` bila perlu) dan bila perlu `preset.bagian_mati`.
@@ -170,7 +173,7 @@ Jalankan `npm run db:migrate`. **Jangan mengedit migrasi yang sudah pernah dijal
 ### Langkah 4 — Rute & menu frontend
 
 1. `frontend-service/src/router/index.ts`: daftarkan halaman. **Wajib** ada rute induk dengan redirect, mis. `/patologi-anatomi` → `/patologi-anatomi/order`; tanpa itu klik menu jatuh ke dashboard.
-2. `frontend-service/src/components/section/Header.vue`: tambahkan menu (dan ke `MODUL_PENUNJANG` bila termasuk grup Penunjang), serta nama/ikon di `NAMA_SEGERA`/`IKON_SEGERA` untuk tampilan status Segera.
+2. `frontend-service/src/components/section/Header.vue`: tambahkan menu di `templistMenu` (grup Penunjang & kolom panel Lainnya otomatis dari `bidang`/`instalasi` katalog; judul panjang boleh dipersingkat di `NAMA_RINGKAS`), serta nama/ikon di `NAMA_SEGERA`/`IKON_SEGERA` untuk tampilan status Segera.
 3. Di komponen, pakai helper dari `frontend-service/src/stores/modulFaskes.ts`:
 
 | Helper | Pakai untuk |
@@ -197,7 +200,7 @@ Peran yang sudah ada di database tidak otomatis mendapat izin modul baru. Pilih 
 
 ### Ringkasan checklist PR modul/fitur baru
 
-- [ ] `katalog-modul.json` (modul/fitur/bagian + preset segmen)
+- [ ] `katalog-modul.json` (modul/fitur/bagian + preset segmen; modul wajib punya `bidang` & `instalasi`)
 - [ ] Migrasi `sinkronKatalog` baru
 - [ ] Izin di `permission-list.js` + `mapPermission` + `SEMUA_MODUL`
 - [ ] Rute (dengan rute induk redirect) + menu header
@@ -238,67 +241,67 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 
 #### Inti
 
-| Kode | Nama | Deskripsi | Status | Nama izin (menu) |
-|---|---|---|---|---|
-| `dashboard` | Dashboard | Ringkasan kunjungan & pendapatan. | Inti (selalu aktif) | Dashboard |
-| `pendaftaran` | Pendaftaran Pasien | Data pasien, No. RM, pendaftaran kunjungan rawat jalan. | Inti (selalu aktif) | Admisi |
-| `rawat_jalan` | RME Rawat Jalan | Pemeriksaan, SOAP, diagnosis ICD-10, tindakan, resep, resume. | Inti (selalu aktif) | Rawat Jalan |
-| `pembayaran` | Kasir & Pembayaran | Tagihan otomatis dari tindakan, obat, penunjang & kamar; pembayaran. | Inti (selalu aktif) | Pembayaran |
-| `datamaster` | Data Master | Pegawai, praktisi, lokasi/poli, tarif, penjamin. | Inti (selalu aktif) | Datamaster |
-| `laporan` | Laporan | Laporan kunjungan, diagnosis, keuangan. | Inti (selalu aktif) | Laporan |
-| `satusehat` | SATUSEHAT | Integrasi wajib Kemenkes (RME). | Inti (selalu aktif) | – |
-| `audit_trail` | Audit Trail | Jejak login, akses rekam medis, dan perubahan data lintas layanan (rantai hash). Selalu aktif; akses lihat/ekspor lewat izin Setting › Audit Trail. | Inti (selalu aktif) | – |
+| Kode | Nama | Deskripsi | Status | Bidang › Instalasi | Nama izin (menu) |
+|---|---|---|---|---|---|
+| `dashboard` | Dashboard | Ringkasan kunjungan & pendapatan. | Inti (selalu aktif) | Manajemen & Mutu › Pelaporan | Dashboard |
+| `pendaftaran` | Pendaftaran Pasien | Data pasien, No. RM, pendaftaran kunjungan rawat jalan. | Inti (selalu aktif) | Keuangan & Administrasi › Pendaftaran & Admisi | Admisi |
+| `rawat_jalan` | RME Rawat Jalan | Pemeriksaan, SOAP, diagnosis ICD-10, tindakan, resep, resume. | Inti (selalu aktif) | Pelayanan Medis & Keperawatan › Instalasi Rawat Jalan | Rawat Jalan |
+| `pembayaran` | Kasir & Pembayaran | Tagihan otomatis dari tindakan, obat, penunjang & kamar; pembayaran. | Inti (selalu aktif) | Keuangan & Administrasi › Kasir & Penjaminan | Pembayaran |
+| `datamaster` | Data Master | Pegawai, praktisi, lokasi/poli, tarif, penjamin. | Inti (selalu aktif) | Sistem › Data Master | Datamaster |
+| `laporan` | Laporan | Laporan kunjungan, diagnosis, keuangan. | Inti (selalu aktif) | Manajemen & Mutu › Pelaporan | Laporan |
+| `satusehat` | SATUSEHAT | Integrasi wajib Kemenkes (RME). | Inti (selalu aktif) | Sistem › Integrasi & Interoperabilitas | – |
+| `audit_trail` | Audit Trail | Jejak login, akses rekam medis, dan perubahan data lintas layanan (rantai hash). Selalu aktif; akses lihat/ekspor lewat izin Setting › Audit Trail. | Inti (selalu aktif) | Manajemen & Mutu › Audit Trail | – |
 
 #### Layanan
 
-| Kode | Nama | Deskripsi | Status | Nama izin (menu) |
-|---|---|---|---|---|
-| `antrian` | Antrian & Layar Panggil | Nomor antrian, panggilan pasien, layar TV kiosk bersuara. | Tersedia | Antrian |
-| `farmasi` | Farmasi | Telaah, verifikasi, penyiapan & penyerahan resep; stok depo. | Tersedia | Farmasi |
-| `inventory` | Gudang & Pengadaan | Gudang, pembelian, distribusi ke depo, stok opname. | Tersedia | Inventory |
-| `rawat_inap` | Rawat Inap | Bed & kamar, perpindahan bangsal, discharge, biaya kamar otomatis. | Tersedia | Rawat Inap |
-| `igd` | IGD | Pendaftaran & pelayanan gawat darurat, SPRI ke rawat inap. | Tersedia | IGD |
-| `training` | Kelas Training | Kelas olahraga/edukasi berbayar (yoga, pilates, senam hamil): jadwal kelas, kuota slot, booking peserta. | Tersedia | Training |
-| `mcu` | Medical Check Up (MCU) | Paket MCU perorangan & korporasi: pendaftaran rombongan, alur stasiun pemeriksaan, kesimpulan fit/unfit, laporan & tagihan perusahaan. | Tersedia | MCU |
+| Kode | Nama | Deskripsi | Status | Bidang › Instalasi | Nama izin (menu) |
+|---|---|---|---|---|---|
+| `antrian` | Antrian & Layar Panggil | Nomor antrian, panggilan pasien, layar TV kiosk bersuara. | Tersedia | Keuangan & Administrasi › Pendaftaran & Admisi | Antrian |
+| `farmasi` | Farmasi | Telaah, verifikasi, penyiapan & penyerahan resep; stok depo. | Tersedia | Penunjang Medis › Instalasi Farmasi | Farmasi |
+| `inventory` | Gudang & Pengadaan | Gudang, pembelian, distribusi ke depo, stok opname. | Tersedia | Penunjang Umum › Logistik & Gudang | Inventory |
+| `rawat_inap` | Rawat Inap | Bed & kamar, perpindahan bangsal, discharge, biaya kamar otomatis. | Tersedia | Pelayanan Medis & Keperawatan › Instalasi Rawat Inap | Rawat Inap |
+| `igd` | IGD | Pendaftaran & pelayanan gawat darurat, SPRI ke rawat inap. | Tersedia | Pelayanan Medis & Keperawatan › Instalasi Gawat Darurat | IGD |
+| `training` | Kelas Training | Kelas olahraga/edukasi berbayar (yoga, pilates, senam hamil): jadwal kelas, kuota slot, booking peserta. | Tersedia | Sistem › Pelatihan | Training |
+| `mcu` | Medical Check Up (MCU) | Paket MCU perorangan & korporasi: pendaftaran rombongan, alur stasiun pemeriksaan, kesimpulan fit/unfit, laporan & tagihan perusahaan. | Tersedia | Pelayanan Medis & Keperawatan › Medical Check Up | MCU |
 
 #### Penunjang
 
-| Kode | Nama | Deskripsi | Status | Nama izin (menu) |
-|---|---|---|---|---|
-| `laboratorium` | Laboratorium | Order, validasi, hasil, expertise, bridging LIS. | Tersedia | Laboratorium |
-| `fisioterapi` | Fisioterapi / Rehabilitasi Medik | Order terapi dari RME, penjadwalan & booking sesi, evaluasi terapi, bed/ruang terapi. | Tersedia | Fisioterapi |
-| `radiologi` | Radiologi | Order & hasil radiologi, bridging PACS. | Tersedia | Radiologi |
-| `cssd` | CSSD | Sterilisasi alat & pelacakan set instrumen: master set, penerimaan, dekontaminasi, load sterilisasi, penyimpanan & distribusi, pemakaian pasien, recall. | Tersedia | CSSD |
-| `patologi_anatomi` | Patologi Anatomi | Histopatologi, sitologi & potong beku: order, penerimaan jaringan, makroskopis, mikroskopis, diagnosis (ICD-O), arsip blok & slide. | Tersedia | Patologi Anatomi |
-| `mikrobiologi` | Mikrobiologi | Pewarnaan, kultur, identifikasi kuman & uji kepekaan antibiotik (S/I/R), laporan sementara & antibiogram. | Tersedia | Mikrobiologi |
-| `ambulans` | Manajemen Ambulans | Permintaan & penugasan ambulans, perjalanan (jarak/BBM/catatan pendamping), armada & kru, tarif, serta penerusan biaya ke tagihan kunjungan/kuitansi umum. | Tersedia | Manajemen Ambulans |
-| `laundry` | Laundry & Linen | Siklus linen kotor–bersih: serah terima linen kotor dua petugas, batch cuci bertahap, distribusi linen bersih, stok & par level per ruangan, koreksi, rekonsiliasi, dan laporan beban cucian. | Tersedia | Laundry |
-| `sarpras` | Sarana dan Prasarana (IPSRS) | Register aset medis & nonmedis, laporan kerusakan dan perbaikan (work order), pemeliharaan preventif, serta kalibrasi dan uji fungsi alat untuk Instalasi Pemeliharaan Sarana RS (IPSRS). | Tersedia | Sarana dan Prasarana (IPSRS) |
+| Kode | Nama | Deskripsi | Status | Bidang › Instalasi | Nama izin (menu) |
+|---|---|---|---|---|---|
+| `laboratorium` | Laboratorium | Order, validasi, hasil, expertise, bridging LIS. | Tersedia | Penunjang Medis › Instalasi Laboratorium | Laboratorium |
+| `fisioterapi` | Fisioterapi / Rehabilitasi Medik | Order terapi dari RME, penjadwalan & booking sesi, evaluasi terapi, bed/ruang terapi. | Tersedia | Penunjang Medis › Instalasi Rehabilitasi Medik | Fisioterapi |
+| `radiologi` | Radiologi | Order & hasil radiologi, bridging PACS. | Tersedia | Penunjang Medis › Instalasi Radiologi | Radiologi |
+| `cssd` | CSSD | Sterilisasi alat & pelacakan set instrumen: master set, penerimaan, dekontaminasi, load sterilisasi, penyimpanan & distribusi, pemakaian pasien, recall. | Tersedia | Penunjang Medis › Instalasi Sterilisasi (CSSD) | CSSD |
+| `patologi_anatomi` | Patologi Anatomi | Histopatologi, sitologi & potong beku: order, penerimaan jaringan, makroskopis, mikroskopis, diagnosis (ICD-O), arsip blok & slide. | Tersedia | Penunjang Medis › Instalasi Laboratorium | Patologi Anatomi |
+| `mikrobiologi` | Mikrobiologi | Pewarnaan, kultur, identifikasi kuman & uji kepekaan antibiotik (S/I/R), laporan sementara & antibiogram. | Tersedia | Penunjang Medis › Instalasi Laboratorium | Mikrobiologi |
+| `ambulans` | Manajemen Ambulans | Permintaan & penugasan ambulans, perjalanan (jarak/BBM/catatan pendamping), armada & kru, tarif, serta penerusan biaya ke tagihan kunjungan/kuitansi umum. | Tersedia | Penunjang Umum › Transportasi & Ambulans | Manajemen Ambulans |
+| `laundry` | Laundry & Linen | Siklus linen kotor–bersih: serah terima linen kotor dua petugas, batch cuci bertahap, distribusi linen bersih, stok & par level per ruangan, koreksi, rekonsiliasi, dan laporan beban cucian. | Tersedia | Penunjang Umum › Instalasi Laundry | Laundry |
+| `sarpras` | Sarana dan Prasarana (IPSRS) | Register aset medis & nonmedis, laporan kerusakan dan perbaikan (work order), pemeliharaan preventif, serta kalibrasi dan uji fungsi alat untuk Instalasi Pemeliharaan Sarana RS (IPSRS). | Tersedia | Penunjang Umum › IPSRS | Sarana dan Prasarana (IPSRS) |
 
 #### Penjaminan
 
-| Kode | Nama | Deskripsi | Status | Nama izin (menu) |
-|---|---|---|---|---|
-| `bpjs_fktp` | BPJS FKTP (PCare) | Pendaftaran & kunjungan PCare, rujukan keluar, kapitasi. | Tersedia | – |
-| `bpjs_fkrtl` | BPJS FKRTL (VClaim/SEP) | SEP, rujukan masuk, klaim INA-CBG. | Tersedia | – |
+| Kode | Nama | Deskripsi | Status | Bidang › Instalasi | Nama izin (menu) |
+|---|---|---|---|---|---|
+| `bpjs_fktp` | BPJS FKTP (PCare) | Pendaftaran & kunjungan PCare, rujukan keluar, kapitasi. | Tersedia | Keuangan & Administrasi › Kasir & Penjaminan | – |
+| `bpjs_fkrtl` | BPJS FKRTL (VClaim/SEP) | SEP, rujukan masuk, klaim INA-CBG. | Tersedia | Keuangan & Administrasi › Kasir & Penjaminan | – |
 
 #### Puskesmas
 
-| Kode | Nama | Deskripsi | Status | Nama izin (menu) |
-|---|---|---|---|---|
-| `program_puskesmas` | Program Puskesmas | KIA/KB, imunisasi, MTBS, UKM, laporan LB1 & dinkes. | Tersedia | Program Puskesmas |
+| Kode | Nama | Deskripsi | Status | Bidang › Instalasi | Nama izin (menu) |
+|---|---|---|---|---|---|
+| `program_puskesmas` | Program Puskesmas | KIA/KB, imunisasi, MTBS, UKM, laporan LB1 & dinkes. | Tersedia | Program Kesehatan Masyarakat › Program Puskesmas | Program Puskesmas |
 
 #### Rumah Sakit
 
-| Kode | Nama | Deskripsi | Status | Nama izin (menu) |
-|---|---|---|---|---|
-| `kamar_operasi` | Kamar Operasi | Order & jadwal operasi, checklist keselamatan bedah WHO, laporan operasi & anestesi. | Tersedia | Kamar Operasi |
-| `icu` | ICU / Intensif | Pemantauan intensif & flowsheet. | Tersedia | ICU |
-| `gizi` | Gizi | Skrining & asesmen gizi, order diet, serta distribusi makan pasien rawat inap. | Tersedia | Gizi |
-| `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Tersedia | Koding Rekam Medis |
-| `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Bank Darah RS (BDRS) |
-| `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Tersedia | UTD |
-| `akuntansi` | Akuntansi & Remunerasi | Jurnal, laporan keuangan, jasa pelayanan. | Segera | – |
+| Kode | Nama | Deskripsi | Status | Bidang › Instalasi | Nama izin (menu) |
+|---|---|---|---|---|---|
+| `kamar_operasi` | Kamar Operasi | Order & jadwal operasi, checklist keselamatan bedah WHO, laporan operasi & anestesi. | Tersedia | Pelayanan Medis & Keperawatan › Instalasi Bedah Sentral | Kamar Operasi |
+| `icu` | ICU / Intensif | Pemantauan intensif & flowsheet. | Tersedia | Pelayanan Medis & Keperawatan › Instalasi Perawatan Intensif | ICU |
+| `gizi` | Gizi | Skrining & asesmen gizi, order diet, serta distribusi makan pasien rawat inap. | Tersedia | Penunjang Medis › Instalasi Gizi | Gizi |
+| `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Tersedia | Penunjang Medis › Instalasi Rekam Medis | Koding Rekam Medis |
+| `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Penunjang Medis › Pelayanan Darah | Bank Darah RS (BDRS) |
+| `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Tersedia | Penunjang Medis › Pelayanan Darah | UTD |
+| `akuntansi` | Akuntansi & Remunerasi | Jurnal, laporan keuangan, jasa pelayanan. | Segera | Keuangan & Administrasi › Akuntansi & Remunerasi | – |
 
 ### C. Matriks modul × segmen (preset bawaan)
 
@@ -613,4 +616,38 @@ Dipakai untuk membatasi bagian khusus poli (mis. odontogram hanya di poli gigi).
 | `jiwa` | Jiwa |
 | `kia_kb` | KIA/KB |
 | `lainnya` | Lainnya |
+
+### G. Struktur organisasi (bidang › instalasi)
+
+Field `bidang` dan `instalasi` menempatkan menu modul di panel **Lainnya** pada menu atas: satu kolom per bidang, instalasi sebagai subjudul. Bidang tanpa menu aktif di faskes tidak ditampilkan. Menu non-modul (mis. Ekstensi) dipetakan di `Header.vue`.
+
+| Bidang | Instalasi | Modul |
+|---|---|---|
+| Pelayanan Medis & Keperawatan | Instalasi Rawat Jalan | RME Rawat Jalan (`rawat_jalan`) |
+| Pelayanan Medis & Keperawatan | Instalasi Rawat Inap | Rawat Inap (`rawat_inap`) |
+| Pelayanan Medis & Keperawatan | Instalasi Gawat Darurat | IGD (`igd`) |
+| Pelayanan Medis & Keperawatan | Instalasi Bedah Sentral | Kamar Operasi (`kamar_operasi`) |
+| Pelayanan Medis & Keperawatan | Instalasi Perawatan Intensif | ICU / Intensif (`icu`) |
+| Pelayanan Medis & Keperawatan | Medical Check Up | Medical Check Up (MCU) (`mcu`) |
+| Penunjang Medis | Instalasi Farmasi | Farmasi (`farmasi`) |
+| Penunjang Medis | Instalasi Laboratorium | Laboratorium (`laboratorium`), Patologi Anatomi (`patologi_anatomi`), Mikrobiologi (`mikrobiologi`) |
+| Penunjang Medis | Instalasi Rehabilitasi Medik | Fisioterapi / Rehabilitasi Medik (`fisioterapi`) |
+| Penunjang Medis | Instalasi Radiologi | Radiologi (`radiologi`) |
+| Penunjang Medis | Instalasi Gizi | Gizi (`gizi`) |
+| Penunjang Medis | Instalasi Rekam Medis | Koding & Rekam Medis (`koding_rm`) |
+| Penunjang Medis | Instalasi Sterilisasi (CSSD) | CSSD (`cssd`) |
+| Penunjang Medis | Pelayanan Darah | Bank Darah RS (BDRS) (`bank_darah`), UTD / UPTD Produksi Darah (`utd`) |
+| Penunjang Umum | Logistik & Gudang | Gudang & Pengadaan (`inventory`) |
+| Penunjang Umum | Transportasi & Ambulans | Manajemen Ambulans (`ambulans`) |
+| Penunjang Umum | Instalasi Laundry | Laundry & Linen (`laundry`) |
+| Penunjang Umum | IPSRS | Sarana dan Prasarana (IPSRS) (`sarpras`) |
+| Keuangan & Administrasi | Pendaftaran & Admisi | Pendaftaran Pasien (`pendaftaran`), Antrian & Layar Panggil (`antrian`) |
+| Keuangan & Administrasi | Kasir & Penjaminan | Kasir & Pembayaran (`pembayaran`), BPJS FKTP (PCare) (`bpjs_fktp`), BPJS FKRTL (VClaim/SEP) (`bpjs_fkrtl`) |
+| Keuangan & Administrasi | Akuntansi & Remunerasi | Akuntansi & Remunerasi (`akuntansi`) |
+| Manajemen & Mutu | Pelaporan | Dashboard (`dashboard`), Laporan (`laporan`) |
+| Manajemen & Mutu | Audit Trail | Audit Trail (`audit_trail`) |
+| Program Kesehatan Masyarakat | Program Puskesmas | Program Puskesmas (`program_puskesmas`) |
+| Sistem | Data Master | Data Master (`datamaster`) |
+| Sistem | Integrasi & Interoperabilitas | SATUSEHAT (`satusehat`) |
+| Sistem | Pelatihan | Kelas Training (`training`) |
 <!-- KATALOG:SELESAI -->
