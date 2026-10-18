@@ -2,7 +2,7 @@
 
 // Izin submodul "Pembelian Marketplace" (modul Inventory) untuk peran & pengguna yang sudah memiliki modul Inventory —
 // pola sama dengan 20261017110010-izin_antrean_bpjs. Fitur sendiri (inv_marketplace) tetap mati bawaan (lihat
-// 20261018080100-sinkron_katalog_inv_marketplace); izin ini hanya menyiapkan pilihan submodul di Pengaturan Peran,
+// 20261018100100-sinkron_katalog_inv_marketplace); izin ini hanya menyiapkan pilihan submodul di Pengaturan Peran,
 // akses nyata tetap bergantung pada fitur yang diaktifkan per faskes.
 const MODUL = 'Inventory';
 const SUB = 'Pembelian Marketplace';

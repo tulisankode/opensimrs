@@ -1,7 +1,7 @@
 'use strict';
 
 // STD-0019 — Pembelian BMHP via marketplace mitra dari Gudang & Pengadaan. Fitur katalog "inv_marketplace"
-// (modul inventory, mati bawaan di semua segmen — lihat 20261018080100-sinkron_katalog_inv_marketplace; izin submodul di 20261018080200-izin_inv_marketplace).
+// (modul inventory, mati bawaan di semua segmen — lihat 20261018100100-sinkron_katalog_inv_marketplace; izin submodul di 20261018100200-izin_inv_marketplace).
 // Tabel baru (semua berkolom faskes_uuid, waktu epoch detik, dan soft delete bila relevan):
 // - inventory_marketplace_koneksi    : konfigurasi koneksi mitra per faskes. Kunci API & kunci masuk webhook
 //                                      disimpan terenkripsi oleh inventory-service/src/helpers/rahasia-marketplace.js
