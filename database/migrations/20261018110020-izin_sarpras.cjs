@@ -1,0 +1,52 @@
+'use strict';
+
+// Izin modul baru "Sarana dan Prasarana (IPSRS)" (STD-0022). Hanya super admin (tanpa faskes) yang sudah memiliki
+// daftar izin yang mendapat seluruh izin sarpras (definisi dari auth-service permission-list.js, sarprasPermission),
+// agar tetap bisa membuka menu setelah modul diaktifkan. Peran/pengguna faskes TIDAK diberi izin otomatis (desain
+// STD-0022 §7 butir 10: teknisi/kepala IPSRS adalah peran baru) — admin faskes mengaturnya lewat Setting › Hak Akses.
+// Idempoten: daftar izin yang sudah memuat modul ini tidak diubah.
+
+const path = require('path');
+const { pathToFileURL } = require('url');
+
+const MODUL_IZIN = 'Sarana dan Prasarana (IPSRS)';
+
+const proses = async (queryInterface, tambah) => {
+  const sq = queryInterface.sequelize;
+  const { sarprasPermission } = await import(
+    pathToFileURL(path.join(__dirname, '..', '..', 'auth-service', 'src', 'helpers', 'permission-list.js')).href
+  );
+  for (const tabel of ['role', 'users']) {
+    const [rows] = await sq.query(`SELECT uuid, faskes_uuid, permissions FROM "${tabel}" WHERE permissions IS NOT NULL AND permissions <> ''`);
+    for (const r of rows) {
+      let data;
+      try {
+        data = JSON.parse(r.permissions);
+      } catch {
+        continue;
+      }
+      if (!Array.isArray(data) || !data.length) continue;
+      const idx = data.findIndex((x) => x?.module === MODUL_IZIN);
+      let berubah = false;
+      if (tambah && idx < 0 && !r.faskes_uuid) {
+        data.push(JSON.parse(JSON.stringify(sarprasPermission)));
+        berubah = true;
+      } else if (!tambah && idx >= 0) {
+        data.splice(idx, 1);
+        berubah = true;
+      }
+      if (berubah) {
+        await sq.query(`UPDATE "${tabel}" SET permissions = :p WHERE uuid = :u`, { replacements: { p: JSON.stringify(data), u: r.uuid } });
+      }
+    }
+  }
+};
+
+module.exports = {
+  async up(queryInterface) {
+    await proses(queryInterface, true);
+  },
+  async down(queryInterface) {
+    await proses(queryInterface, false);
+  },
+};
