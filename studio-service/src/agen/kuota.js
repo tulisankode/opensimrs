@@ -132,20 +132,29 @@ const tebakPenyedia = (teks) => {
 const POLA_KREDIT = /credit balance is too low|purchase credits|billing[_ ](?:hard[_ ])?limit|payment required|^\s*402\b/i;
 export const JEDA_KREDIT = 60 * 60;
 
-// Galat kuota? → null atau { penyedia, lanjutPada (epoch detik), diketahui (jam reset terbaca dari teks), kredit }.
+// Galat jaringan sementara ke penyedia (mis. "fetch failed" dari konektor API, "API Error: Connection lost mid-response"
+// dari Claude Code): diperlakukan seperti kuota — beralih ke konektor berikutnya, atau ditunda singkat bila semua gagal.
+const POLA_JARINGAN = /fetch failed|connection lost mid-response|socket hang up|\b(?:ECONNRESET|ETIMEDOUT|ECONNREFUSED|EAI_AGAIN|ENOTFOUND|UND_ERR_[A-Z_]+)\b/i;
+export const JEDA_JARINGAN = 5 * 60;
+
+// Galat kuota? → null atau { penyedia, lanjutPada (epoch detik), diketahui (jam reset terbaca dari teks), kredit, jaringan }.
 export const kenaliGalatKuota = (pesan, sekarangMs = Date.now()) => {
   const teks = String(pesan ?? "");
   if (!teks.trim()) return null;
   const kini = Math.floor(sekarangMs / 1000);
-  if (POLA_KREDIT.test(teks)) return { penyedia: "api", lanjutPada: kini + JEDA_KREDIT, diketahui: false, kredit: true };
-  if (BUKAN_KUOTA.test(teks) || !POLA_KUOTA.some((p) => p.test(teks))) return null;
-  const reset = uraiWaktuReset(teks, sekarangMs);
-  return {
-    penyedia: tebakPenyedia(teks),
-    lanjutPada: reset && reset > kini ? reset : kini + JEDA_BAWAAN,
-    diketahui: Boolean(reset && reset > kini),
-    kredit: false,
-  };
+  if (POLA_KREDIT.test(teks)) return { penyedia: "api", lanjutPada: kini + JEDA_KREDIT, diketahui: false, kredit: true, jaringan: false };
+  if (!BUKAN_KUOTA.test(teks) && POLA_KUOTA.some((p) => p.test(teks))) {
+    const reset = uraiWaktuReset(teks, sekarangMs);
+    return {
+      penyedia: tebakPenyedia(teks),
+      lanjutPada: reset && reset > kini ? reset : kini + JEDA_BAWAAN,
+      diketahui: Boolean(reset && reset > kini),
+      kredit: false,
+      jaringan: false,
+    };
+  }
+  if (POLA_JARINGAN.test(teks)) return { penyedia: tebakPenyedia(teks), lanjutPada: kini + JEDA_JARINGAN, diketahui: false, kredit: false, jaringan: true };
+  return null;
 };
 
 // Rantai konektor tahap: konektor utama lalu cadangan berurutan (tanpa duplikat).

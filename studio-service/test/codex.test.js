@@ -45,6 +45,14 @@ test("argumenCodex: sandbox per mode & instruksi dari stdin", () => {
   assert.ok(cod.includes("--json") && cod.includes("--ignore-user-config") && cod.includes('approval_policy="never"') && cod.includes("gpt-5-codex"));
 });
 
+test("argumenCodex: coding di Windows memakai sandbox Windows agar bisa menulis; dokumen & non-Windows tidak", () => {
+  const win = argumenCodex({ mode: "coding", model: "", base: "C:\\repo", berkasHasil: "h.txt", platform: "win32" });
+  assert.ok(win.includes('windows.sandbox="unelevated"'));
+  assert.equal(win.at(-1), "-");
+  assert.ok(!argumenCodex({ mode: "dokumen", model: "", base: "C:\\repo", berkasHasil: "h.txt", platform: "win32" }).includes('windows.sandbox="unelevated"'));
+  assert.ok(!argumenCodex({ mode: "coding", model: "", base: "/repo", berkasHasil: "h.txt", platform: "linux" }).includes('windows.sandbox="unelevated"'));
+});
+
 test("terlarang: zona yang tidak boleh diubah agen", () => {
   for (const p of [".env", "lab-service/.env.example", "studio-service/src/rute.js", "packages/authorization-sdk/auth.js", ".github/workflows/ci.yml", "deploy/server/deploy.sh", "CLAUDE.md"]) assert.ok(terlarang(p), p);
   for (const p of ["lab-service/src/app.js", "packages/model-sdk/models/x.js", "docs/CLAUDE-lain.md", "frontend-service/src/env.ts"]) assert.ok(!terlarang(p), p);

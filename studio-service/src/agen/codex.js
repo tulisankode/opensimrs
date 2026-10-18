@@ -165,8 +165,11 @@ const logTugas = (tugasUuid, jenis, teks) =>
 
 // --ignore-user-config: config.toml pribadi pengguna (model, plugin, memori, MCP) tidak ikut ke agen Studio; login tetap
 // dari CODEX_HOME. Tanpa -m, Codex memakai model bawaan akun.
-export const argumenCodex = ({ mode, model, base, berkasHasil }) => {
+// Windows: workspace-write butuh sandbox Windows Codex (windows.sandbox). Tanpa itu — dan config pengguna diabaikan —
+// Codex jatuh ke read-only sehingga coding "selesai" tanpa satu berkas pun berubah. "unelevated" tidak meminta UAC.
+export const argumenCodex = ({ mode, model, base, berkasHasil, platform = process.platform }) => {
   const args = ["exec", "--json", "--ignore-user-config", "--color", "never", "-C", base, "-s", mode === "coding" ? "workspace-write" : "read-only", "-c", 'approval_policy="never"', "-o", berkasHasil];
+  if (mode === "coding" && platform === "win32") args.push("-c", 'windows.sandbox="unelevated"');
   if (model) args.push("-m", model);
   args.push("-"); // instruksi dari stdin
   return args;
