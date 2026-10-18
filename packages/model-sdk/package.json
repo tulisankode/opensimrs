@@ -47,10 +47,20 @@
     },
     "./payment": {
       "import": "./exports/payment-exports.js"
+    },
+    "./audit-context": {
+      "import": "./umum/audit-context.js"
+    },
+    "./audit-sequelize": {
+      "import": "./umum/audit-sequelize.js"
+    },
+    "./audit-core": {
+      "import": "./umum/audit-core.js"
     }
   },
   "scripts": {
-    "db:sync": "node ./syncronize.js"
+    "db:sync": "node ./syncronize.js",
+    "test": "node --test \"test/*.test.mjs\""
   },
   "dependencies": {
     "dotenv": "^16.4.5",

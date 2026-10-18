@@ -12,8 +12,9 @@ import gizi from "./gizi/rute.js";
 import utd from "./utd/rute.js";
 import cssd from "./cssd/rute.js";
 import bankDarah from "./bank-darah/rute.js";
+import ambulans from "./ambulans/rute.js";
 
-// /api/v3/penunjang/{fisioterapi|radiologi|mcu|patologi|mikrobiologi|cssd|bank-darah|utd|gizi}/...
+// /api/v3/penunjang/{fisioterapi|radiologi|mcu|patologi|mikrobiologi|cssd|bank-darah|utd|gizi|ambulans}/...
 const rute = express.Router();
 rute.get("/health", (req, res) => res.json({ message: "OK" }));
 rute.use(wajibLogin);
@@ -26,6 +27,7 @@ rute.use("/cssd", cssd);
 rute.use("/bank-darah", bankDarah);
 rute.use("/utd", utd);
 rute.use("/gizi", gizi);
+rute.use("/ambulans", ambulans);
 rute.use("/kamar-operasi", kamarOperasi);
 rute.use("/koding", koding);
 rute.use("/training", training);

@@ -6,6 +6,7 @@ import cors from "cors";
 import snakeCaseKeys from "./middlewares/snake_case-middleware.js";
 import bodyParser from "body-parser";
 import authorizationSdk from "@opensimrs/authorization-sdk";
+import { auditContextMiddleware } from "@opensimrs/model-sdk/audit-context";
 import morgan from "morgan";
 import { mobileRouts } from "./routers/mobile-router.js";
 const APPLICATION_PORT = process.env.APPLICATION_PORT || 5000;
@@ -37,6 +38,8 @@ app.use(
     "/api/v3/datamaster/mobile/practitioner/code-antrian/:code",
   ])
 );
+// Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
+app.use(auditContextMiddleware());
 app.use(snakeCaseKeys);
 app.use(`/${API_BASE}/${API_VERSION}/${API_MODULE}`, router);
 app.use(errorMiddleware);

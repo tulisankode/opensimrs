@@ -6,6 +6,7 @@ import { router } from "./routes/routes.js";
 import { errorHandler } from "./middlewares/error-handler.middleware.js";
 import cors from "cors";
 import authorizationSdk from "@opensimrs/authorization-sdk";
+import { auditContextMiddleware } from "@opensimrs/model-sdk/audit-context";
 import { apiKeyMiddleware } from "./middlewares/x-api-key-handler.middleware.js";
 import { normalizeUrl } from "./helpers/url-normalizer.js";
 import sequelizeInstance from "@opensimrs/model-sdk/instance";
@@ -70,6 +71,9 @@ app.use((req, res, next) => {
     return authorizationSdk([])(req, res, next);
   }
 });
+
+// Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
+app.use(auditContextMiddleware());
 
 console.error();
 

@@ -21,6 +21,7 @@ import FisioterapiView from "@/views/Fisioterapi/FisioterapiView.vue";
 // NOTE Admisi
 import AdmisiPage from "@/views/Admisi/AdmisiPage.vue";
 import SEPAdmisiPage from "@/views/Admisi/SEPAdmisiPage.vue";
+import RencanaKontrolSpriPage from "@/views/Admisi/RencanaKontrolSpriPage.vue";
 import PatientDataPage from "@/views/Admisi/PatientDataPage.vue";
 import RoomMonitoringPage from "@/views/Admisi/RoomMonitoringPage.vue";
 import AdmisiReportPage from "@/views/Admisi/AdmisiReportPage.vue";
@@ -74,6 +75,7 @@ import PrintOutPage from "../views/SettingPage/Template/PrintOut/PrintOutPage.vu
 import ProfilAkunPage from "../views/SettingPage/Template/ProfilAkun/ProfilAkunPage.vue";
 import ProfilAkunView from "@/views/SettingPage/ProfilAkunView.vue";
 import SystemPage from "@/views/SettingPage/Template/System/SystemPage.vue";
+import AuditTrailPage from "@/views/SettingPage/Template/AuditTrail/AuditTrailPage.vue";
 
 // NOTE Page View Datamaster
 import UserPage from "@/views/Datamaster/User/UserPage.vue";
@@ -287,6 +289,17 @@ import MasterDietPage from "@/views/Gizi/MasterDietPage.vue";
 import BentukMakananGiziPage from "@/views/Gizi/BentukMakananPage.vue";
 import StandarPorsiGiziPage from "@/views/Gizi/StandarPorsiPage.vue";
 import LaporanGiziPage from "@/views/Gizi/LaporanGiziPage.vue";
+
+// NOTE Manajemen Ambulans — permintaan & penugasan, perjalanan, armada & kru, tarif, biaya/kuitansi (STD-0024, penunjang-service)
+import AmbulansView from "@/views/Ambulans/AmbulansView.vue";
+import PermintaanAmbulansPage from "@/views/Ambulans/PermintaanPage.vue";
+import PenugasanAmbulansPage from "@/views/Ambulans/PenugasanPage.vue";
+import PerjalananAmbulansPage from "@/views/Ambulans/PerjalananPage.vue";
+import ArmadaAmbulansPage from "@/views/Ambulans/ArmadaPage.vue";
+import KruAmbulansPage from "@/views/Ambulans/KruPage.vue";
+import TarifAmbulansPage from "@/views/Ambulans/TarifPage.vue";
+import KuitansiAmbulansPage from "@/views/Ambulans/KuitansiPage.vue";
+import LaporanAmbulansPage from "@/views/Ambulans/LaporanPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
@@ -514,6 +527,12 @@ const router = createRouter({
       path: "/setting/system",
       name: "setting-system",
       meta: { layout: SidebarLayout, page: SystemPage, requiresAuth: true },
+      component: SettingView,
+    },
+    {
+      path: "/setting/audit-trail",
+      name: "setting-audit-trail",
+      meta: { layout: SidebarLayout, page: AuditTrailPage, requiresAuth: true },
       component: SettingView,
     },
     // !SECTION
@@ -755,6 +774,19 @@ const router = createRouter({
         page: SEPAdmisiPage,
         requiresAuth: true,
       },
+      component: AdmisiView,
+    },
+    // Rencana Kontrol & SPRI via VClaim (fitur vclaim_rencana_kontrol, izin Admisi › Rencana Kontrol & SPRI) — STD-0021
+    {
+      path: "/admisi/rencana-kontrol",
+      name: "admisi-rencana-kontrol",
+      meta: { layout: SidebarLayout, page: RencanaKontrolSpriPage, requiresAuth: true },
+      component: AdmisiView,
+    },
+    {
+      path: "/admisi/spri",
+      name: "admisi-spri",
+      meta: { layout: SidebarLayout, page: RencanaKontrolSpriPage, requiresAuth: true },
       component: AdmisiView,
     },
     {
@@ -1753,6 +1785,20 @@ const router = createRouter({
       ["/gizi/master/bentuk-makanan", "gizi-master-bentuk-makanan", BentukMakananGiziPage],
       ["/gizi/master/standar-porsi", "gizi-master-standar-porsi", StandarPorsiGiziPage],
       ["/gizi/laporan", "gizi-laporan", LaporanGiziPage],
+    ]),
+    // !SECTION
+
+    // SECTION Manajemen Ambulans (STD-0024, penunjang-service)
+    { path: "/ambulans", name: "ambulans", redirect: "/ambulans/permintaan" },
+    ...halamanModul(AmbulansView, [
+      ["/ambulans/permintaan", "ambulans-permintaan", PermintaanAmbulansPage],
+      ["/ambulans/penugasan", "ambulans-penugasan", PenugasanAmbulansPage],
+      ["/ambulans/perjalanan", "ambulans-perjalanan", PerjalananAmbulansPage],
+      ["/ambulans/master/armada", "ambulans-master-armada", ArmadaAmbulansPage],
+      ["/ambulans/master/kru", "ambulans-master-kru", KruAmbulansPage],
+      ["/ambulans/tarif", "ambulans-tarif", TarifAmbulansPage],
+      ["/ambulans/kuitansi", "ambulans-kuitansi", KuitansiAmbulansPage],
+      ["/ambulans/laporan", "ambulans-laporan", LaporanAmbulansPage],
     ]),
     // !SECTION
 

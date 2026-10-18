@@ -220,6 +220,17 @@
       "urutan": 7
     },
     {
+      "kode": "audit_trail",
+      "nama": "Audit Trail",
+      "kelompok": "Inti",
+      "inti": true,
+      "tersedia": true,
+      "deskripsi": "Jejak login, akses rekam medis, dan perubahan data lintas layanan (rantai hash). Selalu aktif; akses lihat/ekspor lewat izin Setting › Audit Trail.",
+      "menu": [],
+      "rute": [],
+      "urutan": 7
+    },
+    {
       "kode": "antrian",
       "nama": "Antrian & Layar Panggil",
       "kelompok": "Layanan",
@@ -556,6 +567,21 @@
         "/mikrobiologi"
       ],
       "urutan": 30
+    },
+    {
+      "kode": "ambulans",
+      "nama": "Manajemen Ambulans",
+      "kelompok": "Penunjang",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Permintaan & penugasan ambulans, perjalanan (jarak/BBM/catatan pendamping), armada & kru, tarif, serta penerusan biaya ke tagihan kunjungan/kuitansi umum.",
+      "menu": [
+        "Manajemen Ambulans"
+      ],
+      "rute": [
+        "/ambulans"
+      ],
+      "urutan": 31
     }
   ],
   "fitur": [
@@ -1066,9 +1092,12 @@
       "modul": "bpjs_fkrtl",
       "nama": "Rencana Kontrol & SPRI",
       "deskripsi": "Pembuatan surat kontrol dan SPRI lewat VClaim.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": [
+        "/admisi/rencana-kontrol",
+        "/admisi/spri"
+      ],
       "urutan": 45
     },
     {
@@ -1296,6 +1325,86 @@
         "/patologi-anatomi/mapping/lis"
       ],
       "urutan": 55
+    },
+    {
+      "kode": "ambulans_armada",
+      "modul": "ambulans",
+      "nama": "Master Armada & Servis",
+      "deskripsi": "Data armada (nomor polisi, jenis, kelengkapan, status), jadwal servis & pajak/STNK, serta riwayat servis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/master/armada", "/ambulans/servis"],
+      "urutan": 56
+    },
+    {
+      "kode": "ambulans_kru",
+      "modul": "ambulans",
+      "nama": "Master Kru & Jadwal Jaga",
+      "deskripsi": "Data kru (sopir/perawat pendamping) beserta jadwal jaga.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/master/kru", "/ambulans/master/jadwal"],
+      "urutan": 57
+    },
+    {
+      "kode": "ambulans_permintaan",
+      "modul": "ambulans",
+      "nama": "Permintaan Layanan",
+      "deskripsi": "Pencatatan permintaan ambulans (jemputan gawat darurat, rujukan, pemulangan, jenazah) & pembatalan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/permintaan"],
+      "urutan": 58
+    },
+    {
+      "kode": "ambulans_penugasan",
+      "modul": "ambulans",
+      "nama": "Penugasan Armada & Kru",
+      "deskripsi": "Penetapan armada & kru untuk permintaan, serta pembatalan penugasan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/penugasan"],
+      "urutan": 59
+    },
+    {
+      "kode": "ambulans_perjalanan",
+      "modul": "ambulans",
+      "nama": "Perjalanan",
+      "deskripsi": "Pencatatan tahapan perjalanan, kilometer, BBM, dan catatan pendamping (akses terbatas).",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/perjalanan"],
+      "urutan": 60
+    },
+    {
+      "kode": "ambulans_tarif",
+      "modul": "ambulans",
+      "nama": "Tarif",
+      "deskripsi": "Tarif layanan ambulans per jenis layanan, kilometer, atau zona beserta masa berlaku.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/tarif"],
+      "urutan": 61
+    },
+    {
+      "kode": "ambulans_pembiayaan",
+      "modul": "ambulans",
+      "nama": "Biaya & Kuitansi",
+      "deskripsi": "Perhitungan biaya, penerusan tagihan ke kunjungan pasien, dan kuitansi untuk pengguna umum.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/kuitansi"],
+      "urutan": 62
+    },
+    {
+      "kode": "ambulans_laporan",
+      "modul": "ambulans",
+      "nama": "Laporan Ambulans",
+      "deskripsi": "Jumlah layanan per jenis, waktu respons, jarak & BBM per armada, serta pendapatan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ambulans/laporan"],
+      "urutan": 63
     }
   ],
   "bagian": [
@@ -1771,6 +1880,7 @@
         "daftar_ringkas",
         "rad_bridging_pacs",
         "antrian_online_bpjs",
+        "vclaim_rencana_kontrol",
         "inv_marketplace"
       ],
       "puskesmas": [
@@ -1788,6 +1898,7 @@
         "daftar_ringkas",
         "rad_bridging_pacs",
         "antrian_online_bpjs",
+        "vclaim_rencana_kontrol",
         "inv_marketplace"
       ],
       "rs_c": [
@@ -1795,6 +1906,7 @@
         "daftar_ringkas",
         "rad_bridging_pacs",
         "antrian_online_bpjs",
+        "vclaim_rencana_kontrol",
         "inv_marketplace"
       ],
       "rs_b": [
@@ -1803,6 +1915,7 @@
         "rad_bridging_pacs",
         "bdrs_bridging",
         "antrian_online_bpjs",
+        "vclaim_rencana_kontrol",
         "inv_marketplace"
       ],
       "rs_a": [
@@ -1811,6 +1924,7 @@
         "rad_bridging_pacs",
         "bdrs_bridging",
         "antrian_online_bpjs",
+        "vclaim_rencana_kontrol",
         "inv_marketplace"
       ]
     },

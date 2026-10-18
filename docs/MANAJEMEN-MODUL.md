@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **30 modul** (7 inti, 1 berstatus Segera), **68 fitur** (1 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **32 modul** (8 inti, 1 berstatus Segera), **76 fitur** (0 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -247,6 +247,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `datamaster` | Data Master | Pegawai, praktisi, lokasi/poli, tarif, penjamin. | Inti (selalu aktif) | Datamaster |
 | `laporan` | Laporan | Laporan kunjungan, diagnosis, keuangan. | Inti (selalu aktif) | Laporan |
 | `satusehat` | SATUSEHAT | Integrasi wajib Kemenkes (RME). | Inti (selalu aktif) | – |
+| `audit_trail` | Audit Trail | Jejak login, akses rekam medis, dan perubahan data lintas layanan (rantai hash). Selalu aktif; akses lihat/ekspor lewat izin Setting › Audit Trail. | Inti (selalu aktif) | – |
 
 #### Layanan
 
@@ -270,6 +271,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `cssd` | CSSD | Sterilisasi alat & pelacakan set instrumen: master set, penerimaan, dekontaminasi, load sterilisasi, penyimpanan & distribusi, pemakaian pasien, recall. | Tersedia | CSSD |
 | `patologi_anatomi` | Patologi Anatomi | Histopatologi, sitologi & potong beku: order, penerimaan jaringan, makroskopis, mikroskopis, diagnosis (ICD-O), arsip blok & slide. | Tersedia | Patologi Anatomi |
 | `mikrobiologi` | Mikrobiologi | Pewarnaan, kultur, identifikasi kuman & uji kepekaan antibiotik (S/I/R), laporan sementara & antibiogram. | Tersedia | Mikrobiologi |
+| `ambulans` | Manajemen Ambulans | Permintaan & penugasan ambulans, perjalanan (jarak/BBM/catatan pendamping), armada & kru, tarif, serta penerusan biaya ke tagihan kunjungan/kuitansi umum. | Tersedia | Manajemen Ambulans |
 
 #### Penjaminan
 
@@ -309,6 +311,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Data Master (`datamaster`) | Inti | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Laporan (`laporan`) | Inti | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | SATUSEHAT (`satusehat`) | Inti | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Audit Trail (`audit_trail`) | Inti | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Antrian & Layar Panggil (`antrian`) | Tersedia | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Farmasi (`farmasi`) | Tersedia | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Gudang & Pengadaan (`inventory`) | Tersedia | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -332,6 +335,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Medical Check Up (MCU) (`mcu`) | Tersedia | – | ✓ | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 | Patologi Anatomi (`patologi_anatomi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | Mikrobiologi (`mikrobiologi`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
+| Manajemen Ambulans (`ambulans`) | Tersedia | – | – | – | – | – | – | – | – |
 
 ### D. Fitur per modul
 
@@ -434,7 +438,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
-| `vclaim_rencana_kontrol` | Rencana Kontrol & SPRI | Pembuatan surat kontrol dan SPRI lewat VClaim. | Segera | – | – | – |
+| `vclaim_rencana_kontrol` | Rencana Kontrol & SPRI | Pembuatan surat kontrol dan SPRI lewat VClaim. | Tersedia | – | – | KU, RS D, RS C, RS B, RS A |
 
 #### Program Puskesmas (`program_puskesmas`)
 
@@ -504,6 +508,19 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
 | `mikro_bridging_lis` | Bridging LIS Mikrobiologi | Kirim order ke LIS mikrobiologi & terima hasil identifikasi/AST otomatis. | Tersedia | – | – | – |
+
+#### Manajemen Ambulans (`ambulans`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `ambulans_armada` | Master Armada & Servis | Data armada (nomor polisi, jenis, kelengkapan, status), jadwal servis & pajak/STNK, serta riwayat servis. | Tersedia | – | – | – |
+| `ambulans_kru` | Master Kru & Jadwal Jaga | Data kru (sopir/perawat pendamping) beserta jadwal jaga. | Tersedia | – | – | – |
+| `ambulans_permintaan` | Permintaan Layanan | Pencatatan permintaan ambulans (jemputan gawat darurat, rujukan, pemulangan, jenazah) & pembatalan. | Tersedia | – | – | – |
+| `ambulans_penugasan` | Penugasan Armada & Kru | Penetapan armada & kru untuk permintaan, serta pembatalan penugasan. | Tersedia | – | – | – |
+| `ambulans_perjalanan` | Perjalanan | Pencatatan tahapan perjalanan, kilometer, BBM, dan catatan pendamping (akses terbatas). | Tersedia | – | – | – |
+| `ambulans_tarif` | Tarif | Tarif layanan ambulans per jenis layanan, kilometer, atau zona beserta masa berlaku. | Tersedia | – | – | – |
+| `ambulans_pembiayaan` | Biaya & Kuitansi | Perhitungan biaya, penerusan tagihan ke kunjungan pasien, dan kuitansi untuk pengguna umum. | Tersedia | – | – | – |
+| `ambulans_laporan` | Laporan Ambulans | Jumlah layanan per jenis, waktu respons, jarak & BBM per armada, serta pendapatan. | Tersedia | – | – | – |
 
 ### E. Bagian (unit terkecil)
 

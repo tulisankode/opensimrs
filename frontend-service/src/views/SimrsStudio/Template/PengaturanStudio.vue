@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Pengaturan SIMRS Studio (superadmin): fitur, kill switch, agen (Claude Code langganan + konektor API), konektor & model
-// per tahap, batas biaya/kuota/laju, integrasi Git, kunci penanda tangan ekstensi, aturan instalasi.
+// per tahap, rantai cadangan saat kuota habis, batas agen bersamaan, batas biaya/kuota/laju, integrasi Git, kunci penanda
+// tangan ekstensi, aturan instalasi.
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import PageToolbar from "@/components/Base/PageToolbar.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
@@ -30,6 +31,7 @@ const muat = async () => {
   if (nilai.value) {
     nilai.value.konektorTahap ??= {};
     nilai.value.modelTahap ??= {};
+    if (!Array.isArray(nilai.value.konektorCadangan)) nilai.value.konektorCadangan = [];
   }
 };
 onMounted(muat);
@@ -287,6 +289,35 @@ const agenTahap = (tahap: string) => {
   return { jenis: "api", model: k?.model, peringatan: !k ? "Konektor tidak ditemukan." : !k.aktif ? "Konektor nonaktif." : "" };
 };
 const TAHAP_AGEN = [...TAHAP.map((t) => ({ kode: t.kode, nama: t.nama })), { kode: "ekstensi", nama: "Ekstensi" }];
+
+// ---------- Rantai cadangan konektor (saat kuota konektor tahap habis) ----------
+const namaCadangan = (kode: string) => {
+  if (kode === "claude_code") return "Claude Code (langganan)";
+  if (kode === "codex") return "Codex (langganan ChatGPT)";
+  const k = konektor.value.find((x) => x.uuid === kode);
+  return k ? `${k.nama} (${k.model})${k.aktif ? "" : " — nonaktif"}` : "Konektor tidak ditemukan";
+};
+const pilihanCadangan = computed(() =>
+  [
+    { kode: "claude_code", nama: "Claude Code (langganan)" },
+    { kode: "codex", nama: "Codex (langganan ChatGPT)" },
+    ...konektor.value.filter((x) => x.aktif).map((x) => ({ kode: x.uuid, nama: `${x.nama} (${x.model})` })),
+  ].filter((p) => !(nilai.value?.konektorCadangan ?? []).includes(p.kode)),
+);
+const tambahCadangan = ref("");
+const tambahkanCadangan = () => {
+  if (!tambahCadangan.value) return;
+  nilai.value.konektorCadangan = [...nilai.value.konektorCadangan, tambahCadangan.value];
+  tambahCadangan.value = "";
+};
+const geserCadangan = (i: number, arah: number) => {
+  const daftar = [...nilai.value.konektorCadangan];
+  [daftar[i], daftar[i + arah]] = [daftar[i + arah], daftar[i]];
+  nilai.value.konektorCadangan = daftar;
+};
+const hapusCadangan = (i: number) => {
+  nilai.value.konektorCadangan = nilai.value.konektorCadangan.filter((_: string, j: number) => j !== i);
+};
 const FITUR = [
   { kode: "desain", nama: "Desain teknis", ket: "Bila mati, PRD langsung ke coding" },
   { kode: "coding", nama: "Coding agen", ket: "Agen menulis kode di branch kerja (mati bawaan)" },
@@ -344,78 +375,55 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
             </div>
           </div>
 
-          <!-- Claude Code -->
+          <!-- Agen langganan: Claude Code & Codex, satu baris per agen -->
           <div class="flex flex-col gap-2 rounded-lg border border-grey-200 p-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <PhTerminalWindow :size="26" weight="duotone" class="text-opensimrs-300" aria-hidden="true" />
-                <div>
-                  <div class="text-normal font-semibold text-grey-500">Claude Code (langganan Anda)</div>
-                  <div class="text-XS text-grey-400">{{ sistem?.claude?.terpasang ? sistem.claude.versi : sistem?.claude?.pesan ?? "memuat…" }}</div>
-                </div>
-              </div>
-              <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Uji" outlined icon="PhPulse" :disabled="!!menguji" @click="uji('claude_code')" />
+            <div class="font-semibold text-opensimrs-300">Agen langganan</div>
+            <div class="text-XS text-grey-400">
+              Dijalankan di mesin ini dengan login akun Anda; pemakaian dihitung ke kuota langganan. Pilih per tahap di tabel di bawah. Perubahan agen pada zona terlarang
+              (<code>.env</code>, <code>studio-service/</code>, SDK izin, <code>.github/</code>, <code>deploy/</code>) dikembalikan otomatis.
             </div>
-            <div class="text-XS text-grey-400">Agen bawaan: <code>claude -p</code> di mesin ini dengan login yang sama seperti Claude Code di VS Code. Pemakaian dihitung ke kuota langganan.</div>
-            <!-- Akun Claude: login lewat peramban (claude.ai, bisa dengan akun Google) -->
+            <!-- Claude Code (claude -p, login sama dengan Claude Code di VS Code) -->
             <div class="flex flex-wrap items-center gap-2 rounded-lg bg-opensimrs-50 p-2 text-XS text-grey-500">
-              <PhUserCircle :size="20" :weight="akunClaude?.masuk ? 'fill' : 'regular'" :class="akunClaude?.masuk ? 'text-success-300' : 'text-grey-300'" aria-hidden="true" />
+              <PhTerminalWindow :size="20" weight="duotone" class="text-opensimrs-300" aria-hidden="true" />
               <span class="min-w-0 flex-1">
-                <template v-if="!akunClaude">Memeriksa akun…</template>
-                <template v-else-if="!akunClaude.terpasang">Claude Code CLI belum terpasang di mesin ini.</template>
-                <template v-else-if="akunClaude.masuk">
-                  Terhubung: <b>{{ akunClaude.email ?? "-" }}</b>
-                  <template v-if="akunClaude.paket"> · paket {{ akunClaude.paket }}</template>
-                  <template v-if="akunClaude.organisasi"> · {{ akunClaude.organisasi }}</template>
-                </template>
-                <template v-else>Belum ada akun Claude yang terhubung.</template>
+                <b>Claude Code</b>
+                <span class="text-grey-400"> · {{ sistem?.claude?.terpasang ? sistem.claude.versi : sistem?.claude?.pesan ?? "memuat…" }}</span>
+                <span :class="akunClaude?.masuk ? 'text-success-400' : 'text-grey-400'"> · 
+                  <template v-if="!akunClaude">memeriksa akun…</template>
+                  <template v-else-if="!akunClaude.terpasang">CLI belum terpasang</template>
+                  <template v-else-if="akunClaude.masuk">{{ akunClaude.email ?? "terhubung" }}<template v-if="akunClaude.paket"> ({{ akunClaude.paket }})</template></template>
+                  <template v-else>belum terhubung</template>
+                </span>
+                <span v-if="kuota" :class="(kuota.persen ?? 0) >= 90 ? 'text-danger-300' : (kuota.persen ?? 0) >= 75 ? 'text-warning-400' : 'text-grey-400'" :title="kuota.reset ? `Direset ${kuota.reset}` : ''"> · kuota {{ kuota.persen ?? "-" }}%</span>
               </span>
+              <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Uji" outlined icon="PhPulse" :disabled="!!menguji" @click="uji('claude_code')" />
               <template v-if="akunClaude?.terpasang">
-                <CustomButton :label="akunClaude.masuk ? 'Ganti akun' : 'Hubungkan akun Claude'" icon="PhSignIn" :outlined="akunClaude.masuk" :text-color="akunClaude.masuk ? 'text-opensimrs-300' : ''" :border-color="akunClaude.masuk ? 'border-opensimrs-300' : ''" :disabled="prosesAkun" @click="mulaiLoginClaude" />
-                <CustomButton v-if="akunClaude.masuk" label="Putuskan" icon="PhSignOut" outlined text-color="text-danger-300" border-color="border-danger-300" :disabled="prosesAkun" @click="keluarClaude" />
+                <CustomButton :label="akunClaude.masuk ? 'Ganti akun' : 'Hubungkan'" icon="PhSignIn" :outlined="akunClaude.masuk" :text-color="akunClaude.masuk ? 'text-opensimrs-300' : ''" :border-color="akunClaude.masuk ? 'border-opensimrs-300' : ''" :disabled="prosesAkun" @click="mulaiLoginClaude" />
+                <CustomButton v-if="akunClaude.masuk" icon="PhSignOut" outlined text-color="text-danger-300" border-color="border-danger-300" :disabled="prosesAkun" title="Putuskan akun Claude" @click="keluarClaude" />
               </template>
             </div>
-            <div v-if="kuota" class="rounded-lg bg-grey-50 p-2 text-XS text-grey-500">
-              <div class="flex justify-between"><span>Kuota {{ kuota.jenis }}</span><b>{{ kuota.persen ?? "-" }}% terpakai</b></div>
-              <div class="mt-1 h-2 overflow-hidden rounded-full bg-white">
-                <div class="h-full" :class="(kuota.persen ?? 0) >= 90 ? 'bg-danger-300' : (kuota.persen ?? 0) >= 75 ? 'bg-warning-300' : 'bg-opensimrs-300'" :style="{ width: `${Math.min(kuota.persen ?? 0, 100)}%` }"></div>
-              </div>
-              <div v-if="kuota.reset" class="mt-1 text-grey-400">Direset {{ kuota.reset }}<template v-if="sistem?.kuotaPada"> · data per {{ formatWaktu(sistem.kuotaPada) }}</template></div>
+            <!-- Codex (codex exec dengan sandbox: dokumen hanya-baca; coding hanya folder kerja, tanpa jaringan) -->
+            <div class="flex flex-wrap items-center gap-2 rounded-lg bg-opensimrs-50 p-2 text-XS text-grey-500">
+              <PhTerminal :size="20" weight="duotone" class="text-opensimrs-300" aria-hidden="true" />
+              <span class="min-w-0 flex-1">
+                <b>Codex</b>
+                <span class="text-grey-400"> · {{ sistem?.codex?.terpasang ? sistem.codex.versi : sistem?.codex ? "belum terpasang: npm i -g @openai/codex" : "memuat…" }}</span>
+                <span :class="akunCodex?.masuk ? 'text-success-400' : 'text-grey-400'"> · 
+                  <template v-if="!akunCodex">memeriksa akun…</template>
+                  <template v-else-if="!akunCodex.terpasang">CLI belum terpasang</template>
+                  <template v-else-if="akunCodex.masuk">{{ akunCodex.metode === "api_key" ? "kunci API OpenAI" : "akun ChatGPT" }}</template>
+                  <template v-else>belum terhubung</template>
+                </span>
+              </span>
+              <CustomButton v-if="akunCodex?.masuk" text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Uji" outlined icon="PhPulse" :disabled="!!menguji" @click="uji('codex')" />
+              <template v-if="akunCodex?.terpasang">
+                <CustomButton :label="akunCodex.masuk ? 'Ganti akun' : 'Hubungkan'" icon="PhSignIn" :outlined="akunCodex.masuk" :text-color="akunCodex.masuk ? 'text-opensimrs-300' : ''" :border-color="akunCodex.masuk ? 'border-opensimrs-300' : ''" :disabled="prosesCodex" @click="mulaiLoginCodex" />
+                <CustomButton v-if="akunCodex.masuk" icon="PhSignOut" outlined text-color="text-danger-300" border-color="border-danger-300" :disabled="prosesCodex" title="Putuskan akun Codex" @click="keluarCodex" />
+              </template>
             </div>
             <div v-if="hasilUji && ujiTerakhir === 'claude_code'" class="text-XS text-success-400">✔ {{ hasilUji.hasil }} ({{ hasilUji.tugas?.model }}, ≈ {{ formatUsd(hasilUji.tugas?.biayaUsd) }})</div>
-            <div class="text-XS text-grey-400">Repo <code>{{ sistem?.repoDir }}</code> · branch <b>{{ sistem?.branch }}</b> · lingkungan <b>{{ sistem?.lingkungan }}</b></div>
-          </div>
-
-          <!-- Codex (langganan ChatGPT) -->
-          <div class="flex flex-col gap-2 rounded-lg border border-grey-200 p-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <PhTerminal :size="26" weight="duotone" class="text-opensimrs-300" aria-hidden="true" />
-                <div>
-                  <div class="text-normal font-semibold text-grey-500">Codex (langganan ChatGPT)</div>
-                  <div class="text-XS text-grey-400">{{ sistem?.codex?.terpasang ? sistem.codex.versi : sistem?.codex ? "Belum terpasang: npm i -g @openai/codex" : "memuat…" }}</div>
-                </div>
-              </div>
-              <CustomButton v-if="akunCodex?.masuk" text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Uji" outlined icon="PhPulse" :disabled="!!menguji" @click="uji('codex')" />
-            </div>
-            <div class="text-XS text-grey-400">
-              Agen alternatif dari OpenAI: <code>codex exec</code> di mesin ini dengan sandbox (tahap dokumen hanya-baca; coding hanya folder kerja, tanpa jaringan).
-              Pilih per tahap di tabel di bawah. Perubahan agen pada zona terlarang (<code>.env</code>, <code>studio-service/</code>, SDK izin, <code>.github/</code>, <code>deploy/</code>) dikembalikan otomatis.
-            </div>
-            <div class="flex flex-wrap items-center gap-2 rounded-lg bg-opensimrs-50 p-2 text-XS text-grey-500">
-              <PhUserCircle :size="20" :weight="akunCodex?.masuk ? 'fill' : 'regular'" :class="akunCodex?.masuk ? 'text-success-300' : 'text-grey-300'" aria-hidden="true" />
-              <span class="min-w-0 flex-1">
-                <template v-if="!akunCodex">Memeriksa akun…</template>
-                <template v-else-if="!akunCodex.terpasang">Codex CLI belum terpasang di mesin ini.</template>
-                <template v-else-if="akunCodex.masuk">Terhubung{{ akunCodex.metode === "chatgpt" ? " dengan akun ChatGPT" : akunCodex.metode === "api_key" ? " dengan kunci API OpenAI" : "" }}.</template>
-                <template v-else>Belum ada akun ChatGPT yang terhubung.</template>
-              </span>
-              <template v-if="akunCodex?.terpasang">
-                <CustomButton :label="akunCodex.masuk ? 'Ganti akun' : 'Hubungkan akun ChatGPT'" icon="PhSignIn" :outlined="akunCodex.masuk" :text-color="akunCodex.masuk ? 'text-opensimrs-300' : ''" :border-color="akunCodex.masuk ? 'border-opensimrs-300' : ''" :disabled="prosesCodex" @click="mulaiLoginCodex" />
-                <CustomButton v-if="akunCodex.masuk" label="Putuskan" icon="PhSignOut" outlined text-color="text-danger-300" border-color="border-danger-300" :disabled="prosesCodex" @click="keluarCodex" />
-              </template>
-            </div>
             <div v-if="hasilUji && ujiTerakhir === 'codex'" class="text-XS text-success-400">✔ {{ hasilUji.hasil }} ({{ hasilUji.tugas?.model }})</div>
+            <div class="text-XS text-grey-400">Repo <code>{{ sistem?.repoDir }}</code> · branch <b>{{ sistem?.branch }}</b> · lingkungan <b>{{ sistem?.lingkungan }}</b><template v-if="kuota?.reset"> · kuota Claude direset {{ kuota.reset }}</template></div>
           </div>
         </div>
 
@@ -475,6 +483,41 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
           </table>
         </div>
 
+        <!-- Tahan kuota: rantai cadangan & batas agen bersamaan -->
+        <div class="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[2fr_1fr]">
+          <div class="flex flex-col gap-2 rounded-lg border border-grey-200 p-4 text-SM text-grey-500">
+            <div class="font-semibold text-opensimrs-300">Rantai cadangan konektor</div>
+            <div class="text-XS text-grey-400">
+              Bila kuota/rate limit konektor tahap habis, agen otomatis beralih ke konektor berikutnya (urut dari atas) dengan prompt yang sama;
+              coding melanjutkan perubahan yang sudah ada di branch kerja. Bila semuanya habis, tugas <b>menunggu kuota</b> dan dilanjutkan otomatis pada jam reset.
+              Gunakan jalur berbayar resmi (konektor API) atau penyedia berbeda — bukan memutar beberapa akun langganan pribadi.
+            </div>
+            <ol class="flex flex-col gap-1">
+              <li v-for="(kode, i) in nilai.konektorCadangan" :key="kode" class="flex items-center gap-2 rounded bg-grey-50 px-2 py-1 text-XS">
+                <span class="w-5 text-grey-400">{{ i + 1 }}.</span>
+                <span class="flex-1" :class="namaCadangan(kode).includes('tidak ditemukan') || namaCadangan(kode).includes('nonaktif') ? 'text-warning-400' : ''">{{ namaCadangan(kode) }}</span>
+                <button type="button" class="rounded p-1 hover:bg-grey-75 disabled:opacity-30" :disabled="i === 0" title="Naikkan" aria-label="Naikkan" @click="geserCadangan(i, -1)"><PhArrowUp :size="14" /></button>
+                <button type="button" class="rounded p-1 hover:bg-grey-75 disabled:opacity-30" :disabled="i === nilai.konektorCadangan.length - 1" title="Turunkan" aria-label="Turunkan" @click="geserCadangan(i, 1)"><PhArrowDown :size="14" /></button>
+                <button type="button" class="rounded p-1 text-danger-300 hover:bg-danger-50" title="Hapus dari rantai" aria-label="Hapus dari rantai" @click="hapusCadangan(i)"><PhX :size="14" /></button>
+              </li>
+              <li v-if="!nilai.konektorCadangan.length" class="text-XS text-grey-300">Belum ada cadangan — tugas langsung menunggu kuota bila konektor tahap habis.</li>
+            </ol>
+            <div class="flex items-center gap-2">
+              <select v-model="tambahCadangan" class="flex-1 rounded border border-grey-200 px-2 py-1 text-XS">
+                <option value="">Pilih konektor cadangan…</option>
+                <option v-for="p in pilihanCadangan" :key="p.kode" :value="p.kode">{{ p.nama }}</option>
+              </select>
+              <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Tambah" icon="PhPlus" outlined :disabled="!tambahCadangan" @click="tambahkanCadangan" />
+            </div>
+            <div class="text-[11px] text-grey-400">Contoh: Claude Code (langganan) di tahap → konektor API Anthropic → Codex. Konektor utama tahap selalu dicoba lebih dulu; model cadangan = model bawaan konektornya.</div>
+          </div>
+          <div class="flex flex-col gap-2 rounded-lg border border-grey-200 p-4 text-SM text-grey-500">
+            <div class="font-semibold text-opensimrs-300">Maksimal agen bersamaan</div>
+            <input v-model="nilai.maksAgenBersamaan" type="number" min="0" max="20" class="rounded border border-grey-200 bg-white px-2 py-1 text-XS" placeholder="kosong/0 = tanpa batas" />
+            <div class="text-XS text-grey-400">Tugas agen (dokumen & coding) yang berjalan sekaligus. Tugas berikutnya <b>menunggu slot agen</b> dan dimulai otomatis saat ada yang selesai. Bawaan 2.</div>
+          </div>
+        </div>
+
         <div class="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
           <!-- Batas -->
           <div class="flex flex-col gap-2 rounded-lg bg-opensimrs-50 p-4 text-SM text-grey-500">
@@ -484,7 +527,7 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
               <label class="flex flex-col gap-1 text-XS"><span class="font-semibold">Per tugas (US$)</span><input v-model="nilai.batasBiayaTugas" type="number" min="0" class="rounded border border-grey-200 bg-white px-2 py-1" /></label>
               <label class="flex flex-col gap-1 text-XS"><span class="font-semibold">Per item (US$)</span><input v-model="nilai.batasBiayaItem" type="number" min="0" class="rounded border border-grey-200 bg-white px-2 py-1" /></label>
               <label class="flex flex-col gap-1 text-XS"><span class="font-semibold">Per bulan (US$)</span><input v-model="nilai.batasBiayaBulan" type="number" min="0" class="rounded border border-grey-200 bg-white px-2 py-1" /></label>
-              <label class="flex flex-col gap-1 text-XS"><span class="font-semibold">Henti di kuota (%)</span><input v-model="nilai.batasKuotaPersen" type="number" min="0" max="100" class="rounded border border-grey-200 bg-white px-2 py-1" /></label>
+              <label class="flex flex-col gap-1 text-XS" title="Kuota langganan Claude Code mencapai persen ini → pakai rantai cadangan atau tunda sampai reset"><span class="font-semibold">Henti di kuota (%)</span><input v-model="nilai.batasKuotaPersen" type="number" min="0" max="100" class="rounded border border-grey-200 bg-white px-2 py-1" /></label>
               <label class="flex flex-col gap-1 text-XS"><span class="font-semibold">Tugas/pengguna/jam</span><input v-model="nilai.batasTugasPerJam" type="number" min="1" class="rounded border border-grey-200 bg-white px-2 py-1" /></label>
             </div>
           </div>

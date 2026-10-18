@@ -189,7 +189,9 @@ async function seedFaskes(F, mapPermission, superRole) {
     if (roleUuid[kunci]) return roleUuid[kunci];
     const p = PERAN[kunci];
     const modulPerm = (p.modul ?? [...permSegmen]).filter((m) => permSegmen.has(m) || m === 'Profile');
-    const permissions = JSON.stringify(mapPermission([...new Set([...modulPerm, 'Profile'])]));
+    // Sub-modul Setting › Audit Trail (STD-0029) tidak diberikan otomatis ke peran faskes, hanya ke super admin.
+    const permissions = JSON.stringify(mapPermission([...new Set([...modulPerm, 'Profile'])])
+      .map((m) => (m.module === 'Setting' ? { ...m, subModules: m.subModules.filter((sm) => sm.name !== 'Audit Trail') } : m)));
     roleUuid[kunci] = await ins('role', { ...base, code: `${F.kode}-${p.kode}`, name: p.nama, permissions, status: true });
     roleUuid[`${kunci}:perm`] = permissions;
     return roleUuid[kunci];

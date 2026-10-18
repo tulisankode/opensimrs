@@ -62,6 +62,8 @@ import { createResumeMedis, createLaporanOdontogram } from "@/utils/pdf/RekamMed
 import { useAuthStore } from "@/stores/auth";
 import { createPatientLabel } from "@/utils/PdfMake";
 import CustomDatePicker from "@/components/Base/CustomDatePicker.vue";
+import FormSuratVclaim from "@/views/Admisi/Section/FormSuratVclaim.vue";
+import { bolehSurat } from "@/stores/bpjsVclaim";
 
 // NOTE Store
 const storeUtils = utilsStore();
@@ -215,6 +217,28 @@ const latestTandaVitalHistory = computed(() => {
 });
 
 const detailedRawatInapData = ref<any>(null);
+
+// Rencana Kontrol BPJS dari resume rawat jalan / discharge rawat inap dan SPRI dari keputusan rawat inap di RJ/IGD
+// (STD-0021, fitur vclaim_rencana_kontrol; izin Admisi › Rencana Kontrol & SPRI). Surat dibuat lewat VClaim.
+const dialogSurat = ref<"rencana-kontrol" | "spri" | null>(null);
+const suratBpjsAktif = computed(
+  () => props.viewMode !== "history" && !props.isApprovalMode && modulAktif("bpjs_fkrtl") && fiturAktif("vclaim_rencana_kontrol")
+);
+const bolehRencanaKontrol = computed(
+  () => suratBpjsAktif.value && ["rawat-jalan", "rawat-inap"].includes(props.rmType) && bolehSurat("CREATE RENCANA KONTROL")
+);
+const bolehSpri = computed(() => suratBpjsAktif.value && ["rawat-jalan", "igd"].includes(props.rmType) && bolehSurat("CREATE SPRI"));
+const awalSurat = computed(() => {
+  const p: any = props.patientData ?? {};
+  const asuransi = ([] as any[]).concat(p.patient?.insurance ?? [], p.insurance ?? []);
+  const bpjs = asuransi.find((i) => /bpjs/i.test(String(i?.name ?? i?.insuranceName ?? "")));
+  return {
+    noKartu: bpjs?.accountNumber ?? "",
+    patientUuid: p.patient?.uuid ?? p.patientUuid ?? null,
+    sumber: props.rmType === "rawat-inap" ? "rawat_inap" : props.rmType === "igd" ? "igd" : "rawat_jalan",
+    sumberUuid: (props.rmType === "rawat-inap" ? dataRawatInap.value?.uuid : p.uuid) ?? null,
+  };
+});
 
 const handleDetailFetched = (payload: any) => {
    if (payload?.rawatInap) {
@@ -1418,11 +1442,15 @@ onMounted(() => {
               </div>
               <hr class="my-5" />
               <div class="flex justify-between pr-[60px]">
-                <CustomButton
-                  @click="printResumeMedis"
-                  icon="PhPrinter"
-                  label="Cetak Resume Medis"
-                />
+                <div class="flex gap-[10px]">
+                  <CustomButton
+                    @click="printResumeMedis"
+                    icon="PhPrinter"
+                    label="Cetak Resume Medis"
+                  />
+                  <CustomButton v-if="bolehRencanaKontrol" icon="PhCalendarCheck" label="Rencana Kontrol BPJS" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="dialogSurat = 'rencana-kontrol'" />
+                  <CustomButton v-if="bolehSpri" icon="PhBed" label="SPRI BPJS" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="dialogSurat = 'spri'" />
+                </div>
                 <div class="flex">
                   <CustomButton
                     @click="submitResumeMedis"
@@ -1598,5 +1626,14 @@ onMounted(() => {
         <MenuOpenIcon class="text-white" />
       </template>
     </CustomDialog>
+    <Dialog
+      :visible="!!dialogSurat"
+      modal
+      :header="dialogSurat === 'spri' ? 'SPRI BPJS (Surat Perintah Rawat Inap)' : 'Rencana Kontrol BPJS'"
+      :style="{ width: '900px' }"
+      @update:visible="dialogSurat = null"
+    >
+      <FormSuratVclaim v-if="dialogSurat" :jenis="dialogSurat" mode="buat" :awal="awalSurat" @selesai="dialogSurat = null" @batal="dialogSurat = null" />
+    </Dialog>
   </div>
 </template>

@@ -4,6 +4,7 @@ import routes from "./routes/routes.js";
 import marketplaceWebhookRoutes from "./routes/marketplace-webhook-routes.js";
 import errorMiddleware from "./middlewares/error-middleware.js";
 import authorizationSdk from "@opensimrs/authorization-sdk";
+import { auditContextMiddleware } from "@opensimrs/model-sdk/audit-context";
 import defineAssociations from "./configurations/database-associations.js";
 import morgan from "morgan";
 
@@ -33,6 +34,8 @@ app.use(express.urlencoded({extended: true}));
 // dipasang sebelum authorizationSdk (pola sama dengan lab-service/src/lis/lis-rute.js: ruteMasuk).
 app.use(marketplaceWebhookRoutes);
 app.use(authorizationSdk([]));
+// Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
+app.use(auditContextMiddleware());
 // app.use(efp());
 app.use(routes);
 app.use(errorMiddleware);
