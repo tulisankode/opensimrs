@@ -14,6 +14,10 @@ import { utilsStore } from "@/stores/utils";
 import { epochToDate } from "@/utils/Helpers";
 import { cetakSuratVclaim, tglIndo } from "@/utils/pdf/pdfBpjs/cetakSuratVclaim";
 
+// Template berakar ganda (Card + Dialog): kelas tata letak dari wadah (grow, overflow) diteruskan ke Card
+// agar halaman memenuhi lebar area konten.
+defineOptions({ inheritAttrs: false });
+
 // Admisi › Rencana Kontrol & SPRI (STD-0021, fitur vclaim_rencana_kontrol): daftar & pemantauan surat VClaim
 // (jatuh tempo, sudah/belum dipakai SEP), pembuatan, perubahan, penghapusan, cetak, dan "Cek status di VClaim"
 // untuk surat yang hasil pengirimannya tidak pasti. Tombol mengikuti izin Admisi › Rencana Kontrol & SPRI.
@@ -139,7 +143,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <Card pt:body:class="h-full pt-0 overflow-auto" pt:content:class="h-full overflow-auto">
+  <Card v-bind="$attrs" pt:body:class="h-full pt-0 overflow-auto" pt:content:class="h-full overflow-auto">
     <template #header>
       <PageToolbar>
         <h1 class="toolbar-heading text-opensimrs-300">{{ judul }} · BPJS</h1>
