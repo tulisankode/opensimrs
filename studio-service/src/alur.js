@@ -5,13 +5,14 @@ import os from "os";
 import path from "path";
 import { spawn } from "child_process";
 import config from "./config.js";
-import { audit, query, satu, sekarang, sisipkan, ubah, uuidv7 } from "./db.js";
+import { audit, query, satu, sekarang, sisipkan, transaksi, ubah, uuidv7 } from "./db.js";
 import { Galat, permintaanSalah, tidakDitemukan } from "./respons.js";
 import { bacaSemua } from "./pengaturan.js";
 import { berkasBerubah, branchSekarang, git, patchBerkas, potretKerja, statusBerkas, urlRepo } from "./git.js";
 import { branchDasar, branchLokal, direktoriKerja, hapusWorktree, modeLokal, pastikanDiBranch, siapkanKerja } from "./kerja.js";
 import { pathDiubahDalamDesain, periksaKebijakan, temukanDataPribadi, zonaTersentuh } from "./kebijakan.js";
 import { FOLDER_LAMPIRAN, estimasiBiaya, jalankanAgen, periksaBatas } from "./agen/index.js";
+import { CATATAN_LANJUTAN, susunRantai, waktuLanjut } from "./agen/kuota.js";
 import { NAMA_TAHAP, susunPromptCoding, susunPromptDokumen, uraiKeluaran } from "./agen/prompt.js";
 import { IZIN_KERJA_TAHAP, PERAN, gerbangTahap, statusGerbang } from "./gerbang.js";
 import { isSuperadmin } from "./auth.js";
@@ -60,15 +61,18 @@ export const simpanArtefak = async (item, tahap, isi, oleh, tugasUuid = null) =>
 const pesan = (item, tahap, dari, isi, pengguna = null, tugasUuid = null) =>
   sisipkan("studio_pesan", { item_uuid: item.uuid, tahap, dari, isi, pengguna, tugas_uuid: tugasUuid });
 
+// Tugas yang menunggu kuota (tunda_kuota) dianggap masih berjalan agar item tidak dijalankan ganda; batalkan dulu bila perlu.
+export const STATUS_BERJALAN = ["antri", "jalan", "tunda_kuota"];
 const tugasBerjalan = (itemUuid) =>
-  satu(`SELECT * FROM studio_tugas WHERE item_uuid = $1 AND status IN ('antri', 'jalan') ORDER BY id DESC LIMIT 1`, [itemUuid]);
+  satu(`SELECT * FROM studio_tugas WHERE item_uuid = $1 AND status = ANY($2) ORDER BY id DESC LIMIT 1`, [itemUuid, STATUS_BERJALAN]);
 
 // Repo utama dipakai agen coding/cek item lain (item tanpa worktree) → jangan pindah branch di sana: perubahan agen
 // akan tercatat di branch yang salah dan daftar berkas item itu menjadi kosong. Item `kecuali` = item yang sedang diproses.
+// Tugas coding yang menunggu kuota juga menghalangi: working tree masih berisi sebagian perubahannya.
 export const pastikanRepoUtamaBebas = async (kecuali = null) => {
   const lain = await satu(
     `SELECT i.nomor FROM studio_tugas t JOIN studio_item i ON i.uuid = t.item_uuid
-      WHERE t.jenis IN ('coding', 'cek') AND t.status IN ('antri', 'jalan') AND i.worktree IS NULL AND ($1::uuid IS NULL OR i.uuid <> $1)
+      WHERE t.jenis IN ('coding', 'cek') AND t.status IN ('antri', 'jalan', 'tunda_kuota') AND i.worktree IS NULL AND ($1::uuid IS NULL OR i.uuid <> $1)
       LIMIT 1`,
     [kecuali],
   );
@@ -160,9 +164,10 @@ const konteksTambahan = async (item, tahap) => {
   const pengetahuan = (await query(`SELECT judul, isi FROM studio_pengetahuan WHERE deleted_at IS NULL AND aktif ORDER BY judul`)).map((p) => `### ${p.judul}\n${p.isi}`).join("\n\n");
   const lampiran = await query(`SELECT nama, lokasi, mime FROM studio_lampiran WHERE item_uuid = $1 AND deleted_at IS NULL ORDER BY created_at`, [item.uuid]);
   // Hanya Claude Code yang diberi akses folder lampiran (--add-dir). Codex & konektor API bekerja di sandbox folder kerja,
-  // dan folder lampiran diabaikan git sehingga tidak terlihat oleh pencarian berkas: isi lampiran teks disisipkan ke prompt.
+  // dan folder lampiran diabaikan git sehingga tidak terlihat oleh pencarian berkas: isi lampiran teks disisipkan ke prompt
+  // (juga bila Codex/konektor API hanya ada di rantai cadangan).
   const { nilai } = await bacaSemua();
-  if ((nilai.konektor_tahap?.[tahap] || "claude_code") !== "claude_code") {
+  if (susunRantai(nilai.konektor_tahap?.[tahap], nilai.konektor_cadangan).some((k) => k !== "claude_code")) {
     let sisa = BATAS_LAMPIRAN_TOTAL;
     for (const l of lampiran) {
       if (!MIME_TEKS.test(String(l.mime)) || sisa <= 0) continue;
@@ -242,6 +247,7 @@ export const detailItem = async (uuid, req) => {
     query(`SELECT * FROM studio_pesan WHERE item_uuid = $1 ORDER BY created_at, id`, [uuid]),
     query(`SELECT * FROM studio_persetujuan WHERE item_uuid = $1 ORDER BY created_at, id`, [uuid]),
     query(`SELECT uuid, tahap, jenis, status, model, biaya_usd, token_masuk, token_keluar, kuota, pesan_galat, mulai, selesai, created_at,
+                  lanjut_pada, menunggu_slot, lanjutan_dari,
                   CASE WHEN jenis = 'cek' THEN hasil END AS hasil
              FROM studio_tugas WHERE item_uuid = $1 ORDER BY created_at DESC, id DESC LIMIT 50`, [uuid]),
     query(`SELECT * FROM studio_uji WHERE item_uuid = $1 AND deleted_at IS NULL ORDER BY id`, [uuid]),
@@ -270,65 +276,202 @@ export const detailItem = async (uuid, req) => {
   };
 };
 
+// ---------- Slot agen bersamaan & tunda kuota ----------
+
+// Tugas agen yang memakai slot: sedang jalan, atau antri yang sedang disiapkan (bukan yang menunggu slot).
+const SQL_SLOT_TERPAKAI = `SELECT COUNT(*)::int AS jumlah FROM studio_tugas
+  WHERE jenis IN ('dokumen', 'coding') AND (status = 'jalan' OR (status = 'antri' AND NOT menunggu_slot))`;
+// pg_advisory_xact_lock: pembuatan tugas & pengambilan antrean slot tidak balapan antarproses.
+const KUNCI_SLOT = 80902026;
+// Tugas yang terus tertunda kuota tidak dilanjutkan tanpa akhir.
+const MAKS_LANJUTAN = 20;
+
+const maksAgen = (nilai) => Math.max(Number(nilai.maks_agen_bersamaan) || 0, 0);
+
+// Buat tugas agen. Slot penuh (maks_agen_bersamaan) → menunggu_slot; penjadwal memulainya saat ada slot kosong.
+const buatTugasAgen = async (item, tahap, jenis, instruksi, oleh, tambahan = {}) => {
+  const { nilai } = await bacaSemua();
+  const maks = maksAgen(nilai);
+  return transaksi(async (k) => {
+    await query(`SELECT pg_advisory_xact_lock($1)`, [KUNCI_SLOT], k);
+    const terpakai = maks ? (await satu(SQL_SLOT_TERPAKAI, [], k)).jumlah : 0;
+    const tugas = await sisipkan("studio_tugas", {
+      item_uuid: item.uuid, tahap, jenis, status: "antri", instruksi, dibuat_oleh: oleh, updated_at: sekarang(),
+      menunggu_slot: maks > 0 && terpakai >= maks, ...tambahan,
+    }, k);
+    return { ...tugas, terpakai, maks };
+  });
+};
+
+// Mulai tugas yang baru dibuat, atau umumkan bahwa ia menunggu slot agen.
+const mulaiAtauTunggu = async (tugas, item, jalankan) => {
+  if (!tugas.menunggu_slot) return void jalankan();
+  await pesan(item, tugas.tahap, "sistem", `Menunggu slot agen (${tugas.terpakai}/${tugas.maks}) — tugas dimulai otomatis saat agen lain selesai.`, null, tugas.uuid);
+};
+
+// Galat agen → tunda_kuota (semua konektor dalam rantai habis kuota) atau gagal.
+const tutupGagalAtauTunda = async (tugas, item, tahap, e, awalan) => {
+  if (e?.kuota) {
+    const t = await tutupTugas(tugas.uuid, { status: "tunda_kuota", lanjut_pada: e.lanjutPada, pesan_galat: e.message });
+    if (t?.status === "tunda_kuota") {
+      await pesan(item, tahap, "sistem",
+        `Kuota habis (${e.habis.map((h) => h.nama).join(", ")}); dilanjutkan otomatis ${waktuLanjut(e.lanjutPada)}. Batalkan tugas bila tidak perlu dilanjutkan.`,
+        null, tugas.uuid);
+      await audit("sistem", `Tugas ${NAMA_TAHAP[tahap] ?? tahap} ditunda karena kuota`, item.uuid, { lanjutPada: e.lanjutPada });
+    }
+    return;
+  }
+  await tutupTugas(tugas.uuid, { status: "gagal", pesan_galat: e.message });
+  await pesan(item, tahap, "sistem", `${awalan}: ${e.message}`, null, tugas.uuid);
+};
+
+// Alasan tugas tersimpan (menunggu slot / tunda kuota) tidak boleh dilanjutkan, atau null.
+export const alasanTidakLanjut = (item, tugas, nilai, lingkungan = config.lingkungan) => {
+  if (!item) return "item sudah dihapus";
+  if (item.tahap === "ditunda") return "item sedang ditunda";
+  if (item.tahap === "dibatalkan") return "item sudah dibatalkan";
+  if (item.tahap !== tugas.tahap) return `item sudah berada di tahap ${NAMA_TAHAP[item.tahap] ?? item.tahap}`;
+  if (tugas.jenis === "coding") {
+    if (lingkungan === "production") return "coding tidak dijalankan di instalasi produksi";
+    if (nilai.fitur?.coding === false) return "fitur Coding dimatikan";
+    if (item.risiko === "kritis") return "item berisiko kritis (kode dikerjakan programmer)";
+  }
+  return null;
+};
+
+const batalkanOtomatis = async (tugas, item, alasan) => {
+  await ubah("studio_tugas", tugas.uuid, { status: "dibatalkan", pesan_galat: `Tidak dilanjutkan: ${alasan}`, selesai: sekarang() });
+  if (item) await pesan(item, tugas.tahap, "sistem", `Tugas agen yang tertunda tidak dilanjutkan: ${alasan}.`, null, tugas.uuid);
+};
+
+// Jalankan tugas tersimpan (keluar dari antrean slot). Item yang berubah sejak tugas dibuat → tugas dibatalkan.
+const mulaiTugasTersimpan = async (tugas) => {
+  const item = tugas.item_uuid ? await satu(`SELECT * FROM studio_item WHERE uuid = $1 AND deleted_at IS NULL`, [tugas.item_uuid]) : null;
+  try {
+    const { nilai } = await bacaSemua();
+    const alasan = alasanTidakLanjut(item, tugas, nilai);
+    if (alasan) return await batalkanOtomatis(tugas, item, alasan);
+    if (tugas.jenis === "coding") {
+      if (nilai.mode_kerja !== "worktree" && !item.worktree) await pastikanRepoUtamaBebas(item.uuid);
+      const siap = await siapkanKerja(item);
+      kerjakanCoding(tugas, siap, tugas.instruksi);
+    } else kerjakanDokumen(tugas, item, tugas.tahap, tugas.instruksi);
+  } catch (e) {
+    await tutupTugas(tugas.uuid, { status: "gagal", pesan_galat: e.message });
+    if (item) await pesan(item, tugas.tahap, "sistem", `Tugas agen gagal dimulai: ${e.message}`, null, tugas.uuid);
+  }
+};
+
+// Mulai tugas yang menunggu slot (tertua dulu) selama slot masih ada. Dipanggil penjadwal & setiap tugas agen selesai.
+export const mulaiAntrianSlot = async () => {
+  if (!config.aktifInstalasi) return 0;
+  const { nilai } = await bacaSemua();
+  if (!nilai.mode_pengembang?.aktif || nilai.kill_switch?.aktif) return 0;
+  const maks = maksAgen(nilai);
+  let dimulai = 0;
+  for (;;) {
+    const tugas = await transaksi(async (k) => {
+      await query(`SELECT pg_advisory_xact_lock($1)`, [KUNCI_SLOT], k);
+      if (maks && (await satu(SQL_SLOT_TERPAKAI, [], k)).jumlah >= maks) return null;
+      return satu(
+        `UPDATE studio_tugas SET menunggu_slot = false, updated_at = $1
+          WHERE id = (SELECT id FROM studio_tugas WHERE status = 'antri' AND menunggu_slot ORDER BY id LIMIT 1) RETURNING *`,
+        [sekarang()], k,
+      );
+    });
+    if (!tugas) return dimulai;
+    await mulaiTugasTersimpan(tugas);
+    dimulai++;
+  }
+};
+
+const lanjutkanAntrian = () => mulaiAntrianSlot().catch((e) => console.error("[studio] antrean slot agen:", e.message));
+
+// Lanjutkan tugas tunda_kuota yang sudah diklaim penjadwal (status lama sudah 'dilanjutkan'): buat tugas baru dengan
+// jenis/tahap/instruksi yang sama. Coding diberi catatan lanjutan agar agen meneruskan perubahan yang sudah ada.
+export const lanjutkanTugasTunda = async (lama) => {
+  const item = lama.item_uuid ? await satu(`SELECT * FROM studio_item WHERE uuid = $1 AND deleted_at IS NULL`, [lama.item_uuid]) : null;
+  const { nilai } = await bacaSemua();
+  const ke = Number(lama.lanjutan_ke ?? 0) + 1;
+  const alasan = alasanTidakLanjut(item, lama, nilai)
+    ?? (ke > MAKS_LANJUTAN ? `sudah ${MAKS_LANJUTAN} kali tertunda kuota — jalankan ulang manual` : null)
+    ?? ((await tugasBerjalan(item.uuid)) ? "item sudah punya tugas agen lain yang berjalan" : null);
+  if (alasan) return batalkanOtomatis(lama, item, alasan);
+  const instruksi = lama.jenis === "coding" && !String(lama.instruksi ?? "").includes(CATATAN_LANJUTAN)
+    ? `${CATATAN_LANJUTAN}${lama.instruksi ? `\n\n${lama.instruksi}` : ""}`
+    : lama.instruksi;
+  const tugas = await buatTugasAgen(item, lama.tahap, lama.jenis, instruksi, lama.dibuat_oleh, { lanjutan_dari: lama.uuid, lanjutan_ke: ke });
+  await pesan(item, lama.tahap, "sistem", `Waktu reset kuota tiba — tugas ${NAMA_TAHAP[lama.tahap] ?? lama.tahap} dilanjutkan otomatis.`, null, tugas.uuid);
+  await audit("sistem", `Melanjutkan tugas ${NAMA_TAHAP[lama.tahap] ?? lama.tahap} setelah kuota pulih`, item.uuid, { dari: lama.uuid });
+  await mulaiAtauTunggu(tugas, item, () => mulaiTugasTersimpan(tugas));
+  return tugas;
+};
+
 // ---------- Tugas agen: dokumen ----------
 
 export const jalankanDokumen = async (item, tahap, instruksi, oleh) => {
   if (!TAHAP_DOKUMEN.has(tahap)) throw permintaanSalah(`Tahap ${tahap} bukan tahap dokumen`);
   if (await tugasBerjalan(item.uuid)) throw new Galat(409, "Masih ada tugas agen yang berjalan untuk item ini");
   await periksaBatas(item, oleh);
-  const tugas = await buatTugas(item, tahap, "dokumen", instruksi, oleh);
-
-  (async () => {
-    try {
-      const { nilai } = await bacaSemua();
-      const terkini = await ambilItem(item.uuid);
-      const perubahan = ["qa", "rilis"].includes(tahap) ? (terkini.berkas ?? []).map((b) => `- ${b.status} ${b.path}`).join("\n") : null;
-      const prompt = susunPromptDokumen({
-        item: terkini,
-        tahap,
-        artefakSebelumnya: await artefakSebelum(terkini, tahap),
-        artefakTahapIni: await artefakTerbaru(item.uuid, tahap),
-        diskusi: await query(`SELECT dari, isi, pengguna FROM studio_pesan WHERE item_uuid = $1 AND tahap = $2 AND dari <> 'sistem' ORDER BY created_at, id`, [item.uuid, tahap]),
-        instruksi,
-        aturanInstalasi: nilai.aturan_instalasi,
-        perubahan,
-        ...(await konteksTambahan(terkini, tahap)),
-      });
-      const { hasil } = await jalankanAgen({ tugasUuid: tugas.uuid, prompt, mode: "dokumen", tahap, base: direktoriKerja(terkini), item: terkini });
-      const k = uraiKeluaran(hasil);
-      const artefak = await simpanArtefak(terkini, tahap, k.artefak, "agen", tugas.uuid);
-      const ubahItem = {};
-      const risikoBaru = String(k.meta?.risiko ?? "").toLowerCase();
-      if (URUTAN_RISIKO.includes(risikoBaru) && lebihTinggi(risikoBaru, terkini.risiko)) ubahItem.risiko = risikoBaru;
-      if (Array.isArray(k.meta?.modul) && !(terkini.modul_terdampak ?? []).length) ubahItem.modul_terdampak = k.meta.modul.slice(0, 20);
-      if (k.commit) ubahItem.pesan_commit = k.commit;
-      let setelah = Object.keys(ubahItem).length ? await ubah("studio_item", item.uuid, ubahItem) : terkini;
-      // Desain menyebut berkas zona kuning/merah → risiko naik otomatis (rancangan §8, F3-8).
-      if (tahap === "desain") {
-        const zona = zonaTersentuh(pathDiubahDalamDesain(k.artefak));
-        if (zona === "merah") setelah = await naikkanRisiko(setelah, "kritis", "desain teknis menyentuh berkas zona merah");
-        else if (zona === "kuning") setelah = await naikkanRisiko(setelah, "tinggi", "desain teknis menyentuh layanan klinis/keuangan");
-      }
-      // Rencana uji → checklist QA (versi lama diganti).
-      if (tahap === "qa" && k.uji?.length) {
-        await query(`UPDATE studio_uji SET deleted_at = $2, updated_at = $2 WHERE item_uuid = $1 AND deleted_at IS NULL`, [item.uuid, sekarang()]);
-        for (const [i, u] of k.uji.slice(0, 100).entries()) {
-          await sisipkan("studio_uji", {
-            item_uuid: item.uuid, artefak_uuid: artefak.uuid, kode: String(u.kode ?? `UJ-${i + 1}`).slice(0, 20), kt: u.kt ? String(u.kt).slice(0, 50) : null,
-            skenario: String(u.skenario ?? "-"), peran: u.peran ? String(u.peran).slice(0, 255) : null, langkah: u.langkah ?? null, harapan: u.harapan ?? null,
-            otomatis: Boolean(u.otomatis), updated_at: sekarang(),
-          });
-        }
-      }
-      await pesan(terkini, tahap, "ai", k.catatan || `${NAMA_TAHAP[tahap]} versi ${artefak.versi} sudah dibuat. Periksa lalu setujui atau minta revisi.`, null, tugas.uuid);
-      await tutupTugas(tugas.uuid, { status: "selesai", hasil });
-      await audit("agen", `Menulis ${NAMA_TAHAP[tahap]} v${artefak.versi}`, item.uuid);
-    } catch (e) {
-      await tutupTugas(tugas.uuid, { status: "gagal", pesan_galat: e.message });
-      await pesan(item, tahap, "sistem", `Agen gagal: ${e.message}`, null, tugas.uuid);
-    }
-  })();
+  const tugas = await buatTugasAgen(item, tahap, "dokumen", instruksi, oleh);
+  await mulaiAtauTunggu(tugas, item, () => kerjakanDokumen(tugas, item, tahap, instruksi));
   return tugas;
+};
+
+// Badan tugas dokumen (latar): dipakai rute dan penjadwal (antrean slot / lanjut setelah kuota pulih).
+const kerjakanDokumen = async (tugas, item, tahap, instruksi) => {
+  try {
+    const { nilai } = await bacaSemua();
+    const terkini = await ambilItem(item.uuid);
+    const perubahan = ["qa", "rilis"].includes(tahap) ? (terkini.berkas ?? []).map((b) => `- ${b.status} ${b.path}`).join("\n") : null;
+    const prompt = susunPromptDokumen({
+      item: terkini,
+      tahap,
+      artefakSebelumnya: await artefakSebelum(terkini, tahap),
+      artefakTahapIni: await artefakTerbaru(item.uuid, tahap),
+      diskusi: await query(`SELECT dari, isi, pengguna FROM studio_pesan WHERE item_uuid = $1 AND tahap = $2 AND dari <> 'sistem' ORDER BY created_at, id`, [item.uuid, tahap]),
+      instruksi,
+      aturanInstalasi: nilai.aturan_instalasi,
+      perubahan,
+      ...(await konteksTambahan(terkini, tahap)),
+    });
+    const { hasil } = await jalankanAgen({
+      tugasUuid: tugas.uuid, prompt, mode: "dokumen", tahap, base: direktoriKerja(terkini), item: terkini,
+      beritahu: (teks) => pesan(terkini, tahap, "sistem", teks, null, tugas.uuid),
+    });
+    const k = uraiKeluaran(hasil);
+    const artefak = await simpanArtefak(terkini, tahap, k.artefak, "agen", tugas.uuid);
+    const ubahItem = {};
+    const risikoBaru = String(k.meta?.risiko ?? "").toLowerCase();
+    if (URUTAN_RISIKO.includes(risikoBaru) && lebihTinggi(risikoBaru, terkini.risiko)) ubahItem.risiko = risikoBaru;
+    if (Array.isArray(k.meta?.modul) && !(terkini.modul_terdampak ?? []).length) ubahItem.modul_terdampak = k.meta.modul.slice(0, 20);
+    if (k.commit) ubahItem.pesan_commit = k.commit;
+    let setelah = Object.keys(ubahItem).length ? await ubah("studio_item", item.uuid, ubahItem) : terkini;
+    // Desain menyebut berkas zona kuning/merah → risiko naik otomatis (rancangan §8, F3-8).
+    if (tahap === "desain") {
+      const zona = zonaTersentuh(pathDiubahDalamDesain(k.artefak));
+      if (zona === "merah") setelah = await naikkanRisiko(setelah, "kritis", "desain teknis menyentuh berkas zona merah");
+      else if (zona === "kuning") setelah = await naikkanRisiko(setelah, "tinggi", "desain teknis menyentuh layanan klinis/keuangan");
+    }
+    // Rencana uji → checklist QA (versi lama diganti).
+    if (tahap === "qa" && k.uji?.length) {
+      await query(`UPDATE studio_uji SET deleted_at = $2, updated_at = $2 WHERE item_uuid = $1 AND deleted_at IS NULL`, [item.uuid, sekarang()]);
+      for (const [i, u] of k.uji.slice(0, 100).entries()) {
+        await sisipkan("studio_uji", {
+          item_uuid: item.uuid, artefak_uuid: artefak.uuid, kode: String(u.kode ?? `UJ-${i + 1}`).slice(0, 20), kt: u.kt ? String(u.kt).slice(0, 50) : null,
+          skenario: String(u.skenario ?? "-"), peran: u.peran ? String(u.peran).slice(0, 255) : null, langkah: u.langkah ?? null, harapan: u.harapan ?? null,
+          otomatis: Boolean(u.otomatis), updated_at: sekarang(),
+        });
+      }
+    }
+    await pesan(terkini, tahap, "ai", k.catatan || `${NAMA_TAHAP[tahap]} versi ${artefak.versi} sudah dibuat. Periksa lalu setujui atau minta revisi.`, null, tugas.uuid);
+    await tutupTugas(tugas.uuid, { status: "selesai", hasil });
+    await audit("agen", `Menulis ${NAMA_TAHAP[tahap]} v${artefak.versi}`, item.uuid);
+  } catch (e) {
+    await tutupGagalAtauTunda(tugas, item, tahap, e, "Agen gagal").catch((x) => console.error("[studio] menutup tugas:", x.message));
+  } finally {
+    lanjutkanAntrian();
+  }
 };
 
 // ---------- Tugas agen: coding ----------
@@ -344,33 +487,44 @@ export const jalankanCoding = async (item, instruksi, oleh) => {
   await periksaBatas(item, oleh);
 
   const siap = await siapkanKerja(item);
-  const base = direktoriKerja(siap);
-  const tugas = await buatTugas(siap, "coding", "coding", instruksi, oleh);
+  const tugas = await buatTugasAgen(siap, "coding", "coding", instruksi, oleh);
   await audit(oleh, "Menjalankan agen coding", item.uuid, { branch: siap.branch, worktree: siap.worktree });
+  await mulaiAtauTunggu(tugas, siap, () => kerjakanCoding(tugas, siap, instruksi));
+  return tugas;
+};
 
-  (async () => {
-    const sebelum = await potretKerja(base);
-    let galat = null;
-    let hasil = "";
-    try {
-      const sesiLalu = await satu(
-        `SELECT session_id FROM studio_tugas WHERE item_uuid = $1 AND jenis = 'coding' AND status = 'selesai' AND session_id IS NOT NULL ORDER BY id DESC LIMIT 1`,
-        [item.uuid],
-      );
-      const prompt = susunPromptCoding({
-        item: siap,
-        artefak: await artefakSebelum(siap, "coding"),
-        instruksi,
-        aturanInstalasi: nilai.aturan_instalasi,
-        branch: siap.branch,
-        revisi: Boolean(sesiLalu),
-        ...(await konteksTambahan(siap, "coding")),
-      });
-      ({ hasil } = await jalankanAgen({ tugasUuid: tugas.uuid, prompt, mode: "coding", tahap: "coding", base, item: siap, resume: sesiLalu?.session_id ?? null }));
-    } catch (e) {
-      galat = e;
-    }
-    try {
+// Badan tugas coding (latar): dipakai rute dan penjadwal. Berkas yang sempat diubah tetap dicatat walau agen gagal/kuota habis.
+const kerjakanCoding = async (tugas, siap, instruksi) => {
+  const item = siap;
+  const base = direktoriKerja(siap);
+  let galat = null;
+  let hasil = "";
+  let sebelum = null;
+  try {
+    const { nilai } = await bacaSemua();
+    sebelum = await potretKerja(base);
+    const sesiLalu = await satu(
+      `SELECT session_id FROM studio_tugas WHERE item_uuid = $1 AND jenis = 'coding' AND status = 'selesai' AND session_id IS NOT NULL ORDER BY id DESC LIMIT 1`,
+      [item.uuid],
+    );
+    const prompt = susunPromptCoding({
+      item: siap,
+      artefak: await artefakSebelum(siap, "coding"),
+      instruksi,
+      aturanInstalasi: nilai.aturan_instalasi,
+      branch: siap.branch,
+      revisi: Boolean(sesiLalu),
+      ...(await konteksTambahan(siap, "coding")),
+    });
+    ({ hasil } = await jalankanAgen({
+      tugasUuid: tugas.uuid, prompt, mode: "coding", tahap: "coding", base, item: siap, resume: sesiLalu?.session_id ?? null,
+      beritahu: (teks) => pesan(siap, "coding", "sistem", teks, null, tugas.uuid),
+    }));
+  } catch (e) {
+    galat = e;
+  }
+  try {
+    if (sebelum) {
       const sesudah = await potretKerja(base);
       const berubah = berkasBerubah(sebelum, sesudah);
       let terkini = await ambilItem(item.uuid);
@@ -388,15 +542,17 @@ export const jalankanCoding = async (item, instruksi, oleh) => {
         await tutupTugas(tugas.uuid, { status: "selesai", hasil });
         await audit("agen", `Coding selesai (${berubah.length} berkas)`, item.uuid);
       }
-    } catch (e) {
-      galat = galat ?? e;
     }
-    if (galat) {
-      await tutupTugas(tugas.uuid, { status: "gagal", pesan_galat: galat.message });
-      await pesan(item, "coding", "sistem", `Agen coding gagal: ${galat.message}`, null, tugas.uuid);
-    }
-  })();
-  return tugas;
+  } catch (e) {
+    galat = galat ?? e;
+  }
+  try {
+    if (galat) await tutupGagalAtauTunda(tugas, item, "coding", galat, "Agen coding gagal");
+  } catch (e) {
+    console.error("[studio] menutup tugas coding:", e.message);
+  } finally {
+    lanjutkanAntrian();
+  }
 };
 
 // ---------- Perubahan & pemeriksa kebijakan ----------
@@ -1153,9 +1309,9 @@ export const pindahkanAplikasi = async (oleh) => {
   // Hanya tugas yang bekerja di repo utama yang menghalangi; agen di worktree item tidak terpengaruh perpindahan ini.
   const diRepoUtama = await satu(
     `SELECT i.nomor FROM studio_tugas t LEFT JOIN studio_item i ON i.uuid = t.item_uuid
-      WHERE t.status IN ('antri', 'jalan') AND i.worktree IS NULL LIMIT 1`,
+      WHERE t.status IN ('antri', 'jalan', 'tunda_kuota') AND i.worktree IS NULL LIMIT 1`,
   );
-  if (diRepoUtama) throw new Galat(409, `Masih ada tugas agen yang berjalan di repo utama${diRepoUtama.nomor ? ` (STD-${String(diRepoUtama.nomor).padStart(4, "0")})` : ""}`);
+  if (diRepoUtama) throw new Galat(409, `Masih ada tugas agen yang berjalan/menunggu kuota di repo utama${diRepoUtama.nomor ? ` (STD-${String(diRepoUtama.nomor).padStart(4, "0")})` : ""}`);
   // Branch yang sedang terbuka di worktree lain tidak bisa dibuka di repo utama.
   const { keluaran: daftar } = await git(["worktree", "list", "--porcelain"], { izinkanGagal: true });
   const lain = daftar.split(/\n\n+/).slice(1).find((b) => b.includes(`branch refs/heads/${s.branchLokal}`))?.match(/^worktree (.+)$/m)?.[1];
