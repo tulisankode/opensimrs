@@ -1057,6 +1057,19 @@ export const cssdPermission = {
 
 // Manajemen Ambulans (STD-0024, penunjang-service). "Catatan Pendamping" dipisah dari izin Perjalanan & Laporan:
 // catatan pendamping adalah catatan perjalanan beraksesibilitas terbatas (KF-10), tidak tampil di laporan umum.
+// Mutu & Akreditasi (STD-0025): pengelolaan indikator, pengumpulan, validasi, dan laporan.
+export const mutuPermission = {
+  module: "Mutu & Akreditasi",
+  subModules: [
+    { name: "Profil Indikator", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "Datamaster PIC Unit", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "Pengumpulan Data", allows: ["READ", "CREATE", "UPDATE", "AJUKAN", "TIMPA MANUAL", "LINTAS UNIT"] },
+    { name: "Validasi & Penguncian", allows: ["READ", "VALIDASI", "TOLAK", "KUNCI", "BUKA KEMBALI"] },
+    { name: "Analisis & PDSA", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
+    { name: "Laporan Mutu", allows: ["READ", "EKSPOR", "LINTAS UNIT"] },
+  ],
+};
+
 export const ambulansPermission = {
   module: "Manajemen Ambulans",
   subModules: [
@@ -1557,6 +1570,7 @@ export function mapPermission(permissionList) {
     "bank darah rs (bdrs)": bankDarahPermission,
     cssd: cssdPermission,
     "manajemen ambulans": ambulansPermission,
+    "mutu & akreditasi": mutuPermission,
     "sarana dan prasarana (ipsrs)": sarprasPermission,
     training: trainingPermission,
     pembayaran: pembayaranPermission,

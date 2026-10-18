@@ -26,6 +26,7 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 ## [Belum dirilis]
 
 ### Ditambahkan
+- **Mutu & Akreditasi** (modul katalog `mutu`, fitur `mutu_indikator`): layanan indikator INM/IMP-RS/IMPU, pencatatan manual, penghitungan referensi waktu tunggu rawat jalan, izin per tindakan, dan migrasi tabel baru `20261018170040-mutu` serta sinkronisasi katalog `20261018170050-katalog_mutu`. Belum ada seeding INM atau target nasional sebelum acuan regulasi ditetapkan.
 - **Pembelian BMHP via Marketplace mitra** (Inventory, fitur `inv_marketplace`): konfigurasi koneksi per faskes, pencarian penawaran, pemetaan produk dan satuan, pengajuan serta persetujuan permintaan, checkout idempoten, pembaruan status/webhook berkunci, catatan tagihan, laporan, dan server marketplace tiruan. Penerimaan barang tetap memakai PO dan alur Penerimaan Pembelian Inventory yang sudah ada.
   - Rute API ditolak bila fitur belum aktif untuk faskes; izin submodul **Inventory › Pembelian Marketplace** per aksi. Aksi berisiko (konfigurasi koneksi, pemetaan, persetujuan, checkout, laporan) tidak diberikan otomatis ke peran yang ada.
   - **Migrasi baru:** `20261018120000-inv_marketplace`, `20261018120100-sinkron_katalog_inv_marketplace`, `20261018120200-izin_inv_marketplace`.

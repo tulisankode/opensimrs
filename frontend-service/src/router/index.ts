@@ -311,6 +311,8 @@ import LaporanSarprasPage from "@/views/Sarpras/LaporanPage.vue";
 
 // NOTE Manajemen Ambulans — permintaan & penugasan, perjalanan, armada & kru, tarif, biaya/kuitansi (STD-0024, penunjang-service)
 import AmbulansView from "@/views/Ambulans/AmbulansView.vue";
+import MutuView from "@/views/Mutu/MutuView.vue";
+import DasborMutuPage from "@/views/Mutu/DasborMutuPage.vue";
 import PermintaanAmbulansPage from "@/views/Ambulans/PermintaanPage.vue";
 import PenugasanAmbulansPage from "@/views/Ambulans/PenugasanPage.vue";
 import PerjalananAmbulansPage from "@/views/Ambulans/PerjalananPage.vue";
@@ -1818,6 +1820,14 @@ const router = createRouter({
       ["/ambulans/tarif", "ambulans-tarif", TarifAmbulansPage],
       ["/ambulans/kuitansi", "ambulans-kuitansi", KuitansiAmbulansPage],
       ["/ambulans/laporan", "ambulans-laporan", LaporanAmbulansPage],
+    ]),
+    // !SECTION
+
+    // SECTION Mutu & Akreditasi (mutu-service)
+    { path: "/mutu", name: "mutu", redirect: "/mutu/dasbor" },
+    ...halamanModul(MutuView, [
+      ["/mutu/dasbor", "mutu-dasbor", DasborMutuPage],
+      ["/mutu/pengumpulan", "mutu-pengumpulan", DasborMutuPage],
     ]),
     // !SECTION
 

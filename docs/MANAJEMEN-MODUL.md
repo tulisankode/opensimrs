@@ -220,7 +220,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **34 modul** (8 inti, 1 berstatus Segera), **88 fitur** (0 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **35 modul** (8 inti, 1 berstatus Segera), **89 fitur** (0 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -302,6 +302,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Penunjang Medis › Pelayanan Darah | Bank Darah RS (BDRS) |
 | `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Tersedia | Penunjang Medis › Pelayanan Darah | UTD |
 | `akuntansi` | Akuntansi & Remunerasi | Jurnal, laporan keuangan, jasa pelayanan. | Segera | Keuangan & Administrasi › Akuntansi & Remunerasi | – |
+| `mutu` | Mutu & Akreditasi | Profil indikator mutu, pengumpulan data, validasi, analisis PDSA, serta laporan. | Tersedia | Manajemen & Mutu › Mutu & Akreditasi | Mutu & Akreditasi |
 
 ### C. Matriks modul × segmen (preset bawaan)
 
@@ -342,6 +343,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Mikrobiologi (`mikrobiologi`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | Manajemen Ambulans (`ambulans`) | Tersedia | – | – | – | – | – | – | – | – |
 | Laundry & Linen (`laundry`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
+| Mutu & Akreditasi (`mutu`) | Tersedia | – | – | – | – | – | – | – | – |
 | Sarana dan Prasarana (IPSRS) (`sarpras`) | Tersedia | – | – | – | – | – | – | – | – |
 
 ### D. Fitur per modul
@@ -541,6 +543,12 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `laundry_master` | Master Jenis Linen | Datamaster jenis linen, kode, dan satuan hitung. | Tersedia | – | – | – |
 | `laundry_laporan` | Laporan Laundry | Beban cucian kg per ruangan, perputaran, selisih, pemisahan kategori, rekonsiliasi, dan ekspor Excel. | Tersedia | – | – | – |
 
+#### Mutu & Akreditasi (`mutu`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `mutu_indikator` | Indikator Mutu (INM/IMP-RS/IMPU) | Profil indikator, pengumpulan data, validasi, analisis, dan laporan. | Tersedia | Ya | – | – |
+
 #### Sarana dan Prasarana (IPSRS) (`sarpras`)
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
@@ -646,6 +654,7 @@ Field `bidang` dan `instalasi` menempatkan menu modul di panel **Lainnya** pada 
 | Keuangan & Administrasi | Akuntansi & Remunerasi | Akuntansi & Remunerasi (`akuntansi`) |
 | Manajemen & Mutu | Pelaporan | Dashboard (`dashboard`), Laporan (`laporan`) |
 | Manajemen & Mutu | Audit Trail | Audit Trail (`audit_trail`) |
+| Manajemen & Mutu | Mutu & Akreditasi | Mutu & Akreditasi (`mutu`) |
 | Program Kesehatan Masyarakat | Program Puskesmas | Program Puskesmas (`program_puskesmas`) |
 | Sistem | Data Master | Data Master (`datamaster`) |
 | Sistem | Integrasi & Interoperabilitas | SATUSEHAT (`satusehat`) |

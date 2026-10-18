@@ -100,6 +100,7 @@ OpenSIMRS terdiri dari satu frontend (Vue 3) dan 19 layanan backend (Node.js + E
 | 8098 | Integrasi BPJS (PCare & VClaim) | `bpjs-service` | `/api/v3/bpjs` |
 | 8099 | Penunjang (Fisioterapi, Radiologi + bridging PACS/RIS, MCU, Patologi Anatomi + bridging LIS PA, Mikrobiologi, Bank Darah RS + bridging UTD, CSSD) | `penunjang-service` | `/api/v3/penunjang`, `/adam-pacs`, `/adam-pa-lis` & `/adam-utd` (titik masuk hasil dari PACS/RIS, sistem PA & UTD) |
 | 8100 | Program Puskesmas (KIA/KB, imunisasi, MTBS, sasaran, UKM, laporan dinkes) | `program-puskesmas-service` | `/api/v3/program-puskesmas` |
+| 8101 | Mutu & Akreditasi (indikator INM/IMP-RS/IMPU) | `mutu-service` | `/api/v3/mutu` |
 | 8090 | SIMRS Studio — mode pengembang berbasis AI (opsional; dijalankan langsung di mesin pengembang yang sudah login Claude Code, aktif bila `STUDIO_PENGEMBANG=aktif`) | `studio-service` | `/api/v3/studio` |
 | 5432 | PostgreSQL | – | – |
 | 27017 | MongoDB | – | – |

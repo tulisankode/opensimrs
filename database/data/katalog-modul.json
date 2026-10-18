@@ -676,6 +676,23 @@
       "menu": ["Sarana dan Prasarana (IPSRS)"],
       "rute": ["/sarpras"],
       "urutan": 33
+    },
+    {
+      "kode": "mutu",
+      "nama": "Mutu & Akreditasi",
+      "kelompok": "Rumah Sakit",
+      "bidang": "Manajemen & Mutu",
+      "instalasi": "Mutu & Akreditasi",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Profil indikator mutu, pengumpulan data, validasi, analisis PDSA, serta laporan.",
+      "menu": [
+        "Mutu & Akreditasi"
+      ],
+      "rute": [
+        "/mutu"
+      ],
+      "urutan": 32
     }
   ],
   "fitur": [
@@ -1619,6 +1636,16 @@
       "wajib": true,
       "rute": ["/sarpras/laporan"],
       "urutan": 81
+    },
+    {
+      "kode": "mutu_indikator",
+      "modul": "mutu",
+      "nama": "Indikator Mutu (INM/IMP-RS/IMPU)",
+      "deskripsi": "Profil indikator, pengumpulan data, validasi, analisis, dan laporan.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 64
     }
   ],
   "bagian": [

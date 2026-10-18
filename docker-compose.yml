@@ -222,6 +222,20 @@ services:
     networks: [opensimrs]
     restart: always
     ports: ["8100:8100"]
+
+  # Mutu & Akreditasi: indikator mutu dan pengumpulan data.
+  mutu-service:
+    depends_on: [db]
+    container_name: mutu-service
+    image: opensimrs/mutu-service:v1.0.0
+    build:
+      context: ./mutu-service
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    networks: [opensimrs]
+    restart: always
+    ports: ["8101:8101"]
   
   setting-service:
     depends_on: [db, redis, mongodb]
