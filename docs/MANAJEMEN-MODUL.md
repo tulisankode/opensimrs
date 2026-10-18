@@ -220,7 +220,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **34 modul** (8 inti, 1 berstatus Segera), **88 fitur** (0 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **34 modul** (8 inti, 1 berstatus Segera), **91 fitur** (0 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -540,6 +540,9 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `laundry_koreksi` | Koreksi Stok | Pencatatan linen hilang, rusak, dan afkir dengan alasan serta pelaku. | Tersedia | – | – | – |
 | `laundry_master` | Master Jenis Linen | Datamaster jenis linen, kode, dan satuan hitung. | Tersedia | – | – | – |
 | `laundry_laporan` | Laporan Laundry | Beban cucian kg per ruangan, perputaran, selisih, pemisahan kategori, rekonsiliasi, dan ekspor Excel. | Tersedia | – | – | – |
+| `laundry_unit` | Unit Linen & Label | Cara pencatatan per jenis (per jumlah/per unit) dan batas umur pakai, registrasi unit berkode unik, label QR/barcode, koreksi status/lokasi, dan tautan bed/kamar. | Tersedia | – | – | – |
+| `laundry_pemindaian_unit` | Pemindaian Unit | Pindai unit (kamera peramban/scanner USB) di setiap titik alur: serah terima kotor, masuk batch, selesai cuci, distribusi, dan penerimaan ruangan; stok ikut dihitung dari hasil pindai. | Tersedia | – | – | – |
+| `laundry_laporan_unit` | Laporan Unit Linen | Riwayat perjalanan per unit, unit hilang/rusak per ruangan, unit mendekati/mencapai batas umur pakai, dan perputaran. | Tersedia | – | – | – |
 
 #### Sarana dan Prasarana (IPSRS) (`sarpras`)
 

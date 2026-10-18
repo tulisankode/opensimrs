@@ -298,6 +298,9 @@ import BatchLaundryPage from "@/views/Laundry/BatchPage.vue";
 import DistribusiLaundryPage from "@/views/Laundry/DistribusiPage.vue";
 import KoreksiLaundryPage from "@/views/Laundry/KoreksiPage.vue";
 import LaporanLaundryPage from "@/views/Laundry/LaporanPage.vue";
+import UnitLaundryPage from "@/views/Laundry/UnitPage.vue";
+import PemindaianUnitLaundryPage from "@/views/Laundry/PemindaianUnitPage.vue";
+import LaporanUnitLaundryPage from "@/views/Laundry/LaporanUnitPage.vue";
 
 // NOTE Sarana dan Prasarana (IPSRS) — aset, work order perbaikan, pemeliharaan, kalibrasi, utilitas (STD-0022, penunjang-service)
 import SarprasView from "@/views/Sarpras/SarprasView.vue";
@@ -1883,6 +1886,9 @@ const router = createRouter({
       ["/laundry/distribusi", "laundry-distribusi", DistribusiLaundryPage],
       ["/laundry/koreksi", "laundry-koreksi", KoreksiLaundryPage],
       ["/laundry/laporan", "laundry-laporan", LaporanLaundryPage],
+      ["/laundry/unit", "laundry-unit", UnitLaundryPage],
+      ["/laundry/pemindaian-unit", "laundry-pemindaian-unit", PemindaianUnitLaundryPage],
+      ["/laundry/laporan-unit", "laundry-laporan-unit", LaporanUnitLaundryPage],
     ]),
     // !SECTION
 

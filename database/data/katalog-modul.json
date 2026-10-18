@@ -1491,6 +1491,36 @@
       "urutan": 76
     },
     {
+      "kode": "laundry_unit",
+      "modul": "laundry",
+      "nama": "Unit Linen & Label",
+      "deskripsi": "Cara pencatatan per jenis (per jumlah/per unit) dan batas umur pakai, registrasi unit berkode unik, label QR/barcode, koreksi status/lokasi, dan tautan bed/kamar.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/unit"],
+      "urutan": 77
+    },
+    {
+      "kode": "laundry_pemindaian_unit",
+      "modul": "laundry",
+      "nama": "Pemindaian Unit",
+      "deskripsi": "Pindai unit (kamera peramban/scanner USB) di setiap titik alur: serah terima kotor, masuk batch, selesai cuci, distribusi, dan penerimaan ruangan; stok ikut dihitung dari hasil pindai.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/pemindaian-unit"],
+      "urutan": 78
+    },
+    {
+      "kode": "laundry_laporan_unit",
+      "modul": "laundry",
+      "nama": "Laporan Unit Linen",
+      "deskripsi": "Riwayat perjalanan per unit, unit hilang/rusak per ruangan, unit mendekati/mencapai batas umur pakai, dan perputaran.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/laundry/laporan-unit"],
+      "urutan": 79
+    },
+    {
       "kode": "ambulans_armada",
       "modul": "ambulans",
       "nama": "Master Armada & Servis",
