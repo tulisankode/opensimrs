@@ -299,6 +299,14 @@ import DistribusiLaundryPage from "@/views/Laundry/DistribusiPage.vue";
 import KoreksiLaundryPage from "@/views/Laundry/KoreksiPage.vue";
 import LaporanLaundryPage from "@/views/Laundry/LaporanPage.vue";
 
+// NOTE Mutu & Akreditasi — dokumen akreditasi, instrumen, kredensial staf, dasbor kesiapan (STD-0028, penunjang-service)
+import MutuView from "@/views/Mutu/MutuView.vue";
+import DasborMutuPage from "@/views/Mutu/DasborPage.vue";
+import InstrumenMutuPage from "@/views/Mutu/InstrumenPage.vue";
+import DokumenMutuPage from "@/views/Mutu/DokumenPage.vue";
+import KredensialMutuPage from "@/views/Mutu/KredensialPage.vue";
+import SurveiorMutuPage from "@/views/Mutu/SurveiorPage.vue";
+
 // NOTE Sarana dan Prasarana (IPSRS) — aset, work order perbaikan, pemeliharaan, kalibrasi, utilitas (STD-0022, penunjang-service)
 import SarprasView from "@/views/Sarpras/SarprasView.vue";
 import AsetSarprasPage from "@/views/Sarpras/AsetPage.vue";
@@ -321,6 +329,7 @@ import KuitansiAmbulansPage from "@/views/Ambulans/KuitansiPage.vue";
 import LaporanAmbulansPage from "@/views/Ambulans/LaporanPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
+const HALAMAN_MUTU = ["/mutu/dasbor", "/mutu/dokumen", "/mutu/kredensial", "/mutu/instrumen", "/mutu/surveior"];
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
   daftar.map(([path, name, page]) => ({ path, name, meta: { layout: SidebarLayout, page, requiresAuth: true }, component: view }));
 
@@ -1818,6 +1827,22 @@ const router = createRouter({
       ["/ambulans/tarif", "ambulans-tarif", TarifAmbulansPage],
       ["/ambulans/kuitansi", "ambulans-kuitansi", KuitansiAmbulansPage],
       ["/ambulans/laporan", "ambulans-laporan", LaporanAmbulansPage],
+    ]),
+    // !SECTION
+
+    // SECTION Mutu & Akreditasi (STD-0028, penunjang-service)
+    // Halaman pertama yang diizinkan (mis. akun surveior hanya punya Akses Surveior).
+    {
+      path: "/mutu",
+      name: "mutu",
+      redirect: () => HALAMAN_MUTU.find((p) => canAccessPermission(resolveRoutePermission(p))) ?? "/mutu/dasbor",
+    },
+    ...halamanModul(MutuView, [
+      ["/mutu/dasbor", "mutu-dasbor", DasborMutuPage],
+      ["/mutu/instrumen", "mutu-instrumen", InstrumenMutuPage],
+      ["/mutu/dokumen", "mutu-dokumen", DokumenMutuPage],
+      ["/mutu/kredensial", "mutu-kredensial", KredensialMutuPage],
+      ["/mutu/surveior", "mutu-surveior", SurveiorMutuPage],
     ]),
     // !SECTION
 

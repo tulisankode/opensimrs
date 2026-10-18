@@ -77,6 +77,7 @@ Keterangan: **Wajib** = harus diisi; **Rahasia** = jangan dibagikan atau di-comm
 | `FRONTEND_ALLOWED_HOSTS` | – | `staging.simrs.contoh.id` | `simrs.contoh.id` | Server | – |
 | `BASE_URL_API_INVENTORY` (penunjang-service) | bawaan `http://localhost:8086/api/v3/inventory` | alamat inventory-service | alamat inventory-service | Tidak | – |
 | `MAX_UPLOAD_BERKAS_SARPRAS_MB` (penunjang-service) | bawaan `5` (1–20) | `5` | `5` | Tidak | – |
+| `MAX_UPLOAD_MUTU_MB` (penunjang-service) | bawaan `10` (1–20): batas berkas dokumen akreditasi (PDF) & kredensial staf (PDF/JPG/PNG) | `10` | `10` | Tidak | – |
 
 Kredensial integrasi per faskes (SATUSEHAT Client ID/Secret, BPJS cons-id/secret/user key, API key LIS) **tidak** ditaruh di `.env`; semuanya diisi di **Setting › Konfigurasi Integrasi** dan disimpan terenkripsi. Isi kredensial sandbox di staging dan kredensial produksi hanya di production.
 

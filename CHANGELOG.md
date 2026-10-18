@@ -26,6 +26,14 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 ## [Belum dirilis]
 
 ### Ditambahkan
+- **Mutu & Akreditasi – Dokumen Akreditasi & Kredensial Staf** (modul baru `mutu`, fitur `mutu_dokumen_kredensial`, STD-0028, penunjang-service `/mutu`):
+  - Instrumen akreditasi milik faskes (bab → standar → elemen penilaian; sistem tidak menyediakan isi instrumen), diisi manual atau impor CSV dengan laporan baris yang ditolak (elemen tanpa bab/standar induk) dan mode validasi saja.
+  - Dokumen akreditasi (kebijakan, pedoman, SPO, program, bukti) dengan berkas PDF, status manual draf → disahkan → kedaluwarsa/dicabut, revisi berversi (versi lama beserta berkas & pemetaannya tetap utuh), pemetaan ke elemen penilaian, catatan tinjauan, dan penanda "perlu ditinjau" yang tidak mengubah status.
+  - Kredensial staf (STR, SIP, sertifikat pelatihan, RKK, SPK) tertaut pegawai/practitioner aktif Datamaster, berkas PDF/JPG/PNG, peringatan 90 & 30 hari serta kedaluwarsa dihitung per hari Asia/Jakarta, dan pencabutan beralasan.
+  - Dasbor kesiapan: persentase elemen terbukti per instrumen → bab → standar, dokumen perlu ditinjau, dan kredensial mendekati/melewati masa berlaku; daftar rinci hanya untuk pengguna yang berhak membaca sumbernya.
+  - Akses baca surveior (izin **Akses Surveior**) terbatas pada dokumen disahkan yang dibagikan dan belum lewat batas waktunya.
+  - Rute API ditolak bila fitur belum aktif untuk faskes; izin per aksi di modul **Mutu & Akreditasi** (submodul Dasbor Kesiapan, Instrumen Akreditasi, Dokumen Akreditasi, Kredensial Staf, Akses Surveior); setiap perubahan dicatat di jejak audit dalam transaksi yang sama. Variabel baru `MAX_UPLOAD_MUTU_MB` (bawaan 10).
+  - **Migrasi baru:** `20261018150000-mutu`, `20261018150010-katalog_mutu`, `20261018150020-izin_mutu_superadmin`.
 - **Pembelian BMHP via Marketplace mitra** (Inventory, fitur `inv_marketplace`): konfigurasi koneksi per faskes, pencarian penawaran, pemetaan produk dan satuan, pengajuan serta persetujuan permintaan, checkout idempoten, pembaruan status/webhook berkunci, catatan tagihan, laporan, dan server marketplace tiruan. Penerimaan barang tetap memakai PO dan alur Penerimaan Pembelian Inventory yang sudah ada.
   - Rute API ditolak bila fitur belum aktif untuk faskes; izin submodul **Inventory › Pembelian Marketplace** per aksi. Aksi berisiko (konfigurasi koneksi, pemetaan, persetujuan, checkout, laporan) tidak diberikan otomatis ke peran yang ada.
   - **Migrasi baru:** `20261018120000-inv_marketplace`, `20261018120100-sinkron_katalog_inv_marketplace`, `20261018120200-izin_inv_marketplace`.
