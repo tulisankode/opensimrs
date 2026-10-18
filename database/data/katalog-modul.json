@@ -597,6 +597,17 @@
         "/ambulans"
       ],
       "urutan": 31
+    },
+    {
+      "kode": "sarpras",
+      "nama": "Sarana dan Prasarana (IPSRS)",
+      "kelompok": "Penunjang",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Register aset medis & nonmedis, laporan kerusakan dan perbaikan (work order), pemeliharaan preventif, serta kalibrasi dan uji fungsi alat untuk Instalasi Pemeliharaan Sarana RS (IPSRS).",
+      "menu": ["Sarana dan Prasarana (IPSRS)"],
+      "rute": ["/sarpras"],
+      "urutan": 33
     }
   ],
   "fitur": [
@@ -1490,6 +1501,56 @@
       "wajib": false,
       "rute": ["/ambulans/laporan"],
       "urutan": 63
+    },
+    {
+      "kode": "sarpras_aset",
+      "modul": "sarpras",
+      "nama": "Register Aset & Laporan Kerusakan",
+      "deskripsi": "Pencatatan aset (medis, nonmedis, gedung/utilitas, kendaraan), label QR, riwayat per aset, serta laporan kerusakan dan perbaikan dari ruangan sampai selesai.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/sarpras/aset", "/sarpras/laporan-kerusakan"],
+      "urutan": 77
+    },
+    {
+      "kode": "sarpras_pemeliharaan",
+      "modul": "sarpras",
+      "nama": "Pemeliharaan Preventif",
+      "deskripsi": "Jadwal pemeliharaan berkala per aset, checklist, pelaksanaan, dan penanda keterlambatan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/sarpras/pemeliharaan"],
+      "urutan": 78
+    },
+    {
+      "kode": "sarpras_kalibrasi",
+      "modul": "sarpras",
+      "nama": "Kalibrasi & Uji Fungsi Alat",
+      "deskripsi": "Jadwal kalibrasi, lembaga penguji, sertifikat, masa berlaku, dan peringatan jatuh tempo alat medis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/sarpras/kalibrasi"],
+      "urutan": 79
+    },
+    {
+      "kode": "sarpras_utilitas",
+      "modul": "sarpras",
+      "nama": "Pencatatan Utilitas",
+      "deskripsi": "Pencatatan meter listrik/air serta genset/oksigen sentral.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/sarpras/utilitas"],
+      "urutan": 80
+    },
+    {
+      "kode": "sarpras_laporan",
+      "modul": "sarpras",
+      "nama": "Laporan Sarpras",
+      "deskripsi": "Daftar dan riwayat aset, kepatuhan pemeliharaan dan kalibrasi, waktu respons perbaikan, serta biaya pemeliharaan.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/sarpras/laporan"],
+      "urutan": 81
     }
   ],
   "bagian": [

@@ -217,7 +217,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **33 modul** (8 inti, 1 berstatus Segera), **83 fitur** (1 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **34 modul** (8 inti, 1 berstatus Segera), **88 fitur** (1 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -273,6 +273,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `mikrobiologi` | Mikrobiologi | Pewarnaan, kultur, identifikasi kuman & uji kepekaan antibiotik (S/I/R), laporan sementara & antibiogram. | Tersedia | Mikrobiologi |
 | `ambulans` | Manajemen Ambulans | Permintaan & penugasan ambulans, perjalanan (jarak/BBM/catatan pendamping), armada & kru, tarif, serta penerusan biaya ke tagihan kunjungan/kuitansi umum. | Tersedia | Manajemen Ambulans |
 | `laundry` | Laundry & Linen | Siklus linen kotor–bersih: serah terima linen kotor dua petugas, batch cuci bertahap, distribusi linen bersih, stok & par level per ruangan, koreksi, rekonsiliasi, dan laporan beban cucian. | Tersedia | Laundry |
+| `sarpras` | Sarana dan Prasarana (IPSRS) | Register aset medis & nonmedis, laporan kerusakan dan perbaikan (work order), pemeliharaan preventif, serta kalibrasi dan uji fungsi alat untuk Instalasi Pemeliharaan Sarana RS (IPSRS). | Tersedia | Sarana dan Prasarana (IPSRS) |
 
 #### Penjaminan
 
@@ -338,6 +339,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Mikrobiologi (`mikrobiologi`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | Manajemen Ambulans (`ambulans`) | Tersedia | – | – | – | – | – | – | – | – |
 | Laundry & Linen (`laundry`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
+| Sarana dan Prasarana (IPSRS) (`sarpras`) | Tersedia | – | – | – | – | – | – | – | – |
 
 ### D. Fitur per modul
 
@@ -535,6 +537,16 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `laundry_koreksi` | Koreksi Stok | Pencatatan linen hilang, rusak, dan afkir dengan alasan serta pelaku. | Tersedia | – | – | – |
 | `laundry_master` | Master Jenis Linen | Datamaster jenis linen, kode, dan satuan hitung. | Tersedia | – | – | – |
 | `laundry_laporan` | Laporan Laundry | Beban cucian kg per ruangan, perputaran, selisih, pemisahan kategori, rekonsiliasi, dan ekspor Excel. | Tersedia | – | – | – |
+
+#### Sarana dan Prasarana (IPSRS) (`sarpras`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `sarpras_aset` | Register Aset & Laporan Kerusakan | Pencatatan aset (medis, nonmedis, gedung/utilitas, kendaraan), label QR, riwayat per aset, serta laporan kerusakan dan perbaikan dari ruangan sampai selesai. | Tersedia | Ya | – | – |
+| `sarpras_pemeliharaan` | Pemeliharaan Preventif | Jadwal pemeliharaan berkala per aset, checklist, pelaksanaan, dan penanda keterlambatan. | Tersedia | – | – | – |
+| `sarpras_kalibrasi` | Kalibrasi & Uji Fungsi Alat | Jadwal kalibrasi, lembaga penguji, sertifikat, masa berlaku, dan peringatan jatuh tempo alat medis. | Tersedia | – | – | – |
+| `sarpras_utilitas` | Pencatatan Utilitas | Pencatatan meter listrik/air serta genset/oksigen sentral. | Tersedia | – | – | – |
+| `sarpras_laporan` | Laporan Sarpras | Daftar dan riwayat aset, kepatuhan pemeliharaan dan kalibrasi, waktu respons perbaikan, serta biaya pemeliharaan. | Tersedia | Ya | – | – |
 
 ### E. Bagian (unit terkecil)
 
