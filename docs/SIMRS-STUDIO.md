@@ -88,9 +88,9 @@ Studio dijalankan di **mesin pengembang atau staging**, bukan di server produksi
 | Use case | Aktor, alur utama/alternatif/gagal, diagram | Pengusul |
 | PRD | Kriteria terima *Diberikan… Ketika… Maka…*, dampak data, izin, katalog | Product (+ Reviewer klinis bila risiko tinggi; + superadmin bila kritis) |
 | Desain teknis | Membaca kode lalu menyusun rencana per berkas. Risiko **naik otomatis** bila menyentuh layanan klinis/keuangan | Programmer |
-| Coding | Membuat branch `feat/STD-…`, menulis kode, migrasi, uji, dan CHANGELOG | Reviewer kode (pemeriksa kebijakan wajib lulus) |
+| Coding | Membuat branch `feat/STD-…`, menulis kode, migrasi (dengan **awalan migrasi item**), uji, dan fragmen `changelog.d/STD-….md` | Reviewer kode (pemeriksa kebijakan wajib lulus) |
 | QA | Menyusun rencana uji dan **checklist kasus uji** | QA (+ Reviewer klinis bila risiko tinggi). Syarat: cek otomatis lulus dan semua kasus uji lulus atau tidak berlaku |
-| Rilis | Menyusun CHANGELOG, catatan rilis, dan pesan commit | Maintainer rilis, setelah **Commit → Terapkan ke lokal** (mode lokal) atau **Push & buat PR** (mode PR) |
+| Rilis | Menyusun isi fragmen CHANGELOG, catatan rilis, dan pesan commit | Maintainer rilis, setelah **Commit → Terapkan ke lokal** (mode lokal) atau **Push & buat PR** (mode PR) |
 
 Tips:
 - **Diskusi** di panel kanan menjadi instruksi bagi agen pada tahap aktif. **Sunting** menyimpan dokumen hasil suntingan Anda sebagai versi baru.
@@ -133,6 +133,23 @@ Bila **Nyalakan modul/fitur baru setelah diterapkan** dicentang (bawaan), Studio
 Aktivasi otomatis hanya berjalan bila `LINGKUNGAN=development`. Di staging, klik **Aktifkan di aplikasi** di tahap Rilis. **Batalkan penerapan** juga mengembalikan toggle dan izin yang dinyalakan Studio.
 - Bila server produksi berbeda dari mesin Studio, server produksi mengambil branch lokal itu, misalnya lewat Git internal RS (Gitea) atau salinan repo. Studio tetap tidak menulis langsung ke server produksi.
 - Untuk memperbarui OpenSIMRS dari upstream, gabungkan rilis baru ke branch lokal. Konflik bisa muncul pada berkas yang dikustomisasi, jadi selesaikan di VS Code. Kustomisasi lewat **ekstensi tanpa kode** tidak menimbulkan konflik seperti ini.
+
+### Bekerja paralel: migrasi, CHANGELOG, dan sinkronisasi
+
+Banyak item bisa dikerjakan bersamaan. Pengaman berikut mencegah bentrok yang dulu harus diselesaikan maintainer secara manual:
+
+1. **Awalan migrasi per item.** Saat item masuk tahap Coding atau coding dimulai, Studio memesan satu blok jam UTC `YYYYMMDDHH` untuk item itu. Blok tersebut lebih baru dari migrasi terakhir di branch dasar/lokal dan dari awalan yang sudah dipesan item lain yang masih aktif. Prompt coding mewajibkan nama `database/migrations/<awalan>MMSS-nama.cjs`, dan awalannya tampil di panel Coding.
+2. **Pengurutan otomatis saat Terapkan.** Bila migrasi item tidak lagi paling akhir terhadap branch tujuan (misalnya item lain diterapkan lebih dulu), Studio mengganti nama migrasi item ke awalan baru dengan urutan relatif yang sama. Rujukan nama lama di branch item (fragmen CHANGELOG, komentar) ikut diperbarui. Studio lalu membuat commit `chore(studio): urutkan migrasi …` di branch item sebelum menerapkan.
+   - Migrasi yang sudah tercatat di `SequelizeMeta` database tidak diganti namanya, dan Terapkan ditolak dengan penjelasan.
+   - Di pemeriksa kebijakan, migrasi yang tertinggal hanya tampil sebagai peringatan. Migrasi yang memakai awalan item lain tetap menggagalkan pemeriksaan.
+3. **Fragmen CHANGELOG.** Agen menulis catatan perubahan di `changelog.d/STD-<nomor>.md`, bukan di `CHANGELOG.md`. Maintainer menggabungkan fragmen saat rilis dengan `node scripts/gabung-changelog.mjs` (lihat [changelog.d/README.md](../changelog.d/README.md)). Pemeriksa kebijakan tetap menerima entri `CHANGELOG.md` dari item lama.
+4. **Sinkronisasi branch item.** Tombol **Sinkronkan dengan `<branch lokal>`** ada di panel Coding/Rilis dan membutuhkan izin Rilis › SIAPKAN atau Coding › BUKA PR. Tombol ini menggabungkan branch lokal (atau branch dasar di mode PR) ke branch item, lalu menyelesaikan otomatis konflik pada pola berikut:
+   - `database/data/katalog-modul.json`: digabung per entri modul/fitur/bagian berdasarkan titik cabang, termasuk preset (peta segmen → daftar kode), dengan format asli berkas dipertahankan. Bila kedua sisi mengubah nilai yang sama secara berbeda, Studio tidak menebak;
+   - `docs/MANAJEMEN-MODUL.md`: dibuat ulang dengan `node scripts/dokumen-katalog.mjs`;
+   - `CHANGELOG.md`: entri kedua sisi dipertahankan;
+   - daftar sisipan: `auth-service/src/helpers/permission-list.js`, `auth-service/src/controllers/permission-controller.js` (`SEMUA_MODUL`), `frontend-service/src/components/section/Header.vue` (menu, `MODUL_PENUNJANG_CADANGAN`, daftar *Segera*), `frontend-service/src/router/index.ts`, `frontend-service/src/utils/permissions.ts`, `penunjang-service/src/rute.js`, `penunjang-service/src/umum/izin.js`, `penunjang-service/src/config.js`.
+
+   Setelah konflik selesai, Studio menjalankan `node scripts/cek-integritas.mjs` lalu membuat commit merge. Bila ada konflik lain atau cek integritas gagal, penggabungan dibatalkan (`git merge --abort`) dan branch item tidak berubah. Daftar berkas yang tersisa tampil di diskusi item. **Terapkan** menjalankan sinkronisasi ini otomatis bila pra-cek menemukan konflik. Sinkronisasi membutuhkan working tree item yang bersih, jadi commit dulu perubahan item.
 
 ### Kirim ke server RS tanpa GitHub (Server & Deploy)
 
@@ -255,7 +272,7 @@ Pengamannya:
 - Agen **tidak menyambung ke database** (kecuali membaca struktur skema tanpa data), **tidak membaca `.env`**, dan tidak bisa commit, push, berpindah branch, atau `npm install`.
 - **Zona merah** tidak bisa diubah agen: `.env*`, `studio-service/**`, SDK autentikasi/izin, `rahasia.js`, `.github/**`, `deploy/**`, `CLAUDE.md`, dan migrasi lama.
 - **Zona kuning** (layanan klinis/keuangan) menaikkan risiko menjadi tinggi sehingga reviewer klinis wajib menyetujui. Item berisiko kritis tidak dikodekan agen.
-- **Pemeriksa kebijakan** mengecek rahasia, IP privat, data pribadi, aturan migrasi, katalog, CHANGELOG, uji, import `@/main`, dan **kriptografi**. Kode enkripsi/dekripsi (`createCipheriv`/`createDecipheriv`) di berkas mana pun hanya lolos bila berupa salinan baku `lab-service/src/lis/rahasia.js` atau `setting-service/src/bantuan/rahasia.js`. Selain itu, tetapkan risiko kritis agar dikerjakan programmer.
+- **Pemeriksa kebijakan** mengecek rahasia, IP privat, data pribadi, aturan migrasi (termasuk awalan migrasi milik item lain), katalog, fragmen CHANGELOG, uji, import `@/main`, dan **kriptografi**. Kode enkripsi/dekripsi (`createCipheriv`/`createDecipheriv`) di berkas mana pun hanya lolos bila berupa salinan baku `lab-service/src/lis/rahasia.js` atau `setting-service/src/bantuan/rahasia.js`. Selain itu, tetapkan risiko kritis agar dikerjakan programmer.
 - Studio hanya men-commit **berkas yang diubah agen untuk item itu**. Semua tindakan tercatat di **Audit & Metrik**.
 
 ## 8. Kendala umum

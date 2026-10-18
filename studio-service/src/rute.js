@@ -234,6 +234,13 @@ rute.post("/item/:uuid/terapkan", tangani(async (req, res) => {
   await pastikan(req, "Rilis", "SIAPKAN");
   kirim(res, await alur.terapkanLokal(await item(req), req.author.username, req.author.faskesUuid), "Diterapkan ke branch lokal");
 }));
+// Sinkronkan branch item dengan branch lokal/dasar (konflik berpola dikenal diselesaikan otomatis). Izin sama dengan
+// Terapkan (Rilis › SIAPKAN) atau BUKA PR.
+rute.post("/item/:uuid/sinkron", tangani(async (req, res) => {
+  if (!(await pastikan(req, "Rilis", "SIAPKAN").then(() => true, () => false))) await pastikan(req, "Coding", "BUKA PR");
+  const hasil = await alur.sinkronkanItem(await item(req), req.author.username);
+  kirim(res, { status: hasil.status, target: hasil.target, sha: hasil.sha ?? null, otomatis: hasil.otomatis, tersisa: hasil.tersisa }, hasil.ringkasan);
+}));
 rute.post("/item/:uuid/aktifkan", tangani(async (req, res) => {
   await pastikan(req, "Rilis", "SIAPKAN");
   kirim(res, await alur.aktifkanItem(await item(req), req.author.username, req.author.faskesUuid), "Modul/fitur diaktifkan");

@@ -38,6 +38,7 @@ Berkas ini dibaca otomatis oleh Claude Code. Isinya aturan dan konteks proyek ya
   - nama berkas `database/migrations/YYYYMMDDHHMMSS-*.cjs` (UTC), harus berurutan paling akhir saat merge;
   - wajib idempoten (CI menjalankannya dua kali);
   - **jangan mengubah migrasi yang sudah ada**.
+- **CHANGELOG**: tulis fragmen `changelog.d/<nama-branch>.md` (item Studio: `changelog.d/STD-<nomor>.md`), jangan mengedit `CHANGELOG.md` langsung. Format dan penggabungannya ada di [changelog.d/README.md](./changelog.d/README.md).
 - `schema.sql` hanya berisi struktur dan data referensi nasional (wilayah, ICD-10, ICD-9-CM, SNOMED, LOINC, odontogram), tanpa data faskes atau pasien.
 
 ## Perintah penting

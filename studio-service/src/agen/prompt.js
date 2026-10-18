@@ -8,7 +8,7 @@ export const ATURAN_PLATFORM = `Anda adalah agen pengembang di SIMRS Studio (mod
 3. Data contoh harus fiktif: email @contoh.id, HP 080000000000, NIK berawalan 9999.
 4. Jangan mengubah: studio-service/**, packages/authorization-sdk/**, packages/permission-sdk/**, **/rahasia.js, .github/**, deploy/**, CLAUDE.md, migrasi yang sudah ada.
 5. Jangan menghapus atau melonggarkan pemeriksaan izin, filter faskes_uuid (selalu dari token), atau soft delete (deleted_at).
-6. Migrasi baru: database/migrations/YYYYMMDDHHMMSS-nama.cjs (UTC, lebih baru dari migrasi terakhir), idempoten (IF NOT EXISTS / ON CONFLICT).
+6. Migrasi baru: database/migrations/YYYYMMDDHHMMSS-nama.cjs (UTC, lebih baru dari migrasi terakhir; pada tahap coding WAJIB memakai awalan yang dipesan Studio untuk item), idempoten (IF NOT EXISTS / ON CONFLICT).
 7. Modul/fitur baru wajib mengikuti docs/MANAJEMEN-MODUL.md (katalog-modul.json + migrasi sinkronKatalog + permission-list + menu/rute + npm run docs:katalog).
 8. Semua tulisan (dokumen, komentar kode, teks UI) dalam Bahasa Indonesia yang baik dan benar; istilah domain: pasien, kunjungan, penjamin, tagihan.
 9. Tulis kode yang mirip kode di sekitarnya (penamaan, kepadatan komentar, gaya). Konvensi: snake_case di DB/API, camelCase di Vue, id uuidv7, waktu epoch detik.
@@ -59,7 +59,7 @@ Struktur JSON wajib:
  "definisi":{"sql":"SELECT ... WHERE x.faskes_uuid = :faskes_uuid ...","parameter":[{"nama":"mulai","label":"Dari tanggal","tipe":"tanggal|teks|angka|pilihan","wajib":true,"pilihan":[]}],"kolom":[{"field":"nama_kolom_hasil","label":"Judul kolom","format":"teks|angka|rupiah|tanggal|tanggal_waktu"}], "tata_letak": {...}, "field": [...], "izin_modul": "...", "kaitan": "..."}}
 Tulis penjelasan singkat (tujuan, cara pakai, parameter) di <artefak>, lalu JSON definisi di antara <ekstensi> dan </ekstensi>.`,
   rilis: `Tahap: CATATAN RILIS.
-Berdasarkan PRD, desain, dan perubahan berkas, tulis: (1) entri CHANGELOG (Keep a Changelog: Ditambahkan/Diubah/Diperbaiki); (2) catatan rilis untuk pengguna; (3) langkah pembaruan (migrasi baru, modul/fitur yang perlu diaktifkan, izin yang perlu diberikan); (4) risiko & cara rollback; (5) deskripsi Pull Request.
+Berdasarkan PRD, desain, dan perubahan berkas, tulis: (1) isi fragmen CHANGELOG item (changelog.d/<nomor item>.md, mis. changelog.d/STD-0031.md — bagian "### Ditambahkan/Diubah/Diperbaiki" ala Keep a Changelog, bukan entri langsung di CHANGELOG.md); (2) catatan rilis untuk pengguna; (3) langkah pembaruan (migrasi baru, modul/fitur yang perlu diaktifkan, izin yang perlu diberikan); (4) risiko & cara rollback; (5) deskripsi Pull Request.
 Tambahkan juga pesan commit Conventional Commits berbahasa Indonesia (mis. "feat(lab): filter ruangan di daftar order") di antara <commit> dan </commit> setelah </catatan>.`,
 };
 
@@ -110,14 +110,27 @@ export const susunPromptDokumen = ({ item, tahap, artefakSebelumnya, artefakTaha
     `\n\n${FORMAT_KELUARAN}`,
   ].join("");
 
-export const susunPromptCoding = ({ item, artefak, instruksi, aturanInstalasi, branch, revisi, aturanArea, tambahanTahap, pengetahuan, lampiran }) =>
+// Nama migrasi & fragmen CHANGELOG milik item: awalan migrasi dipesan Studio (unik antar-item yang dikerjakan paralel),
+// catatan perubahan di berkas sendiri agar penggabungan tidak konflik di CHANGELOG.md.
+export const aturanBerkasItem = (item, awalanMigrasi) => {
+  const nomor = `STD-${String(item.nomor).padStart(4, "0")}`;
+  return [
+    awalanMigrasi
+      ? `- Migrasi item ini WAJIB bernama database/migrations/${awalanMigrasi}MMSS-nama.cjs (awalan ${awalanMigrasi} dipesan Studio khusus item ini; MMSS berurutan untuk beberapa migrasi, mis. ${awalanMigrasi}0000, ${awalanMigrasi}0100). Jangan memakai stempel waktu lain.`
+      : "- Migrasi baru: database/migrations/YYYYMMDDHHMMSS-nama.cjs (UTC, lebih baru dari migrasi terakhir).",
+    `- Catatan perubahan ditulis di changelog.d/${nomor}.md (bagian "### Ditambahkan", "### Diubah", atau "### Diperbaiki" berisi butir "- …"; sebut migrasi baru). JANGAN mengedit CHANGELOG.md langsung — maintainer menggabungkan fragmen saat rilis.`,
+  ].join("\n");
+};
+
+export const susunPromptCoding = ({ item, artefak, instruksi, aturanInstalasi, branch, revisi, awalanMigrasi = null, aturanArea, tambahanTahap, pengetahuan, lampiran }) =>
   [
     `# SIMRS Studio — CODING item STD-${String(item.nomor).padStart(4, "0")}: ${item.judul}`,
     revisi
       ? `Lanjutkan pekerjaan sebelumnya pada branch ${branch} sesuai instruksi revisi di bawah.`
       : `Implementasikan desain teknis di bawah pada working tree repo ini (branch ${branch} sudah aktif; jangan mengganti branch).`,
-    `Langkah: baca berkas terkait → ubah/tambah kode, migrasi, dan uji → jalankan verifikasi yang tersedia (node --check untuk berkas JS yang diubah; npm --prefix <layanan> test bila layanan punya uji) → tambahkan entri di CHANGELOG.md bagian [Belum dirilis].
+    `Langkah: baca berkas terkait → ubah/tambah kode, migrasi, dan uji → jalankan verifikasi yang tersedia (node --check untuk berkas JS yang diubah; npm --prefix <layanan> test bila layanan punya uji) → tulis fragmen CHANGELOG item (changelog.d/STD-${String(item.nomor).padStart(4, "0")}.md).
 Hanya ubah berkas yang diperlukan. Jangan menjalankan git commit/push, npm install, atau perintah yang mengubah database.`,
+    blok("Nama migrasi & catatan perubahan item ini", aturanBerkasItem(item, awalanMigrasi)),
     blok("Tambahan template tahap coding (instalasi)", tambahanTahap),
     blok("Aturan tambahan instalasi", aturanInstalasi),
     blok("Aturan area terdampak", aturanArea),
