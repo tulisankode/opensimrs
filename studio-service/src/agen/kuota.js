@@ -119,22 +119,32 @@ export const uraiWaktuReset = (pesan, sekarangMs = Date.now()) => {
 
 const tebakPenyedia = (teks) => {
   if (/codex|chatgpt/i.test(teks)) return "codex";
+  // Galat HTTP API diperiksa lebih dulu: pesannya bisa menyebut nama model (mis. "model: claude-sonnet-5-5").
+  if (/^\s*(?:429|529)\b|rate_limit_error|insufficient_quota|overloaded_error|organization's rate limit/i.test(teks)) return "api";
   if (/claude|session limit|resets\s/i.test(teks)) return "claude_code";
-  if (/^\s*(?:429|529)\b|rate_limit_error|insufficient_quota|overloaded_error/i.test(teks)) return "api";
   if (/try again at/i.test(teks)) return "codex";
   return "api";
 };
 
-// Galat kuota? → null atau { penyedia, lanjutPada (epoch detik), diketahui (jam reset terbaca dari teks) }.
+// Saldo kredit/tagihan konektor API habis (mis. Anthropic "Your credit balance is too low to access the Anthropic API",
+// HTTP 402). Tidak pulih sendiri seperti rate limit: rantai beralih ke konektor berikutnya, dan bila semua habis tugas
+// ditunda lebih lama (admin perlu mengisi saldo).
+const POLA_KREDIT = /credit balance is too low|purchase credits|billing[_ ](?:hard[_ ])?limit|payment required|^\s*402\b/i;
+export const JEDA_KREDIT = 60 * 60;
+
+// Galat kuota? → null atau { penyedia, lanjutPada (epoch detik), diketahui (jam reset terbaca dari teks), kredit }.
 export const kenaliGalatKuota = (pesan, sekarangMs = Date.now()) => {
   const teks = String(pesan ?? "");
-  if (!teks.trim() || BUKAN_KUOTA.test(teks) || !POLA_KUOTA.some((p) => p.test(teks))) return null;
-  const reset = uraiWaktuReset(teks, sekarangMs);
+  if (!teks.trim()) return null;
   const kini = Math.floor(sekarangMs / 1000);
+  if (POLA_KREDIT.test(teks)) return { penyedia: "api", lanjutPada: kini + JEDA_KREDIT, diketahui: false, kredit: true };
+  if (BUKAN_KUOTA.test(teks) || !POLA_KUOTA.some((p) => p.test(teks))) return null;
+  const reset = uraiWaktuReset(teks, sekarangMs);
   return {
     penyedia: tebakPenyedia(teks),
     lanjutPada: reset && reset > kini ? reset : kini + JEDA_BAWAAN,
     diketahui: Boolean(reset && reset > kini),
+    kredit: false,
   };
 };
 

@@ -167,7 +167,8 @@ export const jalankanAgen = async ({ tugasUuid, prompt, mode, tahap, base = conf
 
     habis.push({ pilihan, nama: konektor.nama, lanjutPada: kuota.lanjutPada, diketahui: kuota.diketahui });
     const berikut = konektorBerikutnya(rantai, dicoba);
-    const teks = berikut ? `Kuota ${konektor.nama} habis — beralih ke ${await namaKonektor(berikut)}` : `Kuota ${konektor.nama} habis`;
+    const jenisHabis = kuota.kredit ? `Saldo kredit ${konektor.nama}` : `Kuota ${konektor.nama}`;
+    const teks = berikut ? `${jenisHabis} habis — beralih ke ${await namaKonektor(berikut)}` : `${jenisHabis} habis`;
     await logTugas(tugasUuid, "galat", `${teks} (${kuota.alasan})`);
     if (berikut && beritahu) await Promise.resolve(beritahu(`${teks}.`)).catch(() => {});
   }
