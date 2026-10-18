@@ -15,3 +15,10 @@ export {default as StokAdjustmentModel} from "../models/inventory/stok-adjustmen
 export {default as StokOpnameItemModel} from "../models/inventory/stok-opname-item-model.js";
 export {default as StokOpnameModel} from "../models/inventory/stok-opname-model.js";
 export {default as RiwayatMutasiModel} from "../models/inventory/riwayat-mutasi-model.js";
+export {default as MarketplaceKoneksiModel} from "../models/inventory/marketplace-koneksi-model.js";
+export {default as MarketplacePemetaanModel} from "../models/inventory/marketplace-pemetaan-model.js";
+export {default as MarketplacePesananModel} from "../models/inventory/marketplace-pesanan-model.js";
+export {default as MarketplacePesananItemModel} from "../models/inventory/marketplace-pesanan-item-model.js";
+export {default as MarketplacePersetujuanModel} from "../models/inventory/marketplace-persetujuan-model.js";
+export {default as MarketplacePeristiwaModel} from "../models/inventory/marketplace-peristiwa-model.js";
+export {default as MarketplaceTagihanModel} from "../models/inventory/marketplace-tagihan-model.js";

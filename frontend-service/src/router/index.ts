@@ -339,6 +339,10 @@ import PersediaanPage from "@/views/Inventory/Page/Laporan/PersediaanPage.vue";
 import StokAdjustmentPage from "@/views/Inventory/Page/StokAdjustment/StokAdjustmentPage.vue";
 import StockAndMutationCardsPage from "@/views/Inventory/Page/KartustokMutasi/StockAndMutationCardsPage.vue";
 import StokOpnamePage from "@/views/Inventory/Page/StokOpname/StokOpnamePage.vue";
+// STD-0019 — Pembelian via Marketplace (fitur inv_marketplace, nonaktif bawaan)
+import PencarianPenawaranPage from "@/views/Inventory/Page/Marketplace/PencarianPenawaranPage.vue";
+import PemetaanProdukPage from "@/views/Inventory/Page/Marketplace/PemetaanProdukPage.vue";
+import PermintaanMarketplacePage from "@/views/Inventory/Page/Marketplace/PermintaanMarketplacePage.vue";
 import InventoryView from "@/views/Inventory/InventoryView.vue";
 
 // NOTE Training
@@ -2070,6 +2074,12 @@ const router = createRouter({
       meta: { layout: SidebarLayout, page: PersediaanPage, requiresAuth: true },
       component: InventoryView,
     },
+    // STD-0019 — Pembelian via Marketplace (fitur inv_marketplace, nonaktif bawaan; lihat InventoryView.vue)
+    ...halamanModul(InventoryView, [
+      ["/inventory/marketplace/pencarian", "inventory-marketplace-pencarian", PencarianPenawaranPage],
+      ["/inventory/marketplace/pemetaan", "inventory-marketplace-pemetaan", PemetaanProdukPage],
+      ["/inventory/marketplace/permintaan", "inventory-marketplace-permintaan", PermintaanMarketplacePage],
+    ]),
     // !SECTION
 
     // SECTION Training

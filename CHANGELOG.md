@@ -26,6 +26,10 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 ## [Belum dirilis]
 
 ### Ditambahkan
+- **Pembelian BMHP via Marketplace mitra** (Inventory, fitur `inv_marketplace`): konfigurasi koneksi per faskes, pencarian penawaran, pemetaan produk dan satuan, pengajuan serta persetujuan permintaan, checkout idempoten, pembaruan status/webhook berkunci, catatan tagihan, laporan, dan server marketplace tiruan. Penerimaan barang tetap memakai PO dan alur Penerimaan Pembelian Inventory yang sudah ada.
+  - Rute API ditolak bila fitur belum aktif untuk faskes; izin submodul **Inventory › Pembelian Marketplace** per aksi. Aksi berisiko (konfigurasi koneksi, pemetaan, persetujuan, checkout, laporan) tidak diberikan otomatis ke peran yang ada.
+  - **Migrasi baru:** `20261018120000-inv_marketplace`, `20261018120100-sinkron_katalog_inv_marketplace`, `20261018120200-izin_inv_marketplace`.
+  - **Variabel lingkungan baru (opsional):** `INVENTORY_MARKETPLACE_KUNCI_RAHASIA` (bawaan memakai `SECRET_KEY`).
 - **Sarana dan Prasarana / IPSRS** (menu Sarana dan Prasarana (IPSRS), modul katalog `sarpras` — tanpa preset segmen; aktifkan per faskes lewat Setting › Manajemen Modul): register aset, work order perbaikan, pemeliharaan preventif, dan kalibrasi alat.
   - **Register aset**: kode inventaris unik per faskes, kategori (alat medis/nonmedis/gedung-utilitas/kendaraan), lokasi milik faskes yang sama, nilai & tahun perolehan, penanggung jawab, status (penghapusan aset final dengan alasan), label QR, dan riwayat per aset (`sarpras_riwayat_aset`, tidak pernah ditimpa).
   - **Laporan kerusakan / work order**: baru → tugaskan teknisi (waktu respons) → diproses ⇄ menunggu suku cadang → selesai / tidak dapat diperbaiki. Setiap transisi mengunci baris (`SELECT … FOR UPDATE`) dalam transaksi; transisi tidak sah ditolak 409. Foto kerusakan (PDF/JPG/PNG, tipe diperiksa dari isi) dan suku cadang manual atau mengurangi stok Gudang & Pengadaan (`/stok/reduce`; gagal → suku cadang tidak tersimpan).

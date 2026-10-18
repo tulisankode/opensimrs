@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import routes from "./routes/routes.js";
+import marketplaceWebhookRoutes from "./routes/marketplace-webhook-routes.js";
 import errorMiddleware from "./middlewares/error-middleware.js";
 import authorizationSdk from "@opensimrs/authorization-sdk";
 import { auditContextMiddleware } from "@opensimrs/model-sdk/audit-context";
@@ -29,6 +30,9 @@ app.use(
 app.use(express.json());
 app.use(morgan("combined"));
 app.use(express.urlencoded({extended: true}));
+// Webhook marketplace mitra (STD-0019): tanpa JWT, otentikasi memakai kunci masuk per koneksi — harus
+// dipasang sebelum authorizationSdk (pola sama dengan lab-service/src/lis/lis-rute.js: ruteMasuk).
+app.use(marketplaceWebhookRoutes);
 app.use(authorizationSdk([]));
 // Audit Trail terpusat (STD-0029): konteks pengguna/permintaan untuk hook audit model-sdk.
 app.use(auditContextMiddleware());

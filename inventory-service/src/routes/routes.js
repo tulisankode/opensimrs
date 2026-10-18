@@ -10,6 +10,7 @@ import stokAdjustmentRoutes from "./stok-adjustment-routes.js";
 import stockRoutes from "./stok-routes.js";
 import lokasiGudangRoutes from "./lokasi-gudang-routes.js";
 import reportRoutes from "./report-routes.js";
+import marketplaceRoutes from "./marketplace-routes.js";
 
 const apiBase = process.env.API_BASE || "api";
 const apiVersion = process.env.API_VERSION || "v3";
@@ -50,5 +51,8 @@ routes.use(`${baseUrl}/datamaster`, lokasiGudangRoutes);
 
 // REPORT
 routes.use(`${baseUrl}/laporan`, reportRoutes);
+
+// PEMBELIAN VIA MARKETPLACE (STD-0019)
+routes.use(`${baseUrl}/marketplace`, marketplaceRoutes);
 
 export default routes;

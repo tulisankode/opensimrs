@@ -1,6 +1,6 @@
 {
   "name": "@opensimrs/model-sdk",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "description": "Model Sequelize/Mongoose bersama untuk layanan OpenSIMRS",
   "type": "module",
