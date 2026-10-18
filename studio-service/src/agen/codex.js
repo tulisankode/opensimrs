@@ -88,6 +88,16 @@ export const modelCodex = () => {
   }
 };
 
+// Model yang dikirim ke `codex exec -m`. Studio memakai --ignore-user-config, sehingga tanpa -m Codex CLI memakai model
+// bawaannya sendiri yang bisa ditolak akun ChatGPT (mis. "model … is not supported when using Codex with a ChatGPT
+// account"). Maka: model tahap yang ada di daftar akun dipakai; selain itu (kosong/tidak tersedia) model pertama daftar
+// akun (urut prioritas); tanpa daftar (cache belum ada) → model tahap apa adanya / bawaan CLI.
+export const pilihModelCodex = (model, tersedia = []) => {
+  if (!tersedia.length) return model || "";
+  if (model && tersedia.some((m) => m.kode === model)) return model;
+  return tersedia[0].kode;
+};
+
 // ---------- Akun (langganan ChatGPT) ----------
 
 export const statusAkunCodex = async () => {
