@@ -26,6 +26,10 @@ Cara menulis entri baru ada di [CONTRIBUTING.md](./CONTRIBUTING.md#7-changelog).
 ## [Belum dirilis]
 
 ### Ditambahkan
+- **HR / SDM — Fase 1 kepegawaian dan kredensial** (modul baru `sdm`, STD-0035): data kepegawaian tertaut ke pegawai Data Master, riwayat jabatan, pendidikan, tautan akun mandiri, pencatatan STR/SIP/sertifikat kompetensi, verifikasi, berkas terbatas, dan daftar kredensial jatuh tempo.
+  - Penunjang-service menyediakan API `/api/v3/penunjang/hr`, dengan izin granular, pembatasan `faskes_uuid` dari token, soft delete, dan audit ke `audit_trail` pusat.
+  - Menu dan halaman administrasi SDM tersedia untuk kepegawaian serta kredensial. Modul tidak ditambahkan ke preset segmen; pengaktifan dilakukan superadmin per faskes setelah kebijakan produk ditetapkan.
+  - **Migrasi baru:** `20261018150100-sdm_kepegawaian`, `20261018150110-sdm_kredensial`, `20261018150120-katalog_sdm`, `20261018150130-izin_sdm`.
 - **Mutu & Akreditasi – Dokumen Akreditasi & Kredensial Staf** (modul baru `mutu`, fitur `mutu_dokumen_kredensial`, STD-0028, penunjang-service `/mutu`):
   - Instrumen akreditasi milik faskes (bab → standar → elemen penilaian; sistem tidak menyediakan isi instrumen), diisi manual atau impor CSV dengan laporan baris yang ditolak (elemen tanpa bab/standar induk) dan mode validasi saja.
   - Dokumen akreditasi (kebijakan, pedoman, SPO, program, bukti) dengan berkas PDF, status manual draf → disahkan → kedaluwarsa/dicabut, revisi berversi (versi lama beserta berkas & pemetaannya tetap utuh), pemetaan ke elemen penilaian, catatan tinjauan, dan penanda "perlu ditinjau" yang tidak mengubah status.

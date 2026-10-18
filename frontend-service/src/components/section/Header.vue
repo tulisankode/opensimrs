@@ -175,6 +175,11 @@ const templistMenu = ref<ListMenu[]>([
     url: "/sarpras",
   },
   {
+    title: "HR / SDM",
+    icon: "PhUsersThree",
+    url: "/sdm",
+  },
+  {
     title: "Training",
     icon: "TrainingIcon",
     url: "/training",
