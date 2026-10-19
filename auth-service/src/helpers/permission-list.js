@@ -1094,6 +1094,14 @@ export const mutuPermission = {
     { name: "Kredensial Staf", allows: ["READ", "CREATE", "UPDATE", "VERIFIKASI", "CABUT", "DELETE"] },
     { name: "Akses Surveior", allows: ["READ"] },
     { name: "Indikator Mutu", allows: ["READ", "CREATE", "UPDATE", "DELETE", "INPUT DATA", "VALIDASI", "TINDAK LANJUT", "EKSPOR"] },
+    // Insiden Keselamatan Pasien (STD-0026, fitur mutu_ikp). LAPOR = semua petugas yang boleh melapor (melihat laporannya
+    // sendiri); READ = peninjau (kepala unit/Tim KP) — identitas pelapor anonim tetap tidak ditampilkan; LIHAT PASIEN =
+    // menautkan & melihat rujukan pasien (No. RM & inisial).
+    {
+      name: "Insiden Keselamatan Pasien",
+      allows: ["LAPOR", "READ", "LIHAT PASIEN", "TERIMA", "GRADING", "INVESTIGASI", "TINDAK LANJUT", "VERIFIKASI", "TUTUP", "DASBOR", "EKSPOR", "PENGATURAN"],
+    },
+    { name: "Register Risiko", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
   ],
 };
 

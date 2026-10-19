@@ -7,9 +7,9 @@
 #    3. PostgreSQL: database aplikasi (dihapus oleh role pemiliknya) & role aplikasi (opsional, butuh sandi superuser).
 #    4. MongoDB: database & akun aplikasi. Redis/Memurai: kunci sesi token-* (BUKAN FLUSHDB).
 #    5. Berkas buatan instalasi di folder repo: node_modules, .env, dist, data Studio; worktree SIMRS Studio.
-#    6. (-HapusFolder) folder repo ini seluruhnya.  (-AlatAi) Claude Code CLI & Codex CLI global.
+#    6. (-HapusFolder) folder repo ini seluruhnya.  (-AlatAi) Claude Code, Codex & OpenCode CLI global.
 #
-#  TIDAK dihapus: PostgreSQL/MongoDB/Memurai/Node.js itu sendiri, database/akun lain, OpenClaw.
+#  TIDAK dihapus: PostgreSQL/MongoDB/Memurai/Node.js itu sendiri, database/akun lain, OpenClaw, Ollama (beserta model lokalnya).
 #
 #  Pemakaian (dari folder repo):
 #    .\uninstall.cmd [-Simulasi] [-Ya] [-TanpaCadangan] [-HapusFolder] [-AlatAi]
@@ -17,7 +17,7 @@
 #      -Ya             tanpa pertanyaan (cadangan tetap dibuat kecuali -TanpaCadangan)
 #      -TanpaCadangan  lewati pg_dump/mongodump
 #      -HapusFolder    hapus juga folder repo ini
-#      -AlatAi         hapus juga Claude Code CLI & Codex CLI (npm uninstall -g)
+#      -AlatAi         hapus juga Claude Code, Codex & OpenCode CLI (npm uninstall -g)
 #  Sandi superuser PostgreSQL untuk menghapus role: variabel lingkungan PG_SUPERPASS, atau ditanyakan.
 # =====================================================================================
 param(
@@ -114,8 +114,8 @@ Write-Host "    - Redis/Memurai (port $REDIS_PORT, db $REDIS_DB): kunci sesi tok
 Write-Host "    - Berkas buatan instalasi di repo: node_modules, .env, dist, studio-service\data, worktree SIMRS Studio"
 foreach ($w in $wt) { Write-Host "        worktree: $w" }
 if ($HapusFolder) { Write-Host "    - FOLDER REPO INI: $ROOT" -ForegroundColor Red }
-if ($AlatAi) { Write-Host "    - Claude Code CLI & Codex CLI (npm global)" }
-Write-Host "  Tidak dihapus: PostgreSQL/MongoDB/Memurai/Node.js, database & akun lain, OpenClaw."
+if ($AlatAi) { Write-Host "    - Claude Code, Codex & OpenCode CLI (npm global)" }
+Write-Host "  Tidak dihapus: PostgreSQL/MongoDB/Memurai/Node.js, database & akun lain, OpenClaw, Ollama (beserta model lokalnya)."
 if ($Simulasi) { Warn "Mode simulasi: tidak ada yang dihapus." }
 elseif (-not $Ya) {
   $j = Read-Host "`n  Ketik HAPUS OPENSIMRS untuk melanjutkan"
@@ -227,8 +227,8 @@ Ok "$($target.Count) berkas/folder buatan instalasi $(if ($Simulasi) { 'akan dih
 
 # ---------- opsional ----------
 if ($AlatAi) {
-  Langkah "Claude Code CLI & Codex CLI"
-  foreach ($p in @("@anthropic-ai/claude-code", "@openai/codex")) {
+  Langkah "Claude Code, Codex & OpenCode CLI"
+  foreach ($p in @("@anthropic-ai/claude-code", "@openai/codex", "@opencode/cli")) {
     Aksi "npm uninstall -g $p" { & npm.cmd uninstall -g $p | Out-Null; $LASTEXITCODE -eq 0 } | Out-Null
   }
 }

@@ -314,6 +314,12 @@ import CapaianIndikatorPage from "@/views/Mutu/Indikator/CapaianPage.vue";
 import MasterIndikatorPage from "@/views/Mutu/Indikator/MasterPage.vue";
 import DataIndikatorPage from "@/views/Mutu/Indikator/DataPage.vue";
 import TindakLanjutIndikatorPage from "@/views/Mutu/Indikator/TindakLanjutPage.vue";
+// NOTE Mutu & Akreditasi — insiden keselamatan pasien & register risiko (STD-0026, fitur mutu_ikp)
+import LaporIkpPage from "@/views/Mutu/Ikp/LaporPage.vue";
+import DaftarIkpPage from "@/views/Mutu/Ikp/DaftarPage.vue";
+import DasborIkpPage from "@/views/Mutu/Ikp/DasborPage.vue";
+import RisikoIkpPage from "@/views/Mutu/Ikp/RisikoPage.vue";
+import PengaturanIkpPage from "@/views/Mutu/Ikp/PengaturanPage.vue";
 
 // NOTE Sarana dan Prasarana (IPSRS) — aset, work order perbaikan, pemeliharaan, kalibrasi, utilitas (STD-0022, penunjang-service)
 import SarprasView from "@/views/Sarpras/SarprasView.vue";
@@ -362,7 +368,7 @@ import KuitansiAmbulansPage from "@/views/Ambulans/KuitansiPage.vue";
 import LaporanAmbulansPage from "@/views/Ambulans/LaporanPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
-const HALAMAN_MUTU = ["/mutu/dasbor", "/mutu/dokumen", "/mutu/kredensial", "/mutu/instrumen", "/mutu/surveior", "/mutu/indikator"];
+const HALAMAN_MUTU = ["/mutu/dasbor", "/mutu/dokumen", "/mutu/kredensial", "/mutu/instrumen", "/mutu/surveior", "/mutu/indikator", "/mutu/ikp", "/mutu/ikp/dasbor", "/mutu/ikp/lapor"];
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
   daftar.map(([path, name, page]) => ({ path, name, meta: { layout: SidebarLayout, page, requiresAuth: true }, component: view }));
 
@@ -1887,6 +1893,11 @@ const router = createRouter({
       ["/mutu/indikator/master", "mutu-indikator-master", MasterIndikatorPage],
       ["/mutu/indikator/data", "mutu-indikator-data", DataIndikatorPage],
       ["/mutu/indikator/tindak-lanjut", "mutu-indikator-tindak-lanjut", TindakLanjutIndikatorPage],
+      ["/mutu/ikp", "mutu-ikp", DaftarIkpPage],
+      ["/mutu/ikp/lapor", "mutu-ikp-lapor", LaporIkpPage],
+      ["/mutu/ikp/dasbor", "mutu-ikp-dasbor", DasborIkpPage],
+      ["/mutu/ikp/risiko", "mutu-ikp-risiko", RisikoIkpPage],
+      ["/mutu/ikp/pengaturan", "mutu-ikp-pengaturan", PengaturanIkpPage],
     ]),
     // !SECTION
 

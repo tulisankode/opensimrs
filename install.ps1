@@ -9,7 +9,8 @@
 #    4. Membuat akun MongoDB "opensimrs".
 #    5. Membuat .env root, .env tiap layanan, dan frontend-service\.env (TIDAK menimpa yang sudah ada).
 #    6. npm run install:all -> npm run db:migrate -> data demo (opsional).
-#    7. Alat AI SIMRS Studio: Claude Code CLI & Codex CLI (npm global). OpenClaw (Helpdesk) hanya dengan -Helpdesk.
+#    7. Alat AI: Claude Code CLI, Codex CLI, OpenCode CLI (npm global), Ollama (winget; LLM lokal, TANPA mengunduh
+#       model), dan OpenClaw (Helpdesk, installer resmi). Semuanya ditanyakan satu per satu.
 #
 #  Pemakaian (dari folder repo):
 #    .\install.cmd                         (paling mudah; sama dengan perintah di bawah)
@@ -18,8 +19,8 @@
 #      -Ya         jawab "ya" untuk semua pertanyaan
 #      -TanpaDemo  lewati data demo
 #      -Jalankan   langsung "npm run dev" setelah selesai
-#      -TanpaAi    lewati pemasangan Claude Code CLI & Codex CLI
-#      -Helpdesk   pasang juga OpenClaw (Helpdesk) dengan installer resminya - untuk uji coba; produksi di VM terpisah
+#      -TanpaAi    lewati pemasangan alat AI (Claude Code, Codex, OpenCode, Ollama, OpenClaw)
+#      -Helpdesk   (tetap diterima, kini bawaan) OpenClaw ikut ditawarkan di langkah alat AI; produksi di VM terpisah
 #                  (deploy\helpdesk\README.md)
 #
 #  Sandi superuser PostgreSQL ("postgres"):
@@ -60,7 +61,7 @@ function Warn($t)  { Write-Host "  [!]  $t" -ForegroundColor Yellow }
 function Gagal($t) { Write-Host "  [X]  $t" -ForegroundColor Red }
 function Mati($t)  { Write-Progress -Id 0 -Activity "Instalasi OpenSIMRS" -Completed; Write-Host ""; Write-Host "GAGAL: $t" -ForegroundColor Red; exit 1 }
 # Bilah kemajuan (Write-Progress): langkah utama (Id 0) & butir per folder npm (Id 1).
-$JUMLAH_LANGKAH = 9 + [int][bool]$Helpdesk; $script:langkahKe = 0; $MULAI = Get-Date
+$JUMLAH_LANGKAH = 9; $script:langkahKe = 0; $MULAI = Get-Date
 function Langkah($t) {
   $script:langkahKe++
   $p = [int](($script:langkahKe - 1) * 100 / $JUMLAH_LANGKAH)
@@ -209,7 +210,7 @@ function VersiAlat($cmd) {
   $v = (& $cmd --version 2>$null | Out-String)
   if ($v -match '(\d+(\.\d+)+)') { return $Matches[1] } else { return $null }
 }
-foreach ($a in @(@("claude", "Claude Code CLI (agen SIMRS Studio)"), @("codex", "Codex CLI (agen SIMRS Studio, opsional)"), @("openclaw", "OpenClaw (Helpdesk; produksi di VM terpisah)"))) {
+foreach ($a in @(@("claude", "Claude Code CLI (agen SIMRS Studio)"), @("codex", "Codex CLI (agen SIMRS Studio, opsional)"), @("opencode", "OpenCode CLI (agen lokal SIMRS Studio, opsional)"), @("ollama", "Ollama (LLM lokal, opsional)"), @("openclaw", "OpenClaw (Helpdesk; produksi di VM terpisah)"))) {
   $v = VersiAlat $a[0]
   if ($v) { Ok "$($a[1]): $v" } else { Warn "$($a[1]) belum terpasang" }
 }
@@ -443,11 +444,11 @@ else {
   }
 }
 
-# ---------- 7. alat AI: agen SIMRS Studio (Claude Code, Codex) & Helpdesk (OpenClaw) ----------
-Langkah "Alat AI untuk SIMRS Studio"
+# ---------- 7. alat AI: agen SIMRS Studio (Claude Code, Codex, OpenCode + Ollama) & Helpdesk (OpenClaw) ----------
+Langkah "Alat AI (SIMRS Studio & Helpdesk)"
 if ($TanpaAi) { Warn "Alat AI dilewati (-TanpaAi)" }
 else {
-  foreach ($a in @(@("claude", "@anthropic-ai/claude-code", "Claude Code CLI"), @("codex", "@openai/codex", "Codex CLI"))) {
+  foreach ($a in @(@("claude", "@anthropic-ai/claude-code", "Claude Code CLI"), @("codex", "@openai/codex", "Codex CLI"), @("opencode", "@opencode/cli", "OpenCode CLI (agen dengan model lokal Ollama)"))) {
     if (Ada $a[0]) { Ok "$($a[2]) sudah terpasang ($(VersiAlat $a[0]))" }
     elseif (Tanya "Pasang $($a[2]) ($($a[1])) untuk agen SIMRS Studio?") {
       & npm.cmd install -g --no-audit --no-fund $a[1]
@@ -456,18 +457,35 @@ else {
   }
   SegarkanPath
   Write-Host "    Login akun: SIMRS Studio > Pengaturan & Agen > Hubungkan akun Claude / Hubungkan akun ChatGPT"
-}
-if ($Helpdesk) {
-  Langkah "OpenClaw (Helpdesk)"
-  Warn "Untuk produksi, pasang OpenClaw di VM terpisah dari server SIMRS (deploy\helpdesk\README.md). Di mesin ini hanya untuk uji coba."
-  if (Ada "openclaw") { Ok "OpenClaw sudah terpasang ($(VersiAlat 'openclaw'))" }
-  elseif (Tanya "Pasang OpenClaw dengan installer resmi (openclaw.ai/install.ps1; menyiapkan Node 24.16+ sendiri)?") {
-    # Dijalankan di proses PowerShell terpisah agar installer tidak menghentikan skrip ini.
-    & powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://openclaw.ai/install.ps1 | iex"
-    if ($LASTEXITCODE -ne 0) { Warn "Pemasangan OpenClaw gagal; lihat https://docs.openclaw.ai/install" }
+
+  # Ollama: hanya aplikasinya. Model lokal TIDAK diunduh (berukuran GB) - pilih sendiri sesuai RAM/VRAM.
+  # Lokasi model bisa dipindah ke disk lain lewat variabel lingkungan pengguna OLLAMA_MODELS (mis. D:\ollama\models).
+  $ollamaExe = Join-Path $env:LOCALAPPDATA "Programs\Ollama\ollama.exe"
+  if ((Ada "ollama") -or (Test-Path $ollamaExe)) { Ok "Ollama sudah terpasang" }
+  elseif (Tanya "Pasang Ollama (LLM lokal untuk agen OpenCode; model tidak ikut diunduh)?") {
+    if (Ada "winget") {
+      & winget install --id Ollama.Ollama -e --accept-source-agreements --accept-package-agreements
+      if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) { Warn "winget Ollama selesai dengan kode $LASTEXITCODE; lihat https://ollama.com/download" }
+    } else { Warn "winget tidak tersedia; unduh Ollama dari https://ollama.com/download" }
     SegarkanPath
   }
-  Write-Host "    Lanjutkan: deploy\helpdesk\README.md langkah 3-5 (agen terbatas, sinkron panduan, sambungkan setting-service)"
+  if ((Ada "ollama") -or (Test-Path $ollamaExe)) {
+    Write-Host "    Model lokal belum diunduh. Contoh: ollama pull qwen3:8b (RAM >= 16 GB) atau ollama pull gpt-oss:20b (VRAM/RAM >= 24 GB),"
+    Write-Host "    lalu daftarkan di SIMRS Studio > Pengaturan & Agen > Konektor (Ollama, http://localhost:11434)."
+  }
+
+  # OpenClaw (Helpdesk): installer resmi menyiapkan Node 24.16+ sendiri.
+  if (Ada "openclaw") { Ok "OpenClaw sudah terpasang ($(VersiAlat 'openclaw'))" }
+  else {
+    Warn "OpenClaw (Helpdesk) untuk produksi dipasang di VM terpisah dari server SIMRS (deploy\helpdesk\README.md). Di mesin ini untuk uji coba."
+    if (Tanya "Pasang OpenClaw dengan installer resmi (openclaw.ai/install.ps1; menyiapkan Node 24.16+ sendiri)?") {
+      # Dijalankan di proses PowerShell terpisah agar installer tidak menghentikan skrip ini.
+      & powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://openclaw.ai/install.ps1 | iex"
+      if ($LASTEXITCODE -ne 0) { Warn "Pemasangan OpenClaw gagal; lihat https://docs.openclaw.ai/install" }
+      SegarkanPath
+    }
+  }
+  if (Ada "openclaw") { Write-Host "    Lanjutkan Helpdesk: deploy\helpdesk\README.md langkah 3-5 (agen terbatas, sinkron panduan, sambungkan setting-service)" }
 }
 
 # ---------- selesai ----------
