@@ -73,6 +73,7 @@ const any = (
 ): PermissionRequirement => ({ module, submodule, action });
 
 export const permissionRouteRegistry: PermissionRouteEntry[] = [
+  { path: "/command-center", permission: read("Dashboard", "Command Center") },
   { path: "/setting/profil-faskes", permission: read("Setting", "Profile Faskes") },
   { path: "/setting/konfigurasi-integrasi", mode: "prefix", permission: read("Setting", "Konfigurasi Integrasi") },
   { path: "/setting/permission-menu", permission: read("Setting", "Profile Faskes") },
@@ -354,6 +355,17 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/sdm/kepegawaian", permission: read("HR / SDM", "Kepegawaian") },
   { path: "/sdm/kredensial", permission: read("HR / SDM", "Kredensial") },
   { path: "/sdm", mode: "prefix", permission: read("HR / SDM", null, null, null) },
+
+  // Akuntansi & Remunerasi — penunjang-service (STD-0031: COA, pemetaan, jurnal, persetujuan, buku besar, periode, laporan)
+  { path: "/akuntansi/coa", permission: read("Akuntansi & Remunerasi", "Bagan Akun") },
+  { path: "/akuntansi/pemetaan", permission: read("Akuntansi & Remunerasi", "Pemetaan Akun") },
+  { path: "/akuntansi/jurnal", permission: read("Akuntansi & Remunerasi", "Jurnal") },
+  { path: "/akuntansi/persetujuan", permission: read("Akuntansi & Remunerasi", "Persetujuan Jurnal") },
+  { path: "/akuntansi/buku-besar", permission: read("Akuntansi & Remunerasi", "Buku Besar") },
+  { path: "/akuntansi/neraca-saldo", permission: read("Akuntansi & Remunerasi", "Buku Besar") },
+  { path: "/akuntansi/periode", permission: read("Akuntansi & Remunerasi", "Periode") },
+  { path: "/akuntansi/laporan", permission: read("Akuntansi & Remunerasi", "Laporan Keuangan") },
+  { path: "/akuntansi", mode: "prefix", permission: read("Akuntansi & Remunerasi", null, null, null) },
 
   // Bank Darah RS (BDRS) — penunjang-service
   { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },

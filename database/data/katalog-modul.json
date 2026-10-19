@@ -556,10 +556,10 @@
       "bidang": "Keuangan & Administrasi",
       "instalasi": "Akuntansi & Remunerasi",
       "inti": false,
-      "tersedia": false,
-      "deskripsi": "Jurnal, laporan keuangan, jasa pelayanan.",
-      "menu": [],
-      "rute": [],
+      "tersedia": true,
+      "deskripsi": "Akuntansi RS: bagan akun (COA) standar yang dapat disesuaikan per faskes, aturan pemetaan transaksi → akun, jurnal otomatis dari tagihan, pembayaran kasir, penerimaan & retur barang, dan pemakaian stok (idempoten, tertelusur ke dokumen sumber), jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang, buku besar, neraca saldo, tutup buku, serta laporan keuangan. Remunerasi (jasa pelayanan) menyusul.",
+      "menu": ["Akuntansi & Remunerasi"],
+      "rute": ["/akuntansi"],
       "urutan": 26
     },
     {
@@ -1337,6 +1337,16 @@
       "urutan": 54
     },
     {
+      "kode": "command_center",
+      "modul": "dashboard",
+      "nama": "Command Center",
+      "deskripsi": "Dasbor operasional agregat untuk tempat tidur, IGD, dan antrean.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/command-center"],
+      "urutan": 56
+    },
+    {
       "kode": "mikro_bridging_lis",
       "modul": "mikrobiologi",
       "nama": "Bridging LIS Mikrobiologi",
@@ -1810,6 +1820,26 @@
       "wajib": false,
       "rute": [],
       "urutan": 88
+    },
+    {
+      "kode": "akuntansi_jurnal",
+      "modul": "akuntansi",
+      "nama": "Jurnal & Buku Besar",
+      "deskripsi": "Bagan akun bawaan RS (perlu disahkan bagian keuangan) yang dapat disesuaikan, aturan pemetaan event → akun bertanggal berlaku, proses jurnal otomatis per periode dari tagihan final, pembayaran kasir (termasuk pengalihan ke piutang penjamin), penerimaan & retur barang supplier, dan pemakaian/pemusnahan stok — idempoten dan tertelusur ke dokumen sumber; jurnal manual/penyesuaian/koreksi beralasan dengan persetujuan berjenjang (pembuat ≠ penyetuju), buku besar, neraca saldo, serta tutup buku periode.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/akuntansi/coa", "/akuntansi/pemetaan", "/akuntansi/jurnal", "/akuntansi/persetujuan", "/akuntansi/buku-besar", "/akuntansi/neraca-saldo", "/akuntansi/periode"],
+      "urutan": 103
+    },
+    {
+      "kode": "akuntansi_laporan",
+      "modul": "akuntansi",
+      "nama": "Laporan Keuangan",
+      "deskripsi": "Neraca, laba rugi/laporan operasional, arus kas (metode langsung & tidak langsung), perubahan ekuitas, aging piutang per penjamin, dan aging utang supplier dari jurnal final, dengan ekspor Excel/PDF tercatat di Audit Trail.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/akuntansi/laporan"],
+      "urutan": 104
     }
   ],
   "bagian": [

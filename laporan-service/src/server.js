@@ -7,6 +7,7 @@ import errorMiddleware from "./middlewares/error-middleware.js"
 import authorizationSdk from "@opensimrs/authorization-sdk"
 import corsMiddleware from "./middlewares/cors-middleware.js"
 import ekstensiRoutes from "./ekstensi/ekstensi-routes.js"
+import commandCenterRoutes from "./routes/command-center-routes.js"
 
 dotenv.config()
 const baseUrl = `/${process.env.API_BASE ?? "api"}/${process.env.API_VERSION ?? "v3"}/${process.env.APPLICATION_MODULE ?? "laporan"}`
@@ -17,6 +18,7 @@ application.use(authorizationSdk([]))
 application.use(baseUrl, laporanRoutes)
 application.use(baseUrl, dashboardRoutes)
 application.use(baseUrl, virtualOfficeRoutes)
+application.use(baseUrl, commandCenterRoutes)
 // Ekstensi tanpa kode dari SIMRS Studio (laporan, template cetak, formulir)
 application.use(baseUrl, ekstensiRoutes)
 application.use(errorMiddleware)
