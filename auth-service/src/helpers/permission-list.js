@@ -1150,6 +1150,22 @@ export const sdmPermission = {
   ],
 };
 
+// Akuntansi & Remunerasi (STD-0031): bagan akun, pemetaan event → akun, jurnal otomatis dari transaksi (idempoten),
+// jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang (pembuat ≠ penyetuju), buku besar & neraca saldo,
+// periode & tutup buku, serta laporan keuangan. Remunerasi (STD-0032) menambah submodul di modul yang sama.
+export const akuntansiPermission = {
+  module: "Akuntansi & Remunerasi",
+  subModules: [
+    { name: "Bagan Akun", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Pemetaan Akun", allows: ["READ", "UPDATE"] },
+    { name: "Jurnal", allows: ["READ", "CREATE", "KOREKSI", "PROSES OTOMATIS"] },
+    { name: "Persetujuan Jurnal", allows: ["READ", "SETUJUI", "SETUJUI TINGKAT 2", "TOLAK"] },
+    { name: "Buku Besar", allows: ["READ"] },
+    { name: "Periode", allows: ["READ", "TUTUP BUKU", "BUKA KEMBALI", "PENGATURAN"] },
+    { name: "Laporan Keuangan", allows: ["READ", "EKSPOR"] },
+  ],
+};
+
 export const trainingPermission = {
   module: "Training",
   subModules: [
@@ -1629,6 +1645,7 @@ export function mapPermission(permissionList) {
     "manajemen ambulans": ambulansPermission,
     "mutu & akreditasi": mutuPermission,
     "hr / sdm": sdmPermission,
+    "akuntansi & remunerasi": akuntansiPermission,
     "sarana dan prasarana (ipsrs)": sarprasPermission,
     hemodialisa: hemodialisaPermission,
     training: trainingPermission,
