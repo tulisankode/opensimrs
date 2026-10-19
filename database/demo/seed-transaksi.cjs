@@ -151,8 +151,29 @@ const masuk = async (peran) => {
 // localhost: tagihan tindakan & obat). Panggilan yang mengenai payment-service diberi jeda agar tetap di bawah batas.
 const BATAS_BAYAR = Number(process.env.DEMO_BATAS_PAYMENT || 70);
 const riwayatBayar = [];
+// Sisa kuota menurut payment-service (header x-ratelimit-*). Kuota dihitung per IP dan berlanjut lintas proses, mis. dari
+// faskes yang baru selesai di-seed; tanpa ini seeder mengira kuota penuh dan panggilan internal rekamedis→payment kena
+// 429 ("Terjadi kesalahan pada kirim data Pembayaran").
+const kuotaPayment = { sisa: null, reset: 0 };
+const catatKuota = (r) => {
+  const sisa = r?.headers?.get('x-ratelimit-remaining');
+  if (sisa === null || sisa === undefined) return;
+  kuotaPayment.sisa = Number(sisa);
+  kuotaPayment.reset = Number(r.headers.get('x-ratelimit-reset')) || 0;
+};
+const tungguResetKuota = async (alasan) => {
+  const tunggu = kuotaPayment.reset * 1000 - Date.now() + 1500;
+  if (tunggu > 0) {
+    process.stdout.write(` (jeda ${Math.ceil(tunggu / 1000)} dtk: ${alasan})`);
+    await tidur(tunggu);
+  }
+  kuotaPayment.sisa = null;
+  riwayatBayar.length = 0;
+};
 const kenaPayment = (layanan, jalur) => layanan === 'bayar' || /\/rekam-medis\/tindakan|status-verifikasi/.test(jalur);
 const aturLajuBayar = async () => {
+  // Sisakan ruang untuk panggilan internal layanan lain ke payment-service (tagihan tindakan & obat).
+  if (kuotaPayment.sisa !== null && kuotaPayment.sisa < 15) await tungguResetKuota('kuota payment-service menipis');
   for (;;) {
     const kini = Date.now();
     while (riwayatBayar.length && kini - riwayatBayar[0] > 300000) riwayatBayar.shift();
@@ -166,7 +187,10 @@ const aturLajuBayar = async () => {
 const tungguPaymentSiap = async () => {
   for (let i = 0; i < 12; i++) {
     const r = await fetch(`${API.bayar}/cashier/check`, { headers: { Authorization: akun.kasir.token } }).catch(() => null);
-    if (r && r.status !== 429) return;
+    catatKuota(r);
+    // Mulai dengan jendela kuota baru bila sisa kuota tidak cukup untuk laju BATAS_BAYAR.
+    if (r && r.status !== 429 && (kuotaPayment.sisa === null || kuotaPayment.sisa >= 100 - 5)) return;
+    if (r && kuotaPayment.reset) { await tungguResetKuota('menunggu kuota payment-service pulih'); continue; }
     process.stdout.write(i ? '.' : 'Menunggu batas laju payment-service pulih');
     await tidur(30000);
   }
@@ -186,6 +210,7 @@ const api = async (peran, metode, layanan, jalur, isi) => {
       if (coba < 8) { await tidur(1500); continue; }
       throw new GalatApi(`${metode} ${layanan}${jalur}: ${e.message}`);
     }
+    if (layanan === 'bayar') catatKuota(r);
     if (r.status === 401 && coba < 2) { await masuk(peran); continue; }
     if (r.status === 429 && coba < 8) { process.stdout.write(' (429, menunggu 60 dtk)'); await tidur(60000); continue; }
     const teks = await r.text();
