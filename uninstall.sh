@@ -46,6 +46,8 @@ done
 # shellcheck source=scripts/lib/tampilan.sh
 . "$ROOT/scripts/lib/tampilan.sh"
 mati() { printf '\n%sGAGAL:%s %s\n' "$M" "$N" "$1" >&2; exit 1; }
+# shellcheck source=scripts/lib/podman.sh
+. "$ROOT/scripts/lib/podman.sh"
 tanya() {
   [ "$SEMUA_YA" = 1 ] && return 0
   local j; printf '  %s? %s [y/N] ' "$K" "$1$N"; read -r j </dev/tty || j=""
@@ -91,13 +93,12 @@ case "$(uname -s)" in
 esac
 # Podman harus bisa dihubungi SEBELUM mode dideteksi: di macOS kontainer berjalan di VM (podman machine) yang bisa
 # saja mati. Tanpa cek ini deteksi jatuh ke mode native dan semua langkah Podman gagal, sementara berkas tetap dihapus.
-podman_siap() { podman info >/dev/null 2>&1; }
 if ada podman && ! podman_siap; then
   warn "Podman terpasang tetapi tidak bisa dihubungi (VM podman machine belum menyala, atau koneksi default salah?)"
-  # VM bisa saja sudah menyala tetapi koneksi default menunjuk mesin/port lain ("connection refused").
-  podman_saran() { echo "    Periksa: podman machine ls  &&  podman system connection list"; echo "    Bila mesin sudah menyala tetapi koneksi default bukan mesin itu: podman system connection default <nama-mesin>"; }
-  if [ "$PLATFORM" = mac ] && [ "$SIMULASI" != 1 ] && tanya "Nyalakan VM Podman sekarang (podman machine start)?"; then
-    podman machine start || true
+  # VM bisa mati, atau menyala tetapi koneksinya menunjuk mesin lain / port lama (scripts/lib/podman.sh).
+  if [ "$PLATFORM" = mac ] && [ "$SIMULASI" != 1 ]; then
+    MESIN="$(podman_mesin)"
+    if [ -n "$MESIN" ] && tanya "Sambungkan ke VM Podman '$MESIN' (nyalakan / perbaiki koneksi)"; then podman_sambungkan "$MESIN" || true; fi
   fi
   if ! podman_siap; then
     podman_saran

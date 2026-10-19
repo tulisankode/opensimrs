@@ -57,6 +57,8 @@ mati()  { printf '\n%sGAGAL:%s %s\n' "$M" "$N" "$1" >&2; [ "$UI_LOG" != /dev/nul
 # Langkah: cek, layanan DB, PostgreSQL, MongoDB, .env, npm, migrasi, demo, alat AI (Podman: layanan DB+PG+Mongo = 1 langkah)
 JUMLAH_LANGKAH=$(( PODMAN == 1 ? 7 : 9 ))
 ui_mulai "$JUMLAH_LANGKAH" "${TMPDIR:-/tmp}/opensimrs-install-$(date +%Y%m%d-%H%M%S).log"
+# shellcheck source=scripts/lib/podman.sh
+. "$ROOT/scripts/lib/podman.sh"
 tanya() { # tanya "pertanyaan" → 0 bila ya
   [ "$SEMUA_YA" = 1 ] && return 0
   local j; printf '  %s? %s [y/N] ' "$K" "$1$N"; read -r j </dev/tty || j=""
@@ -104,8 +106,10 @@ cek npm      npm      ""  npm -v
 if [ "$PODMAN" = 1 ]; then
   # basis data di kontainer: cukup Podman + provider compose (docker-compose v2 atau podman-compose)
   cek podman podman   4   sh -c "podman --version | grep -Eo '[0-9]+(\.[0-9]+)+'"
-  if ada podman && ! podman compose version >/dev/null 2>&1; then gagal "podman compose belum punya provider (docker-compose)"; KURANG="$KURANG docker-compose"
-  elif ada podman; then ok "podman compose: $(podman compose version 2>/dev/null | grep -Eio 'compose version v?[0-9.]+' | head -1)"; fi
+  # Provider dicek tanpa menghubungi VM: "podman compose version" butuh koneksi Podman, sehingga VM yang mati/koneksi
+  # rusak dulu terbaca sebagai "docker-compose belum terpasang" dan instalasi berulang tanpa henti.
+  if ada podman && ! podman_compose_ada; then gagal "podman compose belum punya provider (docker-compose)"; KURANG="$KURANG docker-compose"
+  elif ada podman; then ok "provider podman compose: $( (docker-compose version --short || podman-compose --version) 2>/dev/null | head -1)"; fi
 else
   cek postgresql psql   15  sh -c "psql --version | grep -Eo '[0-9]+(\.[0-9]+)+'"
   cek redis    redis-server 6 sh -c "redis-server --version | grep -Eo 'v=[0-9.]+' | tr -d v="
@@ -118,6 +122,8 @@ if [ -n "$KURANG" ]; then
   echo
   warn "Kurang/terlalu lama:$KURANG"
   [ "$HANYA_CEK" = 1 ] && exit 1
+  # Sudah dipasang di putaran sebelumnya tetapi masih terbaca kurang → berhenti, jangan mengulang tanpa henti.
+  [ "${OPENSIMRS_ULANG_DEP:-0}" = 1 ] && mati "Dependensi masih terbaca kurang setelah dipasang:$KURANG. Buka terminal baru (PATH), cek perintahnya secara manual, lalu jalankan ulang."
   case "$PLATFORM" in
     mac)
       ada brew || mati "Homebrew belum terpasang. Pasang dulu dari https://brew.sh lalu jalankan ulang."
@@ -169,7 +175,7 @@ if [ -n "$KURANG" ]; then
       ;;
     *) mati "Pasang dependensi di atas secara manual (docs/INSTALLATION_GUIDE.md bagian 9) lalu jalankan ulang." ;;
   esac
-  exec bash "$0" "$@"   # ulangi dari awal agar versi dicek ulang
+  OPENSIMRS_ULANG_DEP=1 exec bash "$0" "$@"   # ulangi dari awal (sekali) agar versi dicek ulang
 fi
 ok "Semua dependensi tersedia"
 
@@ -288,16 +294,14 @@ psqlq() {
 if [ "$PODMAN" = 1 ]; then
   ui_langkah "PostgreSQL, Redis, MongoDB di Podman"
   # macOS: kontainer berjalan di VM (podman machine)
-  if [ "$PLATFORM" = mac ] && ! podman info >/dev/null 2>&1; then
-    MESIN="$(podman machine list --format '{{.Name}} {{.Default}}' 2>/dev/null | awk '$2=="true"{print $1}' | tr -d '*' | head -1)"
-    [ -n "$MESIN" ] || MESIN="$(podman machine list --format '{{.Name}}' 2>/dev/null | tr -d '*' | head -1)"
+  if [ "$PLATFORM" = mac ] && ! podman_siap; then
+    MESIN="$(podman_mesin)"
     if [ -z "$MESIN" ]; then
       tanya "Buat VM Podman 'opensimrs' (2 CPU, 4 GB RAM, disk 40 GB)?" || mati "Buat VM dulu: podman machine init --cpus 2 --memory 4096 --disk-size 40 opensimrs"
       podman machine init --cpus 2 --memory 4096 --disk-size 40 opensimrs
       MESIN=opensimrs
     fi
-    podman machine start "$MESIN" >/dev/null 2>&1 || true
-    podman info >/dev/null 2>&1 || mati "Podman belum tersambung ke VM '$MESIN' (cek: podman machine list; podman system connection list)"
+    podman_sambungkan "$MESIN" || { podman_saran; mati "Podman belum tersambung ke VM '$MESIN'"; }
     ok "VM Podman '$MESIN' berjalan"
   fi
   # Nama image pendek (postgres:16-alpine, mongo, redis) → Docker Hub, agar tidak gagal "short-name resolution"
