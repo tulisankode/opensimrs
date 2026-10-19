@@ -1588,9 +1588,15 @@ export const dashboardVirtualOfficePermission = {
 
 export const dashboardPermission = {
   module: "Dashboard",
-  subModules: [
-    { name: "Command Center", allows: ["READ", "ATUR AMBANG", "TINJAU PERINGATAN", "ESKALASI PERINGATAN"] },
-  ],
+  subModules: [],
+};
+
+// Command Center (STD-0037, laporan-service): dasbor operasional bed/IGD/antrean & peringatan ambang. Objek terpisah
+// dari dashboardPermission (diberikan ke hampir semua peran) agar hanya pimpinan/bed manager/petugas command center
+// yang diberi lewat Setting › Hak Akses. Aksi dipisah: lihat, atur ambang, tinjau peringatan, eskalasi peringatan.
+export const dashboardCommandCenterPermission = {
+  module: "Dashboard",
+  subModules: [{ name: "Command Center", allows: ["READ", "ATUR AMBANG", "TINJAU PERINGATAN", "ESKALASI PERINGATAN"] }],
 };
 
 // Dashboard Eksekutif (STD-0034, laporan-service): indikator layanan, keuangan, mutu & SDM untuk pimpinan. Modul sama
@@ -1664,6 +1670,7 @@ export function mapPermission(permissionList) {
     dashboard: dashboardPermission,
     "dashboard virtual office": dashboardVirtualOfficePermission,
     "dashboard eksekutif": dashboardEksekutifPermission,
+    "dashboard command center": dashboardCommandCenterPermission,
     setting: settingPermission,
     profile: profilePermission,
     laporan: laporanPermission,

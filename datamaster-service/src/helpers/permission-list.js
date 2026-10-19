@@ -1217,6 +1217,12 @@ export const dashboardPermission = {
   subModules: [],
 };
 
+// Command Center (STD-0037): objek terpisah agar izin Dashboard bawaan tidak memberi dasbor operasional & peringatan.
+export const dashboardCommandCenterPermission = {
+  module: "Dashboard",
+  subModules: [{ name: "Command Center", allows: ["READ", "ATUR AMBANG", "TINJAU PERINGATAN", "ESKALASI PERINGATAN"] }],
+};
+
 /**
  *
  * @param {Array<string>} permissionList
@@ -1243,6 +1249,7 @@ export function mapPermission(permissionList) {
     datamaster: datamasterPermission,
     dashboard: dashboardPermission,
     "dashboard virtual office": dashboardVirtualOfficePermission,
+    "dashboard command center": dashboardCommandCenterPermission,
     setting: settingPermission,
     profile: profilePermission,
     laporan: laporanPermission,

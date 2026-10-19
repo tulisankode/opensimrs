@@ -1013,6 +1013,18 @@ const apiLaporanKirim = async (metode: "post" | "put", url: string, data: object
     errorApiHandler(error);
   }
 };
+// GET laporan-service untuk polling (mis. Command Center): galat jaringan/server tidak memunculkan toast tiap interval,
+// tetapi dilempar ke pemanggil agar nilai terakhir ditandai terlambat. Galat 401 tetap ditangani (sesi berakhir → login).
+const apiLaporanGetDiam = async (url: string) => {
+  url = cekHost(import.meta.env.VITE_BASE_DASHBOARD, url);
+  try {
+    const response = await baseInstanceLaporan.get(url);
+    return response.data;
+  } catch (error: any) {
+    if (error?.response?.status === 401) errorApiHandler(error);
+    throw error;
+  }
+};
 //SATUSEHAT
 const apiSatuSehatGet = async (url: string, data: object = {}) => {
   url = cekHost(import.meta.env.VITE_BASE_SATUSEHAT, url);
@@ -1232,6 +1244,7 @@ export {
   apiSatuSehatGet,
   apiSatuSehatPost,
   apiLaporanGet,
+  apiLaporanGetDiam,
   apiLaporanKirim,
   apiBasePost,
   apiBaseGet,

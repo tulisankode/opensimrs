@@ -1,72 +1,45 @@
 import express from "express"
-import sequelizeInstance from "../config/sequelize-db.js"
-import { QueryTypes } from "sequelize"
+import CommandCenterService from "../services/command-center-service.js"
+import { pesanIzin, punyaIzin, wajibIzin } from "../helpers/izin.js"
 
-const routes = express.Router()
-const indikator = [
-  {
-    kode: "ketersediaan_bed",
-    definisi: "Ketersediaan tempat tidur per ruangan dan kelas mengikuti status sumber resmi.",
-    sumber: null,
-  },
-  {
-    kode: "igd_menunggu_kamar",
-    definisi: "Jumlah dan lama tunggu pasien IGD yang memenuhi status menunggu kamar pada sumber IGD/admisi.",
-    sumber: null,
-  },
-  {
-    kode: "antrean_poli",
-    definisi: "Jumlah antrean dan waktu tunggu poli sesuai definisi sumber antrean.",
-    sumber: null,
-  },
-  {
-    kode: "antrean_admisi",
-    definisi: "Jumlah antrean dan waktu tunggu admisi sesuai definisi sumber admisi.",
-    sumber: null,
-  },
-]
+// Command Center (STD-0037): izin Dashboard › Command Center dengan aksi terpisah: READ (lihat dasbor & peringatan),
+// ATUR AMBANG, TINJAU PERINGATAN, ESKALASI PERINGATAN. Izin diperiksa sebelum data apa pun diambil; fitur katalog
+// `command_center` harus aktif untuk faskes token. Faskes selalu dari JWT.
+const izin = (aksi) => wajibIzin("Dashboard", "Command Center", aksi)
 
-const bacaIzin = async (req) => {
-  const { username, faskesUuid } = req.author ?? {}
-  if (!username || !faskesUuid) return false
-  const [user] = await sequelizeInstance.query(
-    "SELECT permissions FROM users WHERE username = :username AND faskes_uuid = :faskes_uuid AND deleted_at IS NULL LIMIT 1",
-    { replacements: { username, faskes_uuid: faskesUuid }, type: QueryTypes.SELECT },
-  )
-  let permissions = user?.permissions ?? []
-  if (typeof permissions === "string") {
-    try { permissions = JSON.parse(permissions) } catch { permissions = [] }
-  }
-  return Array.isArray(permissions) && permissions.some((module) =>
-    String(module?.module ?? "").toLowerCase() === "dashboard" &&
-    (module.subModules ?? module.submodules ?? []).some((submodule) =>
-      String(submodule?.name ?? "").toLowerCase() === "command center" &&
-      (submodule.allows ?? []).some((allow) => String(allow?.name ?? allow).toUpperCase() === "READ"),
-    ),
-  )
-}
+const fiturAktif = (req, res, next) => CommandCenterService.pastikanFitur(req.author).then(() => next()).catch(next)
 
-routes.get("/command-center/ringkasan", async (req, res, next) => {
+const kirim = (pesan, kerja) => async (req, res, next) => {
   try {
-    if (!(await bacaIzin(req))) return res.status(403).json({ message: "Akses Command Center ditolak" })
-    const now = Math.floor(Date.now() / 1000)
-    return res.json({
-      message: "Ringkasan Command Center berhasil dimuat",
-      payload: {
-        diperbarui_pada: now,
-        indikator: indikator.map((item) => ({
-          ...item,
-          status_sumber: "belum_tersedia",
-          diperbarui_pada: null,
-          kesegaran: "belum_tersedia",
-          nilai: null,
-        })),
-        peringatan: [],
-      },
-    })
+    return res.status(200).json({ message: pesan, payload: await kerja(req) })
   } catch (error) {
     next(error)
   }
-})
+}
+
+// Tinjau dan eskalasi memakai aksi izin berbeda; aksi ditentukan dari isi permintaan.
+const izinTindakan = async (req, res, next) => {
+  try {
+    const aksi = req.body?.jenis === "eskalasi" ? "ESKALASI PERINGATAN" : "TINJAU PERINGATAN"
+    if (!(await punyaIzin(req, "Dashboard", "Command Center", aksi))) {
+      return res.status(403).json({ message: pesanIzin("Dashboard", "Command Center", aksi) })
+    }
+    next()
+  } catch (error) {
+    next(error)
+  }
+}
+
+const routes = express.Router()
+routes.get("/command-center/ringkasan", izin("READ"), fiturAktif,
+  kirim("Ringkasan Command Center berhasil dimuat", (req) => CommandCenterService.ringkasan(req)))
+routes.get("/command-center/peringatan", izin("READ"), fiturAktif,
+  kirim("Peringatan Command Center berhasil dimuat", (req) => CommandCenterService.peringatan(req.author, req.query)))
+routes.post("/command-center/peringatan/:uuid/tindakan", izinTindakan, fiturAktif,
+  kirim("Tindakan peringatan berhasil dicatat", (req) => CommandCenterService.catatTindakan(req.author, req.params.uuid, req.body ?? {})))
+routes.get("/command-center/ambang", izin(["READ", "ATUR AMBANG"]), fiturAktif,
+  kirim("Ambang Command Center berhasil dimuat", (req) => CommandCenterService.daftarAmbang(req.author)))
+routes.put("/command-center/ambang", izin("ATUR AMBANG"), fiturAktif,
+  kirim("Ambang Command Center berhasil disimpan", (req) => CommandCenterService.simpanAmbang(req.author, req.body ?? {})))
 
 export default routes
