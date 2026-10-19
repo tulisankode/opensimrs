@@ -181,6 +181,11 @@ const templistMenu = ref<ListMenu[]>([
     url: "/sdm",
   },
   {
+    title: "Akuntansi & Remunerasi",
+    icon: "PhCalculator",
+    url: "/akuntansi",
+  },
+  {
     title: "Training",
     icon: "TrainingIcon",
     url: "/training",
@@ -564,11 +569,12 @@ const bukaSegera = (url: string) => {
   goToPage(url);
 };
 
+// Nama & ikon khusus menu "Segera" per kode modul (kosong: semua modul katalog Segera memakai nama katalog & ikon umum).
 const NAMA_SEGERA: Record<string, string> = {
-  akuntansi: "Akuntansi",
+  // <kode modul>: "Nama menu",
 };
 const IKON_SEGERA: Record<string, string> = {
-  akuntansi: "PhCalculator",
+  // <kode modul>: "PhIkon",
 };
 
 onMounted(async () => {

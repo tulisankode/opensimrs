@@ -220,7 +220,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 1 berstatus Segera), **101 fitur** (4 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 0 berstatus Segera), **103 fitur** (4 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -303,7 +303,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Tersedia | Penunjang Medis › Instalasi Rekam Medis | Koding Rekam Medis |
 | `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Penunjang Medis › Pelayanan Darah | Bank Darah RS (BDRS) |
 | `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Tersedia | Penunjang Medis › Pelayanan Darah | UTD |
-| `akuntansi` | Akuntansi & Remunerasi | Jurnal, laporan keuangan, jasa pelayanan. | Segera | Keuangan & Administrasi › Akuntansi & Remunerasi | – |
+| `akuntansi` | Akuntansi & Remunerasi | Akuntansi RS: bagan akun (COA) standar yang dapat disesuaikan per faskes, aturan pemetaan transaksi → akun, jurnal otomatis dari tagihan, pembayaran kasir, penerimaan & retur barang, dan pemakaian stok (idempoten, tertelusur ke dokumen sumber), jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang, buku besar, neraca saldo, tutup buku, serta laporan keuangan. Remunerasi (jasa pelayanan) menyusul. | Tersedia | Keuangan & Administrasi › Akuntansi & Remunerasi | Akuntansi & Remunerasi |
 | `hemodialisa` | Unit Hemodialisa | Registrasi HD akut/kronis, jadwal per mesin & shift, resep HD, asesmen pra-HD, pemantauan intradialitik, Kt/V & URR, pemakaian BHP & reuse dializer, tagihan tindakan, dan laporan unit. | Tersedia | Pelayanan Medis & Keperawatan › Unit Hemodialisa | Hemodialisa |
 
 ### C. Matriks modul × segmen (preset bawaan)
@@ -338,7 +338,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | CSSD (`cssd`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | Bank Darah RS (BDRS) (`bank_darah`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | UTD / UPTD Produksi Darah (`utd`) | Tersedia | – | – | – | – | – | – | – | ✓ |
-| Akuntansi & Remunerasi (`akuntansi`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
+| Akuntansi & Remunerasi (`akuntansi`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | Kelas Training (`training`) | Tersedia | – | – | – | – | – | – | – | – |
 | Medical Check Up (MCU) (`mcu`) | Tersedia | – | ✓ | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 | Patologi Anatomi (`patologi_anatomi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
@@ -498,6 +498,13 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `utd_komponen` | Pengolahan Komponen | Pemisahan whole blood menjadi PRC, TC, FFP, cryo; pelabelan & karantina. | Tersedia | – | – | – |
 | `utd_distribusi` | Penyimpanan & Distribusi | Stok per golongan/komponen, distribusi ke BDRS/RS lain, pemusnahan kantong reaktif/kedaluwarsa. | Tersedia | – | – | – |
 | `utd_pelaporan` | Pelaporan UTD | Laporan produksi, donor & distribusi untuk Dinkes/Kemenkes. | Tersedia | – | – | – |
+
+#### Akuntansi & Remunerasi (`akuntansi`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `akuntansi_jurnal` | Jurnal & Buku Besar | Bagan akun bawaan RS (perlu disahkan bagian keuangan) yang dapat disesuaikan, aturan pemetaan event → akun bertanggal berlaku, proses jurnal otomatis per periode dari tagihan final, pembayaran kasir (termasuk pengalihan ke piutang penjamin), penerimaan & retur barang supplier, dan pemakaian/pemusnahan stok — idempoten dan tertelusur ke dokumen sumber; jurnal manual/penyesuaian/koreksi beralasan dengan persetujuan berjenjang (pembuat ≠ penyetuju), buku besar, neraca saldo, serta tutup buku periode. | Tersedia | Ya | – | – |
+| `akuntansi_laporan` | Laporan Keuangan | Neraca, laba rugi/laporan operasional, arus kas (metode langsung & tidak langsung), perubahan ekuitas, aging piutang per penjamin, dan aging utang supplier dari jurnal final, dengan ekspor Excel/PDF tercatat di Audit Trail. | Tersedia | – | – | – |
 
 #### Medical Check Up (MCU) (`mcu`)
 

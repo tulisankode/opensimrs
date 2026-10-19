@@ -327,6 +327,16 @@ import LaporanSarprasPage from "@/views/Sarpras/LaporanPage.vue";
 import SdmView from "@/views/Sdm/SdmView.vue";
 import KepegawaianSdmPage from "@/views/Sdm/KepegawaianPage.vue";
 import KredensialSdmPage from "@/views/Sdm/KredensialPage.vue";
+// NOTE Akuntansi & Remunerasi — jurnal otomatis, buku besar, laporan keuangan (STD-0031, penunjang-service)
+import AkuntansiView from "@/views/Akuntansi/AkuntansiView.vue";
+import CoaAkuntansiPage from "@/views/Akuntansi/CoaPage.vue";
+import PemetaanAkuntansiPage from "@/views/Akuntansi/PemetaanPage.vue";
+import JurnalAkuntansiPage from "@/views/Akuntansi/JurnalPage.vue";
+import PersetujuanAkuntansiPage from "@/views/Akuntansi/PersetujuanPage.vue";
+import BukuBesarAkuntansiPage from "@/views/Akuntansi/BukuBesarPage.vue";
+import NeracaSaldoAkuntansiPage from "@/views/Akuntansi/NeracaSaldoPage.vue";
+import PeriodeAkuntansiPage from "@/views/Akuntansi/PeriodePage.vue";
+import LaporanAkuntansiPage from "@/views/Akuntansi/LaporanPage.vue";
 
 // NOTE Unit Hemodialisa — jadwal, sesi HD, dializer, bridging HDIS (STD-0033, penunjang-service)
 import HemodialisaView from "@/views/Hemodialisa/HemodialisaView.vue";
@@ -1895,6 +1905,17 @@ const router = createRouter({
     ...halamanModul(SdmView, [
       ["/sdm/kepegawaian", "sdm-kepegawaian", KepegawaianSdmPage],
       ["/sdm/kredensial", "sdm-kredensial", KredensialSdmPage],
+    ]),
+    { path: "/akuntansi", name: "akuntansi", redirect: "/akuntansi/jurnal" },
+    ...halamanModul(AkuntansiView, [
+      ["/akuntansi/coa", "akuntansi-coa", CoaAkuntansiPage],
+      ["/akuntansi/pemetaan", "akuntansi-pemetaan", PemetaanAkuntansiPage],
+      ["/akuntansi/jurnal", "akuntansi-jurnal", JurnalAkuntansiPage],
+      ["/akuntansi/persetujuan", "akuntansi-persetujuan", PersetujuanAkuntansiPage],
+      ["/akuntansi/buku-besar", "akuntansi-buku-besar", BukuBesarAkuntansiPage],
+      ["/akuntansi/neraca-saldo", "akuntansi-neraca-saldo", NeracaSaldoAkuntansiPage],
+      ["/akuntansi/periode", "akuntansi-periode", PeriodeAkuntansiPage],
+      ["/akuntansi/laporan", "akuntansi-laporan", LaporanAkuntansiPage],
     ]),
     // !SECTION
 

@@ -18,6 +18,7 @@ import sarpras from "./sarpras/rute.js";
 import hemodialisa from "./hemodialisa/rute.js";
 import mutu from "./mutu/rute.js";
 import hr from "./hr/rute.js";
+import akuntansi from "./akuntansi/rute.js";
 
 // /api/v3/penunjang/{fisioterapi|radiologi|mcu|patologi|mikrobiologi|cssd|bank-darah|utd|gizi|ambulans|hemodialisa}/...
 const rute = express.Router();
@@ -41,5 +42,6 @@ rute.use("/laundry", laundry);
 rute.use("/training", training);
 rute.use("/mutu", mutu);
 rute.use("/hr", hr);
+rute.use("/akuntansi", akuntansi);
 
 export default rute;
