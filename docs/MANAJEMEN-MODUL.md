@@ -227,13 +227,13 @@ Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 1 berstatus Sege
 | Urutan | Singkatan | Kode | Nama | Gambaran | Modul bawaan |
 |---|---|---|---|---|---|
 | 1 | PM | `praktik_mandiri` | Dokter Praktik Mandiri | 1 dokter, rawat jalan; daftar–periksa–resep–bayar sederhana. | 9 |
-| 2 | KP | `klinik_pratama` | Klinik Pratama | Pelayanan dasar, apotek & lab sederhana; FKTP BPJS. | 13 |
-| 3 | KU | `klinik_utama` | Klinik Utama | Pelayanan spesialistik, penunjang, rawat inap terbatas; FKRTL BPJS. | 17 |
-| 4 | PKM | `puskesmas` | Puskesmas | FKTP pemerintah: banyak poli, program, laporan dinkes. | 13 |
-| 5 | RS D | `rs_d` | Rumah Sakit Kelas D | Pelayanan dasar RS: rawat jalan, IGD, rawat inap, penunjang. | 17 |
-| 6 | RS C | `rs_c` | Rumah Sakit Kelas C | Kelas D + kamar operasi, gizi, koding rekam medis. | 22 |
-| 7 | RS B | `rs_b` | Rumah Sakit Kelas B | Kelas C + ICU, CSSD, bank darah, akuntansi. | 27 |
-| 8 | RS A | `rs_a` | Rumah Sakit Kelas A | Pelayanan paripurna & rujukan nasional/provinsi, termasuk UTD. | 28 |
+| 2 | KP | `klinik_pratama` | Klinik Pratama | Pelayanan dasar, apotek & lab sederhana; FKTP BPJS; mutu & akreditasi. | 14 |
+| 3 | KU | `klinik_utama` | Klinik Utama | Pelayanan spesialistik, penunjang, rawat inap terbatas; FKRTL BPJS; mutu, SDM & sarpras. | 20 |
+| 4 | PKM | `puskesmas` | Puskesmas | FKTP pemerintah: banyak poli, program, laporan dinkes; mutu & ambulans. | 15 |
+| 5 | RS D | `rs_d` | Rumah Sakit Kelas D | Pelayanan dasar RS: rawat jalan, IGD, rawat inap, penunjang; mutu, SDM, sarpras & ambulans. | 21 |
+| 6 | RS C | `rs_c` | Rumah Sakit Kelas C | Kelas D + kamar operasi, gizi, koding rekam medis, hemodialisa, akuntansi. | 28 |
+| 7 | RS B | `rs_b` | Rumah Sakit Kelas B | Kelas C + ICU, CSSD, bank darah, akuntansi. | 32 |
+| 8 | RS A | `rs_a` | Rumah Sakit Kelas A | Pelayanan paripurna & rujukan nasional/provinsi, termasuk UTD. | 33 |
 
 ### B. Daftar modul per kelompok
 
@@ -338,17 +338,17 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | CSSD (`cssd`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | Bank Darah RS (BDRS) (`bank_darah`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | UTD / UPTD Produksi Darah (`utd`) | Tersedia | – | – | – | – | – | – | – | ✓ |
-| Akuntansi & Remunerasi (`akuntansi`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
+| Akuntansi & Remunerasi (`akuntansi`) | Segera | – | – | – | – | – | ✓ | ✓ | ✓ |
 | Kelas Training (`training`) | Tersedia | – | – | – | – | – | – | – | – |
 | Medical Check Up (MCU) (`mcu`) | Tersedia | – | ✓ | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 | Patologi Anatomi (`patologi_anatomi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | Mikrobiologi (`mikrobiologi`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
-| Manajemen Ambulans (`ambulans`) | Tersedia | – | – | – | – | – | – | – | – |
+| Manajemen Ambulans (`ambulans`) | Tersedia | – | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Laundry & Linen (`laundry`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
-| Sarana dan Prasarana (IPSRS) (`sarpras`) | Tersedia | – | – | – | – | – | – | – | – |
-| Mutu & Akreditasi (`mutu`) | Tersedia | – | – | – | – | – | – | – | – |
-| Unit Hemodialisa (`hemodialisa`) | Tersedia | – | – | – | – | – | – | – | – |
-| HR / SDM (`sdm`) | Tersedia | – | – | – | – | – | – | – | – |
+| Sarana dan Prasarana (IPSRS) (`sarpras`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
+| Mutu & Akreditasi (`mutu`) | Tersedia | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Unit Hemodialisa (`hemodialisa`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
+| HR / SDM (`sdm`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 
 ### D. Fitur per modul
 

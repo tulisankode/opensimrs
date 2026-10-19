@@ -145,7 +145,7 @@ OpenSIMRS menyimpannya terenkripsi dan hanya menampilkan 4 karakter terakhir. Un
 
 ## 6. Pengembangan lokal tanpa VM
 
-Untuk mencoba OpenClaw sungguhan di mesin pengembang (bukan produksi), installer OpenSIMRS bisa memasangnya: `./install.sh --helpdesk` (Windows: `install.cmd -Helpdesk`). Setelah itu ikuti langkah 3–5 di atas dengan `gateway.bind` dibiarkan `loopback` (bawaan), sehingga Gateway hanya bisa diakses dari mesin itu sendiri.
+Untuk mencoba OpenClaw sungguhan di mesin pengembang (bukan produksi), installer OpenSIMRS menawarkannya di langkah alat AI: `./install.sh` (Windows: `install.cmd`); jawab ya saat ditanya OpenClaw, atau lewati semua alat AI dengan `--tanpa-ai`. Setelah itu ikuti langkah 3–5 di atas dengan `gateway.bind` dibiarkan `loopback` (bawaan), sehingga Gateway hanya bisa diakses dari mesin itu sendiri.
 
 Tanpa OpenClaw sama sekali, pakai Gateway tiruan:
 
