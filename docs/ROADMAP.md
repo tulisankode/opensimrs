@@ -4,7 +4,7 @@
 >
 > Dokumen terkait: [Konteks Pengembangan](./KONTEKS-PENGEMBANGAN.md) (cara kerja kode) · [Manajemen Modul](./MANAJEMEN-MODUL.md) (katalog modul & segmen) · [CHANGELOG](../CHANGELOG.md) (yang sudah dirilis) · [Panduan Kontribusi](../CONTRIBUTING.md)
 >
-> Terakhir diperbarui: **15 Oktober 2026** (rilis publik `1.0.0-alpha.1`). Perbarui setiap kali item selesai atau prioritas berubah ([bagian 9](#9-cara-memperbarui-dokumen-ini)).
+> Terakhir diperbarui: **19 Oktober 2026** (status modul disesuaikan dengan katalog dan CHANGELOG bagian *Belum dirilis*). Perbarui setiap kali item selesai atau prioritas berubah ([bagian 9](#9-cara-memperbarui-dokumen-ini)).
 
 ---
 
@@ -59,22 +59,25 @@ Pengembangan dikerjakan dari segmen paling sederhana. Sebuah segmen harus **bena
 
 | Area | Isi |
 |---|---|
-| **Manajemen Modul** | Katalog relasional 30 modul, 53 fitur, 27 bagian; preset 8 segmen; override superadmin + riwayat; fitur wajib; syarat modul; bagian khusus jenis poli (gigi/mata). Gating di menu, sidebar, router, dan komponen. Simpan konfigurasi menyinkronkan izin peran admin. |
+| **Manajemen Modul** | Katalog relasional 37 modul, 102 fitur, 27 bagian; preset 8 segmen; modul dikelompokkan per bidang dan instalasi; override superadmin + riwayat; fitur wajib; syarat modul; bagian khusus jenis poli (gigi/mata). Gating di menu, sidebar, router, dan komponen. Simpan konfigurasi menyinkronkan izin peran admin. |
 | **Praktik mandiri** | SOAP Ringkas satu layar, Pendaftaran Ringkas, kasir tanpa shift, General Consent opsional. |
 | **Rawat jalan** | Pendaftaran → antrian poli (panggil, mulai periksa, layar TV/kiosk + suara) → RME → resep/lab/penunjang → selesai → antrean farmasi otomatis → kasir. |
 | **Rawat inap & IGD** | Registrasi, SPRI, perpindahan bed/bangsal, discharge, tagihan kamar otomatis saat pulang. |
 | **Farmasi & inventory** | Resep, telaah, racikan, penyerahan, penjualan bebas (OTC), stok depo, gudang, PO, penerimaan, retur, opname. |
 | **Penagihan** | Tindakan, obat, lab, penunjang, dan kamar tertagih otomatis tanpa tagihan ganda; kuitansi & rincian tagihan lengkap dengan diskon/voucher. |
 | **Laboratorium (Patologi Klinik)** | Order dari RME, validasi → tagihan, cetak hasil berkop dengan flag, **bridging LIS** (per order & massal, mapping kode, ambil hasil). |
-| **Penunjang** | **Fisioterapi**, **Radiologi** (ruang, jadwal, template expertise), **MCU** (paket, peserta korporasi, impor Excel, invoice, rekap HRD, kirim massal ke LIS), **Patologi Anatomi**, **Mikrobiologi** (kultur, AST, antibiogram). |
-| **Integrasi** | SATUSEHAT (kunjungan RJ selesai), BPJS PCare (FKTP) & VClaim (peserta, rujukan, SEP). |
-| **Data demo & alat bantu** | 8 faskes fiktif satu per segmen, seeder transaksi via API, LIS tiruan, CI (sintaks layanan & SDK, uji unit lab, migrasi, cek katalog, build frontend). |
+| **Penunjang** | **Fisioterapi**, **Radiologi** (ruang, jadwal, template expertise, bridging PACS/RIS), **MCU** (paket, peserta korporasi, impor Excel, invoice, rekap HRD, kirim massal ke LIS, MCU PCare), **Patologi Anatomi** & **Mikrobiologi** (kultur, AST, antibiogram) dengan bridging LIS masing-masing, **Lab Rujukan**. |
+| **Layanan rumah sakit & puskesmas** | **Program Puskesmas** (layanan `program-puskesmas-service`: KIA/KB, imunisasi, MTBS/MTBM, sasaran, UKM, laporan dinkes), **Kamar Operasi**, **ICU/Intensif**, **Gizi**, **Koding & Rekam Medis** (termasuk laporan RL), **CSSD**, **Bank Darah RS** (termasuk bridging ke UTD), **UTD/UPTD**, **Unit Hemodialisa** (bridging HDIS), **Kelas Training**. |
+| **Manajemen & non-klinis** | **Mutu & Akreditasi** (dokumen & kredensial, indikator mutu INM/IMP-RS/IMPU, insiden keselamatan pasien), **HR/SDM** fase 1 (kepegawaian & kredensial), **Sarana & Prasarana (IPSRS)**, **Laundry & Linen** (termasuk pelacakan per unit QR/barcode), **Manajemen Ambulans**, **Audit Trail** terpusat, **Dashboard Eksekutif**, pembelian BMHP via **Marketplace** mitra. |
+| **Integrasi** | SATUSEHAT (kunjungan RJ selesai, imunisasi), BPJS PCare (FKTP) & VClaim (peserta, rujukan, SEP, Rencana Kontrol & SPRI), Antrean Online BPJS (Mobile JKN), LIS, PACS/RIS, HDIS. Rencana Kontrol/SPRI dan Antrean Online masih menunggu konfirmasi kontrak resmi BPJS (lihat B-24, B-35). |
+| **Data demo & alat bantu** | 8 faskes fiktif satu per segmen, seeder transaksi via API, server tiruan (LIS, LIS PA, LIS mikrobiologi, PACS, UTD, HDIS, marketplace), CI (sintaks layanan & SDK, uji unit enam layanan, migrasi dua kali, cek katalog, cek integritas lintas berkas, build frontend). |
+| **Alat pengembang** | **SIMRS Studio** (`studio-service`): mode pengembang berbasis AI yang opsional, dijalankan di mesin pengembang ([SIMRS Studio](./SIMRS-STUDIO.md)). Installer `install.sh`/`install.cmd` dengan opsi Podman (macOS/Linux), akses lewat domain, dan alat AI; `uninstall.sh`/`uninstall.cmd`. |
 | **Fondasi repo** | Monorepo dengan SDK `@opensimrs/*` di `packages/`, skema database tanpa data pribadi, satu `docker-compose.yml` + deploy generik `deploy/server/`, identifier teknis seluruhnya `opensimrs`. |
 
 ### 2.2 Masih berstatus "Segera" (belum dibangun)
 
-- **Modul:** Program Puskesmas, Kamar Operasi, ICU, Gizi, Koding RM, CSSD, Bank Darah RS, UTD/UPTD, Akuntansi, Training.
-- **Fitur:** Lab Rujukan, Rencana Kontrol VClaim, Antrean Online BPJS (Mobile JKN), MCU PCare, Pembelian via Marketplace, seluruh fitur Bank Darah dan UTD.
+- **Modul:** Akuntansi & Remunerasi (B-34).
+- **Fitur:** HR/SDM fase berikutnya: Jadwal Dinas, Kehadiran/Cuti/Izin, Pelatihan, Penggajian (B-58).
 
 Daftar lengkap dan statusnya ada di [katalog Manajemen Modul](./MANAJEMEN-MODUL.md#5-katalog-lengkap).
 
@@ -152,7 +155,7 @@ Kolom **Label** menunjukkan label utama yang disarankan. Status: `menunggu keput
 | B-41 | **Bersihkan 47 galat sintaks lama `vue-tsc`** di `frontend-service/src/components/icons/*` agar pemeriksaan tipe bisa diandalkan. | P2 | `good first issue` | siap dikerjakan | Setelah bersih, tambahkan `vue-tsc` ke CI. |
 | B-51 | **Port di `.env.example` tiap layanan belum seragam** (mis. admisi 8001, lab 4444) dan berbeda dari `docker-compose.yml`. Samakan dengan [tabel port](./INSTALLATION_GUIDE.md#3-gambaran-sistem--port). | P2 | `good first issue` | siap dikerjakan | Alamat IP internal dan kunci terisi sudah dibersihkan; tinggal port dan kelengkapan variabel. |
 | B-57 | **Ganti screenshot carousel login**: gambar di `frontend-service/src/assets/images/Login/` masih tangkapan layar tampilan lama. Ganti dengan tangkapan layar OpenSIMRS terbaru yang memakai data demo (tanpa data asli). | P3 | `good first issue`, `area:frontend` | siap dikerjakan | Logo & favicon OpenSIMRS sudah diganti (`src/assets/images/opensimrs*.png`). |
-| B-56 | **Uji unit untuk layanan tanpa tes** (`admisi`, `laporan`, `payment`, `rawat-inap`, `stok-farmasi` masih `echo`). Mulai dari fungsi murni (perhitungan tagihan, penomoran). | P2 | `good first issue` | siap dikerjakan | Contoh pola: `lab-service/test/`, `rekamedis-service/test/` (`node --test`). `penunjang-service` sudah punya skrip `npm test` tetapi belum punya folder `test/`. |
+| B-56 | **Uji unit untuk layanan tanpa tes** (`payment`, `rawat-inap`, `stok-farmasi` masih `echo`; `admisi` sudah punya folder `test/` tetapi skrip `test` masih `echo`). Mulai dari fungsi murni (perhitungan tagihan, penomoran). | P2 | `good first issue` | siap dikerjakan | Contoh pola: `lab-service/test/`, `rekamedis-service/test/`, `penunjang-service/test/` (`node --test`). `laporan-service` dan `penunjang-service` sudah punya uji dan dijalankan CI. |
 
 ### 6.2 Fase 1 — Praktik mandiri
 
@@ -179,11 +182,10 @@ Kolom **Label** menunjukkan label utama yang disarankan. Status: `menunggu keput
 | B-14 | **Pencarian penjamin TUNAI tidak dibatasi per faskes** (`insurance-admission-repository.js`). | P1 | `good first issue` | siap dikerjakan | |
 | B-15 | **Placeholder template General Consent** (`{{ nama }}` dst.) tidak terisi saat dicetak. | P2 | `good first issue` | siap dikerjakan | |
 | B-16 | **PCare: rujukan, obat per kunjungan.** | P2 | `integrasi` | siap dikerjakan | |
-| B-17 | **Program Puskesmas** (`program_puskesmas`): KIA, imunisasi, PTM, laporan program. | P2 | `butuh tenaga medis/klinis`, `bantuan dibutuhkan` | siap dikerjakan | Butuh rincian kebutuhan dari tenaga puskesmas. |
 | B-18 | **Parameter `?filter=` di URL** diabaikan saat halaman dibuka langsung. | P3 | `good first issue` | siap dikerjakan | |
 | B-19 | **Datamaster gigi** hanya tampil bila ada poli gigi; mapping SATUSEHAT di datamaster mengikuti modul `satusehat`. | P3 | `good first issue` | siap dikerjakan | |
 | B-45 | **Lab**: `updateBatalOrder` memeriksa status secara keliru; pembuatan order lab belum dalam transaksi; batas nilai rujukan hanya integer (perlu desimal). | P1 | `bantuan dibutuhkan` | siap dikerjakan | `lab-service`. |
-| B-48 | **MCU lanjutan**: pemeriksaan tambahan berjenis tindakan; pembayaran korporasi masuk laporan kasir; uji dropdown templat impor di Microsoft Excel; **MCU PCare** (fitur `mcu_pcare`, syarat `bpjs_fktp`). | P2 | `integrasi`, `bantuan dibutuhkan` | siap dikerjakan | |
+| B-48 | **MCU lanjutan**: pemeriksaan tambahan berjenis tindakan; pembayaran korporasi masuk laporan kasir; uji dropdown templat impor di Microsoft Excel. | P2 | `bantuan dibutuhkan` | siap dikerjakan | MCU PCare (`mcu_pcare`) sudah tersedia (STD-0020). |
 
 ### 6.4 Fase 3 — Klinik utama & RS kelas D
 
@@ -193,8 +195,7 @@ Kolom **Label** menunjukkan label utama yang disarankan. Status: `menunggu keput
 | B-21 | **Discharge tidak idempoten**: discharge ulang menduplikasi `history_tindakan`. | P1 | `bantuan dibutuhkan` | siap dikerjakan | `rekamedis-service` `insertHistoryTindakan`. |
 | B-22 | **Kode status pulang "Dirujuk"**: frontend mengirim `other-hfc`, backend memeriksa `other-hcf`. | P2 | `good first issue` | siap dikerjakan | Samakan ke kode FHIR `other-hcf` dan migrasikan data lama. |
 | B-23 | **Daftar tindakan tidak bisa dikosongkan** (validasi `items.min(1)`), dan tindakan yang dihapus tidak dikirim ke server. | P2 | `good first issue` | siap dikerjakan | |
-| B-24 | **Rencana Kontrol & SPRI via VClaim** (`vclaim_rencana_kontrol`). | P2 | `integrasi` | siap dikerjakan | |
-| B-25 | **Lab rujukan** ke laboratorium luar (`lab_rujukan`). | P2 | `bantuan dibutuhkan` | siap dikerjakan | |
+| B-24 | **Rencana Kontrol & SPRI via VClaim**: verifikasi jalur & payload ke katalog resmi VClaim 2.0. | P2 | `integrasi` | siap dikerjakan | Fitur `vclaim_rencana_kontrol` sudah dibangun (STD-0021); di luar mode mock operasi surat ditolak sampai `BPJS_VCLAIM_RENKON_DIKONFIRMASI=true`. |
 | B-26 | **Umur tampil "0Th 0Bln 0Hr"** di Perpindahan Bangsal. | P3 | `good first issue` | siap dikerjakan | |
 | B-27 | **Ringkasan ekstremitas** tidak masuk summary RME (`ket_ekstremitas_*` vs `ket_ekstermitas_*`). | P3 | `good first issue` | siap dikerjakan | |
 
@@ -202,12 +203,11 @@ Kolom **Label** menunjukkan label utama yang disarankan. Status: `menunggu keput
 
 | ID | Item | Prioritas | Label | Status | Catatan |
 |---|---|---|---|---|---|
-| B-32 | **Kamar Operasi, ICU, Gizi, Koding RM, CSSD.** | P2 | `butuh tenaga medis/klinis`, `bantuan dibutuhkan` | siap dikerjakan | Modul sudah terdaftar berstatus "Segera". Ikuti [panduan menambah modul](./MANAJEMEN-MODUL.md#4-panduan-pengembang-menambah-modul-atau-fitur-baru). |
-| B-33 | **Bank Darah RS & UTD/UPTD produksi darah.** | P3 | `butuh tenaga medis/klinis` | siap dikerjakan | Fitur turunan sudah terdaftar. |
-| B-34 | **Akuntansi & remunerasi** (integrasi back office). | P3 | `bantuan dibutuhkan` | siap dikerjakan | |
-| B-35 | **Antrean Online BPJS (Mobile JKN)**: task id, check-in, antrean farmasi. | P2 | `integrasi` | siap dikerjakan | Fitur `antrian_online_bpjs`. |
+| B-34 | **Akuntansi & remunerasi** (integrasi back office). | P3 | `bantuan dibutuhkan` | siap dikerjakan | Satu-satunya modul katalog yang masih "Segera". Ikuti [panduan menambah modul](./MANAJEMEN-MODUL.md#4-panduan-pengembang-menambah-modul-atau-fitur-baru). |
+| B-35 | **Antrean Online BPJS (Mobile JKN)**: konfirmasi kontrak resmi WS Antrean dan endpoint resmi web service untuk BPJS. | P2 | `integrasi` | siap dikerjakan | Fitur `antrian_online_bpjs` (sinkron antrean & task id) sudah dibangun (STD-0018). |
+| B-58 | **HR/SDM fase berikutnya**: Jadwal Dinas, Kehadiran/Cuti/Izin, Pelatihan, Penggajian. | P3 | `bantuan dibutuhkan` | siap dikerjakan | Fitur sudah terdaftar di katalog berstatus "Segera" (`sdm_jadwal_dinas`, `sdm_kehadiran`, `sdm_pelatihan`, `sdm_penggajian`). |
 | B-46 | **Patologi Anatomi & Mikrobiologi lanjutan**: izin READ di backend; halaman verifikasi publik QR hasil; ekspor WHONET; integrasi alat mikrobiologi; notifikasi nilai kritis; data demo dokter spesialis mikrobiologi klinik. | P2 | `butuh tenaga medis/klinis`, `integrasi` | siap dikerjakan | |
-| B-47 | **Radiologi lanjutan**: jam operasional per hari & libur alat, status "tidak hadir", **PACS/DICOM**, dosis radiasi & BHP, tanda tangan final, layar antrean. | P2 | `integrasi`, `butuh tenaga medis/klinis` | siap dikerjakan | |
+| B-47 | **Radiologi lanjutan**: jam operasional per hari & libur alat, status "tidak hadir", dosis radiasi & BHP, tanda tangan final, layar antrean. | P2 | `butuh tenaga medis/klinis` | siap dikerjakan | Bridging PACS/RIS (`rad_bridging_pacs`) sudah tersedia. |
 | B-49 | **Fisioterapi**: hapus komponen prototipe lama yang tidak terpakai di `frontend-service/src/views/Fisioterapi/Layout/**` & `Section/**`. | P3 | `good first issue` | siap dikerjakan | Pastikan tidak ada impor tersisa sebelum menghapus. |
 
 ### 6.6 Pertanyaan terbuka
@@ -216,7 +216,7 @@ Kolom **Label** menunjukkan label utama yang disarankan. Status: `menunggu keput
 |---|---|
 | Q-01 | Perlukah segmen khusus **UTD/UPTD Darah** dan **praktik fisioterapis mandiri**? |
 | Q-02 | Modul **Training** (kelas olahraga/edukasi berbayar) masuk produk inti, atau diturunkan menjadi add-on? |
-| Q-03 | **Marketplace, Subscription, dan Web Admin Mobile** adalah fitur tingkat platform, bukan modul faskes. Di repo mana dan oleh siapa dikembangkan? |
+| Q-03 | **Subscription dan Web Admin Mobile** adalah fitur tingkat platform, bukan modul faskes. Di repo mana dan oleh siapa dikembangkan? (Sisi faskes untuk pembelian via Marketplace sudah tersedia sebagai fitur `inv_marketplace`.) |
 | Q-04 | Kontrak API LIS (cek duplikat, idempotensi, format status/hasil, kode lab per faskes) perlu dibakukan bersama penyedia LIS agar integrasi bisa dipakai LIS lain. Temuan teknis dari uji integrasi disampaikan langsung ke penyedia LIS, tidak dipublikasikan. |
 
 ### 6.7 Selesai
@@ -225,6 +225,12 @@ Ringkasan per rilis ada di [CHANGELOG](../CHANGELOG.md). Item backlog lama yang 
 
 | ID lama | Item | Selesai di |
 |---|---|---|
+| B-17 | Program Puskesmas (`program-puskesmas-service`): KIA/KB, imunisasi (termasuk kirim ke SATUSEHAT), MTBS/MTBM, sasaran program, kegiatan UKM, laporan dinkes. | Belum dirilis |
+| B-25 | Lab Rujukan ke laboratorium luar (`lab_rujukan`). | Belum dirilis |
+| B-32 | Kamar Operasi, ICU/Intensif, Gizi, Koding & Rekam Medis, CSSD. | Belum dirilis |
+| B-33 | Bank Darah RS (termasuk bridging ke UTD) & UTD/UPTD produksi darah. | Belum dirilis |
+| – | Bridging PACS/RIS (dari B-47) dan MCU PCare (dari B-48). | Belum dirilis |
+| – | Mutu & Akreditasi, HR/SDM fase 1, Sarpras/IPSRS, Laundry & Linen, Manajemen Ambulans, Unit Hemodialisa, Kelas Training, Audit Trail, Dashboard Eksekutif, Pembelian via Marketplace, SIMRS Studio. | Belum dirilis |
 | B-50 | Skrip `dev:frontend` (serta `dev:penunjang`, `dev:satusehat`, `dev:bpjs`) di `package.json` root; `npm run dev` kini menjalankan semua layanan + frontend; `infra:up` hanya infrastruktur. | 1.0.0-alpha.1 |
 | B-52 | `schema.sql` hanya struktur + data referensi nasional, tanpa data faskes/pasien/pengguna dan tanpa kepemilikan objek; instalasi baru tidak perlu `db:demo:reset`. | 1.0.0-alpha.1 |
 | B-53 | `mongo-init.js` tanpa kata sandi tertanam; layanan memakai akun root MongoDB dari `.env`. | 1.0.0-alpha.1 |
@@ -265,18 +271,18 @@ Dokumen kebutuhan produk (PRD) lama disusun per menu, sedangkan katalog disusun 
 | PRD | Katalog | Status |
 |---|---|---|
 | Admisi | `pendaftaran` + General Consent, Pendaftaran Ringkas; bayi baru lahir di `rawat_inap` | Tersedia |
-| Antrian | `antrian` (layar kiosk, APM) | Antrean Online BPJS → B-35 |
+| Antrian | `antrian` (layar kiosk, APM, Antrean Online BPJS) | Tersedia; kontrak resmi BPJS → B-35 |
 | Rekam Medis, RJ, RI, IGD | `rawat_jalan`, `rawat_inap`, `igd` + bagian asesmen & resume | Tersedia |
 | Poli Gigi / Poli Mata | Bagian khusus jenis poli (odontogram, pemeriksaan mata, resep kacamata) | Tersedia |
 | Farmasi & Stok | `farmasi` | Satu lokasi stok → B-01 |
-| Inventory | `inventory` | Marketplace → Q-03 |
-| Laboratorium | `laboratorium` (+ `patologi_anatomi`, `mikrobiologi`) | Lab rujukan → B-25 |
+| Inventory | `inventory` (+ Pembelian via Marketplace) | Tersedia |
+| Laboratorium | `laboratorium` (+ `patologi_anatomi`, `mikrobiologi`, Lab Rujukan) | Tersedia |
 | Pembayaran | `pembayaran` | Tutup tagihan otomatis → B-04 |
-| PCare / VClaim | `bpjs_fktp` / `bpjs_fkrtl` | B-16, B-24, B-48 |
+| PCare / VClaim | `bpjs_fktp` / `bpjs_fkrtl` | B-16, B-24 |
 | Fisioterapi | `fisioterapi` | Tersedia |
 | Integrasi Back Office | `akuntansi` (Segera) | B-34 |
-| Training | `training` (Segera) | Q-02 |
-| Marketplace, Subscription, Web Admin Mobile | Di luar katalog faskes | Q-03 |
+| Training | `training` | Tersedia; posisi di produk inti → Q-02 |
+| Subscription, Web Admin Mobile | Di luar katalog faskes | Q-03 |
 
 ---
 
@@ -284,5 +290,5 @@ Dokumen kebutuhan produk (PRD) lama disusun per menu, sedangkan katalog disusun 
 
 1. Saat mulai mengerjakan item, ubah statusnya menjadi `sedang dikerjakan` dan sebut ID-nya di judul PR, mis. `fix(farmasi): B-03 gudang bukan tujuan order resep`.
 2. Saat PR digabung, pindahkan item ke [6.7 Selesai](#67-selesai) dan tulis entrinya di [CHANGELOG](../CHANGELOG.md) bagian *Belum dirilis*.
-3. Item baru memakai ID berikutnya yang belum terpakai (B-58, B-59, ...), ditaruh di fase yang sesuai, lengkap dengan prioritas, label, dan lokasi kode bila diketahui.
+3. Item baru memakai ID berikutnya yang belum terpakai (B-59, B-60, ...), ditaruh di fase yang sesuai, lengkap dengan prioritas, label, dan lokasi kode bila diketahui.
 4. Perubahan urutan fase, timeline, atau keputusan desain dibahas dulu lewat issue berlabel `RFC`, lalu dicatat di sini.

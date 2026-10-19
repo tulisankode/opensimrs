@@ -1,9 +1,9 @@
 # SATUSEHAT
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas admin sistem/IT faskes dan petugas rekam medis sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas admin sistem/IT faskes dan petugas rekam medis sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** admin sistem faskes, petugas rekam medis yang memantau pengiriman data
-**Menu:** Setting › Konfigurasi Integrasi (kartu **Konfigurasi SATUSEHAT** dan **Sinkronisasi SATUSEHAT**)
+**Menu:** Setting › Konfigurasi Integrasi › SATUSEHAT (kartu **Konfigurasi SATUSEHAT** dan **Sinkronisasi SATUSEHAT**)
 **Hak akses yang dibutuhkan:** Setting › Konfigurasi Integrasi › READ (melihat), UPDATE KONFIGURASI SATUSEHAT (mengubah)
 
 ## Untuk apa
@@ -13,8 +13,8 @@ OpenSIMRS mengirim data kunjungan rawat jalan yang sudah selesai ke platform SAT
 
 ### Membuka halaman SATUSEHAT
 1. Klik foto/nama profil di kanan atas, lalu klik **Setting**.
-2. Di menu samping, pilih **Konfigurasi Integrasi**.
-3. Gulir ke kartu **Konfigurasi SATUSEHAT** dan **Sinkronisasi SATUSEHAT**.
+2. Di menu samping, buka **Konfigurasi Integrasi**, lalu pilih **SATUSEHAT**.
+3. Halaman **Konfigurasi Integrasi › SATUSEHAT** menampilkan kartu **Konfigurasi SATUSEHAT** dan **Sinkronisasi SATUSEHAT**.
 
 **Hasilnya:** tampil Organization ID dan Client ID faskes. Client Secret hanya tampil sebagian (empat karakter terakhir), disertai ringkasan pengiriman.
 

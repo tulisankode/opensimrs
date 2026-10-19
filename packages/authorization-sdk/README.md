@@ -1,6 +1,6 @@
 # @opensimrs/authorization-sdk
 
-Middleware otorisasi untuk layanan OpenSIMRS: memeriksa JWT (**HS256**) pada setiap request dan membaca sesi di Redis. Versi 1.1.0, lisensi ISC (atribusi penulis asli ada di `package.json`).
+Middleware otorisasi untuk layanan OpenSIMRS: memeriksa JWT (**HS256**) pada setiap request dan membaca sesi di Redis. Versi 1.2.0, lisensi ISC (atribusi penulis asli ada di `package.json`).
 
 Paket ini bagian dari monorepo (`packages/authorization-sdk`) dan dipasang layanan lewat `"@opensimrs/authorization-sdk": "file:../packages/authorization-sdk"`. Setelah mengubah kode di sini, jalankan `npm run sdk:refresh` dari root repo.
 
@@ -54,6 +54,17 @@ const isi = await JwtUtils.veryfy(token);
 ```
 
 Tersedia juga `JwtUtils.signRefreshToken` dan `JwtUtils.verifyRefreshToken`.
+
+## Memeriksa peran superadmin
+
+```js
+import { isSuperadmin, NAMA_SUPERADMIN } from "@opensimrs/authorization-sdk/peran";
+
+// menerima objek author dari JWT ({ role }) atau nama peran langsung
+if (isSuperadmin(req.author)) { /* ... */ }
+```
+
+`NAMA_SUPERADMIN` bernilai `"super admin"`; perbandingan tidak peka huruf besar/kecil.
 
 ## Dependensi
 

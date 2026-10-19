@@ -14,7 +14,7 @@ Satu instalasi lengkap OpenSIMRS terdiri dari:
 
 | Komponen | Jumlah | Batas memori di override server (`deploy/server/docker-compose.server.yml`) |
 |---|---|---|
-| Layanan backend Node.js | 18 kontainer | ±384 MB per layanan inti (15 layanan), ±192 MB untuk layanan integrasi/penunjang (3 layanan) |
+| Layanan backend Node.js | 19 kontainer | ±384 MB per layanan inti (15 layanan), ±192 MB untuk layanan integrasi/penunjang (4 layanan: SATUSEHAT, BPJS, penunjang, Program Puskesmas) |
 | Frontend (Vue, disajikan Node) | 1 kontainer | ±768 MB |
 | PostgreSQL 16 | 1 | ±1 GB |
 | MongoDB 7 | 1 | ±512 MB |
@@ -23,7 +23,9 @@ Satu instalasi lengkap OpenSIMRS terdiri dari:
 
 Jumlah batas memori seluruh tumpukan ±9 GB. Batas ini adalah **plafon**; pemakaian rata-rata biasanya lebih rendah, tetapi sisakan ruang untuk sistem operasi, cache disk database, proses build, dan cadangan. Pada faskes besar, PostgreSQL adalah komponen yang paling diuntungkan oleh tambahan RAM dan disk cepat.
 
-Instalasi native (tanpa Docker) membutuhkan sumber daya yang setara: 19 proses Node.js + PostgreSQL + MongoDB + Redis + nginx.
+Instalasi native (tanpa Docker) membutuhkan sumber daya yang setara: 20 proses Node.js (19 layanan backend + frontend) + PostgreSQL + MongoDB + Redis + nginx. `studio-service` (SIMRS Studio) tidak ikut di server; layanan ini hanya untuk mesin pengembang dan tidak dihitung di atas.
+
+> **VPS kecil tidak cukup.** Server/VPS dengan RAM 2 GB tidak cukup untuk instalasi lengkap (seluruh layanan + PostgreSQL + MongoDB + Redis); proses akan kehabisan memori, terutama saat build atau migrasi. Pakai spesifikasi minimal pada tabel di bawah.
 
 ---
 

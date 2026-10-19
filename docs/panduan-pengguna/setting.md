@@ -1,17 +1,19 @@
 # Akun, peran & pengaturan
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau admin faskes/superadmin sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau admin faskes/superadmin sebelum dipakai Helpdesk.
 
-**Dipakai oleh:** semua pengguna (login, profil, ganti password); admin faskes (role dan user); superadmin (manajemen modul)
-**Menu:** ikon akun › Profile / Setting / LOGOUT; Setting › Manajemen Modul; Datamaster › Role; Datamaster › User
+**Dipakai oleh:** semua pengguna (login, profil, ganti password); admin faskes (role, user, konfigurasi integrasi, audit trail); superadmin (manajemen modul, mode pengembang)
+**Menu:** ikon akun › Profile / Setting / LOGOUT; Setting › Profil Faskes / Konfigurasi Integrasi / Print Out / Manajemen Modul / System / Audit Trail / Ekstensi; Datamaster › Role; Datamaster › User
 **Hak akses yang dibutuhkan:**
 - Setting › Profile Saya › READ, UPDATE FOTO PROFILE DAN NAMA LENGKAP, UPDATE USERNAME DAN PASSWORD
-- Setting › System › READ (untuk membuka **Manajemen Modul**; hanya superadmin yang bisa mengubahnya)
+- Setting › System › READ (untuk membuka **Manajemen Modul** dan **System**; hanya superadmin yang bisa mengubah modul), UPDATE PPN
+- Setting › Konfigurasi Integrasi › READ, UPDATE KONFIGURASI VCLAIM, UPDATE KONFIGURASI SATUSEHAT, UPDATE KONFIGURASI LAINNYA
+- Setting › Audit Trail › LIHAT, EKSPOR
 - Datamaster › Role › CREATE, READ, UPDATE, DELETE
 - Datamaster › User › CREATE, READ, UPDATE, DELETE
 
 ## Untuk apa
-Bagian ini mengatur cara pengguna masuk dan keluar aplikasi, data profil, dan password. Admin juga memakainya untuk mengatur hak akses lewat role dan user. Superadmin memakainya untuk menentukan modul yang aktif di faskes. Menu yang terlihat oleh pengguna ditentukan oleh **modul yang aktif di faskes** dan **izin yang dimiliki pengguna**. Keduanya harus terpenuhi.
+Bagian ini mengatur cara pengguna masuk dan keluar aplikasi, data profil, dan password. Admin juga memakainya untuk mengatur hak akses lewat role dan user, menghubungkan OpenSIMRS ke sistem luar (BPJS, SATUSEHAT, LIS, dan lain-lain), serta menelusuri jejak perubahan data (audit trail). Superadmin memakainya untuk menentukan modul yang aktif di faskes dan menyalakan Mode Pengembang. Menu yang terlihat oleh pengguna ditentukan oleh **modul yang aktif di faskes** dan **izin yang dimiliki pengguna**. Keduanya harus terpenuhi.
 
 ## Tugas sehari-hari
 
@@ -67,14 +69,57 @@ Selalu keluar bila komputer dipakai bergantian.
 
 ### Mengaktifkan atau menonaktifkan modul faskes (superadmin)
 1. Klik ikon akun, lalu **Setting**. Di menu samping, pilih **Manajemen Modul**. Halaman **Manajemen Modul & Fitur** terbuka.
-2. Di **Segmen Faskes**, pilih jenis faskes, misalnya **Klinik Pratama** atau **Rumah Sakit Kelas D**. Segmen menentukan modul dan fitur bawaan.
-3. Di **Modul & Fitur**, klik sakelar untuk menambah modul di luar segmen atau menonaktifkan modul bawaan. Fitur di bawah modul juga bisa diatur. Klik **Atur bagian** untuk mengatur bagian formulir RME.
-   - Label **Inti** berarti modul selalu aktif.
-   - Label **Segera** berarti modul masih dalam pengembangan dan belum bisa diaktifkan.
-4. Isi **Alasan perubahan (opsional)**, lalu klik **Simpan Konfigurasi**. Klik **Batalkan Perubahan** untuk kembali ke kondisi semula.
-5. Di **Jenis Poli**, tentukan jenis tiap poli (mis. Gigi & Mulut, Mata). Jenis poli menentukan bagian RME khusus yang tampil di poli tersebut.
+2. Di **Segmen Faskes**, pilih jenis faskes: **Dokter Praktik Mandiri**, **Klinik Pratama**, **Klinik Utama**, **Puskesmas**, atau **Rumah Sakit Kelas D/C/B/A**. Setiap kartu segmen menunjukkan jumlah modul, fitur, dan bagian bawaannya. Segmen menentukan *preset* (paket bawaan) modul, fitur, dan bagian.
+3. Di **Modul & Fitur**, modul dikelompokkan per bidang. Klik sakelar untuk menambah modul di luar segmen atau menonaktifkan modul bawaan. Label status modul:
+   - **Inti**: modul selalu aktif;
+   - **Bawaan segmen**: aktif karena termasuk segmen; bila dimatikan menjadi **Bawaan segmen — dinonaktifkan**;
+   - **Tidak termasuk segmen**: tidak aktif kecuali dinyalakan manual;
+   - **Segera**: masih dalam pengembangan dan belum bisa diaktifkan.
+4. Di bawah setiap modul aktif, atur **fitur**-nya dengan sakelar. Label **Preset segmen** berarti fitur termasuk paket segmen; **Tidak termasuk preset** berarti fitur mati kecuali dinyalakan manual. Fitur wajib tidak bisa dimatikan, dan fitur baru bisa diubah setelah modulnya aktif.
+5. Untuk fitur yang punya bagian formulir (mis. bagian RME), klik **Atur bagian · …** untuk menyalakan atau mematikan bagian tertentu. Bagian wajib (isi minimal rekam medis) tidak bisa dimatikan.
+6. Isi **Alasan perubahan (opsional)**, misalnya "Klinik membuka layanan rawat inap 5 bed", lalu klik **Simpan Konfigurasi**. Klik **Batalkan Perubahan** untuk kembali ke kondisi semula.
+7. Di **Jenis Poli**, tentukan jenis tiap poli (mis. Gigi & Mulut, Mata). Jenis poli menentukan bagian RME khusus, misalnya **Pemeriksaan Gigi** hanya tampil di poli Gigi & Mulut.
 
-**Hasilnya:** muncul pesan "Konfigurasi modul disimpan", lalu menu dimuat ulang. Semua perubahan tercatat di **Riwayat Perubahan**. Pengguna selain superadmin hanya bisa melihat halaman ini.
+**Hasilnya:** muncul pesan "Konfigurasi modul disimpan" dan menu dimuat ulang. Perubahan di luar preset (modul tambahan atau dinonaktifkan, fitur, dan bagian) disimpan sebagai *override* faskes dan tercatat di **Riwayat Perubahan**. Mengganti segmen membersihkan override fitur agar kembali mengikuti preset segmen baru. Pengguna selain superadmin hanya bisa melihat halaman ini.
+
+### Mengatur koneksi ke sistem luar (Konfigurasi Integrasi)
+1. Klik ikon akun, lalu **Setting**. Di menu samping, buka **Konfigurasi Integrasi**.
+2. Pilih sistem tujuan. Setiap sistem punya halaman sendiri:
+   - **BPJS › BPJS PCare** (FKTP), **BPJS › BPJS VClaim** (rumah sakit), dan **BPJS › Antrean Online (Mobile JKN)** (bila fitur antrean online BPJS aktif);
+   - **SATUSEHAT**;
+   - **LIS › Lab PK**, **LIS › Lab PA** (bila fitur bridging LIS PA aktif), dan **LIS › Mikrobiologi**;
+   - **Radiologi › PACS/RIS**, **Bank Darah › UTD**, dan **Hemodialisa › HDIS** (bila fitur bridging-nya aktif);
+   - **Helpdesk AI** (gateway tombol Bantuan, khusus superadmin);
+   - **Lainnya**.
+3. Isi atau ubah konfigurasi di halaman itu, lalu simpan. Langkah rinci ada di panduan modul terkait: [BPJS FKTP](./bpjs-fktp.md), [BPJS FKRTL](./bpjs-fkrtl.md), [SATUSEHAT](./satusehat.md), [Laboratorium](./laboratorium.md), [Radiologi](./radiologi.md).
+
+**Hasilnya:** judul halaman berubah menjadi **Konfigurasi Integrasi › (sistem tujuan)**. Nilai rahasia disimpan terenkripsi dan tidak ditampilkan utuh.
+
+### Menelusuri perubahan data (Audit Trail)
+1. Klik ikon akun, lalu **Setting** › **Audit Trail**. Butuh izin Setting › Audit Trail › LIHAT.
+2. Saring dengan **Dari tanggal**, **Sampai tanggal**, **Pengguna**, **Aksi**, **Entitas**, **Layanan**, atau **ID Pasien**, lalu klik **Cari**. Klik **Reset** untuk mengosongkan saringan.
+3. Klik baris untuk membuka **Detail Audit**: waktu, pengguna, aksi, entitas, layanan, pasien, alamat IP, user agent, ID permintaan, dan ringkasan perubahan.
+4. Bila perlu, klik **Ekspor Excel** (butuh izin EKSPOR).
+5. Untuk memastikan catatan audit tidak diubah, klik **Verifikasi Rantai Hash**.
+
+**Hasilnya:** bila catatan utuh, tampil pesan "Rantai hash utuh untuk … catatan yang diperiksa." Bila tidak, tampil pesan merah "Ditemukan … catatan dengan rantai hash tidak cocok …". Laporkan ke admin sistem. Bila rentang tanggal terlalu besar, hanya sebagian catatan yang diperiksa; persempit rentangnya.
+
+### Mengatur biaya administrasi dan PPN (System)
+1. Klik ikon akun, lalu **Setting** › **System**.
+2. Di kartu **Administrasi**, nyalakan sakelar lalu isi **Input Biaya (Rp)** bila faskes menagih biaya administrasi.
+3. Di kartu **PPN**, nyalakan sakelar lalu isi **Input Margin (%)**.
+4. Klik **Simpan**, atau **Reset** untuk membatalkan.
+
+**Hasilnya:** biaya administrasi dan PPN dipakai pada tagihan berikutnya di kasir.
+
+### Menyalakan Mode Pengembang (SIMRS Studio, khusus superadmin)
+Mode Pengembang membuka menu **SIMRS Studio**, alat pengembangan berbasis AI untuk tim IT/pengembang. Petugas pelayanan tidak memerlukannya.
+1. Klik ikon akun, lalu **Setting** › **System**. Kartu **Mode Pengembang** hanya tampil untuk superadmin.
+2. Klik **Aktifkan**. Baca penjelasan di jendela **Aktifkan Mode Pengembang?**, centang pernyataan "Saya memahami bahwa data pasien tidak boleh dikirim ke AI dan semua perubahan wajib melalui review.", lalu konfirmasi.
+3. Klik **Buka SIMRS Studio**, atau buka menu **SIMRS Studio** di menu atas.
+4. Untuk mematikannya, klik **Nonaktifkan**.
+
+**Hasilnya:** menu **SIMRS Studio** tampil untuk superadmin. Bila kartu menyatakan layanan Studio belum berjalan, server belum disiapkan untuk Studio (`STUDIO_PENGEMBANG=aktif`). Hubungi tim IT. Lihat [SIMRS Studio](../SIMRS-STUDIO.md).
 
 ## Pesan galat yang sering muncul
 | Pesan | Arti | Yang perlu dilakukan |
@@ -110,9 +155,12 @@ Menu tampil hanya bila **dua syarat** terpenuhi. Periksa satu per satu:
 3. Setelah kedua hal di atas diperbaiki, pengguna **LOGOUT** lalu login lagi.
 
 Catatan tambahan:
-- Modul penunjang (Laboratorium, Radiologi, Fisioterapi, Patologi Anatomi, Mikrobiologi) dikelompokkan dalam satu menu **Penunjang**.
-- Modul yang termasuk paket faskes tetapi masih dikembangkan muncul di menu terpisah dengan tanda *Soon*.
+- Modul penunjang (mis. Laboratorium, Patologi Anatomi, Mikrobiologi, Radiologi, Fisioterapi, CSSD, Bank Darah, UTD, Laundry, Sarana & Prasarana, Ambulans) dikelompokkan dalam satu menu **Penunjang**, tersusun per bidang dan instalasi. Farmasi, Gizi, Koding Rekam Medis, dan Inventory tetap menjadi menu sendiri.
+- Modul yang termasuk paket faskes tetapi masih dikembangkan dikumpulkan di menu **Segera** (bertanda *Soon*) dan belum bisa dibuka.
 - Menu **Setting › Ekstensi** hanya tampil untuk superadmin.
+- Menu atas yang tidak muat di layar dipindah ke tombol **Lainnya**. Panel ini tersusun per bidang dan punya kotak cari.
+- Halaman **Konfigurasi Integrasi** untuk LIS PA, PACS/RIS, UTD, HDIS, dan Antrean Online BPJS hanya tampil bila fiturnya aktif di **Manajemen Modul**.
+- **Audit Trail** tidak diberikan otomatis ke peran faskes. Admin harus menambah izin Setting › Audit Trail › LIHAT secara manual.
 
 ## Catatan untuk peninjau
 - Saat superadmin menyimpan **Manajemen Modul**, izin modul aktif otomatis ditambahkan ke peran admin faskes. Peran lain tetap harus diatur manual di **Datamaster › Role**. Mohon dipastikan bahwa ini perilaku yang diinginkan dan perlu dijelaskan ke admin.
@@ -121,4 +169,7 @@ Catatan tambahan:
 - Login di kode tidak tampak memeriksa status user NON-AKTIF. Perlu dipastikan akun nonaktif benar-benar ditolak.
 - Backend menerima password user baru tanpa batas panjang minimal, walaupun pesannya menyebut minimal 8 karakter. Aturan kekuatan password hanya diperiksa di halaman **Profile**. Perlu kebijakan yang seragam.
 - Label tombol tambah di Datamaster tertulis **Data**. Mohon dipastikan sesuai dengan tampilan.
-- Bagian Setting lain (**Profil Faskes**, **Konfigurasi Integrasi**, **Print Out**, **System**/Mode Pengembang) belum dibahas. Untuk SATUSEHAT, lihat `satusehat.md`.
+- Bagian **Profil Faskes** (termasuk Logo & Warna) dan **Print Out** belum dibahas.
+- Rute **Setting › Manajemen Modul** memakai izin Setting › System › READ, bukan izin tersendiri.
+- Izin Konfigurasi Integrasi hanya punya aksi UPDATE untuk VClaim, SATUSEHAT, dan Lainnya. Belum jelas izin apa yang mengatur penyimpanan PCare, LIS, PACS, UTD, HDIS, dan Antrean Online BPJS.
+- Izin **SIMRS Studio** (Permintaan, PRD, Coding, QA, Rilis, Ekstensi, dan lain-lain) tidak pernah diberikan otomatis; superadmin memberikannya per peran. Detailnya ada di dokumen SIMRS Studio, bukan di panduan ini.

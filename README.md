@@ -17,6 +17,7 @@
 </p>
 
 <p align="center">
+  <a href="https://docs.opensimrs.com">Dokumentasi lengkap</a> ·
   <a href="./docs/INSTALLATION_GUIDE.md">Instalasi</a> ·
   <a href="./docs/MANAJEMEN-MODUL.md">Manajemen Modul</a> ·
   <a href="./docs/ROADMAP.md">Roadmap</a> ·
@@ -26,6 +27,8 @@
 </p>
 
 > **Status: alfa (`1.0.0-alpha.1`).** Fitur masih bertambah cepat. Silakan dicoba dan dievaluasi; untuk pemakaian di faskes, uji menyeluruh dan jalankan paralel dengan sistem lama terlebih dahulu.
+>
+> **Dokumentasi lengkap:** https://docs.opensimrs.com
 
 ---
 
@@ -40,7 +43,7 @@ Satu aplikasi bisa dipakai oleh berbagai jenis faskes karena fiturnya **modular 
 | Dokter praktik mandiri | Pendaftaran & SOAP ringkas satu layar, resep, kasir sederhana |
 | Klinik pratama / Puskesmas | Antrian, multi-poli, apotek & gudang, laboratorium, BPJS PCare, MCU |
 | Klinik utama / RS kelas D | Rawat inap, IGD, radiologi, fisioterapi, BPJS VClaim (SEP) |
-| RS kelas C / B / A | Ditambah patologi anatomi, mikrobiologi, dan modul rumah sakit lain (sebagian masih "Segera") |
+| RS kelas C / B / A | Ditambah patologi anatomi, mikrobiologi, kamar operasi, ICU, gizi, CSSD, bank darah, hemodialisa, dan modul rumah sakit lain (Akuntansi & Remunerasi masih "Segera") |
 
 Superadmin dapat menyalakan atau mematikan modul, fitur, dan bagian form untuk tiap faskes di luar bawaan segmennya. Penjelasan lengkap ada di [Manajemen Modul](./docs/MANAJEMEN-MODUL.md).
 
@@ -55,9 +58,11 @@ Superadmin dapat menyalakan atau mematikan modul, fitur, dan bagian form untuk t
 | **Rawat Jalan, Rawat Inap, IGD** | Alur periksa → selesai, SPRI, perpindahan bed/bangsal, discharge dengan tagihan kamar otomatis |
 | **Farmasi & Inventory** | Telaah resep, racikan, penyerahan obat, penjualan bebas, stok depo, gudang, pembelian ke supplier, retur, stok opname |
 | **Laboratorium** | Order dari RME, hasil & validasi, cetak hasil berkop dengan flag nilai abnormal, **bridging LIS** (kirim per order/massal, ambil hasil, mapping kode) |
-| **Penunjang** | Radiologi (jadwal per ruang, expertise), Fisioterapi (jadwal terapi, evaluasi), Patologi Anatomi, Mikrobiologi (kultur & uji kepekaan antibiotik), Medical Check Up perorangan & korporasi |
+| **Penunjang** | Radiologi (jadwal per ruang, expertise, bridging PACS/RIS), Fisioterapi (jadwal terapi, evaluasi), Patologi Anatomi, Mikrobiologi (kultur & uji kepekaan antibiotik), Medical Check Up perorangan & korporasi |
+| **Layanan rumah sakit** | Kamar Operasi, ICU/Intensif, Gizi, Koding & Rekam Medis, CSSD, Bank Darah RS, UTD/UPTD, Hemodialisa, Program Puskesmas, Kelas Training |
+| **Manajemen & penunjang non-klinis** | Mutu & Akreditasi (indikator mutu, insiden keselamatan pasien), HR/SDM, Sarana & Prasarana (IPSRS), Laundry & Linen, Manajemen Ambulans, Audit Trail, Dashboard Eksekutif |
 | **Pembayaran** | Tagihan otomatis dari semua layanan tanpa tagihan ganda, kasir dengan/tanpa shift, diskon & voucher, kuitansi |
-| **Integrasi** | SATUSEHAT (Kemenkes), BPJS PCare (FKTP) & VClaim (FKRTL), LIS |
+| **Integrasi** | SATUSEHAT (Kemenkes), BPJS PCare (FKTP), VClaim (FKRTL) & Antrean Online (Mobile JKN), LIS, PACS/RIS |
 | **Datamaster, Laporan & Setting** | Data faskes, lokasi, pegawai, tarif, peran & izin; dashboard dan laporan; profil, logo & warna tema per faskes |
 
 Daftar lengkap modul, fitur, dan statusnya: [katalog Manajemen Modul](./docs/MANAJEMEN-MODUL.md#5-katalog-lengkap).
@@ -91,9 +96,9 @@ npm run db:demo:seed                     # 8 faskes demo + akun
 npm run dev                              # semua layanan + frontend
 ```
 
-**Tanpa Docker (macOS/Ubuntu/Debian):** cukup `./install.sh`. Skrip ini mengecek dan memasang dependensi, menyiapkan database dan semua `.env`, lalu menjalankan instalasi, migrasi, dan data demo. Setelah itu jalankan `npm run dev`. Pakai `./install.sh --cek` untuk hanya memeriksa dependensi.
+**Tanpa Docker (macOS/Ubuntu/Debian):** cukup `./install.sh`. Skrip ini mengecek dan memasang dependensi, menyiapkan database dan semua `.env`, lalu menjalankan instalasi, migrasi, dan data demo. Setelah itu jalankan `npm run dev`. Opsi: `--cek` (hanya memeriksa dependensi), `--ya`, `--tanpa-demo`, `--jalankan`, `--podman` (PostgreSQL, MongoDB, dan Redis di kontainer Podman), `--tanpa-ai` (lewati alat AI), serta `--domain <domain> --api <domain-api>` (akses lewat Cloudflare Tunnel/reverse proxy HTTPS). Langkah terakhir menawarkan alat AI satu per satu: Claude Code, Codex, OpenCode, Ollama (tanpa mengunduh model), dan OpenClaw (Helpdesk).
 
-**Tanpa Docker (Windows 10/11):** jalankan `install.cmd` dari folder repo (klik ganda, atau `.install.cmd` di terminal). Skrip ini melakukan hal yang sama: dependensi dipasang lewat winget (Node.js 22, PostgreSQL 16, MongoDB 7, mongosh, dan Memurai sebagai pengganti Redis). Opsi: `-Cek`, `-Ya`, `-TanpaDemo`, `-Jalankan`. Bila PostgreSQL sudah terpasang, skrip menanyakan sandi superuser `postgres`.
+**Tanpa Docker (Windows 10/11):** jalankan `install.cmd` dari folder repo (klik ganda, atau `.\install.cmd` di terminal). Skrip ini melakukan hal yang sama: dependensi dipasang lewat winget (Node.js 22, PostgreSQL 16, MongoDB 7, mongosh, dan Memurai sebagai pengganti Redis). Opsi: `-Cek`, `-Ya`, `-TanpaDemo`, `-Jalankan`, `-TanpaAi`, `-Domain <domain> -Api <domain-api>`. Bila PostgreSQL sudah terpasang, skrip menanyakan sandi superuser `postgres`.
 
 Laptop dengan RAM terbatas: `npm run dev:core` (auth, datamaster, admisi, frontend). Semua di Docker: `npm run stack:up`.
 
@@ -110,7 +115,7 @@ Buka **http://localhost:5520** dan login dengan **`superadmin` / `Demo@2026`**. 
                                        │
                                        │ REST /api/v3/<layanan>/...
  ┌───────────┬────────────┬────────────┼────────────┬──────────────┬───────────────┐
- auth     admisi/antrian  rawat-jalan  rekamedis   farmasi/stok   payment   ... (19 layanan Express)
+ auth     admisi/antrian  rawat-jalan  rekamedis   farmasi/stok   payment   ... (20 layanan Express)
  └───────────┴────────────┴────────────┼────────────┴──────────────┴───────────────┘
                                        │
           PostgreSQL (satu database bersama) · MongoDB (isi RME) · Redis (cache token & izin)
@@ -118,7 +123,7 @@ Buka **http://localhost:5520** dan login dengan **`superadmin` / `Demo@2026`**. 
    satusehat-service (FHIR Kemenkes) · bpjs-service (PCare/VClaim) · lab-service ⇄ LIS
 ```
 
-- **Backend:** Node.js + Express, satu layanan per domain (auth, admisi, antrian, rawat jalan, rawat inap, IGD, rekam medis, farmasi, stok, inventory, laboratorium, penunjang, pembayaran, datamaster, setting, laporan, SATUSEHAT, BPJS).
+- **Backend:** Node.js + Express, satu layanan per domain (auth, admisi, antrian, rawat jalan, rawat inap, IGD, rekam medis, farmasi, stok, inventory, laboratorium, penunjang, pembayaran, datamaster, setting, laporan, SATUSEHAT, BPJS, program puskesmas), ditambah `studio-service` untuk [SIMRS Studio](./docs/SIMRS-STUDIO.md), mode pengembang berbasis AI yang opsional dan hanya untuk mesin pengembang.
 - **Frontend:** Vue 3 + TypeScript + PrimeVue + Pinia + Tailwind.
 - **Data:** PostgreSQL untuk data terstruktur, MongoDB untuk isi rekam medis per sesi, Redis untuk cache token/izin. Setiap data diisolasi per faskes.
 - **Monorepo:** semua layanan, SDK bersama `@opensimrs/*` (`packages/`), migrasi (`database/migrations`), katalog modul (`database/data/katalog-modul.json`), deploy (`deploy/server/`), dan dokumen berada di satu repo.
@@ -131,6 +136,7 @@ Rincian arsitektur, konvensi, dan alur bisnis: [Konteks Pengembangan](./docs/KON
 
 | Dokumen | Isi |
 |---|---|
+| [Dokumentasi lengkap](https://docs.opensimrs.com) | Situs dokumentasi resmi OpenSIMRS |
 | [Petunjuk Instalasi](./docs/INSTALLATION_GUIDE.md) | Persyaratan, port, `.env`, data & akun demo, implementasi di faskes, dengan Docker & tanpa Docker, cadangan, pemecahan masalah |
 | [Spesifikasi Hardware](./docs/SPESIFIKASI-HARDWARE.md) | Kebutuhan server on-premise per segmen faskes, jaringan, UPS, cadangan 3-2-1, perangkat klien |
 | [Lingkungan Dev/Staging/Production](./docs/LINGKUNGAN.md) | Tujuan tiap lingkungan, alur promosi kode, aturan `.env` dan variabel per lingkungan |
@@ -164,6 +170,7 @@ Baca [CONTRIBUTING.md](./CONTRIBUTING.md) dan [panduan peran Anda](./docs/kontri
 ## Komunitas & kontak
 
 - **Website resmi:** [OpenSIMRS.my.id](https://opensimrs.my.id)
+- **Dokumentasi lengkap:** [docs.opensimrs.com](https://docs.opensimrs.com)
 - **Kanal diskusi resmi:** [grup Telegram](https://t.me/+uW2ZQA1V7Dc3OTVl), [server Discord](https://discord.gg/qAWhdzGJTW), dan [grup WhatsApp](https://chat.whatsapp.com/EULeLrLPMcC6vNKV4AxHQj?mode=gi_t). Aturan forum ada di [COMMUNITY.md](./COMMUNITY.md).
 - **Pelacakan pekerjaan teknis:** GitHub Issues & Pull Request di repo ini.
 - **Email:** `dev@opensimrs.id` (umum, keamanan, kode etik).

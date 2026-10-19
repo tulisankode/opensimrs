@@ -1,6 +1,6 @@
 # Medical Check Up (MCU)
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas MCU (admin MCU, dokter pemeriksa, dan bagian penagihan) sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas MCU (admin MCU, dokter pemeriksa, dan bagian penagihan) sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** petugas pendaftaran MCU, petugas stasiun pemeriksaan, dokter pemeriksa MCU, petugas penagihan korporasi
 **Menu:** MCU › Peserta MCU · Pemeriksaan Stasiun · Tagihan Korporasi · Datamaster (Paket MCU, Perusahaan) · Laporan MCU · Rekap Hasil (HRD)
@@ -10,6 +10,7 @@
 - MCU › Datamaster › Paket MCU / Perusahaan › READ, CREATE, UPDATE, DELETE
 - MCU › Tagihan Korporasi › READ, CREATE, UPDATE, PEMBAYARAN, CETAK
 - MCU › Laporan MCU › READ, CETAK LAPORAN
+- MCU › MCU PCare › READ, KIRIM, UBAH, HAPUS (bila fitur MCU PCare (BPJS) aktif)
 
 ## Untuk apa
 Modul MCU mengelola pemeriksaan kesehatan perorangan maupun rombongan karyawan perusahaan. Alurnya: siapkan paket dan data perusahaan, daftarkan peserta (satu per satu atau impor Excel dari HRD), isi hasil di tiap stasiun pemeriksaan, lalu dokter menyimpan kesimpulan (Fit, Fit dengan Catatan, atau Unfit). Hasilnya bisa dicetak, direkap untuk HRD, dan ditagihkan ke perusahaan lewat invoice.
@@ -95,6 +96,15 @@ Untuk membatalkan satu peserta saja, klik ikon tiga titik di baris peserta › *
 6. Saat perusahaan membayar, buka **Detail**, klik **Catat Pembayaran**, isi **Tanggal bayar**, **Jumlah (Rp)**, **Metode**, dan **No. referensi / bukti**, lalu klik **Simpan Pembayaran**.
 
 **Hasilnya:** status invoice berubah menjadi **Terbit**, lalu **Dibayar Sebagian** atau **Lunas**. Sisa tagihan tampil di detail invoice.
+
+### Melaporkan hasil MCU peserta BPJS ke PCare (bila fitur aktif)
+Fitur **MCU PCare (BPJS)** berlaku untuk peserta berstatus **Selesai** yang penjaminnya BPJS. Pengiriman dilakukan per peserta.
+1. Di **MCU › Peserta MCU**, lihat kolom **PCare**: **Belum dikirim**, **Sedang dikirim**, **Terkirim**, **Gagal**, atau **Tidak pasti**.
+2. Klik tombol titik tiga (**Aksi lain**) pada baris peserta, lalu pilih **Kirim ke PCare**. Untuk status **Gagal** atau **Tidak pasti**, pilih **Kirim Ulang ke PCare**.
+3. Bila peserta punya lebih dari satu kunjungan PCare, pilih kunjungan yang sesuai, lalu konfirmasi.
+4. Untuk data yang sudah terkirim, pilih **Perbarui di PCare** atau **Hapus dari PCare** (isi **Alasan**).
+
+**Hasilnya:** status PCare dan nomor referensinya (**Ref. …**) tampil di kolom **PCare**. **Laporan MCU** menampilkan rekap **Status Pengiriman MCU PCare** untuk peserta berpenjamin BPJS.
 
 ### Melihat laporan MCU dan rekap untuk HRD
 1. Untuk rekap internal, buka **MCU › Laporan MCU**. Pilih **Tanggal mulai**, **Tanggal selesai**, **Perusahaan**, **Paket**, dan **Cara bayar**, lalu klik **Tampilkan**. Pilih tab **Per Perusahaan**, **Per Paket**, atau **Per Tanggal**, lalu klik **Unduh CSV** bila perlu.

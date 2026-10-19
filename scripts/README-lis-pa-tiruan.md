@@ -32,6 +32,8 @@ Kendali uji (`POST /_uji/atur`, JSON digabung ke pengaturan):
   "callback_url": "http://localhost:8099/adam-pa-lis/bridging", "callback_key": "<kunci masuk dari Konfigurasi LIS PA>" }
 ```
 
+> Lewat gateway API (`deploy/server/gateway.nginx.conf` atau `install.sh --domain`) alamat `/adam-…` penunjang-service tidak diteruskan; pakai alias `/api/v3/penunjang/patologi/lis/hasil` di domain API. Lihat [Petunjuk Instalasi 7.5](../docs/INSTALLATION_GUIDE.md#75-integrasi-eksternal).
+
 ```bash
 curl -X POST http://localhost:2313/_uji/push -H "Content-Type: application/json" -d '{
   "no_registrasi": "<uuid kasus>", "status": "selesai",

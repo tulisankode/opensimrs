@@ -11,6 +11,8 @@ PORT=2612 LIS_KUNCI=kunci-uji-mikro SIMRS_CALLBACK=http://localhost:8099/adam-li
   SIMRS_KUNCI_MASUK=<kunci masuk koneksi dari SIMRS> node scripts/lis-tiruan-mikro.mjs
 ```
 
+> Lewat gateway API (`deploy/server/gateway.nginx.conf` atau `install.sh --domain`) alamat `/adam-…` penunjang-service tidak diteruskan (`/adam-lis/…` justru diteruskan ke lab-service); pakai alias `/api/v3/penunjang/mikrobiologi/lis/hasil` di domain API. Lihat [Petunjuk Instalasi 7.5](../docs/INSTALLATION_GUIDE.md#75-integrasi-eksternal).
+
 Isi koneksi di **Setting › Konfigurasi Integrasi › Konfigurasi LIS Mikrobiologi**:
 
 | Kolom | Nilai |

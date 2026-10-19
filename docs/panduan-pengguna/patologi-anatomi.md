@@ -1,6 +1,6 @@
 # Patologi Anatomi
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas patologi anatomi sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas patologi anatomi sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** petugas administrasi dan analis laboratorium patologi anatomi (PA), dokter spesialis patologi anatomi (Sp.PA), admin data master PA, admin/IT faskes (bridging LIS PA)
 **Menu:** Penunjang › Patologi Anatomi › Order PA / Penerimaan Jaringan / Pemeriksaan & Diagnosis / Arsip Blok & Slide / Mapping LIS PA / Datamaster / Laporan
@@ -91,14 +91,14 @@ Status order: **Order** → **Valid** → **Diproses** → **Selesai**. Order ju
 
 ### Mengatur koneksi dan mapping LIS PA (bridging)
 Bagian ini hanya muncul bila fitur **Bridging LIS Patologi Anatomi** aktif (Manajemen Modul, modul Patologi Anatomi).
-1. Admin membuka **Setting › Konfigurasi Integrasi › Konfigurasi LIS PA**, menambahkan koneksi (**Nama**, **Kode RS di sistem PA**, **URL Registrasi**, **URL Ambil Hasil**, **URL Laporan/Viewer Slide** opsional, **API Key**), menandai satu koneksi sebagai **Koneksi Bawaan**, lalu klik **Uji Koneksi**.
+1. Admin membuka **Setting › Konfigurasi Integrasi › LIS › Lab PA** (kartu **Konfigurasi LIS PA (Patologi Anatomi)**), menambahkan koneksi (**Nama**, **Kode RS di sistem PA**, **URL Registrasi**, **URL Ambil Hasil**, **URL Laporan/Viewer Slide** opsional, **API Key**), menandai satu koneksi sebagai **Koneksi Bawaan**, lalu klik **Uji Koneksi**.
 2. Klik **Kunci Masuk Baru** untuk mendapatkan alamat penerima hasil (`.../adam-pa-lis/bridging?key=...`) yang dipasang di sistem PA tujuan sebagai URL pengembalian hasil. Kunci hanya ditampilkan sekali.
 3. Buka **Penunjang › Patologi Anatomi › Mapping LIS PA**, pilih **Koneksi**, lalu isi tab **Pemeriksaan** (kode pemeriksaan di sistem PA), **Unit, Dokter & Penjamin**, dan **Field Hasil** (nama field pada payload hasil vendor, bila berbeda dari nama field SIMRS). Klik **Simpan** pada tiap tab.
 
 **Hasilnya:** kasus yang dikirim memakai kode yang dikenal sistem PA tujuan, dan hasil yang diterima terpetakan ke field laporan yang benar.
 
 ### Mengirim ke LIS PA dan menerima hasil
-1. Kirim kasus lewat **Validasi & Kirim ke LIS PA** (lihat bagian memvalidasi order). Status pengiriman tiap kasus (**Terkirim**, **Gagal**, **Tidak pasti**) dapat dipantau di **Setting › Konfigurasi Integrasi › Pengiriman LIS PA**, beserta **Kirim Ulang**/**Kirim Lagi** dan **Cek Status**.
+1. Kirim kasus lewat **Validasi & Kirim ke LIS PA** (lihat bagian memvalidasi order). Status pengiriman tiap kasus (**Terkirim**, **Gagal**, **Tidak pasti**) dapat dipantau di **Setting › Konfigurasi Integrasi › LIS › Lab PA** (kartu **Pengiriman LIS PA**), beserta **Kirim Ulang**/**Kirim Lagi** dan **Cek Status**.
 2. Di **Pemeriksaan & Diagnosis**, buka kasus yang sudah terkirim, lalu klik **Ambil Hasil LIS PA** untuk menarik hasil secara manual. Sistem PA juga dapat mengirim hasil langsung (push) ke alamat penerima koneksi tanpa perlu ditarik.
 3. Diagnosis, laporan, dan status kasus dari sistem PA otomatis masuk ke laporan PA dan rekam medis sesuai izin akses. Laporan yang belum diverifikasi Sp.PA tidak ditampilkan sebagai diagnosis final.
 4. Bila sistem PA mengirim **addendum** (laporan tambahan/revisi dengan nomor registrasi yang sama), addendum tersimpan sebagai versi baru dan tampil pada **Riwayat Laporan / Addendum** di kasus terkait — laporan versi sebelumnya tetap dapat dibaca.
@@ -139,7 +139,7 @@ Bagian ini hanya muncul bila fitur **Bridging LIS Patologi Anatomi** aktif (Mana
 | Blok/slide sedang dipinjam / … tidak sedang dipinjam | Status peminjaman tidak sesuai dengan tombol yang dipakai. | Muat ulang daftar dan cek status blok/slide. |
 | Kode pemeriksaan … sudah dipakai / Kode … sudah dipakai | Kode sudah ada. | Pakai kode lain. |
 | Pemeriksaan "…" belum dipetakan ke kode LIS PA | Kode pemeriksaan belum diisi di Mapping LIS PA. | Isi kode di **Mapping LIS PA › Pemeriksaan**. |
-| Belum ada koneksi LIS PA aktif | Belum ada koneksi diatur/diaktifkan. | Admin mengatur koneksi di **Setting › Konfigurasi Integrasi › Konfigurasi LIS PA**. |
+| Belum ada koneksi LIS PA aktif | Belum ada koneksi diatur/diaktifkan. | Admin mengatur koneksi di **Setting › Konfigurasi Integrasi › LIS › Lab PA** (kartu **Konfigurasi LIS PA (Patologi Anatomi)**). |
 | Pengiriman ke LIS PA gagal: … | Sistem PA menolak registrasi, atau koneksi/waktu tunggu bermasalah. | Baca pesan dari sistem PA, perbaiki data/mapping, lalu **Kirim Ulang** dari **Pengiriman LIS PA**. Validasi order tetap dibatalkan sampai pengiriman berhasil. |
 | Kunci akses tidak valid | Push hasil dari sistem PA memakai kunci masuk yang salah/sudah diganti. | Pasang ulang kunci masuk terbaru (**Kunci Masuk Baru**) di sistem PA tujuan. |
 
@@ -161,7 +161,7 @@ Bagian ini hanya muncul bila fitur **Bridging LIS Patologi Anatomi** aktif (Mana
 ## Bila menu tidak muncul
 - Modul belum aktif untuk faskes: superadmin › **Setting › Manajemen Modul**.
 - Peran belum punya izin: admin › **Datamaster › Role**.
-- Menu Patologi Anatomi ada di dalam menu **Penunjang**. Pada layar sempit, menu bisa berpindah ke tombol **Lainnya**.
+- Menu Patologi Anatomi ada di dalam menu **Penunjang**, pada submenu **Laboratorium** bersama **Patologi Klinik** dan **Mikrobiologi**. Pada layar sempit, menu bisa berpindah ke tombol **Lainnya**.
 - Tab **Order Patologi Anatomi** di RME hanya muncul bila modul Patologi Anatomi aktif.
 - Menu **Mapping LIS PA** dan tombol **Validasi & Kirim ke LIS PA**/**Ambil Hasil LIS PA** hanya muncul bila fitur **Bridging LIS Patologi Anatomi** aktif di Manajemen Modul.
 

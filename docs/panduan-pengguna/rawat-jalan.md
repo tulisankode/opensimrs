@@ -1,6 +1,6 @@
 # RME Rawat Jalan
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas poli (dokter dan perawat rawat jalan) sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas poli (dokter dan perawat rawat jalan) sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** dokter poli, perawat poli
 **Menu:** Rawat Jalan › Poli › Semua Poli (atau nama poli)
@@ -93,10 +93,12 @@ Tab **SOAP Ringkas** hanya muncul bila fitur ini diaktifkan untuk faskes. Bila t
 
 **Hasilnya:** Status pasien menjadi **DISCHARGE**. Tagihan diteruskan ke kasir dan resep masuk antrean farmasi.
 
+> Di rumah sakit yang mengaktifkan fitur **Rencana Kontrol & SPRI** (modul BPJS FKRTL), tab **Resume & Discharge** juga menampilkan tombol **Rencana Kontrol BPJS** (surat kontrol ulang pasien BPJS) dan **SPRI BPJS** (surat perintah rawat inap untuk SEP). Tombol tampil sesuai izin Admisi › Rencana Kontrol & SPRI. Langkahnya ada di panduan [BPJS FKRTL](./bpjs-fkrtl.md).
+
 ### Mencetak label, surat, dan melihat riwayat
 1. **Cetak Label** (kanan atas jendela rekam medis) mencetak label identitas pasien.
 2. Tab **Cetak Hasil & Surat** › **Cetak Hasil Pemeriksaan** menampilkan hasil penunjang yang bisa dicetak.
-3. Tab **Cetak Hasil & Surat** › **Surat Keterangan** › **Buat Surat** dipakai untuk membuat surat. Pilih jenis surat di **Cari & Pilih Surat**, misalnya **Surat Kontrol Rawat Jalan**, **Surat Permohonan Rawat Inap (SPRI)**, **Surat Keterangan Sakit**, **Surat Keterangan Sehat**, **Surat Rujukan**, **Surat Keterangan Meninggal**, atau **Surat Resep Kacamata**. Tekan **Buat**, isi formulir, lalu tekan **Simpan**.
+3. Tab **Cetak Hasil & Surat** › **List Surat Keterangan** › **Buat Surat** dipakai untuk membuat surat. Pilih jenis surat di **Cari & Pilih Surat**, misalnya **Surat Kontrol Rawat Jalan**, **Surat Permohonan Rawat Inap (SPRI)**, **Surat Keterangan Sakit**, **Surat Keterangan Sehat**, **Surat Rujukan**, **Surat Keterangan Meninggal**, atau **Surat Resep Kacamata**. Tekan **Buat**, isi formulir, lalu tekan **Simpan**. Menyimpan **Surat Permohonan Rawat Inap (SPRI)** sekaligus membuat kunjungan rawat inap berstatus **WAITING** yang muncul di **Admisi › Rawat Inap** (lihat [Rawat Inap](./rawat-inap.md)).
 4. Tombol **Riwayat** menampilkan daftar **Riwayat Kunjungan** pasien. Klik salah satu kunjungan untuk membuka rekam medisnya dalam mode baca (**Riwayat Pemeriksaan**).
 
 **Hasilnya:** Dokumen PDF terbentuk dan surat tersimpan di rekam medis pasien.

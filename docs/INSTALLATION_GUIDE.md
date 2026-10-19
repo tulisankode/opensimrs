@@ -2,6 +2,8 @@
 
 > Panduan memasang dan menjalankan OpenSIMRS, untuk **IT rumah sakit/faskes** yang akan mengimplementasikan dan **mahasiswa/pengembang** yang ingin mencoba atau berkontribusi.
 >
+> Dokumentasi lengkap: https://docs.opensimrs.com
+>
 > Dokumen terkait: [README](../README.md) · [Spesifikasi Hardware](./SPESIFIKASI-HARDWARE.md) · [Lingkungan Dev/Staging/Production](./LINGKUNGAN.md) · [Manajemen Modul](./MANAJEMEN-MODUL.md) · [Konteks Pengembangan](./KONTEKS-PENGEMBANGAN.md) · [Roadmap](./ROADMAP.md) · [Panduan Kontribusi](../CONTRIBUTING.md) · [Panduan Implementator](./kontributor/IMPLEMENTATOR.md)
 
 > **Tentang nama teknis.** Semua identifier teknis memakai nama `opensimrs`: paket SDK `@opensimrs/*` (folder `packages/`), database PostgreSQL & MongoDB bawaan `opensimrs`, image Docker `opensimrs/*`, kontainer `opensimrs-db`, `opensimrs-redis`, `opensimrs-frontend`, `opensimrs-gateway`, dan jaringan Docker `opensimrs`. Tulis nama-nama itu persis seperti di panduan ini.
@@ -76,7 +78,7 @@ Membangun semua image Docker sekaligus membutuhkan ruang disk besar (±10 GB lap
 
 ## 3. Gambaran sistem & port
 
-OpenSIMRS terdiri dari satu frontend (Vue 3) dan 19 layanan backend (Node.js + Express) dalam satu repo (**monorepo**, tanpa git submodule). Semua layanan memakai **satu database PostgreSQL bersama**, MongoDB untuk isi rekam medis, dan Redis untuk cache token/izin. Tiga paket SDK bersama (`@opensimrs/model-sdk`, `@opensimrs/authorization-sdk`, `@opensimrs/permission-sdk`) ada di folder `packages/`.
+OpenSIMRS terdiri dari satu frontend (Vue 3) dan 20 layanan backend (Node.js + Express): 19 layanan aplikasi ditambah SIMRS Studio (opsional) dalam satu repo (**monorepo**, tanpa git submodule). Semua layanan memakai **satu database PostgreSQL bersama**, MongoDB untuk isi rekam medis, dan Redis untuk cache token/izin. Tiga paket SDK bersama (`@opensimrs/model-sdk`, `@opensimrs/authorization-sdk`, `@opensimrs/permission-sdk`) ada di folder `packages/`.
 
 | Port | Layanan | Folder | Awalan API |
 |---|---|---|---|
@@ -110,7 +112,7 @@ OpenSIMRS terdiri dari satu frontend (Vue 3) dan 19 layanan backend (Node.js + E
 | 2313 | Sistem PA tiruan untuk pengujian (opsional) | `scripts/lis-pa-tiruan.mjs` | – |
 | 2413 | UTD tiruan untuk pengujian (opsional) | `scripts/utd-tiruan.mjs` | – |
 
-Port 8090 memang tidak dipakai.
+Port 8090 dipakai SIMRS Studio. Layanan ini tidak ada di `docker-compose.yml` karena dijalankan langsung di mesin pengembang (`npm run dev` / `npm run dev:studio`); lihat [SIMRS Studio](./SIMRS-STUDIO.md).
 
 ---
 
@@ -250,7 +252,7 @@ npm run db:demo:master-penunjang       # opsional: lengkapi datamaster lab/radio
 npm run dev
 ```
 
-`npm run dev` menjalankan **semua** 19 layanan backend (termasuk penunjang, Program Puskesmas, SATUSEHAT, dan BPJS) beserta frontend dalam satu terminal.
+`npm run dev` menjalankan **semua** 20 layanan backend (termasuk penunjang, Program Puskesmas, SATUSEHAT, BPJS, dan SIMRS Studio) beserta frontend dalam satu terminal. SIMRS Studio tetap menolak semua permintaan sampai `STUDIO_PENGEMBANG=aktif` diisi di `studio-service/.env` ([SIMRS Studio](./SIMRS-STUDIO.md)).
 
 Pilihan lain:
 
@@ -425,10 +427,14 @@ VITE_BASE_SATUSEHAT=http://localhost:8097/api/v3/satusehat
 VITE_BASE_BPJS=http://localhost:8098/api/v3/bpjs
 VITE_BASE_PENUNJANG=http://localhost:8099/api/v3/penunjang
 VITE_BASE_PROGRAM_PUSKESMAS=http://localhost:8100/api/v3/program-puskesmas
+VITE_BASE_STUDIO=http://localhost:8090/api/v3/studio
 ```
 
 - Nilai `VITE_*` **dibakar saat build**. Setelah mengubahnya, mulai ulang frontend atau build ulang image.
-- `VITE_KEEP_API_HOST=true` dipakai bila semua API berada di satu domain/gateway (deploy server). Untuk lokal biarkan kosong.
+- `VITE_KEEP_API_HOST=true` dipakai bila semua API berada di satu domain/gateway (deploy server atau akses lewat domain). Tanpa variabel ini, frontend mengganti host alamat API dengan host halaman yang sedang dibuka dan mempertahankan port layanan (`src/utils/apiHandler.ts`). Untuk lokal biarkan kosong.
+- `VITE_BASE_STUDIO` bila kosong memakai `http://localhost:8090/api/v3/studio`.
+- `VITE_SHOW_STUB_MENU=true` (opsional) menampilkan menu modul yang belum selesai dibangun; bawaan tersembunyi.
+- `ALLOWED_HOSTS` (bukan `VITE_*`): daftar host tambahan, dipisah koma, yang boleh membuka server Vite (dev/preview), mis. `ALLOWED_HOSTS=simrs.contoh.id,api-simrs.contoh.id`. `localhost` dan `127.0.0.1` selalu diizinkan. `vite.config.ts` membacanya dari environment proses atau dari berkas `.env*` di `frontend-service/` (mis. `.env.local` yang ditulis `install.sh --domain`). Di deploy server, nilainya diambil dari `FRONTEND_ALLOWED_HOSTS`.
 
 ### 5.4 Konfigurasi integrasi per faskes
 
@@ -525,13 +531,25 @@ Semua diisi di **Setting › Konfigurasi Integrasi** per faskes.
 
 | Integrasi | Prasyarat | Catatan |
 |---|---|---|
-| **SATUSEHAT** (platform data kesehatan Kemenkes, standar FHIR) | Registrasi faskes di portal SATUSEHAT: Client ID/Secret, Organization ID | Mulai di `SATUSEHAT_LINGKUNGAN=sandbox` dengan `SATUSEHAT_MODE=nyata`. Saat ini yang dikirim: kunjungan rawat jalan berstatus selesai beserta diagnosis ICD-10. Lokasi & praktisi perlu dipetakan ke ID SATUSEHAT. |
+| **SATUSEHAT** (platform data kesehatan Kemenkes, standar FHIR) | Registrasi faskes di portal SATUSEHAT: Client ID/Secret, Organization ID | Mulai di `SATUSEHAT_LINGKUNGAN=sandbox` dengan `SATUSEHAT_MODE=nyata`. Saat ini yang dikirim: kunjungan rawat jalan berstatus selesai (Encounter) beserta diagnosis ICD-10 (Condition) dan tanda vital (Observation). ID SATUSEHAT dipetakan otomatis saat pengiriman pertama: pasien dan dokter (DPJP) dicari lewat **NIK 16 digit** (pasien beridentitas KTP; dokter dari NIK di data pegawai), sedangkan poli dibuat sebagai Location baru di bawah Organization faskes. ID yang ditemukan disimpan dan dipakai ulang. Pastikan NIK pasien dan dokter benar dan sudah terdaftar di SATUSEHAT; bila tidak ditemukan, kunjungan ditandai data belum lengkap. |
 | **BPJS PCare** (FKTP: praktik, klinik pratama, puskesmas) | Kredensial PCare dari BPJS Kesehatan | Modul `bpjs_fktp`. Pendaftaran & kunjungan dikirim otomatis berkala. Uji dulu dengan `BPJS_LINGKUNGAN=development`. |
 | **BPJS VClaim** (FKRTL: klinik utama, RS) | Kredensial VClaim | Modul `bpjs_fkrtl`: cek peserta, rujukan, SEP. |
-| **LIS** (Laboratory Information System) | URL & API key LIS (format adamLIS) | Nyalakan fitur **Bridging LIS** bila belum aktif di segmen Anda, isi koneksi (URL registrasi, URL ambil hasil, API key, kode RS, kode lab, mode kirim), lalu petakan kode di **Laboratorium › Mapping LIS** (tindakan, unit/dokter/penjamin, item hasil). Gagal kirim ke LIS = validasi order dibatalkan. Uji dulu dengan LIS tiruan: `node scripts/lis-tiruan.mjs` (lihat [README LIS tiruan](../scripts/README-lis-tiruan.md)). |
-| **PACS/RIS** (Radiologi) | URL & API key PACS/RIS | Nyalakan fitur **Bridging PACS/RIS** (`rad_bridging_pacs`) bila belum aktif di segmen Anda, isi koneksi di **Setting › Konfigurasi Integrasi › Konfigurasi PACS** (URL kirim order, URL ambil hasil, URL viewer, API key, kode RS), lalu petakan kode di **Radiologi › Mapping PACS** (tindakan → kode prosedur & modalitas, unit/dokter/penjamin, ruang/alat → AE Title). Gagal kirim ke PACS = validasi order dibatalkan; tombol **Validasi Saja** tetap tersedia sebagai jalur darurat. Titik masuk hasil (push dari PACS, tanpa JWT): `http(s)://<host penunjang-service>/adam-pacs/bridging?key=<kunci masuk>`. Uji dulu dengan PACS tiruan: `node scripts/pacs-tiruan.mjs` (lihat [README PACS tiruan](../scripts/README-pacs-tiruan.md)). |
-| **LIS PA** (sistem informasi patologi anatomi) | URL & API key sistem PA (format adamLIS) | Nyalakan fitur **Bridging LIS Patologi Anatomi** bila belum aktif, isi koneksi di **Konfigurasi LIS PA** (URL registrasi, URL ambil hasil, API key, kode RS), lalu petakan kode di **Patologi Anatomi › Mapping LIS PA** (pemeriksaan, unit/dokter/penjamin, field hasil). Gagal kirim ke LIS PA = validasi order dibatalkan. Uji dulu dengan sistem PA tiruan: `node scripts/lis-pa-tiruan.mjs` (lihat [README sistem PA tiruan](../scripts/README-lis-pa-tiruan.md)). |
-| **UTD** (Bank Darah RS → UTD/BDRS eksternal) | URL & API key UTD mitra (kontrak REST generik) | Nyalakan fitur **Bridging Bank Darah (UTD)** (`bdrs_bridging`) bila belum aktif di segmen Anda (RS B/RS A, mati bawaan), isi koneksi di **Setting › Konfigurasi Integrasi › Konfigurasi Bank Darah/UTD** (URL kirim permintaan, URL status dengan templat `{no_registrasi}`, URL cek stok opsional, API key, kode RS), lalu petakan kode di **Bank Darah › Mapping UTD** (komponen wajib; unit/dokter/penjamin opsional). Kantong hanya masuk stok setelah petugas berizin **Stok & Penerimaan › TERIMA KANTONG** menerima kantong `menunggu` yang lolos validasi IMLTD — tidak ada penerimaan otomatis. Titik masuk hasil (push dari UTD, tanpa JWT): `http(s)://<host penunjang-service>/adam-utd/bridging?key=<kunci masuk>`. Uji dulu dengan UTD tiruan: `node scripts/utd-tiruan.mjs` (lihat [README UTD tiruan](../scripts/README-utd-tiruan.md)). |
+| **LIS** (Laboratory Information System) | URL & API key LIS (format adamLIS) | Nyalakan fitur **Bridging LIS** bila belum aktif di segmen Anda, isi koneksi (URL registrasi, URL ambil hasil, API key, kode RS, kode lab, mode kirim), lalu petakan kode di **Laboratorium › Mapping LIS** (tindakan, unit/dokter/penjamin, item hasil). Gagal kirim ke LIS = validasi order dibatalkan. Titik masuk hasil (push dari LIS, tanpa JWT): `/adam-lis/bridging` di lab-service; alamat ini juga diteruskan gateway. Uji dulu dengan LIS tiruan: `node scripts/lis-tiruan.mjs` (lihat [README LIS tiruan](../scripts/README-lis-tiruan.md)). |
+| **PACS/RIS** (Radiologi) | URL & API key PACS/RIS | Nyalakan fitur **Bridging PACS/RIS** (`rad_bridging_pacs`) bila belum aktif di segmen Anda, isi koneksi di **Setting › Konfigurasi Integrasi › Konfigurasi PACS** (URL kirim order, URL ambil hasil, URL viewer, API key, kode RS), lalu petakan kode di **Radiologi › Mapping PACS** (tindakan → kode prosedur & modalitas, unit/dokter/penjamin, ruang/alat → AE Title). Gagal kirim ke PACS = validasi order dibatalkan; tombol **Validasi Saja** tetap tersedia sebagai jalur darurat. Titik masuk hasil (push dari PACS, tanpa JWT; kunci di `?key=` atau header `x-api-key`): `http(s)://<host penunjang-service>/adam-pacs/bridging?key=<kunci masuk>`, atau lewat gateway `https://<domain API>/api/v3/penunjang/radiologi/pacs/hasil?key=<kunci masuk>`. Uji dulu dengan PACS tiruan: `node scripts/pacs-tiruan.mjs` (lihat [README PACS tiruan](../scripts/README-pacs-tiruan.md)). |
+| **LIS PA** (sistem informasi patologi anatomi) | URL & API key sistem PA (format adamLIS) | Nyalakan fitur **Bridging LIS Patologi Anatomi** bila belum aktif, isi koneksi di **Konfigurasi LIS PA** (URL registrasi, URL ambil hasil, API key, kode RS), lalu petakan kode di **Patologi Anatomi › Mapping LIS PA** (pemeriksaan, unit/dokter/penjamin, field hasil). Gagal kirim ke LIS PA = validasi order dibatalkan. Titik masuk hasil (push, tanpa JWT): `http(s)://<host penunjang-service>/adam-pa-lis/bridging`, atau lewat gateway `https://<domain API>/api/v3/penunjang/patologi/lis/hasil`, dengan kunci masuk di header `x-api-key`. Uji dulu dengan sistem PA tiruan: `node scripts/lis-pa-tiruan.mjs` (lihat [README sistem PA tiruan](../scripts/README-lis-pa-tiruan.md)). |
+| **UTD** (Bank Darah RS → UTD/BDRS eksternal) | URL & API key UTD mitra (kontrak REST generik) | Nyalakan fitur **Bridging Bank Darah (UTD)** (`bdrs_bridging`) bila belum aktif di segmen Anda (RS B/RS A, mati bawaan), isi koneksi di **Setting › Konfigurasi Integrasi › Konfigurasi Bank Darah/UTD** (URL kirim permintaan, URL status dengan templat `{no_registrasi}`, URL cek stok opsional, API key, kode RS), lalu petakan kode di **Bank Darah › Mapping UTD** (komponen wajib; unit/dokter/penjamin opsional). Kantong hanya masuk stok setelah petugas berizin **Stok & Penerimaan › TERIMA KANTONG** menerima kantong `menunggu` yang lolos validasi IMLTD — tidak ada penerimaan otomatis. Titik masuk hasil (push dari UTD, tanpa JWT): `http(s)://<host penunjang-service>/adam-utd/bridging?key=<kunci masuk>`, atau lewat gateway `https://<domain API>/api/v3/penunjang/bank-darah/utd/hasil?key=<kunci masuk>`. Uji dulu dengan UTD tiruan: `node scripts/utd-tiruan.mjs` (lihat [README UTD tiruan](../scripts/README-utd-tiruan.md)). |
+
+> **Titik masuk hasil di belakang gateway.** `deploy/server/gateway.nginx.conf` (dan gateway lokal `install.sh --domain`) hanya meneruskan `/api/v3/<layanan>/…` serta `/adam-lis/` (ke lab-service). Alamat `/adam-pacs/`, `/adam-pa-lis/`, `/adam-utd/`, dan `/adam-hdis/` milik penunjang-service **tidak** diteruskan, dan `/adam-lis/mikrobiologi/…` justru sampai ke lab-service, bukan penunjang-service. Saat sistem eksternal mengirim hasil lewat gateway, daftarkan alias `/api/v3/penunjang/…` berikut (kunci masuk sama):
+>
+> | Bridging | Alamat langsung (port 8099) | Alias lewat gateway |
+> |---|---|---|
+> | PACS/RIS | `/adam-pacs/bridging` | `/api/v3/penunjang/radiologi/pacs/hasil` |
+> | LIS Patologi Anatomi | `/adam-pa-lis/bridging` | `/api/v3/penunjang/patologi/lis/hasil` |
+> | LIS Mikrobiologi | `/adam-lis/mikrobiologi/bridging` | `/api/v3/penunjang/mikrobiologi/lis/hasil` |
+> | UTD/BDRS | `/adam-utd/bridging` | `/api/v3/penunjang/bank-darah/utd/hasil` |
+> | HDIS (hemodialisa) | `/adam-hdis/bridging` | `/api/v3/penunjang/hemodialisa/hdis/masuk` |
+>
+> Hasil LIS Patologi Klinik tetap memakai `/adam-lis/bridging` (diteruskan gateway ke lab-service; alias `/api/v3/lab/lis/hasil`).
 
 Ubah `SATUSEHAT_MODE`/`BPJS_MODE` ke `nyata` dan lingkungan ke produksi (`SATUSEHAT_LINGKUNGAN=produksi`, `BPJS_LINGKUNGAN=production`) hanya di production dan setelah uji di sandbox lulus.
 
@@ -553,7 +571,7 @@ Ubah `SATUSEHAT_MODE`/`BPJS_MODE` ke `nyata` dan lingkungan ke produksi (`SATUSE
 | `docker-compose.yml` | **Satu-satunya** berkas compose: semua layanan, PostgreSQL 16, MongoDB, Redis. Semua layanan memakai satu `.env` root. Layanan yang memakai SDK dibangun dengan konteks root repo (`context: .`, `dockerfile: <layanan>/Dockerfile`): Dockerfile menyalin `packages/` ke `/packages` dan kode layanan ke `/app`. Frontend, bpjs, satusehat, dan penunjang (tanpa SDK) memakai konteks foldernya sendiri. |
 | `.dockerignore` | Membatasi konteks build root (tanpa `node_modules`, `.env`, dokumen, dsb.). |
 | `deploy/server/docker-compose.server.yml` | Override untuk server: port & `APPLICATION_MODULE` per layanan, alamat antar-layanan memakai nama kontainer, batas memori, gateway nginx, MongoDB 7.0, dan database tidak dibuka ke host. |
-| `deploy/server/gateway.nginx.conf` | Gateway nginx (port 8080): semua `/api/v3/<layanan>/` dalam satu domain. |
+| `deploy/server/gateway.nginx.conf` | Gateway nginx (port 8080): semua `/api/v3/<layanan>/` dalam satu domain, ditambah `/adam-lis/` (hasil LIS ke lab-service) dan `/health`. Titik masuk bridging penunjang-service memakai alias `/api/v3/penunjang/…` ([bagian 7.5](#75-integrasi-eksternal)). `studio-service` tidak ada di compose; rutenya di gateway hanya berguna bila Studio dijalankan di jaringan kontainer. |
 | `deploy/server/.env.example` | Templat `.env` server. |
 | `deploy/server/deploy.sh` | Skrip deploy: build hanya layanan yang berubah → migrasi → jalankan → cek kesehatan → rollback otomatis bila gagal. Dijalankan di server. |
 | `.github/workflows/ci.yml` | CI: cek sintaks semua layanan dan `packages/`, uji unit lab-service, muat `schema.sql` + migrasi dua kali (uji idempoten), cek dokumen katalog modul, build frontend. |
@@ -611,7 +629,7 @@ CONTAINER_CLI=podman SERVER_HOST=simrs.contoh.id ./deploy/server/deploy.sh
 Catatan Podman:
 - Mode *rootless* cukup karena semua port di atas 1024. Bila ingin memakai port < 1024, jalankan `podman machine set --rootful`.
 - Tidak perlu `podman-mac-helper`; `podman compose` memakai soket API Podman secara langsung. Hindari memasangnya bila server masih menjalankan aplikasi lain di Docker Desktop, karena helper mengambil alih soket Docker bawaan.
-- Disk VM Podman tumbuh sesuai isi; build pertama 16 image bisa memakan lebih dari 10 GB di disk host. Cache build dibersihkan dengan `podman image prune` (Podman tidak punya `builder prune`).
+- Disk VM Podman tumbuh sesuai isi; build pertama ±20 image bisa memakan lebih dari 10 GB di disk host. Cache build dibersihkan dengan `podman image prune` (Podman tidak punya `builder prune`).
 - VM harus menyala agar layanan berjalan. Setelah server restart, jalankan `podman machine start opensimrs` (kontainer memakai `restart: unless-stopped` dan ikut menyala kembali).
 
 ### 8.4 Server secara manual
@@ -646,6 +664,8 @@ VITE_BASE_STOK=$API/api/v3
 VITE_BASE_SATUSEHAT=$API/api/v3/satusehat
 VITE_BASE_BPJS=$API/api/v3/bpjs
 VITE_BASE_PENUNJANG=$API/api/v3/penunjang
+VITE_BASE_PROGRAM_PUSKESMAS=$API/api/v3/program-puskesmas
+VITE_BASE_STUDIO=$API/api/v3/studio
 ENV
 
 # 3. Infrastruktur & build. Nama proyek Compose "opensimrs" membuat jaringan bernama opensimrs_opensimrs.
@@ -698,11 +718,13 @@ server {
 
 Buat blok serupa untuk domain frontend ke port 5520. Pastikan `FRONTEND_ALLOWED_HOSTS` memuat domain Anda.
 
+> **Batas laju di belakang gateway.** `payment-service` dan `rawat-inap-service` memakai `express-rate-limit`: **100 permintaan per 5 menit per alamat IP**. Kedua layanan belum mengatur `trust proxy`, sehingga di belakang gateway nginx (dan reverse proxy HTTPS) alamat IP yang terbaca adalah alamat gateway. Akibatnya **semua pengguna dihitung sebagai satu IP**: pada faskes yang sibuk, kasir dan rawat inap bisa menerima galat 429 "Too many requests" setelah 100 permintaan gabungan dalam 5 menit. Ini keterbatasan kode yang sudah diketahui; sampai diperbaiki, pantau galat 429 di log kedua layanan. Hal yang sama berlaku pada akses lewat domain di instalasi lokal ([bagian 9](#akses-instalasi-lokal-lewat-domain-cloudflare-tunnel--reverse-proxy)).
+
 ---
 
 ## 9. Menjalankan tanpa Docker (instal native)
 
-> **Cara cepat (macOS & Ubuntu/Debian): `./install.sh`.** Skrip ini memeriksa dependensi beserta versinya (Node.js, PostgreSQL, Redis, MongoDB, mongosh, dll.), menawarkan pemasangan yang kurang lewat Homebrew/apt, menyalakan layanan, membuat role/database/akun Mongo, memuat `schema.sql`, membuat semua `.env` dengan kunci acak (tidak menimpa yang sudah ada), lalu menjalankan `install:all`, migrasi, dan data demo. Opsi: `--cek` (hanya cek), `--ya` (tanpa tanya), `--tanpa-demo`, `--jalankan` (langsung `npm run dev`), `--tanpa-ai`, `--helpdesk`. Skrip juga menawarkan **alat AI** satu per satu: Claude Code CLI, Codex CLI, dan OpenCode CLI (`@opencode/cli`) lewat `npm install -g`; **Ollama** (LLM lokal untuk agen OpenCode, lewat Homebrew/installer resmi; di Windows lewat winget) **tanpa mengunduh model** — unduh sendiri sesuai RAM/VRAM, mis. `ollama pull qwen3:8b`, lalu daftarkan di SIMRS Studio › Pengaturan & Agen › Konektor; dan **OpenClaw** (Helpdesk) lewat installer resminya yang menyiapkan Node 24.16+ sendiri. Lewati semuanya dengan `--tanpa-ai`; `--helpdesk` tetap diterima tetapi kini bawaan. OpenClaw di mesin pengembang untuk uji coba; untuk produksi, OpenClaw dipasang di VM terpisah ([deploy/helpdesk/README.md](../deploy/helpdesk/README.md)). Khusus development lokal. Setiap langkah tampil dengan **bilah kemajuan** (`[3/9] ██████░░ 33%`, spinner dan waktu berjalan untuk langkah lama, bilah per folder saat `npm install`). Keluaran lengkap tersimpan di berkas log yang disebut di akhir; bila ada langkah gagal, 25 baris terakhir log ditampilkan. Langkah manual di bawah menjelaskan hal yang sama secara rinci.
+> **Cara cepat (macOS & Ubuntu/Debian): `./install.sh`.** Skrip ini memeriksa dependensi beserta versinya (Node.js, PostgreSQL, Redis, MongoDB, mongosh, dll.), menawarkan pemasangan yang kurang lewat Homebrew/apt, menyalakan layanan, membuat role/database/akun Mongo, memuat `schema.sql`, membuat semua `.env` dengan kunci acak (tidak menimpa yang sudah ada), lalu menjalankan `install:all`, migrasi, dan data demo. Opsi: `--cek` (hanya cek), `--ya` (tanpa tanya), `--tanpa-demo`, `--jalankan` (langsung `npm run dev`), `--podman` (lihat di bawah), `--domain <domain> --api <domain-api>` (akses lewat domain, lihat [di bawah](#akses-instalasi-lokal-lewat-domain-cloudflare-tunnel--reverse-proxy)), `--tanpa-ai`, `--helpdesk`; daftar lengkap: `./install.sh --help`. Skrip juga menawarkan **alat AI** satu per satu: Claude Code CLI, Codex CLI, dan OpenCode CLI (`@opencode/cli`) lewat `npm install -g`; **Ollama** (LLM lokal untuk agen OpenCode, lewat Homebrew/installer resmi; di Windows lewat winget) **tanpa mengunduh model** — unduh sendiri sesuai RAM/VRAM, mis. `ollama pull qwen3:8b`, lalu daftarkan di SIMRS Studio › Pengaturan & Agen › Konektor; dan **OpenClaw** (Helpdesk) lewat installer resminya yang menyiapkan Node 24.16+ sendiri. Lewati semuanya dengan `--tanpa-ai`; `--helpdesk` tetap diterima tetapi kini bawaan. OpenClaw di mesin pengembang untuk uji coba; untuk produksi, OpenClaw dipasang di VM terpisah ([deploy/helpdesk/README.md](../deploy/helpdesk/README.md)). Khusus development lokal. Setiap langkah tampil dengan **bilah kemajuan** (`[3/9] ██████░░ 33%`, spinner dan waktu berjalan untuk langkah lama, bilah per folder saat `npm install`). Keluaran lengkap tersimpan di berkas log yang disebut di akhir; bila ada langkah gagal, 25 baris terakhir log ditampilkan. Langkah manual di bawah menjelaskan hal yang sama secara rinci.
 >
 > **macOS/Linux dengan Podman: `./install.sh --podman`.** PostgreSQL, MongoDB, dan Redis dijalankan di kontainer Podman (`podman compose`, file `docker-compose.yml`), sedangkan layanan dan frontend tetap berjalan langsung di mesin (`npm run dev`, cocok untuk development). Tidak perlu memasang PostgreSQL/MongoDB/Redis dari Homebrew/apt. Langkah di MacBook:
 >
@@ -715,7 +737,7 @@ Buat blok serupa untuk domain frontend ke port 5520. Pastikan `FRONTEND_ALLOWED_
 > ```
 >
 > Yang dilakukan `--podman` (aman dijalankan berulang):
-> - membuat VM Podman `opensimrs` (2 CPU, 4 GB RAM, disk 40 GB) bila belum ada, lalu menyalakannya; nama image pendek (`postgres:16-alpine`, `mongo`, `redis`) diarahkan ke Docker Hub;
+> - membuat VM Podman `opensimrs` (2 CPU, 4 GB RAM, disk 40 GB) bila belum ada, lalu menyalakannya. Bila VM sudah ada tetapi mati, atau menyala tetapi koneksi default Podman menunjuk mesin lain/port SSH lama ("connection refused"), skrip menyalakan VM, menjadikannya koneksi default, dan bila perlu menawarkan mulai ulang VM (`scripts/lib/podman.sh`, dipakai bersama `uninstall.sh`). Galat asli Podman ditampilkan beserta saran pemeriksaan; nama image pendek (`postgres:16-alpine`, `mongo`, `redis`) diarahkan ke Docker Hub;
 > - menulis `.env` root (sandi acak) **sebelum** kontainer dinyalakan, karena `podman compose` membacanya untuk nama dan sandi database;
 > - menjalankan `podman compose up -d db mongodb redis`; saat volume masih baru, kontainer PostgreSQL membuat role/database `opensimrs` dan memuat `schema.sql` (1–3 menit), kontainer MongoDB membuat akun root `opensimrs`;
 > - memeriksa sandi di `.env` cocok dengan volume yang ada, lalu melanjutkan langkah biasa: `.env` tiap layanan, `install:all`, migrasi, dan data demo.
@@ -727,7 +749,7 @@ Buat blok serupa untuk domain frontend ke port 5520. Pastikan `FRONTEND_ALLOWED_
 > - bila PostgreSQL dipasang oleh skrip, sandi superuser `postgres` dibuat acak dan ditampilkan sekali di akhir; bila sudah terpasang, skrip menanyakannya (atau isi variabel `PG_SUPERPASS`);
 > - port PostgreSQL dibaca dari `postgresql.conf` layanan Windows-nya; bila berbeda dari 5432 (mis. 5432 dipakai kontainer Docker), nilainya ikut ditulis ke `DB_PORT` di `.env`. Bisa dipaksa dengan variabel `PG_PORT`;
 > - Redis di bawah versi 5, termasuk port Redis lama untuk Windows (v3.0), dianggap terlalu lama dan diganti Memurai;
-> - opsi: `-Cek`, `-Ya`, `-TanpaDemo`, `-Jalankan`, `-TanpaAi` (lewati Claude Code, Codex, OpenCode, Ollama, dan OpenClaw), `-Helpdesk` (tetap diterima, kini bawaan). Pemasangan layanan butuh PowerShell **sebagai Administrator**.
+> - opsi: `-Cek`, `-Ya`, `-TanpaDemo`, `-Jalankan`, `-TanpaAi` (lewati Claude Code, Codex, OpenCode, Ollama, dan OpenClaw), `-Helpdesk` (tetap diterima, kini bawaan), `-Domain <domain> -Api <domain-api>` (akses lewat domain). Mode Podman hanya tersedia di `install.sh`. Pemasangan layanan butuh PowerShell **sebagai Administrator**.
 
 Cara ini setara dengan cara Docker: semua komponen dipasang langsung di sistem operasi. Contoh perintah untuk **Ubuntu/Debian**; di **Windows**, pakai installer resmi masing-masing perangkat lunak (PostgreSQL, MongoDB Community Server, Node.js) dan, untuk Redis, Memurai Developer atau paket Redis di WSL (port Redis lama untuk Windows v3.0 terlalu lama; minimal Redis 5). Ganti semua `<...>` dengan nilai Anda sendiri; jangan memakai contoh sandi di server sungguhan.
 
@@ -753,7 +775,7 @@ Lalu arahkan tunnel atau reverse proxy:
 | `simrs.contoh.id` | `http://localhost:5520` (frontend) |
 | `api-simrs.contoh.id` | `http://localhost:8080` (gateway API) |
 
-Cek `https://api-simrs.contoh.id/health` → `{"status":"ok"}`. Bila gateway tidak menyala setelah mesin dinyalakan ulang: `podman start opensimrs-gateway`. Untuk kembali ke `http://localhost:5520` saja, hapus `frontend-service/.env.local`. `uninstall.sh` ikut menghapus gateway, konfigurasinya, dan `.env.local` buatan installer.
+Konfigurasi gateway lokal sama dengan gateway server, jadi titik masuk bridging penunjang-service dari luar juga memakai alias `/api/v3/penunjang/…` ([bagian 7.5](#75-integrasi-eksternal)), dan batas laju payment/rawat-inap menghitung semua pengguna sebagai satu IP ([bagian 8.5](#85-https-di-depan-gateway)). Cek `https://api-simrs.contoh.id/health` → `{"status":"ok"}`. Bila gateway tidak menyala setelah mesin dinyalakan ulang: `podman start opensimrs-gateway`. Untuk kembali ke `http://localhost:5520` saja, hapus `frontend-service/.env.local`. `uninstall.sh` ikut menghapus gateway, konfigurasinya, dan `.env.local` buatan installer.
 
 ### Menghapus instalasi lokal: `./uninstall.sh` (Windows: `uninstall.cmd`)
 
@@ -761,10 +783,17 @@ Pasangan installer ini menghapus **hanya jejak OpenSIMRS**, dengan bilah kemajua
 - PostgreSQL: database aplikasi (dihapus oleh role pemiliknya, tanpa superuser) dan role aplikasi (opsional, butuh superuser);
 - MongoDB: database dan akun aplikasi;
 - Redis: hanya kunci sesi `token-*`, bukan `FLUSHDB`;
-- mode Podman: kontainer dan volume OpenSIMRS;
-- berkas buatan instalasi di repo: `node_modules`, `.env`, `dist`, data SIMRS Studio, dan worktree Studio.
+- mode Podman: kontainer dan volume OpenSIMRS (`podman compose down -v --remove-orphans`, sehingga sisa kontainer proyek dari compose lain seperti `opensimrs-gateway` ikut terhapus);
+- gateway akses domain (bila ada): kontainer `opensimrs-gateway` (Podman/Docker), `~/.opensimrs/gateway-lokal.conf`, dan `frontend-service/.env.local` buatan installer (berkas `.env.local` buatan Anda sendiri dibiarkan);
+- berkas buatan instalasi di repo: `node_modules`, `.env` (termasuk cadangan `.env.bak*`), `dist`, data SIMRS Studio, dan worktree Studio.
 
-PostgreSQL, MongoDB, Redis, Node.js, database atau akun lain, serta OpenClaw tidak disentuh.
+PostgreSQL, MongoDB, Redis, Node.js, database atau akun lain, OpenClaw, serta Ollama beserta modelnya tidak disentuh.
+
+Pengaman di `uninstall.sh` (macOS/Linux; `uninstall.ps1` belum memilikinya: cadangan yang gagal di Windows tidak menghentikan penghapusan, jadi periksa isi folder cadangan sebelum mengetik konfirmasi):
+- **Podman dicek lebih dulu.** Bila Podman terpasang tetapi tidak bisa dihubungi (VM `podman machine` mati di macOS, atau koneksi default menunjuk mesin lain/port lama), skrip menawarkan menyalakan atau menyambungkan ulang VM (`scripts/lib/podman.sh`). Bila tetap gagal, skrip tidak menebak mode basis data: dengan `--ya` skrip berhenti tanpa menghapus apa pun; tanpa `--ya` Anda ditanya apakah basis data memang tidak memakai Podman.
+- **Cadangan gagal = berhenti.** Bila `pg_dump`/`mongodump` gagal atau menghasilkan berkas kosong, penghapusan dihentikan kecuali Anda menyetujuinya secara eksplisit; `--ya` saja tidak cukup (pakai `--tanpa-cadangan` bila memang ingin menghapus tanpa cadangan). Salinan `.env` root ikut disimpan di folder cadangan.
+- Bila `podman compose down` gagal, skrip berhenti sebelum `.env` dihapus agar uninstall bisa diulang.
+- Sandi basis data tidak dicetak ke layar maupun ke berkas log.
 
 ```bash
 ./uninstall.sh --simulasi        # tampilkan apa yang akan dihapus, tanpa menghapus apa pun
@@ -772,7 +801,7 @@ PostgreSQL, MongoDB, Redis, Node.js, database atau akun lain, serta OpenClaw tid
 ./uninstall.sh --hapus-folder    # hapus juga folder repo ini
 ./uninstall.sh --alat-ai         # hapus juga Claude Code, Codex & OpenCode CLI (npm global); Ollama & OpenClaw tidak dihapus
 #   opsi lain: --ya (tanpa tanya), --tanpa-cadangan, --podman
-#   Windows: uninstall.cmd -Simulasi | -Ya | -TanpaCadangan | -HapusFolder | -AlatAi   (role PostgreSQL: isi PG_SUPERPASS)
+#   Windows: uninstall.cmd -Simulasi | -Ya | -TanpaCadangan | -HapusFolder | -AlatAi   (role PostgreSQL: isi PG_SUPERPASS; tanpa mode Podman)
 ```
 
 Cadangan disimpan di `~/opensimrs-cadangan-<waktu>/` (Windows: `%USERPROFILE%\opensimrs-cadangan-<waktu>\`). Cara memulihkannya ditampilkan di akhir proses.
