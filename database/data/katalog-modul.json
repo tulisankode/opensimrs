@@ -557,7 +557,7 @@
       "instalasi": "Akuntansi & Remunerasi",
       "inti": false,
       "tersedia": true,
-      "deskripsi": "Akuntansi RS: bagan akun (COA) standar yang dapat disesuaikan per faskes, aturan pemetaan transaksi → akun, jurnal otomatis dari tagihan, pembayaran kasir, penerimaan & retur barang, dan pemakaian stok (idempoten, tertelusur ke dokumen sumber), jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang, buku besar, neraca saldo, tutup buku, serta laporan keuangan. Remunerasi (jasa pelayanan) menyusul.",
+      "deskripsi": "Akuntansi RS: bagan akun (COA) standar yang dapat disesuaikan per faskes, aturan pemetaan transaksi → akun, jurnal otomatis dari tagihan, pembayaran kasir, penerimaan & retur barang, dan pemakaian stok (idempoten, tertelusur ke dokumen sumber), jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang, buku besar, neraca saldo, tutup buku, serta laporan keuangan; remunerasi jasa pelayanan (jaspel) dokter & tenaga kesehatan berbasis indeks dan kinerja yang dijurnal otomatis.",
       "menu": ["Akuntansi & Remunerasi"],
       "rute": ["/akuntansi"],
       "urutan": 26
@@ -1840,6 +1840,16 @@
       "wajib": false,
       "rute": ["/akuntansi/laporan"],
       "urutan": 104
+    },
+    {
+      "kode": "akuntansi_remunerasi",
+      "modul": "akuntansi",
+      "nama": "Remunerasi (Jasa Pelayanan)",
+      "deskripsi": "Jasa pelayanan dokter & tenaga kesehatan per bulan dari tagihan yang sudah lunas: skema berversi per faskes (porsi per jenis layanan & kategori, porsi langsung/kebersamaan, indeks profesi & bobot — nilai bawaan hanya contoh, wajib disahkan), indeks penerima dan capaian kinerja, pengecualian & koreksi beralasan, alur hitung → verifikasi → persetujuan (pembuat ≠ verifikator ≠ penyetuju) → pembayaran yang dijurnal otomatis ke Akuntansi, slip milik sendiri dengan identitas pasien disamarkan, serta rekap per unit/profesi dengan ekspor tercatat di Audit Trail.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/akuntansi/remunerasi"],
+      "urutan": 105
     }
   ],
   "bagian": [
