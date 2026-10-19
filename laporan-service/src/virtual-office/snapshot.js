@@ -57,7 +57,11 @@ const ringkasRuang = (ruang, batas) => {
 }
 
 const susunUnit = (u, d, batas) => {
-  const dasar = { kode_unit: u.kode_unit, nama: u.nama, bidang_kerja: u.bidang_kerja, rute: u.rute ?? null }
+  // jenis_ruang/petugas/satuan = deskripsi tampilan Kantor (perabot, label peran bidang kerja, kata satuan log).
+  const dasar = {
+    kode_unit: u.kode_unit, nama: u.nama, bidang_kerja: u.bidang_kerja, rute: u.rute ?? null,
+    jenis_ruang: u.jenis_ruang ?? null, petugas: u.petugas ?? [], petugas_ruang: u.petugas_ruang ?? [], satuan: u.satuan ?? "transaksi",
+  }
   if (!d || d.galat) return { ...dasar, terkunci: false, galat: true, beban: null }
   const metrikBeban = u.metrik_beban ?? "menunggu"
   const ambang = u.ambang ?? { kuning: 5, merah: 15 }
@@ -127,7 +131,7 @@ export const buatSnapshot = ({
     const unit = unitAktif.map((u, i) =>
       boleh[i]
         ? susunUnit(u, data[u.kode_unit], batas)
-        : { kode_unit: u.kode_unit, nama: u.nama, bidang_kerja: u.bidang_kerja, rute: null, terkunci: true, izin_dibutuhkan: u.izin, beban: null }
+        : { kode_unit: u.kode_unit, nama: u.nama, bidang_kerja: u.bidang_kerja, rute: null, jenis_ruang: u.jenis_ruang ?? null, terkunci: true, izin_dibutuhkan: u.izin, beban: null }
     )
     const letak = tataLetak(unit, konfigurasi.denah)
     const kodeTerbuka = new Set(unit.filter((u) => !u.terkunci && !u.galat).map((u) => u.kode_unit))

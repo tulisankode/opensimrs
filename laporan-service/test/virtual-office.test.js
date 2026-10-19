@@ -95,6 +95,10 @@ test("bawaan data nyata: angka per unit sesuai sumber, beban dari ambang, tanpa 
   const lab = p.jalur.find((j) => j.asal === "rawat_jalan" && j.tujuan === "laboratorium")
   assert.equal(lab.jumlah, 3)
   assert.equal(p.jalur.find((j) => j.asal === "pendaftaran" && j.tujuan === "igd").jumlah, 4)
+  // Deskripsi tampilan Kantor: label peran bidang kerja (bukan nama pegawai) & jenis perabot.
+  assert.equal(u.rawat_jalan.jenis_ruang, "poli")
+  assert.deepEqual(u.rawat_jalan.petugas_ruang, ["Dokter {ruang}"])
+  assert.equal(u.farmasi.satuan, "resep")
   assert.ok(!JSON.stringify(p).includes("simulasi"))
 })
 
@@ -105,7 +109,8 @@ test("unit tanpa aksi izin tampil terkunci tanpa angka, ruang, dan jalur", async
   const lab = p.unit.find((x) => x.kode_unit === "laboratorium")
   assert.equal(lab.terkunci, true)
   assert.equal(lab.izin_dibutuhkan, "LABORATORIUM")
-  for (const k of ["menunggu", "dilayani", "selesai", "ruang", "metrik"]) assert.equal(lab[k], undefined)
+  for (const k of ["menunggu", "dilayani", "selesai", "ruang", "metrik", "petugas", "satuan"]) assert.equal(lab[k], undefined)
+  assert.equal(lab.jenis_ruang, "lab")
   assert.deepEqual(p.jalur.map((j) => `${j.asal}>${j.tujuan}`), ["rawat_jalan>farmasi"])
   for (const kolom of ["patient_uuid", "faskes_uuid", "nama_pasien", "no_rm", "nik", "diagnosis", "hasil"]) assert.equal(JSON.stringify(p).includes(`"${kolom}"`), false)
 })
