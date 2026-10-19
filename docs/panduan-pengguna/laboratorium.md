@@ -1,6 +1,6 @@
 # Laboratorium
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas laboratorium sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas laboratorium sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** petugas laboratorium (analis), dokter penanggung jawab laboratorium, admin data master laboratorium
 **Menu:** Penunjang › Laboratorium › Order Lab / Hasil Pemeriksaan / Expertise / Datamaster / Mapping LIS / Laporan
@@ -93,12 +93,12 @@ Semua halaman data master memiliki **Import** dan **Eksport** untuk Excel. Templ
 **Hasilnya:** tarif dan item baru langsung bisa dipilih saat membuat order.
 
 ### Mengatur pemetaan kode LIS (bridging LIS)
-Bagian ini hanya muncul bila fitur **Bridging LIS (adamLIS)** aktif. Koneksi LIS diatur admin di **Setting › Konfigurasi Integrasi › Konfigurasi LIS**.
+Bagian ini hanya muncul bila fitur **Bridging LIS (adamLIS)** aktif. Koneksi LIS diatur admin di **Setting › Konfigurasi Integrasi › LIS › Lab PK** (kartu **Konfigurasi LIS (Laboratorium)**).
 1. **Mapping LIS › Tindakan (Registrasi)**: isi **Kode Tindakan LIS** untuk tiap tarif lab. Centang **Belum dipetakan** untuk menampilkan tarif yang belum diisi, lalu klik **Simpan**.
 2. **Mapping LIS › Unit, Dokter & Penjamin**: pilih tab **Unit Asal**, **Dokter Pengirim**, atau **Penjamin**, lalu isi **Kode di LIS** dan **Simpan**.
 3. **Mapping LIS › Hasil Pemeriksaan**: isi **Kode Pemeriksaan LIS** untuk tiap item pemeriksaan (mis. HGB), lalu klik **Simpan**.
 
-**Hasilnya:** order yang dikirim memakai kode yang dikenal LIS, dan hasil dari LIS masuk ke item yang benar. Status pengiriman dapat dipantau di **Setting › Konfigurasi Integrasi › Pengiriman LIS**.
+**Hasilnya:** order yang dikirim memakai kode yang dikenal LIS, dan hasil dari LIS masuk ke item yang benar. Status pengiriman dapat dipantau di **Setting › Konfigurasi Integrasi › LIS › Lab PK** (kartu **Pengiriman LIS**).
 
 ### Melihat laporan laboratorium
 1. Buka **Penunjang › Laboratorium › Laporan**, lalu pilih **Kunjungan**, **Waktu Tunggu (TAT)**, atau **Rekap Jumlah Pemeriksaan**.
@@ -117,7 +117,7 @@ Bagian ini hanya muncul bila fitur **Bridging LIS (adamLIS)** aktif. Koneksi LIS
 | Pemeriksaan hanya dapat diubah sebelum order divalidasi | Order sudah divalidasi saat diedit. | Batalkan validasi dulu di **Hasil Pemeriksaan › Batal Validasi**, lalu edit order. |
 | Validasi dibatalkan, pengiriman ke LIS gagal: … | LIS menolak order atau tidak dapat dihubungi, sehingga validasi tidak disimpan. | Baca penyebab di belakang pesan. Periksa **Mapping LIS** atau koneksi LIS, lalu ulangi. Bila mendesak, pakai **Validasi Saja**. |
 | LIS tidak dapat dihubungi: … | Server LIS tidak merespons. | Hubungi admin/IT untuk memeriksa koneksi di **Konfigurasi LIS**. |
-| Belum ada koneksi LIS aktif… | Belum ada koneksi LIS yang aktif. | Admin mengatur di **Setting › Konfigurasi Integrasi › Konfigurasi LIS**, atau pakai **Validasi Saja**. |
+| Belum ada koneksi LIS aktif… | Belum ada koneksi LIS yang aktif. | Admin mengatur di **Setting › Konfigurasi Integrasi › LIS › Lab PK** (kartu **Konfigurasi LIS (Laboratorium)**), atau pakai **Validasi Saja**. |
 | Ambil hasil LIS gagal | Hasil belum tersedia di LIS atau koneksi bermasalah. | Coba lagi beberapa saat kemudian. Bila berulang, hubungi admin. |
 | Tidak cocok dengan item: … | Ada hasil dari LIS yang kodenya belum dipetakan. | Admin mengisi kode di **Laboratorium › Mapping LIS › Hasil Pemeriksaan**. Hasil yang belum masuk diisi manual. |
 | Item pemeriksaan belum selesai | Masih ada item tanpa hasil saat menandai selesai. | Isi semua hasil, klik **Simpan Hasil**, lalu **Selesai**. |
@@ -142,7 +142,7 @@ Bagian ini hanya muncul bila fitur **Bridging LIS (adamLIS)** aktif. Koneksi LIS
 - Modul belum aktif untuk faskes: superadmin › **Setting › Manajemen Modul**. Halaman yang modulnya tidak aktif menampilkan kode 403.
 - Peran belum punya izin: admin › **Datamaster › Role**.
 - Menu **Expertise** dan **Mapping LIS** hanya muncul bila fitur **Expertise Dokter Lab** dan **Bridging LIS (adamLIS)** aktif di Manajemen Modul.
-- Menu Laboratorium ada di dalam menu **Penunjang**. Pada layar sempit, menu bisa berpindah ke tombol **Lainnya**.
+- Menu Laboratorium ada di dalam menu **Penunjang**. Bila Patologi Anatomi atau Mikrobiologi juga aktif, ketiganya dikelompokkan dalam submenu **Penunjang › Laboratorium**, dan menu laboratorium klinik tampil dengan nama **Patologi Klinik**. Pada layar sempit, menu bisa berpindah ke tombol **Lainnya**.
 
 ## Catatan untuk peninjau
 - Tombol **Cetak Label** di detail **Hasil Pemeriksaan** belum menjalankan apa pun di kode (`@click="() => {}"`). Panduan sengaja tidak menjelaskan cara mencetak label sampel. Mohon dipastikan apakah label dicetak dari tempat lain.

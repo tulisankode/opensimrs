@@ -29,6 +29,8 @@ curl -X POST http://localhost:2413/_uji/atur -H "Content-Type: application/json"
   -d '{"push_url":"http://localhost:8099/adam-utd/bridging","push_kunci":"<kunci masuk dari SIMRS>"}'
 ```
 
+> Lewat gateway API (`deploy/server/gateway.nginx.conf` atau `install.sh --domain`) alamat `/adam-…` penunjang-service tidak diteruskan; pakai alias `/api/v3/penunjang/bank-darah/utd/hasil` di domain API. Lihat [Petunjuk Instalasi 7.5](../docs/INSTALLATION_GUIDE.md#75-integrasi-eksternal).
+
 ## Alur pengujian dasar
 
 1. Buat permintaan darah di Bank Darah RS, lengkapi pemetaan komponen (Bank Darah › Mapping UTD) untuk koneksi UTD Tiruan.

@@ -1,6 +1,6 @@
 # Mikrobiologi
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas laboratorium mikrobiologi sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas laboratorium mikrobiologi sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** petugas administrasi dan analis laboratorium mikrobiologi, dokter spesialis mikrobiologi klinik (Sp.MK), admin data master mikrobiologi
 **Menu:** Penunjang › Mikrobiologi › Order Mikrobiologi / Pemeriksaan & Hasil / Datamaster / Laporan
@@ -124,7 +124,7 @@ Status order: **Order** → **Valid** → **Diproses** → **Selesai**, atau **B
 Fitur opsional per faskes (superadmin mengaktifkannya di **Setting › Manajemen Modul** untuk modul Mikrobiologi) yang mengirim order ke LIS mikrobiologi dan menerima kembali hasil identifikasi organisme serta uji kepekaan antibiotik secara otomatis, tanpa input ulang.
 
 ### Menyiapkan koneksi & mapping (admin/IT)
-1. Buka **Setting › Konfigurasi Integrasi › Konfigurasi LIS Mikrobiologi**. Tambah koneksi: **Nama**, **Kode RS**, **URL Registrasi**, **URL Ambil Hasil** (boleh memuat `{no_registrasi}`), **API Key**, batas paralel, dan jeda. Faskes boleh memiliki lebih dari satu koneksi; satu ditandai **Bawaan**.
+1. Buka **Setting › Konfigurasi Integrasi › LIS › Mikrobiologi** (kartu **Konfigurasi LIS Mikrobiologi**). Tambah koneksi: **Nama**, **Kode RS**, **URL Registrasi**, **URL Ambil Hasil** (boleh memuat `{no_registrasi}`), **API Key**, batas paralel, dan jeda. Faskes boleh memiliki lebih dari satu koneksi; satu ditandai **Bawaan**.
 2. Klik **Kunci Masuk Baru** untuk membuat kunci yang dipasang di sisi LIS sebagai kredensial pengiriman hasil (`x-api-key`). Kunci hanya ditampilkan utuh sekali.
 3. Klik **Uji koneksi** untuk memastikan URL Registrasi dapat dihubungi.
 4. Buka **Mikrobiologi › Mapping LIS** dan lengkapi kode LIS untuk **Pemeriksaan**, **Jenis Spesimen**, **Organisme**, **Antibiotik**, serta **Unit, Dokter & Penjamin**. Gunakan saringan **Belum dipetakan** pada tiap tab untuk melengkapi mapping yang kosong. Kode WHONET organisme (bila diisi) terpisah dari kode LIS vendor.
@@ -132,7 +132,7 @@ Fitur opsional per faskes (superadmin mengaktifkannya di **Setting › Manajemen
 ### Mengirim order & memantau kiriman
 1. Pada order mikrobiologi yang siap divalidasi, pilih **Validasi & Kirim ke LIS Mikrobiologi** (bukan **Validasi Saja**) bila ingin order langsung terkirim.
 2. Bila pengiriman gagal (koneksi nonaktif, pemeriksaan belum dipetakan, atau LIS menolak), validasi ikut dibatalkan dan sistem menampilkan penyebabnya — order tetap berstatus **Order**, siap diperbaiki dan dicoba lagi.
-3. Pantau status di **Setting › Konfigurasi Integrasi › Pengiriman LIS Mikrobiologi**: **Terkirim**, **Gagal**, **Sedang dikirim**, atau **Tidak pasti**. Order **Tidak pasti** sebaiknya dicek dulu lewat **Cek Status** sebelum memilih **Kirim Ulang**, agar tidak terdaftar dobel di LIS.
+3. Pantau status di **Setting › Konfigurasi Integrasi › LIS › Mikrobiologi** (kartu **Pengiriman LIS Mikrobiologi**): **Terkirim**, **Gagal**, **Sedang dikirim**, atau **Tidak pasti**. Order **Tidak pasti** sebaiknya dicek dulu lewat **Cek Status** sebelum memilih **Kirim Ulang**, agar tidak terdaftar dobel di LIS.
 
 ### Menerima hasil
 - Hasil normalnya masuk otomatis (LIS mengirim/push ke SIMRS). Bila belum masuk, petugas dapat menekan **Ambil Hasil LIS** di halaman **Pemeriksaan & Hasil** untuk menariknya secara manual.
@@ -148,7 +148,7 @@ Gunakan server tiruan `scripts/lis-tiruan-mikro.mjs` (lihat `scripts/README-lis-
 ## Bila menu tidak muncul
 - Modul belum aktif untuk faskes: superadmin › **Setting › Manajemen Modul**.
 - Peran belum punya izin: admin › **Datamaster › Role**.
-- Menu Mikrobiologi ada di dalam menu **Penunjang**. Pada layar sempit, menu bisa berpindah ke tombol **Lainnya**.
+- Menu Mikrobiologi ada di dalam menu **Penunjang**, pada submenu **Laboratorium** bersama **Patologi Klinik** dan **Patologi Anatomi**. Pada layar sempit, menu bisa berpindah ke tombol **Lainnya**.
 - Tab **Order Mikrobiologi** di RME hanya muncul bila modul Mikrobiologi aktif.
 - Tombol tambah data master hanya muncul bila peran memiliki izin CREATE.
 - Menu **Mikrobiologi › Mapping LIS** serta **Konfigurasi LIS Mikrobiologi**/**Pengiriman LIS Mikrobiologi** di Setting hanya tampil bila fitur **Bridging LIS Mikrobiologi** (`mikro_bridging_lis`) aktif untuk faskes.

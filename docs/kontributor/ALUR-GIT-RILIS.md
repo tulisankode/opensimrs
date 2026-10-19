@@ -131,7 +131,7 @@ Berlaku mulai tahap beta.
 
 ### 3.1 Syarat umum (semua PR)
 
-- [ ] **CI hijau**: cek sintaks layanan dan `packages/`, uji unit, `schema.sql` + migrasi dua kali, cek katalog, build frontend.
+- [ ] **CI hijau**: cek sintaks layanan dan `packages/`, uji unit (lab, studio, laporan, setting, penunjang, program-puskesmas), `schema.sql` + migrasi dua kali, cek katalog, cek integritas lintas berkas (`node scripts/cek-integritas.mjs`), build frontend.
 - [ ] **Jumlah persetujuan** sesuai tabel [3.2](#32-siapa-yang-harus-menyetujui). Penulis PR tidak menyetujui PR-nya sendiri.
 - [ ] **Semua percakapan review sudah ditandai selesai** (*resolved*).
 - [ ] **Branch mutakhir** terhadap target (`main` atau `release/X.Y`) dan tanpa konflik.

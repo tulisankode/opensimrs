@@ -138,7 +138,7 @@ Aktivasi otomatis hanya berjalan bila `LINGKUNGAN=development`. Di staging, klik
 
 Banyak item bisa dikerjakan bersamaan. Pengaman berikut mencegah bentrok yang dulu harus diselesaikan maintainer secara manual:
 
-1. **Awalan migrasi per item.** Saat item masuk tahap Coding atau coding dimulai, Studio memesan satu blok jam UTC `YYYYMMDDHH` untuk item itu. Blok tersebut lebih baru dari migrasi terakhir di branch dasar/lokal dan dari awalan yang sudah dipesan item lain yang masih aktif. Prompt coding mewajibkan nama `database/migrations/<awalan>MMSS-nama.cjs`, dan awalannya tampil di panel Coding.
+1. **Awalan migrasi per item.** Saat item masuk tahap Coding atau coding dimulai, Studio memesan satu blok jam UTC `YYYYMMDDHH` untuk item itu. Blok tersebut lebih baru dari migrasi terakhir di branch dasar/lokal dan dari awalan yang sudah dipesan item lain yang masih aktif. Prompt coding mewajibkan nama `database/migrations/<awalan>MMSS-nama.cjs`, dan awalannya tampil di panel Coding. Fitur ini membutuhkan migrasi `20261018200000-studio_awalan_migrasi`.
 2. **Pengurutan otomatis saat Terapkan.** Bila migrasi item tidak lagi paling akhir terhadap branch tujuan (misalnya item lain diterapkan lebih dulu), Studio mengganti nama migrasi item ke awalan baru dengan urutan relatif yang sama. Rujukan nama lama di branch item (fragmen CHANGELOG, komentar) ikut diperbarui. Studio lalu membuat commit `chore(studio): urutkan migrasi …` di branch item sebelum menerapkan.
    - Migrasi yang sudah tercatat di `SequelizeMeta` database tidak diganti namanya, dan Terapkan ditolak dengan penjelasan.
    - Di pemeriksa kebijakan, migrasi yang tertinggal hanya tampil sebagai peringatan. Migrasi yang memakai awalan item lain tetap menggagalkan pemeriksaan.
@@ -192,7 +192,7 @@ Buka **SIMRS Studio › Aturan & Pengetahuan** (yang mengubah: superadmin).
   Batasannya:
   - Codex berjalan dengan sandbox-nya sendiri: tahap dokumen **hanya-baca**, coding hanya di folder kerja dan tanpa jaringan.
   - Codex tidak punya daftar larangan per berkas seperti Claude Code. Karena itu, setelah tugas coding Studio otomatis:
-    - mengembalikan perubahan pada `.env*`, `studio-service/`, SDK izin, `rahasia.js`, `.github/`, `deploy/`, dan `CLAUDE.md`;
+    - mengembalikan perubahan pada `.env*`, `studio-service/`, SDK autentikasi/izin, `rahasia.js`, `.github/`, `deploy/`, dan `CLAUDE.md`/`CLAUDE.local.md`;
     - membatalkan commit buatan agen (perubahannya tetap ada, belum di-commit).
 
     Pemeriksa kebijakan dan gerbang persetujuan tetap berlaku.
@@ -213,9 +213,10 @@ Buka **SIMRS Studio › Aturan & Pengetahuan** (yang mengubah: superadmin).
     | Mistral | `https://api.mistral.ai/v1` |
     | OpenRouter (banyak model) | `https://openrouter.ai/api/v1` |
     | Groq | `https://api.groq.com/openai/v1` |
-    | Ollama (model lokal, tanpa kunci) | `http://localhost:11434/v1` |
+    | Ollama (model lokal di RS, tanpa kunci) | `http://localhost:11434/v1` |
 
-  - Penyedia lain yang kompatibel OpenAI (vLLM, LM Studio, dan lainnya) bisa diisi manual. Model lokal cocok untuk faskes yang tidak boleh mengirim data keluar.
+  - Penyedia lain yang kompatibel OpenAI (vLLM, LM Studio, dan lainnya) bisa diisi manual dengan jenis **OpenAI-kompatibel**; endpoint wajib diisi (mis. `http://localhost:11434/v1`). Model lokal cocok untuk faskes yang tidak boleh mengirim data keluar.
+  - **Ollama** ditawarkan installer tanpa mengunduh model. Unduh sendiri model yang sesuai RAM/VRAM (mis. `ollama pull qwen3:8b`), lalu tambahkan konektor dengan preset **Ollama (model lokal di RS)**.
   - Nama model di preset hanya contoh dan bisa berubah; cek nama terbaru di situs penyedia.
   - Kemampuan memakai alat (membaca/menyunting berkas) berbeda tiap model. Klik **Uji** dan coba di tahap dokumen dulu sebelum dipakai untuk Coding.
 - **Agen eksternal lewat MCP** (mis. OpenClaw, Claude Desktop): daftarkan server MCP OpenSIMRS:
@@ -270,9 +271,9 @@ Pengamannya:
 ## 7. Pengaman
 
 - Agen **tidak menyambung ke database** (kecuali membaca struktur skema tanpa data), **tidak membaca `.env`**, dan tidak bisa commit, push, berpindah branch, atau `npm install`.
-- **Zona merah** tidak bisa diubah agen: `.env*`, `studio-service/**`, SDK autentikasi/izin, `rahasia.js`, `.github/**`, `deploy/**`, `CLAUDE.md`, dan migrasi lama.
+- **Zona merah** tidak bisa diubah agen (`studio-service/src/kebijakan.js`): `.env*`, `studio-service/**`, SDK autentikasi/izin (`packages/authorization-sdk/`, `packages/permission-sdk/`), `rahasia.js`, `.github/**`, `deploy/**`, serta `CLAUDE.md`/`CLAUDE.local.md`. Item berisiko *kritis* dikerjakan programmer, sehingga zona merah boleh disentuh kecuali `.env*`. Migrasi lama tidak termasuk zona merah, tetapi mengubahnya menggagalkan cek **Migrasi** di pemeriksa kebijakan.
 - **Zona kuning** (layanan klinis/keuangan) menaikkan risiko menjadi tinggi sehingga reviewer klinis wajib menyetujui. Item berisiko kritis tidak dikodekan agen.
-- **Pemeriksa kebijakan** mengecek rahasia, IP privat, data pribadi, aturan migrasi (termasuk awalan migrasi milik item lain), katalog, fragmen CHANGELOG, uji, import `@/main`, dan **kriptografi**. Kode enkripsi/dekripsi (`createCipheriv`/`createDecipheriv`) di berkas mana pun hanya lolos bila berupa salinan baku `lab-service/src/lis/rahasia.js` atau `setting-service/src/bantuan/rahasia.js`. Selain itu, tetapkan risiko kritis agar dikerjakan programmer.
+- **Pemeriksa kebijakan** mengecek zona merah/kuning, rahasia, IP privat, data pribadi, aturan **Migrasi** (migrasi lama tidak boleh diubah, nama `YYYYMMDDHHMMSS-nama.cjs`, tidak memakai awalan milik item lain, idempoten dengan `IF NOT EXISTS`), katalog beserta dokumennya, fragmen CHANGELOG, uji, import `@/main`, dan **kriptografi**. Cek *Uji* (logika backend tanpa berkas uji) dan *Urutan migrasi* hanya peringatan dan tidak menggagalkan pemeriksaan. Kode enkripsi/dekripsi (`createCipheriv`/`createDecipheriv`) di berkas mana pun hanya lolos bila berupa salinan baku `lab-service/src/lis/rahasia.js` atau `setting-service/src/bantuan/rahasia.js`. Selain itu, tetapkan risiko kritis agar dikerjakan programmer.
 - Studio hanya men-commit **berkas yang diubah agen untuk item itu**. Semua tindakan tercatat di **Audit & Metrik**.
 
 ## 8. Kendala umum

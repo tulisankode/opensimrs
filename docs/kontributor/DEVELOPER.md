@@ -19,6 +19,8 @@ npm run db:demo:seed
 npm run dev                   # atau dev:core / dev:<layanan>
 ```
 
+Atau cukup `./install.sh` (macOS/Ubuntu/Debian) / `install.cmd` (Windows) yang menyiapkan dependensi, database, `.env`, migrasi, dan data demo sekaligus.
+
 Rincian, termasuk jalur tanpa Docker: [Petunjuk Instalasi](../INSTALLATION_GUIDE.md#4-jalur-a--coba-cepat-dengan-data-demo-lokal). Arsitektur dan jebakan yang sudah diketahui: [Konteks Pengembangan](../KONTEKS-PENGEMBANGAN.md).
 
 ---
@@ -38,7 +40,7 @@ Rincian, termasuk jalur tanpa Docker: [Petunjuk Instalasi](../INSTALLATION_GUIDE
 
 ## 4. Review
 
-- PR harus lulus CI: cek sintaks layanan & `packages/`, uji unit lab-service, `schema.sql` + migrasi dua kali, cek dokumen katalog, build frontend.
+- PR harus lulus CI (`.github/workflows/ci.yml`): cek sintaks semua layanan & `packages/`; uji unit lab, studio, laporan, setting, penunjang, dan program-puskesmas; `schema.sql` + migrasi dua kali; cek dokumen katalog; `node scripts/cek-integritas.mjs` (rute katalog, menu, migrasi, fragmen CHANGELOG); build frontend.
 - Minimal satu maintainer menyetujui. Perubahan alur klinis juga ditinjau tenaga klinis (label `butuh tenaga medis/klinis`).
 - Tanggapi review dengan commit baru; jangan *force-push* setelah review dimulai kecuali diminta.
 

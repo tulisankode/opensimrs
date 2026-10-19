@@ -1,10 +1,10 @@
 # Gudang & Pengadaan
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas gudang farmasi/logistik sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas gudang farmasi/logistik sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** petugas gudang farmasi/logistik, petugas pengadaan, kepala instalasi farmasi (verifikator)
-**Menu:** Inventory › Pengadaan Barang · Pengeluaran Barang · Penerimaan Barang · Datamaster › Supplier · Riwayat Tarif · Kartu Stok & Mutasi · Stok Opname · Stok Adjustment · Laporan
-**Hak akses yang dibutuhkan:** Inventory › (Pengadaan Barang, Verifikasi Pembelian Barang Supplier, Retur dan Penggantian Supplier, Pengeluaran Barang, Penerimaan Barang, Datamaster Supplier, Riwayat Tarif, Kartu Stok dan Mutasi, Stok Opname, Stok Adjustment, Laporan Inventory) › READ beserta aksinya. Permintaan barang dari depo atau unit memakai modul izin STOK.
+**Menu:** Inventory › Pengadaan Barang · Pengeluaran Barang · Penerimaan Barang · Datamaster › Supplier · Riwayat Tarif · Kartu Stok & Mutasi · Stok Opname · Stok Adjustment · Laporan · Pembelian via Marketplace (bila fitur aktif)
+**Hak akses yang dibutuhkan:** Inventory › (Pengadaan Barang, Verifikasi Pembelian Barang Supplier, Retur dan Penggantian Supplier, Pengeluaran Barang, Penerimaan Barang, Datamaster Supplier, Riwayat Tarif, Kartu Stok dan Mutasi, Stok Opname, Stok Adjustment, Laporan Inventory) › READ beserta aksinya. Permintaan barang dari depo atau unit memakai modul izin STOK. Pembelian via marketplace memakai Inventory › Pembelian Marketplace (READ, KONFIGURASI KONEKSI, CARI PENAWARAN, KELOLA PEMETAAN, AJUKAN PERMINTAAN, PERSETUJUAN, CHECKOUT, SINKRON STATUS, LIHAT LAPORAN).
 
 ## Untuk apa
 Modul ini mengelola stok di gudang: pembelian ke supplier, verifikasinya, dan penerimaan barang. Modul ini juga mengirim barang ke depo atau unit yang meminta, mencatat pemakaian dan pemusnahan, meretur barang ke supplier, dan menjalankan stok opname serta koreksi stok.
@@ -103,6 +103,18 @@ Depo atau unit mengajukan permintaan lewat tombol **Stok › Permintaan Barang**
    - **Status**.
 3. Klik **Simpan**. Banyak supplier sekaligus dapat dimasukkan lewat tombol **Import** dengan berkas Excel.
 
+### Membeli barang lewat marketplace mitra (bila fitur aktif)
+Fitur **Pembelian via Marketplace** mati secara bawaan dan dinyalakan superadmin di **Setting › Manajemen Modul**.
+1. Admin menambah koneksi mitra di **Inventory › Pembelian via Marketplace › Pencarian & Penawaran** lewat **Konfigurasi Koneksi**: **Kode Mitra**, **Nama Mitra**, **URL Mitra**, **API Key**, **Supplier (Datamaster)**, dan **Aktif**, lalu **Simpan**.
+2. Buka **Pemetaan Produk**, klik **Petakan Produk**, lalu hubungkan produk mitra ke **Master Barang** dan **Satuan Pembelian**. Produk yang **Belum Dipetakan** tidak bisa dipesan.
+3. Buka **Pencarian & Penawaran**, pilih **Koneksi Marketplace**, isi **Cari Produk**, lalu klik **Cari**. Bandingkan harga, stok, dan estimasi kirim, lalu masukkan produk ke keranjang.
+4. Klik **Keranjang (n)**, pilih **Jenis Stok** dan **Lokasi Stok**, isi **Catatan** bila perlu, lalu klik **Ajukan Permintaan**.
+5. Pejabat berwenang membuka **Permintaan & Pesanan**, memilih permintaan, lalu klik **Setujui** atau **Tolak** (isi **Alasan (wajib bila menolak)**).
+6. Setelah disetujui, klik **Checkout**. Gunakan **Sinkron Status** untuk memperbarui status pesanan dari mitra.
+7. Saat barang tiba, klik **Buka Penerimaan Pembelian** dan terima barang seperti pembelian biasa.
+
+**Hasilnya:** pesanan marketplace masuk alur penerimaan gudang yang sama dengan PO, dan stok bertambah setelah barang diterima.
+
 ## Pesan galat yang sering muncul
 | Pesan | Arti | Yang perlu dilakukan |
 |---|---|---|
@@ -113,6 +125,8 @@ Depo atau unit mengajukan permintaan lewat tombol **Stok › Permintaan Barang**
 | Stok tidak cukup untuk item … / Sisa stok tidak mencukupi … | Stok gudang kurang untuk dikirim atau dikeluarkan. | Kurangi jumlah, pilih batch atau jenis stok lain, atau ajukan pembelian. |
 | Satuan pembelian tidak valid atau tidak ditemukan relasi konversinya … | Barang belum punya konversi satuan beli. | Admin farmasi melengkapi **Konversi Satuan** di **Farmasi › Datamaster › Item Medis**. |
 | Lokasi stok tujuan wajib diisi untuk jenis … / Jenis pemusnahan wajib diisi … | Kolom wajib untuk jenis pengeluaran itu masih kosong. | Isi **Tujuan Pengeluaran** atau **Jenis Pemusnahan**. |
+| Produk belum dipetakan ke master barang | Produk marketplace belum dihubungkan ke barang gudang. | Petakan di **Pemetaan Produk** terlebih dahulu. |
+| Jenis stok & lokasi stok wajib dipilih | Isian permintaan marketplace belum lengkap. | Pilih **Jenis Stok** dan **Lokasi Stok**. |
 | Import gagal. Terdapat kode supplier yang sudah terdaftar … | Kode supplier di berkas Excel sudah ada di sistem. | Ganti atau hapus baris dengan kode ganda, lalu impor ulang. |
 
 ## Pertanyaan yang sering diajukan
@@ -123,7 +137,7 @@ Depo atau unit mengajukan permintaan lewat tombol **Stok › Permintaan Barang**
 **Apa beda Stok Opname dan Stok Adjustment?** Stok opname adalah penghitungan fisik berkala untuk banyak barang. Stok adjustment adalah koreksi satu batch barang di luar jadwal opname, misalnya karena barang rusak atau hilang.
 
 ## Bila menu tidak muncul
-- Modul belum aktif untuk faskes: superadmin › **Setting › Manajemen Modul** (modul **Gudang & Pengadaan**). Pembelian ke Supplier (PO), Retur & Penggantian Supplier, Stok Opname, dan Penyesuaian Stok adalah fitur yang bisa dinyalakan terpisah.
+- Modul belum aktif untuk faskes: superadmin › **Setting › Manajemen Modul** (modul **Gudang & Pengadaan**). Pembelian ke Supplier (PO), Retur & Penggantian Supplier, Stok Opname, Penyesuaian Stok, dan Pembelian via Marketplace adalah fitur yang bisa dinyalakan terpisah.
 - Peran belum punya izin: admin › **Datamaster › Role** (modul Inventory, dan modul STOK untuk permintaan dari unit).
 
 ## Catatan untuk peninjau
@@ -131,4 +145,5 @@ Depo atau unit mengajukan permintaan lewat tombol **Stok › Permintaan Barang**
 - Rute **Pembelian Barang Supplier** memeriksa izin "Pengadaan Barang › Verifikasi Pembelian Barang Supplier". Namanya membingungkan, mohon dicek saat mengatur peran.
 - Jendela konfirmasi pembatalan pembelian dan penolakan pengiriman berjudul "Batal Penjualan". Ini tampaknya salah label di kode.
 - Pada halaman tambah stok opname, kolom **Stok Fisik** tidak bisa diketik langsung, sehingga langkahnya ditulis lewat **Kartu Stok** → **Import Excel**. Mohon dipastikan alur ini, termasuk bentuk lembar kerjanya.
+- Alur marketplace ditulis dari kode (STD-0019) dan belum diuji dengan mitra sungguhan. Cara memasukkan produk ke keranjang (tombol pada baris hasil pencarian) perlu dicek di layar.
 - Isian pada jendela **Adjust** (stok baru atau selisih) belum terbaca jelas dari kode. Mohon dilengkapi oleh petugas gudang.

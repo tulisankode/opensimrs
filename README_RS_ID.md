@@ -1,6 +1,6 @@
 # OpenSIMRS untuk Pimpinan & Manajemen Faskes
 
-Ringkasan non-teknis untuk direksi, manajemen, dan pengambil keputusan di rumah sakit, klinik, dan puskesmas. Untuk tim IT, baca [README](./README.md) dan [Petunjuk Instalasi](./docs/INSTALLATION_GUIDE.md).
+Ringkasan non-teknis untuk direksi, manajemen, dan pengambil keputusan di rumah sakit, klinik, dan puskesmas. Untuk tim IT, baca [README](./README.md), [Petunjuk Instalasi](./docs/INSTALLATION_GUIDE.md), dan [dokumentasi lengkap](https://docs.opensimrs.com).
 
 ---
 
@@ -16,11 +16,12 @@ OpenSIMRS adalah **Sistem Informasi Manajemen Rumah Sakit (SIMRS) sumber terbuka
 | Kewajiban integrasi nasional | Integrasi SATUSEHAT (Kemenkes) dan BPJS Kesehatan (PCare untuk FKTP, VClaim/SEP untuk FKRTL) sudah tersedia. |
 | Biaya jangka panjang terkendali | Tanpa biaya lisensi; faskes bebas memilih tim IT internal atau mitra implementator. |
 | Kemandirian data | Data disimpan di server pilihan faskes sendiri. |
-| Layanan penunjang lengkap | Laboratorium (dengan bridging LIS), radiologi, fisioterapi, patologi anatomi, mikrobiologi, dan Medical Check Up korporasi. |
+| Layanan penunjang lengkap | Laboratorium (dengan bridging LIS dan lab rujukan), radiologi (dengan bridging PACS/RIS), fisioterapi, patologi anatomi, mikrobiologi, dan Medical Check Up korporasi. |
+| Kebutuhan rumah sakit & manajemen | Kamar operasi, ICU, gizi, CSSD, bank darah, hemodialisa, koding rekam medis, mutu & akreditasi, SDM, sarana-prasarana, laundry, ambulans, audit trail, dan dashboard eksekutif untuk pimpinan. |
 
 ## Modul utama
 
-Pendaftaran & antrian · Rekam medis elektronik · Rawat jalan, rawat inap, IGD · Farmasi & gudang · Laboratorium & penunjang · Kasir & tagihan · Laporan & dashboard · Integrasi SATUSEHAT/BPJS/LIS.
+Pendaftaran & antrian · Rekam medis elektronik · Rawat jalan, rawat inap, IGD · Farmasi & gudang · Laboratorium & penunjang · Kasir & tagihan · Program puskesmas · Layanan rumah sakit (kamar operasi, ICU, gizi, bank darah, hemodialisa, dll.) · Mutu, SDM & sarana-prasarana · Laporan, dashboard & dashboard eksekutif · Integrasi SATUSEHAT/BPJS/LIS/PACS.
 
 ## Status & hal yang perlu diperhatikan
 

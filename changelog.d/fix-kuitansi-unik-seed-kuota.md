@@ -1,0 +1,2 @@
+### Diperbaiki
+- **Kasir: pembayaran sesekali gagal 500 "duplicate key … payment_history_receipt_number_key".** Nomor kuitansi acak hanya 4 karakter hex (65.536 kemungkinan) padahal unik di seluruh database. Akibatnya, setelah beberapa ratus kuitansi tabrakan nomor menjadi sering. Bagian acak kini 10 karakter (`KUI/A1B2C3D4E5`) dan dicek dalam transaksi pembayaran; bila sudah dipakai, nomor dibuat ulang.

@@ -2,7 +2,7 @@
 
 Panduan cara memakai OpenSIMRS untuk petugas fasilitas kesehatan, dikelompokkan per modul. Panduan ini juga menjadi bahan pengetahuan **asisten Helpdesk** (lihat [rancangan](../rancangan/HELPDESK-OPENCLAW.md)), jadi tulislah sejelas mungkin. Asisten hanya bisa menjawab apa yang tertulis di sini.
 
-> Status: **draf** untuk semua modul (2026-10-16), disusun AI dari kode aplikasi. Setiap berkas punya bagian *Catatan untuk peninjau* berisi hal yang perlu dipastikan. Setiap draf wajib ditinjau petugas yang memakai modul itu sebelum dipakai asisten.
+> Status: **draf** untuk semua modul (2026-10-16, diperbarui 2026-10-19), disusun AI dari kode aplikasi. Setiap berkas punya bagian *Catatan untuk peninjau* berisi hal yang perlu dipastikan. Setiap draf wajib ditinjau petugas yang memakai modul itu sebelum dipakai asisten.
 
 ## Daftar modul
 
@@ -29,6 +29,34 @@ Panduan cara memakai OpenSIMRS untuk petugas fasilitas kesehatan, dikelompokkan 
 | Patologi Anatomi | Patologi Anatomi | `patologi-anatomi.md` | draf |
 | Mikrobiologi | Mikrobiologi | `mikrobiologi.md` | draf |
 | Akun, peran & pengaturan | Setting | `setting.md` | draf |
+| Mutu & Akreditasi | Mutu & Akreditasi | `mutu.md` | draf |
+| HR / SDM | HR / SDM | `sdm.md` | draf |
+
+Dashboard Eksekutif dibahas di `dashboard.md`. Rencana Kontrol & SPRI BPJS dibahas di `bpjs-fkrtl.md`. Audit Trail, Konfigurasi Integrasi, dan Mode Pengembang dibahas di `setting.md`.
+
+## Modul lain (belum punya panduan di sini)
+
+Modul berikut sudah tersedia di aplikasi, tetapi belum punya panduan pengguna di folder ini. Untuk sementara, rujuk dokumentasi resmi:
+
+| Modul | Menu | Dokumentasi resmi |
+|---|---|---|
+| ICU / Intensif | ICU | https://docs.opensimrs.com/modul/penunjang-medis#icu-intensif |
+| Kamar Operasi | Kamar Operasi | https://docs.opensimrs.com/modul/penunjang-medis#kamar-operasi |
+| Unit Hemodialisa | Hemodialisa | https://docs.opensimrs.com/modul/penunjang-medis#unit-hemodialisa |
+| Gizi | Gizi | https://docs.opensimrs.com/modul/penunjang-medis#gizi |
+| Koding & Rekam Medis | Koding Rekam Medis | https://docs.opensimrs.com/modul/penunjang-medis#koding-rekam-medis |
+| CSSD | CSSD | https://docs.opensimrs.com/modul/penunjang-medis#cssd |
+| Bank Darah RS (BDRS) | Bank Darah RS (BDRS) | https://docs.opensimrs.com/modul/penunjang-medis#bank-darah-rs-bdrs |
+| UTD / UPTD Produksi Darah | UTD | https://docs.opensimrs.com/modul/penunjang-medis#utd-uptd-produksi-darah |
+| Program Puskesmas | Program Puskesmas | https://docs.opensimrs.com/modul/penunjang-medis#program-puskesmas |
+| Laundry & Linen | Laundry | https://docs.opensimrs.com/modul/penunjang-umum#laundry-linen |
+| Sarana dan Prasarana (IPSRS) | Sarana dan Prasarana (IPSRS) | https://docs.opensimrs.com/modul/penunjang-umum#sarana-dan-prasarana-ipsrs |
+| Manajemen Ambulans | Manajemen Ambulans | https://docs.opensimrs.com/modul/penunjang-umum#manajemen-ambulans |
+| Kelas Training | Training | https://docs.opensimrs.com/modul/penunjang-umum#kelas-training |
+
+Peta seluruh modul, preset per segmen faskes, dan cara mengaktifkannya ada di https://docs.opensimrs.com/modul/. Modul **Akuntansi & Remunerasi** masih dalam pengembangan dan tampil di menu **Segera**.
+
+> Menu yang tidak muat di baris menu atas dipindah ke tombol **Lainnya** (ada kotak cari). Modul penunjang dikelompokkan dalam menu **Penunjang**.
 
 ## Templat per modul
 

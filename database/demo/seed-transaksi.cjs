@@ -22,7 +22,7 @@
 //   node database/demo/seed-transaksi.cjs [--faskes PMD]          isi data transaksi demo
 //   node database/demo/seed-transaksi.cjs --faskes PMD --bersihkan hapus data transaksi yang dibuat skrip ini
 // Opsi lain: --hari 30 (rentang hari), --benih <angka> (variasi acak), --dokter <username>, --petugas <username>,
-//            --gudang <username>. Kata sandi akun dari env DEMO_PASSWORD (bawaan Demo@2026).
+//            --gudang <username>, --apoteker <username>, --kasir <username>. Kata sandi akun dari env DEMO_PASSWORD (bawaan Demo@2026).
 const path = require('path');
 const fs = require('fs');
 const dotenv = require('dotenv');
@@ -151,8 +151,29 @@ const masuk = async (peran) => {
 // localhost: tagihan tindakan & obat). Panggilan yang mengenai payment-service diberi jeda agar tetap di bawah batas.
 const BATAS_BAYAR = Number(process.env.DEMO_BATAS_PAYMENT || 70);
 const riwayatBayar = [];
+// Sisa kuota menurut payment-service (header x-ratelimit-*). Kuota dihitung per IP dan berlanjut lintas proses, mis. dari
+// faskes yang baru selesai di-seed; tanpa ini seeder mengira kuota penuh dan panggilan internal rekamedis→payment kena
+// 429 ("Terjadi kesalahan pada kirim data Pembayaran").
+const kuotaPayment = { sisa: null, reset: 0 };
+const catatKuota = (r) => {
+  const sisa = r?.headers?.get('x-ratelimit-remaining');
+  if (sisa === null || sisa === undefined) return;
+  kuotaPayment.sisa = Number(sisa);
+  kuotaPayment.reset = Number(r.headers.get('x-ratelimit-reset')) || 0;
+};
+const tungguResetKuota = async (alasan) => {
+  const tunggu = kuotaPayment.reset * 1000 - Date.now() + 1500;
+  if (tunggu > 0) {
+    process.stdout.write(` (jeda ${Math.ceil(tunggu / 1000)} dtk: ${alasan})`);
+    await tidur(tunggu);
+  }
+  kuotaPayment.sisa = null;
+  riwayatBayar.length = 0;
+};
 const kenaPayment = (layanan, jalur) => layanan === 'bayar' || /\/rekam-medis\/tindakan|status-verifikasi/.test(jalur);
 const aturLajuBayar = async () => {
+  // Sisakan ruang untuk panggilan internal layanan lain ke payment-service (tagihan tindakan & obat).
+  if (kuotaPayment.sisa !== null && kuotaPayment.sisa < 15) await tungguResetKuota('kuota payment-service menipis');
   for (;;) {
     const kini = Date.now();
     while (riwayatBayar.length && kini - riwayatBayar[0] > 300000) riwayatBayar.shift();
@@ -165,8 +186,11 @@ const aturLajuBayar = async () => {
 // Tunggu sampai kuota limiter payment-service pulih (mis. sisa dari aktivitas sebelumnya) sebelum mulai.
 const tungguPaymentSiap = async () => {
   for (let i = 0; i < 12; i++) {
-    const r = await fetch(`${API.bayar}/cashier/check`, { headers: { Authorization: akun.petugas.token } }).catch(() => null);
-    if (r && r.status !== 429) return;
+    const r = await fetch(`${API.bayar}/cashier/check`, { headers: { Authorization: akun.kasir.token } }).catch(() => null);
+    catatKuota(r);
+    // Mulai dengan jendela kuota baru bila sisa kuota tidak cukup untuk laju BATAS_BAYAR.
+    if (r && r.status !== 429 && (kuotaPayment.sisa === null || kuotaPayment.sisa >= 100 - 5)) return;
+    if (r && kuotaPayment.reset) { await tungguResetKuota('menunggu kuota payment-service pulih'); continue; }
     process.stdout.write(i ? '.' : 'Menunggu batas laju payment-service pulih');
     await tidur(30000);
   }
@@ -186,6 +210,7 @@ const api = async (peran, metode, layanan, jalur, isi) => {
       if (coba < 8) { await tidur(1500); continue; }
       throw new GalatApi(`${metode} ${layanan}${jalur}: ${e.message}`);
     }
+    if (layanan === 'bayar') catatKuota(r);
     if (r.status === 401 && coba < 2) { await masuk(peran); continue; }
     if (r.status === 429 && coba < 8) { process.stdout.write(' (429, menunggu 60 dtk)'); await tidur(60000); continue; }
     const teks = await r.text();
@@ -441,7 +466,7 @@ async function muatKonteks() {
   K.kodePos = profil?.postal_code || '60000';
   K.kecFaskes = profil?.district;
 
-  // Akun: dokter (RME & resep), petugas (pendaftaran, farmasi, kasir), gudang (pengadaan)
+  // Akun: dokter (RME & resep), petugas (pendaftaran), apoteker (farmasi), kasir (pembayaran), gudang (pengadaan)
   const users = (await q(`SELECT u.username, u.practitioner_uuid, r.code FROM users u JOIN role r ON r.uuid = u.role_uuid
                            WHERE u.faskes_uuid = $1 AND u.deleted_at IS NULL AND u.status`, [K.faskes])).rows;
   const peran = (akhiran) => users.find((u) => akhiran.some((a) => u.code.endsWith(a)))?.username;
@@ -455,7 +480,10 @@ async function siapkanAkun({ users, peran }) {
   akun.dokter = { username: dokterUser };
   akun.petugas = { username: arg('petugas', null) || peran(['-AST', '-PDF', '-ADM']) || dokterUser };
   akun.gudang = { username: arg('gudang', null) || peran(['-OWN', '-GDG', '-ADM']) || dokterUser };
-  for (const p of ['dokter', 'petugas', 'gudang']) await masuk(p);
+  // Izin per peran: akun pendaftaran tidak punya izin Farmasi/Pembayaran → apoteker & kasir memakai akun perannya sendiri.
+  akun.apoteker = { username: arg('apoteker', null) || peran(['-APT', '-AST', '-ADM']) || akun.petugas.username };
+  akun.kasir = { username: arg('kasir', null) || peran(['-KSR', '-AST', '-ADM']) || akun.petugas.username };
+  for (const p of ['dokter', 'petugas', 'gudang', 'apoteker', 'kasir']) await masuk(p);
   const praktisiDokter = users.find((u) => u.username === dokterUser)?.practitioner_uuid;
 
   const jd = (await GET('petugas', 'admisi', '/rawat-jalan/jadwal-dokter')).payload ?? [];
@@ -469,9 +497,10 @@ async function siapkanAkun({ users, peran }) {
   K.hariPraktik = new Set(Object.keys(K.jadwal));
   const pg = await satu(`SELECT pg.name, pg.first_title FROM practitioner p JOIN pegawai pg ON pg.uuid = p.pegawai_uuid WHERE p.uuid = $1`, [K.dokter.uuid]);
   K.dokter.tampil = [pg?.first_title, pg?.name].filter(Boolean).join(' ');
-  const staf = await satu(`SELECT pg.name FROM users u JOIN practitioner p ON p.uuid = u.practitioner_uuid JOIN pegawai pg ON pg.uuid = p.pegawai_uuid
-                           WHERE u.username = $1`, [akun.petugas.username]);
-  K.namaPetugas = staf?.name ?? K.dokter.tampil;
+  const namaStaf = async (username) => (await satu(`SELECT pg.name FROM users u JOIN practitioner p ON p.uuid = u.practitioner_uuid
+                           JOIN pegawai pg ON pg.uuid = p.pegawai_uuid WHERE u.username = $1`, [username]))?.name ?? K.dokter.tampil;
+  K.namaPetugas = await namaStaf(akun.petugas.username);
+  K.namaApoteker = await namaStaf(akun.apoteker.username);
 }
 
 async function muatDatamaster() {
@@ -513,8 +542,9 @@ async function muatDatamaster() {
 // Penggeseran waktu (backdating)
 // ════════════════════════════════════════════════════════════════════════════════════════════════════════
 // Tabel konfigurasi yang tidak boleh ikut digeser walau tersentuh (mis. login memperbarui users).
+// audit_trail: append-only (trigger menolak UPDATE/DELETE, STD-0029), jejak audit tetap memakai waktu sebenarnya.
 const TIDAK_DIGESER = new Set(['users', 'role', 'faskes', 'faskes_profiles', 'faskes_segmen', 'faskes_modul_override',
-  'faskes_fitur_override', 'faskes_modul_riwayat', 'integrations', 'printers', 'demo_jejak_transaksi']);
+  'faskes_fitur_override', 'faskes_modul_riwayat', 'integrations', 'printers', 'demo_jejak_transaksi', 'audit_trail']);
 let META;
 async function metaTabel() {
   if (META) return META;
@@ -956,8 +986,8 @@ async function penjualanOtc(o) {
   if (!items.length) return;
   let uuid;
   await ep.jalankan(o.waktu, async () => {
-    const kode = (await GET('petugas', 'farmasi', '/penjualan-obat/code')).payload.code;
-    const r = await POST('petugas', 'farmasi', '/penjualan-obat', {
+    const kode = (await GET('apoteker', 'farmasi', '/penjualan-obat/code')).payload.code;
+    const r = await POST('apoteker', 'farmasi', '/penjualan-obat', {
       lokasi_stok_uuid: K.lokasiStok.uuid, dokter_pemberi_resep: '-', nama_pembeli: o.pembeli, no_hp: o.hp,
       catatan: 'Pembelian obat bebas tanpa resep', tanggal_pembelian: o.waktu ?? detik(), no_transaksi: kode, items,
     });
@@ -1065,34 +1095,42 @@ async function pulangkan(rm) {
 
 // Farmasi (DetailPrescription.vue): pilih jenis stok tiap obat → telaah → verifikasi (stok berkurang, tagihan obat)
 async function telaahResep(uuid) {
-  const d = (await GET('petugas', 'farmasi', `/prescriptions/${uuid}`)).payload;
+  const d = (await GET('apoteker', 'farmasi', `/prescriptions/${uuid}`)).payload;
   for (const o of d.obat_items) {
-    const s = (await GET('petugas', 'farmasi', `/datamaster/item-medis/available-jenis-stock/${o.item_medis_uuid}?lokasi_stok_uuid=${d.lokasi_stok_uuid}`)).payload ?? [];
+    const s = (await GET('apoteker', 'farmasi', `/datamaster/item-medis/available-jenis-stock/${o.item_medis_uuid}?lokasi_stok_uuid=${d.lokasi_stok_uuid}`)).payload ?? [];
     const pilihan = s.find((x) => Number(x.total_stok) >= Number(o.total_obat)) ?? s[0];
     if (!pilihan) throw new Error(`Stok ${o.nama_item} kosong di ${K.lokasiStok.name}`);
-    await PUT('petugas', 'farmasi', `/prescriptions/obat/${o.uuid}/jenis-stok`, { is_racikan: false, jenis_stok_uuid: pilihan.detail_stok.uuid });
+    await PUT('apoteker', 'farmasi', `/prescriptions/obat/${o.uuid}/jenis-stok`, { is_racikan: false, jenis_stok_uuid: pilihan.detail_stok.uuid });
   }
-  await POST('petugas', 'farmasi', '/prescriptions/status-telaah', { uuid, petugas_telaah: K.namaPetugas });
+  await POST('apoteker', 'farmasi', '/prescriptions/status-telaah', { uuid, petugas_telaah: K.namaApoteker });
 }
 async function verifikasiResep(uuid) {
-  const d = (await GET('petugas', 'farmasi', `/prescriptions/${uuid}`)).payload;
-  await POST('petugas', 'farmasi', '/prescriptions/status-verifikasi', {
+  const d = (await GET('apoteker', 'farmasi', `/prescriptions/${uuid}`)).payload;
+  await POST('apoteker', 'farmasi', '/prescriptions/status-verifikasi', {
     uuid, items: d.obat_items.filter((o) => !o.is_compound).map((o) => ({ item_uuid: o.uuid, jenis_stok_uuid: o.jenis_stok_uuid })),
   });
-  await POST('petugas', 'farmasi', '/prescriptions/status-siap-diserahkan', { uuid });
+  await POST('apoteker', 'farmasi', '/prescriptions/status-siap-diserahkan', { uuid });
 }
 async function serahkanResep(uuid, v) {
   const p = v.pasien;
-  await POST('petugas', 'farmasi', '/prescriptions/status-diserahkan', {
-    uuid, penerima: p.anak ? `${p.ibu} (ibu pasien)` : p.nama, no_hp_penerima: p.hp, petugas_edukasi: K.namaPetugas,
+  await POST('apoteker', 'farmasi', '/prescriptions/status-diserahkan', {
+    uuid, penerima: p.anak ? `${p.ibu} (ibu pasien)` : p.nama, no_hp_penerima: p.hp, petugas_edukasi: K.namaApoteker,
   });
+}
+
+// Fitur bayar_shift_kasir aktif: pembayaran butuh shift terbuka. Shift dibuka di dalam fase episode sehingga waktu
+// bukanya ikut digeser ke hari sasaran; tutupKasir menutupnya di akhir hari. Tanpa fitur itu shift dibuka otomatis.
+async function pastikanShiftKasir() {
+  const aktif = await satu(`SELECT 1 FROM cashier_report WHERE faskes_uuid = $1 AND nama_kasir = $2 AND type = 'SHIFT' AND status AND shift_time_closed IS NULL LIMIT 1`,
+    [K.faskes, akun.kasir.username]);
+  if (!aktif) await POST('kasir', 'bayar', '/cashier/open', { beginning_balance: 500000, shift_type: '1' });
 }
 
 // Kasir (TransactionPelayanan.vue): bayar lunas lalu tutup tagihan. BPJS dibayar dengan cara bayar Asuransi.
 async function bayar(rj, v) {
   const sb = await satu(`SELECT bill_uuid FROM service_bill WHERE faskes_uuid = $1 AND layanan_uuid = $2 AND deleted_at IS NULL ORDER BY id DESC LIMIT 1`, [K.faskes, rj.uuid]);
   if (!sb) return;
-  const bill = (await GET('petugas', 'bayar', `/${sb.bill_uuid}`)).payload;
+  const bill = (await GET('kasir', 'bayar', `/${sb.bill_uuid}`)).payload;
   const sisa = Math.ceil(Number(bill.remaining_debt ?? bill.grand_total));
   if (sisa <= 0) return;
   let isi;
@@ -1103,8 +1141,9 @@ async function bayar(rj, v) {
     const uang = metode === 'CASH' ? pilih([Math.ceil(sisa / 5000) * 5000, Math.ceil(sisa / 10000) * 10000, Math.ceil(sisa / 50000) * 50000, 100000 * Math.ceil(sisa / 100000)]) : sisa;
     isi = { amount: uang, payment_type: 'CASH', payment_method: metode, note: '', information: metode === 'TRANSFER' ? 'QRIS' : '' };
   }
-  await POST('petugas', 'bayar', `/${sb.bill_uuid}/payment`, isi);
-  await POST('petugas', 'bayar', `/${sb.bill_uuid}/close`, {});
+  await pastikanShiftKasir();
+  await POST('kasir', 'bayar', `/${sb.bill_uuid}/payment`, isi);
+  await POST('kasir', 'bayar', `/${sb.bill_uuid}/close`, {});
   ringkas.bayar++;
   ringkas.pendapatan += sisa;
 }
@@ -1226,17 +1265,17 @@ async function prosesKunjungan(v) {
   ringkas.perStatus[v.status] = (ringkas.perStatus[v.status] ?? 0) + 1;
 }
 
-// Kasir praktik tanpa fitur shift: shift dibuka otomatis saat pembayaran pertama; ditutup setiap akhir hari.
+// Shift kasir (dibuka pastikanShiftKasir atau otomatis saat pembayaran pertama) ditutup setiap akhir hari.
 async function tutupKasir(hari, target) {
   const shift = await satu(`SELECT uuid FROM cashier_report WHERE faskes_uuid = $1 AND nama_kasir = $2 AND type = 'SHIFT' AND status AND shift_time_closed IS NULL ORDER BY id DESC LIMIT 1`,
-    [K.faskes, akun.petugas.username]);
+    [K.faskes, akun.kasir.username]);
   if (!shift) return;
   const t = await satu(`SELECT COALESCE(SUM(amount) FILTER (WHERE payment_method = 'CASH'), 0) cash,
                                COALESCE(SUM(amount) FILTER (WHERE payment_method = 'TRANSFER'), 0) transfer,
                                COALESCE(SUM(amount) FILTER (WHERE payment_method = 'DEBIT_KREDIT' OR payment_type = 'INSURANCE'), 0) debit
                         FROM payment_history WHERE kasir_uuid = $1`, [shift.uuid]);
   const ep = new Episode(`Tutup kasir ${tglIso(target)}`);
-  await ep.jalankan(target, () => POST('petugas', 'bayar', '/cashier/close', { cash: Number(t.cash), debit: Number(t.debit), transfer: Number(t.transfer) }));
+  await ep.jalankan(target, () => POST('kasir', 'bayar', '/cashier/close', { cash: Number(t.cash), debit: Number(t.debit), transfer: Number(t.transfer) }));
   await tutupEpisode(ep);
 }
 
@@ -1350,7 +1389,7 @@ async function ringkasan() {
     await muatDatamaster();
     const jadwalHariIni = await satu(`SELECT start_time FROM jadwal_dokter WHERE uuid = $1`, [K.jadwal[NAMA_HARI[hariKe(detik())]]]);
     K.jamMulai = Number(String(jadwalHariIni?.start_time ?? '17:00').slice(0, 2));
-    console.log(`Faskes ${K.namaFaskes} — dokter ${K.dokter.tampil} (${akun.dokter.username}), petugas ${akun.petugas.username}, gudang ${akun.gudang.username}`);
+    console.log(`Faskes ${K.namaFaskes} — dokter ${K.dokter.tampil} (${akun.dokter.username}), petugas ${akun.petugas.username}, apoteker ${akun.apoteker.username}, kasir ${akun.kasir.username}, gudang ${akun.gudang.username}`);
 
     const pasien = await rencanakanPasien();
     const kunjungan = rencanakanKunjungan(pasien);

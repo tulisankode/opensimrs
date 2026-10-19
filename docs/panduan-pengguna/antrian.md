@@ -1,14 +1,15 @@
 # Antrian & Layar Panggil
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas admin antrian/pendaftaran sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas admin antrian/pendaftaran sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** admin faskes (pengaturan jadwal dan layar), petugas pendaftaran, petugas poli, dan petugas farmasi (memanggil pasien)
-**Menu:** Antrian › Konfigurasi (Jadwal Dokter, Layar Antrian) / Data antrian / Layar / APM
+**Menu:** Antrian › Konfigurasi (Jadwal Dokter, Layar Antrian) / Data antrian / Layar / APM / Antrean Online BPJS
 **Hak akses yang dibutuhkan:**
 - Antrian › Konfigurasi › READ, CREATE, UPDATE, DELETE
 - Antrian › Data Antrian › READ
 - Antrian › Layar › READ
 - Antrian › Apm › CREATE PASIEN JKN, CREATE PASIEN NON-JKN, CHECKIN, PRINT
+- Antrian › Antrean Online BPJS › READ, KONFIGURASI, KIRIM ULANG
 - Untuk memanggil pasien dari loket pendaftaran: Admisi › Antrian › PANGGIL, LEWATI, PROSSES, SELESAI
 
 ## Untuk apa
@@ -92,6 +93,16 @@ Modul ini mengatur jadwal praktik dokter beserta kuota pasiennya, menampilkan no
 
 **Hasilnya:** pasien APM tampil di **Admisi › Rawat Jalan** dengan label **APM** dan perlu di-check-in oleh petugas.
 
+### Memantau Antrean Online BPJS (Mobile JKN)
+Bagian ini hanya tampil bila fitur *Antrean Online BPJS (Mobile JKN)* aktif. Fitur ini memerlukan modul BPJS FKRTL atau BPJS FKTP.
+1. Admin mengisi konfigurasi sekali di **Setting › Konfigurasi Integrasi › BPJS › Antrean Online (Mobile JKN)**: **Cons ID**, **Secret Key**, **User Key**, dan **URL WS Antrean**, lalu **Status** dan **Simpan**.
+2. Buka **Antrian › Antrean Online BPJS**. Tabel menampilkan booking dari Mobile JKN dan pendaftaran JKN lokal dengan kolom **Kode Booking**, **Tanggal Periksa**, **Sumber**, **Status Lokal**, **Status Sinkron**, **Task Tercatat**, dan **Percobaan**.
+3. Saring dengan **Status Sinkron** bila perlu, lalu klik **Muat Ulang**.
+4. Klik **Detail** untuk melihat **Detail Booking Antrean BPJS**, termasuk task id yang tercatat dan **Riwayat pengiriman**.
+5. Bila sinkronisasi gagal, klik **Kirim Ulang** pada baris atau di riwayat pengiriman.
+
+**Hasilnya:** status sinkron diperbarui. Bila belum ada data, tampil "Belum ada antrean yang tersinkron dengan BPJS."
+
 ## Pesan galat yang sering muncul
 | Pesan | Arti | Yang perlu dilakukan |
 |---|---|---|
@@ -121,7 +132,7 @@ Modul ini mengatur jadwal praktik dokter beserta kuota pasiennya, menampilkan no
 **Satu layar bisa menampilkan beberapa bagian sekaligus?** Bisa. Centang lebih dari satu dari **Admisi**, **Poli**, dan **Farmasi** saat membuat layar.
 
 ## Bila menu tidak muncul
-- Modul belum aktif untuk faskes: superadmin › **Setting › Manajemen Modul**, aktifkan modul *Antrian & Layar Panggil*. Menu **APM** juga memerlukan fitur *Anjungan Pasien Mandiri (APM)*.
+- Modul belum aktif untuk faskes: superadmin › **Setting › Manajemen Modul**, aktifkan modul *Antrian & Layar Panggil*. Menu **APM** juga memerlukan fitur *Anjungan Pasien Mandiri (APM)*, dan menu **Antrean Online BPJS** memerlukan fitur *Antrean Online BPJS (Mobile JKN)*.
 - Peran belum punya izin: admin › **Datamaster › Role**. Izin per pengguna diatur di **Datamaster › User**. Lihat `setting.md`.
 
 ## Catatan untuk peninjau
@@ -130,3 +141,4 @@ Modul ini mengatur jadwal praktik dokter beserta kuota pasiennya, menampilkan no
 - Belum dipastikan apakah tab **Data antrian** hanya untuk melihat, atau juga bisa dipakai untuk memanggil pasien.
 - Tipe layar mana yang meminta **URL Youtube** (di kode: tipe "1 List, 1 Panggilan, 1 Gambar") perlu dicek di layar.
 - Isi panel panggilan poli (di luar Admisi) belum dijabarkan. Sebaiknya dibahas di panduan Rawat Jalan.
+- Tombol **Kirim Ulang** di **Antrean Online BPJS** tidak tampak memeriksa izin KIRIM ULANG di layar. Arti tiap nilai **Status Sinkron** (ditampilkan apa adanya dari server) perlu dijelaskan ke petugas.
