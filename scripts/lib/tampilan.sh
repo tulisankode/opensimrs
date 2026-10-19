@@ -55,7 +55,8 @@ ui_butir() {
   local ke=$1 total=$2 p=$(( $1 * 100 / $2 ))
   if [ "$UI_INTERAKTIF" = 1 ]; then
     printf '\r\033[K  %s%s%s %3d%%  %d/%d  %s' "$H" "$(_bilah $p 24)" "$N" "$p" "$ke" "$total" "$3"
-    [ "$ke" -ge "$total" ] && printf '\n'
+    # if, bukan &&: dipanggil dari skrip set -e; kondisi salah di akhir fungsi = kode 1 = skrip berhenti
+    if [ "$ke" -ge "$total" ]; then printf '\n'; fi
   else
     printf '  [%d/%d] %s\n' "$ke" "$total" "$3"
   fi
