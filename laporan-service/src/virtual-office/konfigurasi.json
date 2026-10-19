@@ -1,10 +1,13 @@
 {
-  "versi": 2,
+  "versi": 4,
   "interval_polling": 30,
   "batas_ruang": 12,
   "unit": [
     {
       "kode_unit": "pendaftaran",
+      "jenis_ruang": "loket_daftar",
+      "petugas": ["Petugas Pendaftaran", "Petugas Admisi"],
+      "satuan": "pasien",
       "modul": "pendaftaran",
       "nama": "Pendaftaran / Admisi",
       "bidang_kerja": "Petugas pendaftaran",
@@ -14,6 +17,9 @@
     },
     {
       "kode_unit": "rawat_jalan",
+      "jenis_ruang": "poli",
+      "petugas_ruang": ["Dokter {ruang}"],
+      "satuan": "pasien",
       "modul": "rawat_jalan",
       "nama": "Poli Rawat Jalan",
       "bidang_kerja": "Dokter & perawat poli",
@@ -24,6 +30,9 @@
     },
     {
       "kode_unit": "igd",
+      "jenis_ruang": "igd",
+      "petugas": ["Dokter IGD", "Perawat IGD"],
+      "satuan": "pasien",
       "modul": "igd",
       "nama": "IGD",
       "bidang_kerja": "Dokter & perawat IGD",
@@ -33,6 +42,9 @@
     },
     {
       "kode_unit": "rawat_inap",
+      "jenis_ruang": "bangsal",
+      "petugas_ruang": ["Perawat {ruang}"],
+      "satuan": "pasien",
       "modul": "rawat_inap",
       "nama": "Rawat Inap",
       "bidang_kerja": "Perawat ruangan",
@@ -44,6 +56,9 @@
     },
     {
       "kode_unit": "laboratorium",
+      "jenis_ruang": "lab",
+      "petugas": ["Analis Lab"],
+      "satuan": "order",
       "modul": "laboratorium",
       "nama": "Laboratorium",
       "bidang_kerja": "Analis laboratorium",
@@ -53,6 +68,9 @@
     },
     {
       "kode_unit": "radiologi",
+      "jenis_ruang": "radiologi",
+      "petugas": ["Radiografer"],
+      "satuan": "order",
       "modul": "radiologi",
       "nama": "Radiologi",
       "bidang_kerja": "Radiografer",
@@ -62,6 +80,9 @@
     },
     {
       "kode_unit": "farmasi",
+      "jenis_ruang": "farmasi",
+      "petugas": ["Apoteker", "TTK Farmasi"],
+      "satuan": "resep",
       "modul": "farmasi",
       "nama": "Farmasi",
       "bidang_kerja": "Apoteker & TTK",
@@ -71,6 +92,9 @@
     },
     {
       "kode_unit": "kasir",
+      "jenis_ruang": "kasir",
+      "petugas": ["Petugas Kasir"],
+      "satuan": "tagihan",
       "modul": "pembayaran",
       "nama": "Kasir",
       "bidang_kerja": "Petugas kasir",
@@ -94,6 +118,7 @@
   },
   "jalur": [
     { "asal": "pendaftaran", "tujuan": "rawat_jalan", "label": "Kunjungan rawat jalan terdaftar hari ini" },
+    { "asal": "pendaftaran", "tujuan": "igd", "label": "Pasien IGD terdaftar hari ini" },
     { "asal": "rawat_jalan", "tujuan": "laboratorium", "label": "Order laboratorium dari rawat jalan" },
     { "asal": "rawat_jalan", "tujuan": "radiologi", "label": "Order radiologi dari rawat jalan" },
     { "asal": "rawat_jalan", "tujuan": "farmasi", "label": "Resep dari rawat jalan" },

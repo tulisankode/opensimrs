@@ -135,6 +135,8 @@ const igd = async (p) => {
     ...hitung(b),
     keterangan: "Pasien IGD aktif (≤ 48 jam): belum ada asesmen rekam medis = menunggu, sudah diasesmen = dilayani; pulang hari ini = selesai.",
     metrik: [metrik("masuk_hari_ini", "Pasien masuk hari ini", angka(b.masuk), "pasien")],
+    // Pasien IGD terdaftar hari ini = arus Pendaftaran → IGD (kumulatif; frontend menganimasikan selisih antarsnapshot).
+    masuk: { pendaftaran: angka(b.masuk) },
   }
 }
 

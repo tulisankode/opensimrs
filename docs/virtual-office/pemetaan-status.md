@@ -21,10 +21,13 @@ Jumlah pada jalur adalah transaksi hari ini di unit tujuan yang berasal dari uni
 | Jalur | Sumber |
 |---|---|
 | Pendaftaran → Poli Rawat Jalan | kunjungan RJ yang terdaftar hari ini |
+| Pendaftaran → IGD | pasien IGD yang terdaftar hari ini (`instalasi_gawat_darurats.tanggal_daftar`) |
 | Rawat Jalan / IGD → Laboratorium | `order_lab.pelayanan` `rajal` / `igd` |
 | Rawat Jalan / IGD → Radiologi | `rad_order.pelayanan` `rajal` / `igd` |
 | Rawat Jalan / IGD → Farmasi | `prescriptions.jenis_pelayanan` `rj` / `igd` |
 | Rawat Jalan / IGD → Rawat Inap | `rawat_inaps.encounter` `RJ` / `IGD` (`tanggal_daftar` hari ini) |
+
+Kasir tidak memiliki jalur masuk karena tagihan (`bills`) tidak menyimpan unit asal. Tagihan baru di Kasir dianimasikan sebagai kedatangan dari pintu masuk/koridor, bukan dari unit tertentu.
 
 ## Beban
 

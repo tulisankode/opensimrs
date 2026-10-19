@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { canAccessPermission, resolveRoutePermission } from '@/utils/permissions'
 import { type Metrik, type Pilihan, type Snapshot, warnaBeban } from './petaIsometrik'
+import AngkaHalus from './AngkaHalus.vue'
 
 // Panel rincian pilihan peta: angka agregat unit/ruang atau jalur. Tidak ada identitas pasien; penelusuran transaksi
 // hanya lewat tautan ke halaman modul sumber, yang tampil bila pengguna berizin pada rute itu.
@@ -70,10 +71,10 @@ const urutRuang = computed(() => [...(unit.value?.ruang ?? [])].sort((a, b) => b
             ({{ unit.metrikBeban === 'bor' ? `BOR kuning ≥ ${unit.ambang.kuning}%, merah ≥ ${unit.ambang.merah}%` : `antre kuning ≥ ${unit.ambang.kuning}, merah ≥ ${unit.ambang.merah}` }})
           </template>
         </span>
-        <div class="grid grid-cols-3 gap-2">
-          <div class="kotak"><p class="angka text-amber-600">{{ subjek.menunggu }}</p><p class="ket">Menunggu</p></div>
-          <div class="kotak"><p class="angka text-opensimrs-400">{{ subjek.dilayani }}</p><p class="ket">Dilayani</p></div>
-          <div class="kotak"><p class="angka text-grey-400">{{ subjek.selesai }}</p><p class="ket">Selesai</p></div>
+        <div :key="ruang?.kodeRuang ?? unit.kodeUnit" class="grid grid-cols-3 gap-2">
+          <div class="kotak"><p class="angka text-amber-600"><AngkaHalus :nilai="subjek.menunggu" /></p><p class="ket">Menunggu</p></div>
+          <div class="kotak"><p class="angka text-opensimrs-400"><AngkaHalus :nilai="subjek.dilayani" /></p><p class="ket">Dilayani</p></div>
+          <div class="kotak"><p class="angka text-grey-400"><AngkaHalus :nilai="subjek.selesai" /></p><p class="ket">Selesai</p></div>
         </div>
         <ul v-if="(ruang?.metrik ?? unit.metrik ?? []).length" class="flex flex-col gap-1 text-sm">
           <li v-for="m in ruang?.metrik ?? unit.metrik" :key="m.kode" class="flex justify-between gap-3">
