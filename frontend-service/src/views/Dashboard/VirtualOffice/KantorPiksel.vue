@@ -5,13 +5,18 @@ import { type Pilihan, type Snapshot, paletMerek, warnaBeban } from './petaIsome
 import { type Gerakan, type Pejalan, PINTU, posisiPejalan, selesaiPada, susunPejalan } from './gerakan'
 import { buatPerulangan, useAngkaHalus, useGerakKurang } from './animasi'
 import { type Adegan, type RuangKantor, gambarStatis, ruangDi, susunAdegan, zonaDi } from './kantor/denah'
+import { skalaPiksel, tataLetak } from './tataLetak'
 import { P, bayangan, gambarKarakter, gelembung, jamDinding, paletPasien, paletPeran, pasienBaring, type Pose } from './kantor/sprite'
 
 // Tampilan "Kantor": denah faskes piksel 2D tampak atas (Canvas 2D, imageSmoothingEnabled = false). Semua sprite &
 // perabot digambar prosedural (kantor/sprite.ts). Petugas = label peran bidang kerja per ruang (bukan nama/kehadiran
 // pegawai) dengan status dari beban; pasien generik tanpa identitas sejumlah angka nyata menunggu/dilayani (dibatasi
-// slot, sisanya "+n"); pasien berjalan hanya untuk selisih nyata antar-snapshot. Zoom bulat 1×/2×/3× agar piksel tajam.
-const props = defineProps<{ snapshot: Snapshot; pilihan: Pilihan; gerakan?: Gerakan | null }>()
+// slot, sisanya "+n"); pasien berjalan hanya untuk selisih nyata antar-snapshot. Zoom bulat 1×/2×/3× agar piksel tajam;
+// Zoom pecahan "pas" (< 1×, diperhalus) hanya ada bila denah tidak muat pada 1× (layar kecil).
+// Tata letak (tataLetak.ts) mengikuti ukuran area: zoom bulat terbesar yang memuat denah, lalu ruang & koridor
+// direntangkan hingga denah memenuhi area. Pas ulang saat tampil, saat ukuran area berubah, dan lewat "Pusatkan".
+// cadangBawah = tinggi (piksel CSS) di bawah area yang tertutup legenda; denah dipaskan & dipusatkan di atasnya.
+const props = defineProps<{ snapshot: Snapshot; pilihan: Pilihan; gerakan?: Gerakan | null; cadangBawah?: number }>()
 const emit = defineEmits<{ (e: 'pilih', p: Pilihan): void }>()
 
 const kurang = useGerakKurang()
@@ -21,10 +26,15 @@ const brand = ref(paletMerek('#14b8a6'))
 const zoom = ref(1)
 const pan = ref({ x: 0, y: 0 }) // piksel CSS, relatif terhadap posisi tengah
 const ukuran = ref({ w: 0, h: 0, dpr: 1 })
+const cadang = computed(() => Math.max(0, Math.min(props.cadangBawah ?? 0, ukuran.value.h / 3)))
 const ZOOM = [1, 2, 3]
 const MAKS_SPRITE = 320
 
-const adegan = computed<Adegan>(() => susunAdegan(props.snapshot))
+const tata = computed(() => tataLetak(props.snapshot, { mode: 'kantor', lebar: ukuran.value.w, tinggi: Math.max(160, ukuran.value.h - cadang.value), dpr: ukuran.value.dpr, petak: P, zoom: ZOOM }))
+// Tingkat zoom tombol/roda: 1×/2×/3× ditambah zoom "pas" bila denah tidak muat pada 1×.
+const tingkatZoom = computed(() => (tata.value.zoom < 1 ? [tata.value.zoom, ...ZOOM] : ZOOM))
+const labelZoom = computed(() => (zoom.value < 1 ? `Pas ${zoom.value.toFixed(2).replace('.', ',')}` : String(zoom.value)))
+const adegan = computed<Adegan>(() => susunAdegan(tata.value.snapshot))
 const angka = useAngkaHalus(() => Object.fromEntries(adegan.value.ruang.flatMap((r) => [[`${r.kunci}|m`, r.menunggu], [`${r.kunci}|d`, r.dilayani]])), kurang)
 
 // ---- lapisan statis & bingkai dasar ----
@@ -48,13 +58,14 @@ let akhirGerak = 0
 const kilat = new Map<string, number>()
 watch(() => props.gerakan?.versi, () => {
   const g = props.gerakan
-  pejalan.value = g && !kurang.value ? susunPejalan(props.snapshot, g.daftar, g.versi) : []
+  pejalan.value = g && !kurang.value ? susunPejalan(tata.value.snapshot, g.daftar, g.versi) : []
   awalGerak = performance.now()
   akhirGerak = selesaiPada(pejalan.value)
   minta()
 })
+// Lapisan statis dibangun ulang bila susunan berubah (snapshot baru atau ukuran area berubah).
+watch(adegan, () => { bangunStatis(); minta() })
 watch(() => props.snapshot, (baru, lama) => {
-  bangunStatis()
   // Kilatan hanya dengan gerak normal (gerak berkurang menggambar sesuai permintaan, kilatan tidak akan memudar).
   if (lama && lama.tanggal === baru.tanggal && !kurang.value) {
     const sebelum = new Map(susunAdegan(lama).ruang.map((r) => [r.kunci, `${r.menunggu}|${r.dilayani}|${r.selesai}`]))
@@ -65,20 +76,17 @@ watch(() => props.snapshot, (baru, lama) => {
 })
 
 // ---- kamera ----
-const skala = () => Math.max(1, Math.round(zoom.value * ukuran.value.dpr))
+const skala = () => skalaPiksel(zoom.value, ukuran.value.dpr)
 const asal = () => {
   const k = skala()
   const { w, h, dpr } = ukuran.value
-  return { k, ox: Math.round((w * dpr - adegan.value.lebar * k) / 2 + pan.value.x * dpr), oy: Math.round((h * dpr - adegan.value.tinggi * k) / 2 + pan.value.y * dpr) }
+  return { k, ox: Math.round((w * dpr - adegan.value.lebar * k) / 2 + pan.value.x * dpr), oy: Math.round(((h - cadang.value) * dpr - adegan.value.tinggi * k) / 2 + pan.value.y * dpr) }
 }
-const zoomPas = () => {
-  const { w, h } = ukuran.value
-  const pas = Math.floor(Math.min(w / adegan.value.lebar, h / adegan.value.tinggi))
-  return Math.min(3, Math.max(1, pas))
-}
+const zoomPas = () => tata.value.zoom
 const ubahZoom = (arah: number, titik?: { x: number; y: number }) => {
-  const i = ZOOM.indexOf(zoom.value)
-  const baru = ZOOM[Math.min(ZOOM.length - 1, Math.max(0, i + arah))]
+  const daftar = tingkatZoom.value
+  const i = Math.max(0, daftar.indexOf(zoom.value))
+  const baru = daftar[Math.min(daftar.length - 1, Math.max(0, i + arah))]
   if (baru === zoom.value) return
   // Pertahankan titik di bawah kursor (piksel CSS relatif tengah wadah).
   const q = titik ?? { x: 0, y: 0 }
@@ -181,7 +189,8 @@ const render = (t: number) => {
   c.setTransform(1, 0, 0, 1, 0, 0)
   c.fillStyle = '#f1f5f9'
   c.fillRect(0, 0, el.width, el.height)
-  c.imageSmoothingEnabled = false
+  // Zoom "pas" pecahan diperhalus agar tetap terbaca; zoom bulat = piksel tajam.
+  c.imageSmoothingEnabled = !Number.isInteger(k)
   c.drawImage(bingkai, ox, oy, bingkai.width * k, bingkai.height * k)
 
   // Label teks digambar pada resolusi layar agar tajam.
@@ -198,6 +207,13 @@ const render = (t: number) => {
     c.fillStyle = warna
     c.fillText(teks, Math.round(x0 + 4 * dpr), Math.round(y - 4 * dpr))
   }
+  const potong = (teks: string, maks: number, font: string) => {
+    c.font = font
+    if (c.measureText(teks).width + 8 * dpr <= maks) return teks
+    let s = teks
+    while (s.length > 1 && c.measureText(s + '…').width + 8 * dpr > maks) s = s.slice(0, -1)
+    return s.trimEnd() + '…'
+  }
   c.textBaseline = 'alphabetic'
   // Nama zona di tepi bawah zona; nama & angka ruang di atas dinding utara (celah koridor) agar tidak menutupi petugas.
   for (const z of a.zona) pil(z.nama, ox + (z.x + 24) * k, oy + (z.y + z.h) * k - 4 * dpr, brand.value.tua, '#ffffff', 11)
@@ -210,10 +226,14 @@ const render = (t: number) => {
       c.lineWidth = 3 * dpr
       c.strokeRect(x - 2 * dpr, y - 2 * dpr, r.w * k + 4 * dpr, r.h * k + 4 * dpr)
     }
-    const nama = r.nama.length > 22 ? r.nama.slice(0, 21) + '…' : r.nama
+    // Label dipotong selebar ruang + koridor agar tidak menimpa label ruang di sebelahnya.
+    const maks = r.w * k + P * k - 12 * dpr
+    const nama = potong(r.nama.length > 22 ? r.nama.slice(0, 21) + '…' : r.nama, maks, huruf(10))
+    // Diperkecil: celah koridor hanya muat satu baris → nama saja (angka tetap di panel & tooltip baca layar).
+    if (k * P < 28 * dpr) { pil(potong(nama, maks, huruf(9)), x, y - 1 * dpr, sel ? brand.value.tua : 'rgba(255,255,255,0.92)', sel ? '#ffffff' : '#1e293b', 9); continue }
     pil(nama, x, y - 16 * dpr, sel ? brand.value.tua : 'rgba(255,255,255,0.92)', sel ? '#ffffff' : '#1e293b', 10)
     const sub = r.terkunci ? 'Terkunci' : r.galat ? 'Sumber gagal dimuat' : `${angka.value[`${r.kunci}|m`] ?? r.menunggu} antre · ${angka.value[`${r.kunci}|d`] ?? r.dilayani} dilayani`
-    pil(sub, x, y - 1 * dpr, 'rgba(255,255,255,0.85)', r.terkunci || r.galat ? '#64748b' : warnaBeban(r.beban as any).garis, 9, false)
+    pil(potong(sub, maks, huruf(9, false)), x, y - 1 * dpr, 'rgba(255,255,255,0.85)', r.terkunci || r.galat ? '#64748b' : warnaBeban(r.beban as any).garis, 9, false)
     if (k >= 2) for (const p of r.petugas) pil(p.peran, ox + p.x * k, oy + (p.y + 1) * k + 13 * dpr, 'rgba(15,23,42,0.78)', '#ffffff', 9, false, true)
   }
   for (const { r, n } of lebih) pil(`+${n}`, ox + (r.x + r.w - 30) * k, oy + (r.y + r.h - 12) * k, '#1e293b', '#ffffff', 10, true, true)
@@ -243,9 +263,12 @@ const ukurUlang = () => {
   if (!el || !w) return
   const dpr = Math.min(2, window.devicePixelRatio || 1)
   const r = w.getBoundingClientRect()
+  const berubah = r.width !== ukuran.value.w || r.height !== ukuran.value.h || dpr !== ukuran.value.dpr
   ukuran.value = { w: r.width, h: r.height, dpr }
   el.width = Math.max(1, Math.round(r.width * dpr))
   el.height = Math.max(1, Math.round(r.height * dpr))
+  // Area berubah → tata letak dihitung ulang (computed) dan kamera dipaskan ulang.
+  if (berubah) { zoom.value = zoomPas(); pan.value = { x: 0, y: 0 } }
   render(performance.now())
 }
 const saatTerlihat = () => { if (!document.hidden) minta() }
@@ -270,6 +293,8 @@ onUnmounted(() => {
   statis = bingkai = null
 })
 watch(brand, bangunStatis)
+// Tinggi legenda berubah → area efektif berubah → pas ulang.
+watch(cadang, () => { zoom.value = zoomPas(); pan.value = { x: 0, y: 0 }; minta() })
 
 // ---- interaksi ----
 const keDasar = (e: { clientX: number; clientY: number }) => {
@@ -356,10 +381,10 @@ const ringkasAria = computed(() => adegan.value.ruang
 <template>
   <div ref="wadah" class="overflow-hidden select-none kantor">
     <canvas ref="kanvas" class="absolute inset-0 w-full h-full" :style="{ cursor: kursor }" tabindex="0" role="img"
-      :aria-label="`Kantor virtual piksel tampak atas. ${ringkasAria}. Seret untuk menggeser, roda mouse atau plus/minus untuk zoom 1×, 2×, 3×.`"
+      :aria-label="`Kantor virtual piksel tampak atas. ${ringkasAria}. Seret untuk menggeser, roda mouse atau plus/minus untuk zoom 1×, 2×, 3× (atau pas bila layar kecil).`"
       @pointerdown="tekan" @pointermove="gerak" @pointerup="lepas" @pointercancel="lepas" @pointerleave="lepas"
       @wheel.prevent="roda" @click="klik" @keydown="tombol"></canvas>
-    <span class="absolute px-2 py-0.5 text-[11px] font-medium rounded right-3 top-3 bg-white/90 text-grey-500 pointer-events-none">Zoom {{ zoom }}×</span>
+    <span class="absolute px-2 py-0.5 text-[11px] font-medium rounded right-3 top-3 bg-white/90 text-grey-500 pointer-events-none">Zoom {{ labelZoom }}×</span>
   </div>
 </template>
 

@@ -37,6 +37,9 @@ export type Unit = {
   metrik?: Metrik[]
   ruang?: Ruang[]
   posisi: Posisi
+  // Hasil tata letak frontend (tataLetak.ts): y koridor di bawah rak unit & x celah di kiri kolomnya (rute pejalan).
+  koridor?: number
+  lajur?: number
   // Deskripsi tampilan Kantor dari konfigurasi server: jenis perabot, label peran bidang kerja (bukan nama pegawai),
   // dan kata satuan untuk log aktivitas.
   jenisRuang?: string | null
