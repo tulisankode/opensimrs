@@ -5,7 +5,7 @@ import { punyaIzinHdu } from "../src/services/hdu-izin.js";
 import HduRepository from "../src/repositories/hdu-repository.js";
 import HduPerpindahanAdapter from "../src/services/hdu-perpindahan-adapter.js";
 import HduService from "../src/services/hdu-service.js";
-import migrasiHdu from "../../database/migrations/20261020010000-hdu_struktur.cjs";
+import migrasiHdu from "../../database/migrations/20261020120000-hdu_struktur.cjs";
 
 const id = "019a0000-0000-7000-8000-000000000001";
 const author = { faskesUuid: "faskes-fiktif", user_uuid: "penerima-fiktif" };

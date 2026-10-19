@@ -24,8 +24,8 @@ Tidak ada koneksi database, migrasi, perubahan peran pengguna, commit, push, ata
 | `rawat-inap-service/package.json`, `rawat-inap-service/tests/hdu.test.js` | Perintah uji dan pengujian tanpa database |
 | `auth-service/src/helpers/permission-list.js`, `auth-service/tests/hdu-katalog.test.js` | Definisi izin HDU dan pengujiannya |
 | `database/data/katalog-modul.json` | Fitur HDU pada rawat inap dengan status Segera |
-| `database/migrations/20261020010000-hdu_struktur.cjs` | Struktur HDU dan indeks keunikan penempatan sumber |
-| `database/migrations/20261020010100-hdu_katalog.cjs` | Sinkronisasi katalog |
+| `database/migrations/20261020120000-hdu_struktur.cjs` | Struktur HDU dan indeks keunikan penempatan sumber |
+| `database/migrations/20261020120100-hdu_katalog.cjs` | Sinkronisasi katalog |
 | `frontend-service/src/stores/rawatInap/hdu.ts` | Akses API, kunci pengiriman ulang, izin, dan format waktu |
 | `frontend-service/src/views/Hdu/HduView.vue` | Wadah halaman dan navigasi HDU |
 | `frontend-service/src/views/Hdu/DaftarHduPage.vue` | Daftar episode aktif dan ketersediaan tempat tidur |
@@ -94,8 +94,8 @@ Perpindahan langsung antarunit HDU dan penerimaan dari ICU yang masih memiliki e
 
 ## Migrasi baru
 
-- `database/migrations/20261020010000-hdu_struktur.cjs`: indeks unik tempat tidur aktif pada sumber `rawat_inaps`; konfigurasi, episode, riwayat instruksi/kebijakan, serah terima, dan idempotensi HDU. DDL menggunakan `IF NOT EXISTS`. Referensi internal HDU diperkuat dengan FK komposit fasilitas. Referensi tabel lama divalidasi layanan mengikuti pola ICU yang ada.
-- `database/migrations/20261020010100-hdu_katalog.cjs`: memanggil `sinkronKatalog` dalam transaksi.
+- `database/migrations/20261020120000-hdu_struktur.cjs`: indeks unik tempat tidur aktif pada sumber `rawat_inaps`; konfigurasi, episode, riwayat instruksi/kebijakan, serah terima, dan idempotensi HDU. DDL menggunakan `IF NOT EXISTS`. Referensi internal HDU diperkuat dengan FK komposit fasilitas. Referensi tabel lama divalidasi layanan mengikuti pola ICU yang ada.
+- `database/migrations/20261020120100-hdu_katalog.cjs`: memanggil `sinkronKatalog` dalam transaksi.
 
 Keduanya memakai awalan Studio dan lebih baru daripada migrasi terakhir saat pemeriksaan (`20261019230000`). Migrasi tidak dijalankan. Indeks unik sumber akan menolak penerapan jika ada penempatan aktif ganda; manusia perlu meninjau konflik tersebut. Tidak ada perbaikan data otomatis. Pembalikan migrasi struktur tidak menghapus riwayat klinis.
 
