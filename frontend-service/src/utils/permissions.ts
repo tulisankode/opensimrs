@@ -73,6 +73,7 @@ const any = (
 ): PermissionRequirement => ({ module, submodule, action });
 
 export const permissionRouteRegistry: PermissionRouteEntry[] = [
+  { path: "/command-center", permission: read("Dashboard", "Command Center") },
   { path: "/setting/profil-faskes", permission: read("Setting", "Profile Faskes") },
   { path: "/setting/konfigurasi-integrasi", mode: "prefix", permission: read("Setting", "Konfigurasi Integrasi") },
   { path: "/setting/permission-menu", permission: read("Setting", "Profile Faskes") },

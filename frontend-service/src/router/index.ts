@@ -449,6 +449,12 @@ const router = createRouter({
       meta: { layout: SidebarLayout, requiresAuth: true },
       component: DashboardView,
     },
+    {
+      path: "/command-center",
+      name: "command-center",
+      meta: { layout: SidebarLayout, requiresAuth: true },
+      component: () => import("@/views/Dashboard/CommandCenterView.vue"),
+    },
     // Pratinjau modul segmen yang masih "Segera" (Setting › Manajemen Modul)
     {
       path: "/segera/:kode",

@@ -1325,6 +1325,16 @@
       "urutan": 54
     },
     {
+      "kode": "command_center",
+      "modul": "dashboard",
+      "nama": "Command Center",
+      "deskripsi": "Dasbor operasional agregat untuk tempat tidur, IGD, dan antrean.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/command-center"],
+      "urutan": 56
+    },
+    {
       "kode": "mikro_bridging_lis",
       "modul": "mikrobiologi",
       "nama": "Bridging LIS Mikrobiologi",

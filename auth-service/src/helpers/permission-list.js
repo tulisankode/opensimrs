@@ -1555,7 +1555,9 @@ export const profilePermission = {
 
 export const dashboardPermission = {
   module: "Dashboard",
-  subModules: [],
+  subModules: [
+    { name: "Command Center", allows: ["READ", "ATUR AMBANG", "TINJAU PERINGATAN", "ESKALASI PERINGATAN"] },
+  ],
 };
 
 /**
