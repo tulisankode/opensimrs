@@ -303,7 +303,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Tersedia | Penunjang Medis › Instalasi Rekam Medis | Koding Rekam Medis |
 | `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Penunjang Medis › Pelayanan Darah | Bank Darah RS (BDRS) |
 | `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Tersedia | Penunjang Medis › Pelayanan Darah | UTD |
-| `akuntansi` | Akuntansi & Remunerasi | Akuntansi RS: bagan akun (COA) standar yang dapat disesuaikan per faskes, aturan pemetaan transaksi → akun, jurnal otomatis dari tagihan, pembayaran kasir, penerimaan & retur barang, dan pemakaian stok (idempoten, tertelusur ke dokumen sumber), jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang, buku besar, neraca saldo, tutup buku, serta laporan keuangan. Remunerasi (jasa pelayanan) menyusul. | Tersedia | Keuangan & Administrasi › Akuntansi & Remunerasi | Akuntansi & Remunerasi |
+| `akuntansi` | Akuntansi & Remunerasi | Akuntansi RS: bagan akun (COA) standar yang dapat disesuaikan per faskes, aturan pemetaan transaksi → akun, jurnal otomatis dari tagihan, pembayaran kasir, penerimaan & retur barang, dan pemakaian stok (idempoten, tertelusur ke dokumen sumber), jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang, buku besar, neraca saldo, tutup buku, serta laporan keuangan; remunerasi jasa pelayanan (jaspel) dokter & tenaga kesehatan berbasis indeks dan kinerja yang dijurnal otomatis. | Tersedia | Keuangan & Administrasi › Akuntansi & Remunerasi | Akuntansi & Remunerasi |
 | `hemodialisa` | Unit Hemodialisa | Registrasi HD akut/kronis, jadwal per mesin & shift, resep HD, asesmen pra-HD, pemantauan intradialitik, Kt/V & URR, pemakaian BHP & reuse dializer, tagihan tindakan, dan laporan unit. | Tersedia | Pelayanan Medis & Keperawatan › Unit Hemodialisa | Hemodialisa |
 
 ### C. Matriks modul × segmen (preset bawaan)
@@ -358,7 +358,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
-| `dashboard_virtual_office` | Virtual Office | Prototipe simulasi peta isometrik agregat lintas unit; bukan pemantauan operasional. | Tersedia | – | – | – |
+| `dashboard_virtual_office` | Virtual Office | Peta isometrik 2.5D aktivitas unit hari ini (antrean, dilayani, selesai, beban) dari transaksi nyata, agregat tanpa data pasien. | Tersedia | – | – | – |
 | `helpdesk_ai` | Asisten Bantuan (Helpdesk AI) | Tombol Bantuan untuk bertanya cara memakai OpenSIMRS ke asisten AI. Hanya berlaku bila Gateway helpdesk dikonfigurasi di setting-service. | Tersedia | – | – | – |
 | `command_center` | Command Center | Dasbor operasional agregat untuk tempat tidur, IGD, dan antrean. | Tersedia | – | – | – |
 | `dashboard_eksekutif` | Dashboard Eksekutif | Indikator pimpinan lintas modul: kunjungan RJ/RI/IGD, BOR/ALOS/TOI/BTO/NDR/GDR, waktu tunggu, pendapatan/kas/piutang, SEP BPJS, kesiapan akreditasi, kredensial & SDM; target KPI per faskes dengan warna status, tren, rincian agregat, dan ekspor PDF tanpa identitas pasien. | Tersedia | – | – | – |
@@ -508,6 +508,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 |---|---|---|---|---|---|---|
 | `akuntansi_jurnal` | Jurnal & Buku Besar | Bagan akun bawaan RS (perlu disahkan bagian keuangan) yang dapat disesuaikan, aturan pemetaan event → akun bertanggal berlaku, proses jurnal otomatis per periode dari tagihan final, pembayaran kasir (termasuk pengalihan ke piutang penjamin), penerimaan & retur barang supplier, dan pemakaian/pemusnahan stok — idempoten dan tertelusur ke dokumen sumber; jurnal manual/penyesuaian/koreksi beralasan dengan persetujuan berjenjang (pembuat ≠ penyetuju), buku besar, neraca saldo, serta tutup buku periode. | Tersedia | Ya | – | – |
 | `akuntansi_laporan` | Laporan Keuangan | Neraca, laba rugi/laporan operasional, arus kas (metode langsung & tidak langsung), perubahan ekuitas, aging piutang per penjamin, dan aging utang supplier dari jurnal final, dengan ekspor Excel/PDF tercatat di Audit Trail. | Tersedia | – | – | – |
+| `akuntansi_remunerasi` | Remunerasi (Jasa Pelayanan) | Jasa pelayanan dokter & tenaga kesehatan per bulan dari tagihan yang sudah lunas: skema berversi per faskes (porsi per jenis layanan & kategori, porsi langsung/kebersamaan, indeks profesi & bobot — nilai bawaan hanya contoh, wajib disahkan), indeks penerima dan capaian kinerja, pengecualian & koreksi beralasan, alur hitung → verifikasi → persetujuan (pembuat ≠ verifikator ≠ penyetuju) → pembayaran yang dijurnal otomatis ke Akuntansi, slip milik sendiri dengan identitas pasien disamarkan, serta rekap per unit/profesi dengan ekspor tercatat di Audit Trail. | Tersedia | – | – | – |
 
 #### Medical Check Up (MCU) (`mcu`)
 

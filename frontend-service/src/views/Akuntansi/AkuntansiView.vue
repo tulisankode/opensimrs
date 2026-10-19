@@ -6,7 +6,7 @@ import { fiturAktif } from "@/stores/modulFaskes";
 import { computed } from "vue";
 
 // Akuntansi & Remunerasi (penunjang-service /akuntansi, STD-0031). Menu disaring izin oleh Sidebar dan status fitur katalog
-// (akuntansi_jurnal wajib; akuntansi_laporan dapat dimatikan per faskes). Remunerasi (STD-0032) menambah bagian menu di sini.
+// (akuntansi_jurnal wajib; akuntansi_laporan & akuntansi_remunerasi — jasa pelayanan, STD-0032 — dapat dimatikan per faskes).
 const sidebarBodyList = computed<SidebarBody[]>(() => [
   {
     name: "Pembukuan",
@@ -21,6 +21,20 @@ const sidebarBodyList = computed<SidebarBody[]>(() => [
   },
   ...(fiturAktif("akuntansi_laporan")
     ? [{ name: "Pelaporan", type: linkType.SECTION, child: [{ name: "Laporan Keuangan", icon: "PhChartLine", type: linkType.LINK, url: "/akuntansi/laporan" }] }]
+    : []),
+  ...(fiturAktif("akuntansi_remunerasi")
+    ? [
+        {
+          name: "Remunerasi",
+          type: linkType.SECTION,
+          child: [
+            { name: "Periode Jaspel", icon: "PhCalendarDots", type: linkType.LINK, url: "/akuntansi/remunerasi/periode" },
+            { name: "Rekap Jaspel", icon: "PhChartBar", type: linkType.LINK, url: "/akuntansi/remunerasi/rekap" },
+            { name: "Slip Saya", icon: "PhReceipt", type: linkType.LINK, url: "/akuntansi/remunerasi/slip" },
+            { name: "Konfigurasi Jaspel", icon: "PhSlidersHorizontal", type: linkType.LINK, url: "/akuntansi/remunerasi/konfigurasi" },
+          ],
+        },
+      ]
     : []),
   {
     name: "Pengaturan",

@@ -367,6 +367,12 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/akuntansi/neraca-saldo", permission: read("Akuntansi & Remunerasi", "Buku Besar") },
   { path: "/akuntansi/periode", permission: read("Akuntansi & Remunerasi", "Periode") },
   { path: "/akuntansi/laporan", permission: read("Akuntansi & Remunerasi", "Laporan Keuangan") },
+  // Remunerasi — jasa pelayanan (STD-0032): slip hanya milik sendiri (dibatasi backend); rekap & ekspor setelah disetujui
+  { path: "/akuntansi/remunerasi/konfigurasi", permission: read("Akuntansi & Remunerasi", "Konfigurasi Remunerasi") },
+  { path: "/akuntansi/remunerasi/slip", permission: read("Akuntansi & Remunerasi", "Slip Remunerasi") },
+  { path: "/akuntansi/remunerasi/rekap", permission: read("Akuntansi & Remunerasi", "Rekap Remunerasi") },
+  // Periode: dibuka tim remunerasi, verifikator, penyetuju, maupun keuangan (izin per aksi diperiksa halaman & backend).
+  { path: "/akuntansi/remunerasi/periode", permission: read("Akuntansi & Remunerasi", null, null, null) },
   { path: "/akuntansi", mode: "prefix", permission: read("Akuntansi & Remunerasi", null, null, null) },
 
   // Bank Darah RS (BDRS) — penunjang-service

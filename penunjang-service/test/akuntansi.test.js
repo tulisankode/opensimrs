@@ -400,7 +400,7 @@ test("izin & katalog: modul Akuntansi & Remunerasi terdaftar, fitur akuntansi_ju
   assert.equal(modul.tersedia, true);
   assert.deepEqual(modul.rute, ["/akuntansi"]);
   const fitur = katalog.fitur.filter((f) => f.modul === "akuntansi");
-  assert.deepEqual(fitur.map((f) => [f.kode, f.wajib, f.tersedia]), [["akuntansi_jurnal", true, true], ["akuntansi_laporan", false, true]]);
+  assert.deepEqual(fitur.map((f) => [f.kode, f.wajib, f.tersedia]), [["akuntansi_jurnal", true, true], ["akuntansi_laporan", false, true], ["akuntansi_remunerasi", false, true]]);
 });
 
 test("laporan: akun kontra (potongan pendapatan, akumulasi penyusutan) menjadi pengurang di kelompoknya; laba rugi = surplus neraca", () => {

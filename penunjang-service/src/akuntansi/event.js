@@ -80,15 +80,25 @@ export const JENIS_EVENT = {
     alasan: "Belum ada data pembayaran utang supplier di database bersama. Catat lewat jurnal manual (D Utang Usaha Supplier, K Bank) dengan supplier terisi agar aging utang benar.",
     komponen: {},
   },
+  // Event DORONG (dorong: true): dijurnal modul Remunerasi (STD-0032) di dalam transaksi persetujuan/pembayaran periode
+  // jaspel (akuntansi/remunerasi/periode.js), bukan lewat "proses jurnal periode" (penarikan).
   jaspel: {
     nama: "Jasa Pelayanan (Remunerasi)",
-    sumber: "Remunerasi (STD-0032)",
-    tersedia: false,
-    alasan: "Disediakan modul Remunerasi (STD-0032).",
+    sumber: "Remunerasi › periode jaspel disetujui",
+    tersedia: true,
+    dorong: true,
     komponen: { beban_jaspel: "Beban jasa pelayanan", utang_jaspel: "Utang jasa pelayanan" },
   },
+  jaspel_bayar: {
+    nama: "Pembayaran Jasa Pelayanan (Remunerasi)",
+    sumber: "Remunerasi › periode jaspel dibayar",
+    tersedia: true,
+    dorong: true,
+    komponen: { utang_jaspel: "Pelunasan utang jasa pelayanan", kas: "Kas/bank pembayaran — kas:TRANSFER/CASH; tanpa akhiran = fallback" },
+  },
 };
-export const JENIS_EVENT_TERSEDIA = Object.keys(JENIS_EVENT).filter((k) => JENIS_EVENT[k].tersedia);
+// Jenis event yang diambil "proses jurnal periode" (penarikan dari dokumen sumber); event dorong tidak termasuk.
+export const JENIS_EVENT_TERSEDIA = Object.keys(JENIS_EVENT).filter((k) => JENIS_EVENT[k].tersedia && !JENIS_EVENT[k].dorong);
 
 // Komponen sah untuk jenis event: nama dasar terdaftar, opsional akhiran ":<KODE>".
 export const komponenSah = (jenisEvent, komponen) => {
@@ -253,4 +263,42 @@ export const susunPengeluaran = (u) => {
   if (nilai <= 0) return lewati(ev, "Nilai pengeluaran nol");
   const beban = u.jenis_pengeluaran === "pemusnahan barang" ? "beban_pemusnahan" : "beban_pemakaian";
   return { ...ev, baris: [D(beban, nilai), K(persediaan, nilai)] };
+};
+
+// Jasa pelayanan periode remunerasi disetujui (STD-0032): D beban jaspel / K utang jaspel sebesar total periode, bertanggal
+// hari terakhir bulan periode. `p`: { uuid, nomor, tanggal, total (teks NUMERIC), hash_hitung }.
+export const susunJaspel = (p) => {
+  const total = keSen(angka(p.total));
+  const ev = {
+    jenis_event: "jaspel",
+    kunci: `jaspel:${p.uuid}`,
+    sumber_tabel: "remunerasi_periode",
+    sumber_uuid: p.uuid,
+    sumber_nomor: p.nomor,
+    tanggal: awalHariWib(epochDetik(p.tanggal)),
+    nilai: total,
+    uraian: `Beban jasa pelayanan periode ${p.nomor}`,
+    data: { total, hash: p.hash_hitung ?? null },
+  };
+  if (total <= 0) return lewati(ev, "Total jasa pelayanan periode nol");
+  return { ...ev, baris: [D("beban_jaspel", total), K("utang_jaspel", total)] };
+};
+
+// Pembayaran jasa pelayanan periode: D utang jaspel / K kas (per metode) pada tanggal bayar.
+export const susunBayarJaspel = (p) => {
+  const total = keSen(angka(p.total));
+  const metode = String(p.metode_bayar || "TRANSFER").toUpperCase();
+  const ev = {
+    jenis_event: "jaspel_bayar",
+    kunci: `jaspel_bayar:${p.uuid}`,
+    sumber_tabel: "remunerasi_periode",
+    sumber_uuid: p.uuid,
+    sumber_nomor: p.referensi_bayar ? `${p.nomor} / ${p.referensi_bayar}` : p.nomor,
+    tanggal: awalHariWib(epochDetik(p.tanggal_bayar)),
+    nilai: total,
+    uraian: `Pembayaran jasa pelayanan periode ${p.nomor} (${metode})`,
+    data: { total, metode, referensi: p.referensi_bayar ?? null },
+  };
+  if (total <= 0) return lewati(ev, "Total jasa pelayanan periode nol");
+  return { ...ev, baris: [D("utang_jaspel", total), K(`kas:${metode}`, total)] };
 };
