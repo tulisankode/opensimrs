@@ -78,6 +78,7 @@ export const izinMcu = (submodul, aksi, fitur = null) => wajibIzin("MCU", submod
 export const izinCssd = (submodul, aksi, fitur = null) => wajibIzin("CSSD", submodul, aksi, fitur);
 export const izinBdrs = (submodul, aksi, fitur = null) => wajibIzin("Bank Darah RS (BDRS)", submodul, aksi, fitur);
 export const izinUtd = (submodul, aksi, fitur = null) => wajibIzin("UTD", submodul, aksi, fitur);
+export const izinHd = (submodul, aksi, fitur = null) => wajibIzin("Hemodialisa", submodul, aksi, fitur);
 
 // Hasil IMLTD reaktif & identitas donor terkait (KF-18): izin terpisah dari "IMLTD" › READ.
 export const bolehLihatReaktif = (req) => punyaIzin(req, "UTD", "Lihat Hasil Reaktif", "READ");
@@ -87,4 +88,5 @@ export const izinOk = (submodul, aksi, fitur = null) => wajibIzin("Kamar Operasi
 export const izinKoding = (submodul, aksi, fitur = null) => wajibIzin("Koding Rekam Medis", submodul, aksi, fitur);
 export const izinTraining = (submodul, aksi, fitur = null) => wajibIzin("Training", submodul, aksi, fitur);
 export const izinAmbulans = (submodul, aksi, fitur = null) => wajibIzin("Manajemen Ambulans", submodul, aksi, fitur);
+export const izinMutu = (submodul, aksi, fitur = null) => wajibIzin("Mutu & Akreditasi", submodul, aksi, fitur);
 export const izinSarpras = (submodul, aksi, fitur = null) => wajibIzin("Sarana dan Prasarana (IPSRS)", submodul, aksi, fitur);

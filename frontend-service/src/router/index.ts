@@ -298,6 +298,28 @@ import BatchLaundryPage from "@/views/Laundry/BatchPage.vue";
 import DistribusiLaundryPage from "@/views/Laundry/DistribusiPage.vue";
 import KoreksiLaundryPage from "@/views/Laundry/KoreksiPage.vue";
 import LaporanLaundryPage from "@/views/Laundry/LaporanPage.vue";
+import UnitLaundryPage from "@/views/Laundry/UnitPage.vue";
+import PemindaianUnitLaundryPage from "@/views/Laundry/PemindaianUnitPage.vue";
+import LaporanUnitLaundryPage from "@/views/Laundry/LaporanUnitPage.vue";
+
+// NOTE Mutu & Akreditasi — dokumen akreditasi, instrumen, kredensial staf, dasbor kesiapan (STD-0028, penunjang-service)
+import MutuView from "@/views/Mutu/MutuView.vue";
+import DasborMutuPage from "@/views/Mutu/DasborPage.vue";
+import InstrumenMutuPage from "@/views/Mutu/InstrumenPage.vue";
+import DokumenMutuPage from "@/views/Mutu/DokumenPage.vue";
+import KredensialMutuPage from "@/views/Mutu/KredensialPage.vue";
+import SurveiorMutuPage from "@/views/Mutu/SurveiorPage.vue";
+// NOTE Mutu & Akreditasi — indikator mutu INM/IMP-RS/IMPU (STD-0025, fitur mutu_indikator)
+import CapaianIndikatorPage from "@/views/Mutu/Indikator/CapaianPage.vue";
+import MasterIndikatorPage from "@/views/Mutu/Indikator/MasterPage.vue";
+import DataIndikatorPage from "@/views/Mutu/Indikator/DataPage.vue";
+import TindakLanjutIndikatorPage from "@/views/Mutu/Indikator/TindakLanjutPage.vue";
+// NOTE Mutu & Akreditasi — insiden keselamatan pasien & register risiko (STD-0026, fitur mutu_ikp)
+import LaporIkpPage from "@/views/Mutu/Ikp/LaporPage.vue";
+import DaftarIkpPage from "@/views/Mutu/Ikp/DaftarPage.vue";
+import DasborIkpPage from "@/views/Mutu/Ikp/DasborPage.vue";
+import RisikoIkpPage from "@/views/Mutu/Ikp/RisikoPage.vue";
+import PengaturanIkpPage from "@/views/Mutu/Ikp/PengaturanPage.vue";
 
 // NOTE Sarana dan Prasarana (IPSRS) — aset, work order perbaikan, pemeliharaan, kalibrasi, utilitas (STD-0022, penunjang-service)
 import SarprasView from "@/views/Sarpras/SarprasView.vue";
@@ -308,6 +330,21 @@ import KalibrasiSarprasPage from "@/views/Sarpras/KalibrasiPage.vue";
 import UtilitasSarprasPage from "@/views/Sarpras/UtilitasPage.vue";
 import PengaturanSarprasPage from "@/views/Sarpras/PengaturanPage.vue";
 import LaporanSarprasPage from "@/views/Sarpras/LaporanPage.vue";
+import SdmView from "@/views/Sdm/SdmView.vue";
+import KepegawaianSdmPage from "@/views/Sdm/KepegawaianPage.vue";
+import KredensialSdmPage from "@/views/Sdm/KredensialPage.vue";
+
+// NOTE Unit Hemodialisa — jadwal, sesi HD, dializer, bridging HDIS (STD-0033, penunjang-service)
+import HemodialisaView from "@/views/Hemodialisa/HemodialisaView.vue";
+import JadwalHdPage from "@/views/Hemodialisa/JadwalPage.vue";
+import RegistrasiHdPage from "@/views/Hemodialisa/RegistrasiPage.vue";
+import ResepHdPage from "@/views/Hemodialisa/ResepPage.vue";
+import SesiHdPage from "@/views/Hemodialisa/SesiPage.vue";
+import DializerHdPage from "@/views/Hemodialisa/DializerPage.vue";
+import MesinShiftHdPage from "@/views/Hemodialisa/Datamaster/MesinShiftPage.vue";
+import AturanReuseHdPage from "@/views/Hemodialisa/Datamaster/AturanReusePage.vue";
+import MappingHdisPage from "@/views/Hemodialisa/Datamaster/MappingHdisPage.vue";
+import LaporanHdPage from "@/views/Hemodialisa/LaporanPage.vue";
 
 // NOTE Manajemen Ambulans — permintaan & penugasan, perjalanan, armada & kru, tarif, biaya/kuitansi (STD-0024, penunjang-service)
 import AmbulansView from "@/views/Ambulans/AmbulansView.vue";
@@ -321,6 +358,7 @@ import KuitansiAmbulansPage from "@/views/Ambulans/KuitansiPage.vue";
 import LaporanAmbulansPage from "@/views/Ambulans/LaporanPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
+const HALAMAN_MUTU = ["/mutu/dasbor", "/mutu/dokumen", "/mutu/kredensial", "/mutu/instrumen", "/mutu/surveior", "/mutu/indikator", "/mutu/ikp", "/mutu/ikp/dasbor", "/mutu/ikp/lapor"];
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
   daftar.map(([path, name, page]) => ({ path, name, meta: { layout: SidebarLayout, page, requiresAuth: true }, component: view }));
 
@@ -421,6 +459,13 @@ const router = createRouter({
       name: "dashboard",
       meta: { layout: SidebarLayout, requiresAuth: true },
       component: DashboardView,
+    },
+    // Dashboard Eksekutif pimpinan (STD-0034): izin Dashboard › Eksekutif (permissions.ts) + fitur dashboard_eksekutif.
+    {
+      path: "/dashboard/eksekutif",
+      name: "dashboard-eksekutif",
+      meta: { layout: SidebarLayout, requiresAuth: true },
+      component: () => import("@/views/Dashboard/DashboardEksekutifView.vue"),
     },
     // Pratinjau modul segmen yang masih "Segera" (Setting › Manajemen Modul)
     {
@@ -1821,6 +1866,31 @@ const router = createRouter({
     ]),
     // !SECTION
 
+    // SECTION Mutu & Akreditasi (STD-0028, penunjang-service)
+    // Halaman pertama yang diizinkan (mis. akun surveior hanya punya Akses Surveior).
+    {
+      path: "/mutu",
+      name: "mutu",
+      redirect: () => HALAMAN_MUTU.find((p) => canAccessPermission(resolveRoutePermission(p))) ?? "/mutu/dasbor",
+    },
+    ...halamanModul(MutuView, [
+      ["/mutu/dasbor", "mutu-dasbor", DasborMutuPage],
+      ["/mutu/instrumen", "mutu-instrumen", InstrumenMutuPage],
+      ["/mutu/dokumen", "mutu-dokumen", DokumenMutuPage],
+      ["/mutu/kredensial", "mutu-kredensial", KredensialMutuPage],
+      ["/mutu/surveior", "mutu-surveior", SurveiorMutuPage],
+      ["/mutu/indikator", "mutu-indikator", CapaianIndikatorPage],
+      ["/mutu/indikator/master", "mutu-indikator-master", MasterIndikatorPage],
+      ["/mutu/indikator/data", "mutu-indikator-data", DataIndikatorPage],
+      ["/mutu/indikator/tindak-lanjut", "mutu-indikator-tindak-lanjut", TindakLanjutIndikatorPage],
+      ["/mutu/ikp", "mutu-ikp", DaftarIkpPage],
+      ["/mutu/ikp/lapor", "mutu-ikp-lapor", LaporIkpPage],
+      ["/mutu/ikp/dasbor", "mutu-ikp-dasbor", DasborIkpPage],
+      ["/mutu/ikp/risiko", "mutu-ikp-risiko", RisikoIkpPage],
+      ["/mutu/ikp/pengaturan", "mutu-ikp-pengaturan", PengaturanIkpPage],
+    ]),
+    // !SECTION
+
     // SECTION Sarana dan Prasarana (IPSRS) (STD-0022, penunjang-service)
     { path: "/sarpras", name: "sarpras", redirect: "/sarpras/aset" },
     ...halamanModul(SarprasView, [
@@ -1831,6 +1901,11 @@ const router = createRouter({
       ["/sarpras/utilitas", "sarpras-utilitas", UtilitasSarprasPage],
       ["/sarpras/pengaturan", "sarpras-pengaturan", PengaturanSarprasPage],
       ["/sarpras/laporan", "sarpras-laporan", LaporanSarprasPage],
+    ]),
+    { path: "/sdm", name: "sdm", redirect: "/sdm/kepegawaian" },
+    ...halamanModul(SdmView, [
+      ["/sdm/kepegawaian", "sdm-kepegawaian", KepegawaianSdmPage],
+      ["/sdm/kredensial", "sdm-kredensial", KredensialSdmPage],
     ]),
     // !SECTION
 
@@ -1883,6 +1958,9 @@ const router = createRouter({
       ["/laundry/distribusi", "laundry-distribusi", DistribusiLaundryPage],
       ["/laundry/koreksi", "laundry-koreksi", KoreksiLaundryPage],
       ["/laundry/laporan", "laundry-laporan", LaporanLaundryPage],
+      ["/laundry/unit", "laundry-unit", UnitLaundryPage],
+      ["/laundry/pemindaian-unit", "laundry-pemindaian-unit", PemindaianUnitLaundryPage],
+      ["/laundry/laporan-unit", "laundry-laporan-unit", LaporanUnitLaundryPage],
     ]),
     // !SECTION
 
@@ -1921,6 +1999,20 @@ const router = createRouter({
       ["/kamar-operasi/jadwal", "kamar-operasi-jadwal", JadwalOkPage],
       ["/kamar-operasi/datamaster/ruang", "kamar-operasi-datamaster-ruang", MasterRuangOkPage],
       ["/kamar-operasi/laporan/rekap", "kamar-operasi-laporan-rekap", LaporanRekapOkPage],
+    ]),
+    // !SECTION
+    // SECTION Hemodialisa
+    { path: "/hemodialisa", name: "hemodialisa", redirect: "/hemodialisa/jadwal" },
+    ...halamanModul(HemodialisaView, [
+      ["/hemodialisa/jadwal", "hemodialisa-jadwal", JadwalHdPage],
+      ["/hemodialisa/registrasi", "hemodialisa-registrasi", RegistrasiHdPage],
+      ["/hemodialisa/resep", "hemodialisa-resep", ResepHdPage],
+      ["/hemodialisa/sesi", "hemodialisa-sesi", SesiHdPage],
+      ["/hemodialisa/dializer", "hemodialisa-dializer", DializerHdPage],
+      ["/hemodialisa/datamaster/mesin-shift", "hemodialisa-mesin-shift", MesinShiftHdPage],
+      ["/hemodialisa/datamaster/aturan-reuse", "hemodialisa-aturan-reuse", AturanReuseHdPage],
+      ["/hemodialisa/datamaster/mapping-hdis", "hemodialisa-mapping-hdis", MappingHdisPage],
+      ["/hemodialisa/laporan", "hemodialisa-laporan", LaporanHdPage],
     ]),
     // !SECTION
 
