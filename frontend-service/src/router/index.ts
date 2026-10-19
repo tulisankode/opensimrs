@@ -475,6 +475,7 @@ const router = createRouter({
       name: "command-center",
       meta: { layout: SidebarLayout, requiresAuth: true },
       component: () => import("@/views/Dashboard/CommandCenterView.vue"),
+    },
     // Dashboard Eksekutif pimpinan (STD-0034): izin Dashboard › Eksekutif (permissions.ts) + fitur dashboard_eksekutif.
     {
       path: "/dashboard/eksekutif",
