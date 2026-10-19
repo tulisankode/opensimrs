@@ -220,7 +220,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 0 berstatus Segera), **107 fitur** (5 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 0 berstatus Segera), **108 fitur** (5 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
