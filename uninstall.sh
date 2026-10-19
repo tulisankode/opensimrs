@@ -89,6 +89,30 @@ case "$(uname -s)" in
   MINGW*|MSYS*|CYGWIN*) mati "Di Windows gunakan uninstall.cmd (PowerShell), bukan Git Bash." ;;
   *) PLATFORM=linux ;;
 esac
+# Podman harus bisa dihubungi SEBELUM mode dideteksi: di macOS kontainer berjalan di VM (podman machine) yang bisa
+# saja mati. Tanpa cek ini deteksi jatuh ke mode native dan semua langkah Podman gagal, sementara berkas tetap dihapus.
+podman_siap() { podman info >/dev/null 2>&1; }
+if ada podman && ! podman_siap; then
+  warn "Podman terpasang tetapi tidak bisa dihubungi (VM podman machine belum menyala, atau koneksi default salah?)"
+  # VM bisa saja sudah menyala tetapi koneksi default menunjuk mesin/port lain ("connection refused").
+  podman_saran() { echo "    Periksa: podman machine ls  &&  podman system connection list"; echo "    Bila mesin sudah menyala tetapi koneksi default bukan mesin itu: podman system connection default <nama-mesin>"; }
+  if [ "$PLATFORM" = mac ] && [ "$SIMULASI" != 1 ] && tanya "Nyalakan VM Podman sekarang (podman machine start)?"; then
+    podman machine start || true
+  fi
+  if ! podman_siap; then
+    podman_saran
+    if [ "$PODMAN" = 1 ]; then
+      if [ "$SIMULASI" = 1 ]; then warn "Simulasi: Podman tidak bisa dihubungi; langkah Podman di bawah akan gagal"
+      else mati "Podman tidak bisa dihubungi — tidak ada yang dihapus. Nyalakan dulu (macOS: podman machine start), lalu jalankan ulang."; fi
+    elif [ "$SIMULASI" != 1 ]; then
+      # Mode belum diketahui: jangan menebak. --ya tidak boleh diam-diam memilih mode native.
+      [ "$SEMUA_YA" = 1 ] && mati "Podman tidak bisa dihubungi sehingga mode basis data tidak bisa dideteksi — tidak ada yang dihapus. Nyalakan Podman lalu jalankan ulang (atau pakai --podman)."
+      tanya "Basis data OpenSIMRS di mesin ini TIDAK memakai Podman (PostgreSQL/MongoDB/Redis lokal)?" \
+        || mati "Dibatalkan — tidak ada yang dihapus. Nyalakan Podman (macOS: podman machine start), lalu jalankan ulang."
+      PODMAN=0
+    fi
+  fi
+fi
 if [ -z "$PODMAN" ]; then
   PODMAN=0; ada podman && podman container exists opensimrs-db 2>/dev/null && PODMAN=1
 fi
@@ -155,23 +179,41 @@ elif [ "$SEMUA_YA" = 1 ] || [ "$SIMULASI" = 1 ] || tanya "Cadangkan PostgreSQL &
   CADANGAN="$HOME/opensimrs-cadangan-$(date +%Y%m%d-%H%M%S)"
   [ "$SIMULASI" = 1 ] || mkdir -p "$CADANGAN"
   DB_PASS="$(baca_env .env DB_PASSWORD "")"; MONGO_PASS="$(baca_env .env MONGO_DB_PASSWORD "")"
-  if [ "$PODMAN" = 1 ]; then
-    aksi "pg_dump $DB_NAMA (Podman) → $CADANGAN/postgres.dump" sh -c "podman exec -e PGPASSWORD='$DB_PASS' opensimrs-db pg_dump -Fc -h 127.0.0.1 -U '$DB_USER' '$DB_NAMA' > '$CADANGAN/postgres.dump'" || warn "pg_dump gagal"
-    aksi "mongodump $MONGO_DB (Podman) → $CADANGAN/mongo.archive" sh -c "podman exec opensimrs-mongodb mongodump --quiet -u '$MONGO_USER' -p '$MONGO_PASS' --authenticationDatabase admin --db '$MONGO_DB' --archive > '$CADANGAN/mongo.archive'" || warn "mongodump gagal"
+  # Perintah dibungkus fungsi: ui_jalankan mencatat argumennya ke log (dan menampilkannya bila gagal), jadi sandi tidak
+  # boleh muncul sebagai argumen. Berkas kosong dianggap gagal (mis. redirect tetap membuat berkas walau perintah gagal).
+  cadangan_pg() {
+    if [ "$PODMAN" = 1 ]; then podman exec -e PGPASSWORD="$DB_PASS" opensimrs-db pg_dump -Fc -h 127.0.0.1 -U "$DB_USER" "$DB_NAMA" > "$CADANGAN/postgres.dump"
+    else PGPASSWORD="$DB_PASS" pg_dump -Fc -h 127.0.0.1 -p "$DB_PORT" -U "$DB_USER" -f "$CADANGAN/postgres.dump" "$DB_NAMA"; fi
+    [ -s "$CADANGAN/postgres.dump" ]
+  }
+  cadangan_mongo() {
+    if [ "$PODMAN" = 1 ]; then
+      podman exec -e MONGO_PASS="$MONGO_PASS" opensimrs-mongodb sh -c 'mongodump --quiet -u "$1" -p "$MONGO_PASS" --authenticationDatabase admin --db "$2" --archive' _ "$MONGO_USER" "$MONGO_DB" > "$CADANGAN/mongo.archive"
+    else mongodump --quiet --host 127.0.0.1 -u "$MONGO_USER" -p "$MONGO_PASS" --authenticationDatabase admin --db "$MONGO_DB" --archive="$CADANGAN/mongo.archive"; fi
+    [ -s "$CADANGAN/mongo.archive" ]
+  }
+  CADANGAN_GAGAL=""
+  if [ "$PODMAN" = 1 ] || ada pg_dump; then aksi "pg_dump $DB_NAMA$([ "$PODMAN" = 1 ] && echo " (Podman)") → $CADANGAN/postgres.dump" cadangan_pg || CADANGAN_GAGAL="$CADANGAN_GAGAL PostgreSQL"
+  else warn "pg_dump tidak ditemukan; PostgreSQL tidak dicadangkan"; CADANGAN_GAGAL="$CADANGAN_GAGAL PostgreSQL"; fi
+  if [ "$PODMAN" = 1 ] || ada mongodump; then aksi "mongodump $MONGO_DB$([ "$PODMAN" = 1 ] && echo " (Podman)") → $CADANGAN/mongo.archive" cadangan_mongo || CADANGAN_GAGAL="$CADANGAN_GAGAL MongoDB"
+  else warn "mongodump tidak ditemukan (MongoDB Database Tools); MongoDB tidak dicadangkan"; CADANGAN_GAGAL="$CADANGAN_GAGAL MongoDB"; fi
+  if [ -f .env ] && [ "$SIMULASI" != 1 ]; then cp .env "$CADANGAN/env-root.txt"; chmod 600 "$CADANGAN/env-root.txt" 2>/dev/null || true; fi
+  if [ -z "$CADANGAN_GAGAL" ] || [ "$SIMULASI" = 1 ]; then ok "Cadangan: $CADANGAN"
   else
-    if ada pg_dump; then aksi "pg_dump $DB_NAMA → $CADANGAN/postgres.dump" env PGPASSWORD="$DB_PASS" pg_dump -Fc -h 127.0.0.1 -p "$DB_PORT" -U "$DB_USER" -f "$CADANGAN/postgres.dump" "$DB_NAMA" || warn "pg_dump gagal"
-    else warn "pg_dump tidak ditemukan; PostgreSQL tidak dicadangkan"; fi
-    if ada mongodump; then aksi "mongodump $MONGO_DB → $CADANGAN/mongo.archive" mongodump --quiet --host 127.0.0.1 -u "$MONGO_USER" -p "$MONGO_PASS" --authenticationDatabase admin --db "$MONGO_DB" --archive="$CADANGAN/mongo.archive" || warn "mongodump gagal"
-    else warn "mongodump tidak ditemukan (MongoDB Database Tools); MongoDB tidak dicadangkan"; fi
+    gagal "Cadangan TIDAK lengkap (gagal:$CADANGAN_GAGAL) — isi folder $CADANGAN tidak bisa dipakai untuk memulihkan data tersebut"
+    # Jangan menghapus data yang gagal dicadangkan tanpa persetujuan eksplisit; --ya saja tidak cukup.
+    [ "$SEMUA_YA" = 1 ] && mati "Penghapusan dihentikan karena cadangan gagal. Perbaiki penyebabnya, atau jalankan dengan --tanpa-cadangan bila memang ingin menghapus tanpa cadangan."
+    tanya "Tetap hapus basis data TANPA cadangan$CADANGAN_GAGAL (data hilang permanen)?" \
+      || mati "Dihentikan — basis data dan berkas tidak dihapus. Cadangan sebagian ada di $CADANGAN"
   fi
-  [ -f .env ] && { [ "$SIMULASI" = 1 ] || cp .env "$CADANGAN/env-root.txt"; }
-  ok "Cadangan: $CADANGAN"
 else warn "Tanpa cadangan"; fi
 
 # ---------- 3–5. basis data ----------
 ui_langkah "Basis data OpenSIMRS"
 if [ "$PODMAN" = 1 ]; then
-  aksi "podman compose down -v (kontainer + volume OpenSIMRS)" podman compose -f docker-compose.yml down -v || warn "podman compose down gagal"
+  # Bila gagal, berhenti sebelum .env dihapus: tanpa .env, volume yang tertinggal tidak bisa dibuka lagi.
+  aksi "podman compose down -v (kontainer + volume OpenSIMRS)" podman compose -f docker-compose.yml down -v \
+    || mati "podman compose down gagal — berkas instalasi (.env dll.) tidak dihapus agar uninstall bisa diulang."
 else
   if ada psql; then
     # Database dihapus oleh role aplikasi sendiri (pemiliknya) — tanpa superuser/sudo. Role hanya bisa dihapus superuser.
@@ -211,8 +253,10 @@ done
 [ "$SIMULASI" = 1 ] || git -c safe.directory='*' worktree prune 2>/dev/null || true
 # node_modules (root, layanan, frontend, SDK), .env*, dist, data Studio — hanya di dalam folder repo
 cari_buatan() { find "$ROOT" -maxdepth 3 \( -name node_modules -o -name dist \) -type d -prune -print 2>/dev/null; }
+# Catatan: blok ini dijalankan dengan set -e + pipefail, jadi perintah terakhirnya tidak boleh bernilai salah
+# (dulu "[ -d … ] && echo" menghentikan skrip diam-diam bila studio-service/data tidak ada).
 BERKAS_HAPUS="$( { cari_buatan; find "$ROOT" -maxdepth 2 -name '.env' -type f -print; find "$ROOT" -maxdepth 2 -name '.env.bak*' -type f -print; \
-  [ -d "$ROOT/studio-service/data" ] && echo "$ROOT/studio-service/data"; } 2>/dev/null | sort -u)"
+  if [ -d "$ROOT/studio-service/data" ]; then echo "$ROOT/studio-service/data"; fi; } 2>/dev/null | sort -u)"
 JUMLAH=$(printf '%s\n' "$BERKAS_HAPUS" | grep -c . || true)
 i=0
 while IFS= read -r p; do
