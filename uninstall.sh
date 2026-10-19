@@ -12,8 +12,8 @@
 #    6. Berkas buatan instalasi di folder repo: node_modules, .env*, dist, data Studio, log; worktree SIMRS Studio.
 #    7. (--hapus-folder) folder repo ini seluruhnya.
 #
-#  TIDAK dihapus: PostgreSQL/MongoDB/Redis/Node.js itu sendiri, database/akun lain, Claude Code & Codex CLI
-#  (kecuali --alat-ai), OpenClaw.
+#  TIDAK dihapus: PostgreSQL/MongoDB/Redis/Node.js itu sendiri, database/akun lain, Claude Code, Codex & OpenCode CLI
+#  (kecuali --alat-ai), OpenClaw, Ollama (beserta model lokalnya).
 #
 #  Pemakaian:
 #    ./uninstall.sh                 interaktif (menampilkan rencana, meminta ketik "HAPUS OPENSIMRS")
@@ -21,7 +21,7 @@
 #    ./uninstall.sh --ya            tanpa pertanyaan (cadangan tetap dibuat kecuali --tanpa-cadangan)
 #    ./uninstall.sh --tanpa-cadangan  lewati pg_dump/mongodump
 #    ./uninstall.sh --hapus-folder  hapus juga folder repo ini (setelah semua langkah lain)
-#    ./uninstall.sh --alat-ai       hapus juga Claude Code CLI & Codex CLI global (npm uninstall -g)
+#    ./uninstall.sh --alat-ai       hapus juga Claude Code, Codex & OpenCode CLI global (npm uninstall -g)
 #    ./uninstall.sh --podman        paksa mode Podman (bawaan: dideteksi dari kontainer opensimrs-db)
 # =====================================================================================
 set -euo pipefail
@@ -124,8 +124,8 @@ fi
 echo "    • Berkas buatan instalasi di repo: node_modules, .env*, dist, studio-service/data, worktree SIMRS Studio"
 WT="$(worktree_studio)"; [ -n "$WT" ] && echo "$WT" | sed 's/^/        worktree: /'
 [ "$HAPUS_FOLDER" = 1 ] && echo "    • FOLDER REPO INI: $ROOT"
-[ "$ALAT_AI" = 1 ] && echo "    • Claude Code CLI & Codex CLI (npm global)"
-echo "  Tidak dihapus: PostgreSQL/MongoDB/Redis/Node.js, database & akun lain, OpenClaw."
+[ "$ALAT_AI" = 1 ] && echo "    • Claude Code, Codex & OpenCode CLI (npm global)"
+echo "  Tidak dihapus: PostgreSQL/MongoDB/Redis/Node.js, database & akun lain, OpenClaw, Ollama (beserta model lokalnya)."
 
 if [ "$SIMULASI" = 1 ]; then
   warn "Mode simulasi: tidak ada yang dihapus."
@@ -226,8 +226,8 @@ ok "$JUMLAH berkas/folder buatan instalasi $([ "$SIMULASI" = 1 ] && echo "akan d
 
 # ---------- opsional ----------
 if [ "$ALAT_AI" = 1 ]; then
-  ui_langkah "Claude Code CLI & Codex CLI"
-  for paket in @anthropic-ai/claude-code @openai/codex; do
+  ui_langkah "Claude Code, Codex & OpenCode CLI"
+  for paket in @anthropic-ai/claude-code @openai/codex @opencode/cli; do
     aksi "npm uninstall -g $paket" npm uninstall -g "$paket" || warn "$paket gagal dihapus (coba dengan sudo)"
   done
 fi

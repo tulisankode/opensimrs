@@ -45,6 +45,22 @@ const PERM_MODUL = {
   laboratorium: ['Laboratorium'], pembayaran: ['Pembayaran'], datamaster: ['Datamaster'], laporan: ['Laporan'],
   fisioterapi: ['Fisioterapi'], radiologi: ['Radiologi'], mcu: ['MCU'],
   patologi_anatomi: ['Patologi Anatomi'], mikrobiologi: ['Mikrobiologi'], bank_darah: ['Bank Darah RS (BDRS)'],
+  program_puskesmas: ['Program Puskesmas'], kamar_operasi: ['Kamar Operasi'], icu: ['ICU'], gizi: ['Gizi'],
+  koding_rm: ['Koding Rekam Medis'], cssd: ['CSSD'], utd: ['UTD'], laundry: ['Laundry'], ambulans: ['Manajemen Ambulans'],
+  sarpras: ['Sarana dan Prasarana (IPSRS)'], hemodialisa: ['Hemodialisa'], mutu: ['Mutu & Akreditasi'], sdm: ['HR / SDM'],
+  akuntansi: ['Akuntansi & Remunerasi'], training: ['Training'],
+};
+
+// Beberapa definisi izin memakai nama modul yang sama (mis. Dashboard & Dashboard Eksekutif, Setting & Profile),
+// sedangkan permission-sdk hanya membaca entri modul pertama yang cocok → gabungkan menjadi satu entri per modul.
+const gabungModul = (daftar) => {
+  const hasil = [];
+  for (const d of daftar) {
+    const ada = hasil.find((m) => m.module === d.module);
+    if (!ada) { hasil.push(JSON.parse(JSON.stringify(d))); continue; }
+    for (const sm of d.subModules ?? []) if (!ada.subModules.some((x) => x.name === sm.name)) ada.subModules.push(JSON.parse(JSON.stringify(sm)));
+  }
+  return hasil;
 };
 const PERAN = {
   admin: { nama: 'Admin Faskes', kode: 'ADM', modul: null },
@@ -361,7 +377,8 @@ async function seedFaskes(F, mapPermission, superRole) {
 }
 
 (async () => {
-  const { mapPermission } = await import(pathToFileURL(path.join(ROOT, 'auth-service', 'src', 'helpers', 'permission-list.js')).href);
+  const izin = await import(pathToFileURL(path.join(ROOT, 'auth-service', 'src', 'helpers', 'permission-list.js')).href);
+  const mapPermission = (daftar) => gabungModul(izin.mapPermission(daftar));
   db = new Client({
     host: process.env.DB_HOST || '127.0.0.1', port: Number(process.env.DB_PORT || 5432),
     user: process.env.DB_USERNAME, password: process.env.DB_PASSWORD, database: process.env.DB_NAME,
@@ -382,9 +399,8 @@ async function seedFaskes(F, mapPermission, superRole) {
     for (const F of K.FASKES) hasil.push([F, await seedFaskes(F, mapPermission)]);
 
     // Superadmin global (role 'super admin' tanpa faskes) — faskes awal = praktik mandiri, berpindah lewat pilih faskes.
-    const semuaModul = ['Antrian', 'Admisi', 'Rawat Jalan', 'Rawat Inap', 'IGD', 'Farmasi', 'Laboratorium', 'Pembayaran', 'STOK', 'Inventory',
-      'Fisioterapi', 'Radiologi', 'MCU', 'Patologi Anatomi', 'Mikrobiologi', 'Datamaster', 'Laporan', 'Setting', 'Profile', 'Dashboard', 'SIMRS Studio'];
-    const permSuper = JSON.stringify(mapPermission(semuaModul));
+    // Semua definisi izin di permission-list.js (termasuk modul baru) — tidak perlu memperbarui daftar manual.
+    const permSuper = JSON.stringify(gabungModul(Object.values(izin).filter((v) => v && typeof v === 'object' && v.module && Array.isArray(v.subModules))));
     const roleSuper = await ins('role', { faskes_uuid: null, code: 'SPR-ADM', name: 'super admin', permissions: permSuper, status: true, created_at: NOW, updated_at: NOW });
     await ins('users', { faskes_uuid: hasil[0][1].uuid, role_uuid: roleSuper, username: 'superadmin', email: 'superadmin@demo.opensimrs.local',
       phone: '081200000001', password: await bcrypt.hash(PASSWORD, 10), permissions: permSuper, status: true, created_at: NOW, updated_at: NOW });

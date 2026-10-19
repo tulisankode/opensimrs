@@ -1,0 +1,2 @@
+### Diperbaiki
+- **Izin super admin untuk modul baru:** migrasi izin Audit Trail, Mutu & Akreditasi, HR / SDM, dan Dashboard Eksekutif hanya memproses super admin tanpa faskes, sehingga akun superadmin yang memiliki faskes tidak melihat menu/aksi modul tersebut. Migrasi baru `20261018250000-izin_superadmin_modul_baru` memberi izin itu ke peran & akun super admin berdasarkan nama peran (daftar izin kosong tidak diubah).

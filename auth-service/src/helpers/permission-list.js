@@ -1083,6 +1083,8 @@ export const ambulansPermission = {
 // Mutu & Akreditasi (penunjang-service /mutu). Submodul fitur Dokumen Akreditasi & Kredensial Staf (STD-0028); fitur mutu
 // berikutnya (indikator mutu, IKP, PPI) menambah submodul baru di modul yang sama. "Akses Surveior" terpisah dari
 // "Dokumen Akreditasi" › READ: surveior hanya membaca dokumen yang dibagikan & belum lewat batas waktunya.
+// "Indikator Mutu" (STD-0025, fitur mutu_indikator): pengumpul data (INPUT DATA) dipisah dari validator (VALIDASI);
+// TINDAK LANJUT = analisis & rencana perbaikan; EKSPOR = laporan capaian.
 export const mutuPermission = {
   module: "Mutu & Akreditasi",
   subModules: [
@@ -1091,6 +1093,15 @@ export const mutuPermission = {
     { name: "Dokumen Akreditasi", allows: ["READ", "CREATE", "UPDATE", "REVISI", "UBAH STATUS", "TINJAU", "PETAKAN ELEMEN", "BAGIKAN SURVEIOR", "DELETE"] },
     { name: "Kredensial Staf", allows: ["READ", "CREATE", "UPDATE", "VERIFIKASI", "CABUT", "DELETE"] },
     { name: "Akses Surveior", allows: ["READ"] },
+    { name: "Indikator Mutu", allows: ["READ", "CREATE", "UPDATE", "DELETE", "INPUT DATA", "VALIDASI", "TINDAK LANJUT", "EKSPOR"] },
+    // Insiden Keselamatan Pasien (STD-0026, fitur mutu_ikp). LAPOR = semua petugas yang boleh melapor (melihat laporannya
+    // sendiri); READ = peninjau (kepala unit/Tim KP) — identitas pelapor anonim tetap tidak ditampilkan; LIHAT PASIEN =
+    // menautkan & melihat rujukan pasien (No. RM & inisial).
+    {
+      name: "Insiden Keselamatan Pasien",
+      allows: ["LAPOR", "READ", "LIHAT PASIEN", "TERIMA", "GRADING", "INVESTIGASI", "TINDAK LANJUT", "VERIFIKASI", "TUTUP", "DASBOR", "EKSPOR", "PENGATURAN"],
+    },
+    { name: "Register Risiko", allows: ["READ", "CREATE", "UPDATE", "DELETE"] },
   ],
 };
 
@@ -1136,6 +1147,22 @@ export const sdmPermission = {
   subModules: [
     { name: "Kepegawaian", allows: ["READ", "CREATE", "UPDATE", "DELETE", "TAUTKAN AKUN"] },
     { name: "Kredensial", allows: ["READ", "CREATE", "UPDATE", "UNGGAH DOKUMEN", "VERIFIKASI", "CABUT", "DELETE"] },
+  ],
+};
+
+// Akuntansi & Remunerasi (STD-0031): bagan akun, pemetaan event → akun, jurnal otomatis dari transaksi (idempoten),
+// jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang (pembuat ≠ penyetuju), buku besar & neraca saldo,
+// periode & tutup buku, serta laporan keuangan. Remunerasi (STD-0032) menambah submodul di modul yang sama.
+export const akuntansiPermission = {
+  module: "Akuntansi & Remunerasi",
+  subModules: [
+    { name: "Bagan Akun", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Pemetaan Akun", allows: ["READ", "UPDATE"] },
+    { name: "Jurnal", allows: ["READ", "CREATE", "KOREKSI", "PROSES OTOMATIS"] },
+    { name: "Persetujuan Jurnal", allows: ["READ", "SETUJUI", "SETUJUI TINGKAT 2", "TOLAK"] },
+    { name: "Buku Besar", allows: ["READ"] },
+    { name: "Periode", allows: ["READ", "TUTUP BUKU", "BUKA KEMBALI", "PENGATURAN"] },
+    { name: "Laporan Keuangan", allows: ["READ", "EKSPOR"] },
   ],
 };
 
@@ -1560,6 +1587,14 @@ export const dashboardPermission = {
   ],
 };
 
+// Dashboard Eksekutif (STD-0034, laporan-service): indikator layanan, keuangan, mutu & SDM untuk pimpinan. Modul sama
+// dengan dashboardPermission (digabung di katalog izin) tetapi objek terpisah agar seeder peran yang memberi
+// dashboardPermission tidak ikut memberi akses eksekutif. Aksi dipisah: lihat agregat, rincian, ekspor PDF, atur target.
+export const dashboardEksekutifPermission = {
+  module: "Dashboard",
+  subModules: [{ name: "Eksekutif", allows: ["READ", "RINCIAN", "EKSPOR PDF", "ATUR TARGET"] }],
+};
+
 /**
  *
  * @param {Array<string>} permissionList
@@ -1612,6 +1647,7 @@ export function mapPermission(permissionList) {
     "manajemen ambulans": ambulansPermission,
     "mutu & akreditasi": mutuPermission,
     "hr / sdm": sdmPermission,
+    "akuntansi & remunerasi": akuntansiPermission,
     "sarana dan prasarana (ipsrs)": sarprasPermission,
     hemodialisa: hemodialisaPermission,
     training: trainingPermission,
@@ -1620,6 +1656,7 @@ export function mapPermission(permissionList) {
     inventory: inventoryPermission,
     datamaster: datamasterPermission,
     dashboard: dashboardPermission,
+    "dashboard eksekutif": dashboardEksekutifPermission,
     setting: settingPermission,
     profile: profilePermission,
     laporan: laporanPermission,

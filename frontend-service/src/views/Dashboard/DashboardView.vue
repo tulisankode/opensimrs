@@ -15,8 +15,13 @@ import CardGrafik from './Grafik/CardGrafik.vue';
 import { useDashboardStore } from '@/stores/dashboard';
 import { formatPrice } from '@/utils/Helpers';
 import { warnaTema } from '@/utils/tema';
+import { hasPermission } from '@/utils/permissions';
+import { fiturAktif } from '@/stores/modulFaskes';
 
 const dashboardStore = useDashboardStore()
+
+// Tautan Dashboard Eksekutif (STD-0034): hanya bila fitur aktif untuk faskes dan pengguna berizin Dashboard › Eksekutif.
+const bolehEksekutif = fiturAktif('dashboard_eksekutif') && hasPermission('Dashboard', 'Eksekutif', 'READ')
 
 // Default: 30 hari terakhir
 const endDateFilter = ref<Date>(new Date())
@@ -145,6 +150,10 @@ const WARNA_DONAT = ['#F28B82', '#C1E1C1', '#A7C7E7', '#AFE1E1', '#FFE0B2']
       </div>
       <div class="flex items-center justify-between w-full font-semibold text-opensimrs-300 text-subTitle ">Dashboard
         <div class="flex items-center">
+          <RouterLink v-if="bolehEksekutif" to="/dashboard/eksekutif"
+            class="mr-4 px-3 py-1.5 text-xs font-medium rounded-lg border border-opensimrs-300 text-opensimrs-300 hover:bg-opensimrs-50">
+            Dashboard Eksekutif
+          </RouterLink>
           <span v-if="loading" class="mr-3 text-xs font-normal text-grey-300">Memuat…</span>
           <CustomDatePicker v-model="startDateFilter" label="" class="w-[150px]" />
           <PhMinus class="mt-auto mb-2 mx-[10px] text-black" />

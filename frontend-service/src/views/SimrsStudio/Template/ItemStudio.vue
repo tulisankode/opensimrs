@@ -170,6 +170,16 @@ const aksi = (nama: string, body: object = {}) =>
     return res;
   });
 
+// Sinkronisasi branch item: hasil (berkas yang diselesaikan otomatis) ditampilkan di panel; kegagalan tampil sebagai
+// toast galat dan pesan sistem di diskusi item.
+const bolehSinkron = computed(() => studio.boleh("Rilis", "SIAPKAN") || studio.boleh("Coding", "BUKA PR"));
+const hasilSinkron = ref<any>(null);
+const sinkronkan = async () => {
+  hasilSinkron.value = null;
+  const res = await aksi("sinkron");
+  if (res) hasilSinkron.value = { ...res.payload, pesan: res.message };
+};
+
 const pindahkanAplikasi = () =>
   jalankan(async () => {
     if (await apiStudioPost("/aplikasi/pindah", {})) await segarkanSesi();
@@ -377,6 +387,11 @@ const WARNA_CI: Record<string, string> = { sukses: "bg-success-50 text-success-4
             <div v-if="item.worktree" class="flex items-center gap-2 rounded-lg bg-grey-75 p-2 font-mono text-[11px] text-grey-500">
               <PhFolderSimple :size="14" aria-hidden="true" /> worktree: {{ item.worktree }}
             </div>
+            <div v-if="item.awalanMigrasi" class="flex flex-wrap items-center gap-1 rounded-lg bg-grey-75 p-2 text-[11px] text-grey-500">
+              <PhDatabase :size="14" aria-hidden="true" /> Migrasi baru item ini:
+              <code class="font-mono">database/migrations/{{ item.awalanMigrasi }}MMSS-nama.cjs</code> · catatan perubahan:
+              <code class="font-mono">changelog.d/{{ nomorItem(item.nomor) }}.md</code>
+            </div>
             <div v-if="artefakTampil" class="rounded-lg border border-grey-200 p-3">
               <div class="mb-1 text-SM font-semibold text-grey-500">Ringkasan agen (putaran {{ artefakTampil.versi }})</div>
               <Markdown :isi="artefakTampil.isi" />
@@ -400,6 +415,25 @@ const WARNA_CI: Record<string, string> = { sukses: "bg-success-50 text-success-4
             <ChecklistUji :item-uuid="item.uuid" :uji="data.uji" :boleh-ubah="diTahapAktif && studio.boleh('QA', ['UPDATE', 'LULUS'])" @berubah="muat" />
             <PanelTugas v-if="!tugasBerjalan && tugasTerakhir('cek')" :tugas-uuid="tugasTerakhir('cek').uuid" judul="Hasil cek otomatis terakhir" />
           </template>
+
+          <!-- Sinkronisasi branch item dengan branch lokal/dasar (konflik berpola dikenal diselesaikan otomatis) -->
+          <div v-if="['coding', 'rilis'].includes(tahapDipilih) && item.branch && data.branchSinkron && bolehSinkron" class="flex flex-col gap-1.5 rounded-lg border border-grey-200 p-3 text-XS text-grey-500">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="min-w-0 flex-1">
+                <b>Sinkronisasi</b> — gabungkan <b>{{ data.branchSinkron }}</b> ke branch item. Konflik katalog modul, daftar izin/menu/rute,
+                CHANGELOG, dan dokumen katalog diselesaikan otomatis; konflik lain dibatalkan tanpa mengubah branch item.
+                Terapkan juga menjalankan ini otomatis bila branch item bentrok.
+              </span>
+              <CustomButton :label="`Sinkronkan dengan ${data.branchSinkron}`" icon="PhGitMerge" outlined text-color="text-opensimrs-300" border-color="border-opensimrs-300" :disabled="sibuk || !!tugasBerjalan || !!(item.berkas ?? []).length" @click="sinkronkan" />
+            </div>
+            <div v-if="(item.berkas ?? []).length" class="text-grey-400">Masih ada perubahan yang belum di-commit — commit dulu (tahap Rilis) sebelum sinkronisasi.</div>
+            <div v-if="hasilSinkron" class="flex flex-col gap-1 rounded-lg bg-opensimrs-50 p-2">
+              <div>{{ hasilSinkron.pesan }}</div>
+              <ul v-if="(hasilSinkron.otomatis ?? []).length" class="list-disc pl-5">
+                <li v-for="o in hasilSinkron.otomatis" :key="o.path"><code class="rounded bg-white px-1">{{ o.path }}</code> — {{ o.cara }}</li>
+              </ul>
+            </div>
+          </div>
 
           <!-- RILIS: commit, push/PR, status -->
           <div v-if="tahapDipilih === 'rilis' && item.branch" class="flex flex-col gap-2 rounded-lg border border-grey-200 p-3">

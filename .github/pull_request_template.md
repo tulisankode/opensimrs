@@ -20,6 +20,6 @@
 ## Checklist
 
 - [ ] CI hijau dan sudah diuji lokal
-- [ ] Entri CHANGELOG di bagian *[Belum dirilis]* (bila terasa oleh pengguna/implementator)
+- [ ] Fragmen CHANGELOG `changelog.d/<nama-branch>.md` (bila terasa oleh pengguna/implementator; jangan edit `CHANGELOG.md` langsung)
 - [ ] Dokumen ikut diperbarui (bila perintah, `.env`, atau langkah instalasi berubah)
 - [ ] Tidak ada `.env`, kredensial, IP server faskes, atau data/screenshot pasien asli

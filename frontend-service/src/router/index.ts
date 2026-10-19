@@ -309,6 +309,17 @@ import InstrumenMutuPage from "@/views/Mutu/InstrumenPage.vue";
 import DokumenMutuPage from "@/views/Mutu/DokumenPage.vue";
 import KredensialMutuPage from "@/views/Mutu/KredensialPage.vue";
 import SurveiorMutuPage from "@/views/Mutu/SurveiorPage.vue";
+// NOTE Mutu & Akreditasi — indikator mutu INM/IMP-RS/IMPU (STD-0025, fitur mutu_indikator)
+import CapaianIndikatorPage from "@/views/Mutu/Indikator/CapaianPage.vue";
+import MasterIndikatorPage from "@/views/Mutu/Indikator/MasterPage.vue";
+import DataIndikatorPage from "@/views/Mutu/Indikator/DataPage.vue";
+import TindakLanjutIndikatorPage from "@/views/Mutu/Indikator/TindakLanjutPage.vue";
+// NOTE Mutu & Akreditasi — insiden keselamatan pasien & register risiko (STD-0026, fitur mutu_ikp)
+import LaporIkpPage from "@/views/Mutu/Ikp/LaporPage.vue";
+import DaftarIkpPage from "@/views/Mutu/Ikp/DaftarPage.vue";
+import DasborIkpPage from "@/views/Mutu/Ikp/DasborPage.vue";
+import RisikoIkpPage from "@/views/Mutu/Ikp/RisikoPage.vue";
+import PengaturanIkpPage from "@/views/Mutu/Ikp/PengaturanPage.vue";
 
 // NOTE Sarana dan Prasarana (IPSRS) — aset, work order perbaikan, pemeliharaan, kalibrasi, utilitas (STD-0022, penunjang-service)
 import SarprasView from "@/views/Sarpras/SarprasView.vue";
@@ -322,6 +333,16 @@ import LaporanSarprasPage from "@/views/Sarpras/LaporanPage.vue";
 import SdmView from "@/views/Sdm/SdmView.vue";
 import KepegawaianSdmPage from "@/views/Sdm/KepegawaianPage.vue";
 import KredensialSdmPage from "@/views/Sdm/KredensialPage.vue";
+// NOTE Akuntansi & Remunerasi — jurnal otomatis, buku besar, laporan keuangan (STD-0031, penunjang-service)
+import AkuntansiView from "@/views/Akuntansi/AkuntansiView.vue";
+import CoaAkuntansiPage from "@/views/Akuntansi/CoaPage.vue";
+import PemetaanAkuntansiPage from "@/views/Akuntansi/PemetaanPage.vue";
+import JurnalAkuntansiPage from "@/views/Akuntansi/JurnalPage.vue";
+import PersetujuanAkuntansiPage from "@/views/Akuntansi/PersetujuanPage.vue";
+import BukuBesarAkuntansiPage from "@/views/Akuntansi/BukuBesarPage.vue";
+import NeracaSaldoAkuntansiPage from "@/views/Akuntansi/NeracaSaldoPage.vue";
+import PeriodeAkuntansiPage from "@/views/Akuntansi/PeriodePage.vue";
+import LaporanAkuntansiPage from "@/views/Akuntansi/LaporanPage.vue";
 
 // NOTE Unit Hemodialisa — jadwal, sesi HD, dializer, bridging HDIS (STD-0033, penunjang-service)
 import HemodialisaView from "@/views/Hemodialisa/HemodialisaView.vue";
@@ -347,7 +368,7 @@ import KuitansiAmbulansPage from "@/views/Ambulans/KuitansiPage.vue";
 import LaporanAmbulansPage from "@/views/Ambulans/LaporanPage.vue";
 
 // Rute halaman modul: [path, name, page] dengan layout & View (sidebar) modul yang sama.
-const HALAMAN_MUTU = ["/mutu/dasbor", "/mutu/dokumen", "/mutu/kredensial", "/mutu/instrumen", "/mutu/surveior"];
+const HALAMAN_MUTU = ["/mutu/dasbor", "/mutu/dokumen", "/mutu/kredensial", "/mutu/instrumen", "/mutu/surveior", "/mutu/indikator", "/mutu/ikp", "/mutu/ikp/dasbor", "/mutu/ikp/lapor"];
 const halamanModul = (view: any, daftar: [string, string, any][]) =>
   daftar.map(([path, name, page]) => ({ path, name, meta: { layout: SidebarLayout, page, requiresAuth: true }, component: view }));
 
@@ -454,6 +475,12 @@ const router = createRouter({
       name: "command-center",
       meta: { layout: SidebarLayout, requiresAuth: true },
       component: () => import("@/views/Dashboard/CommandCenterView.vue"),
+    // Dashboard Eksekutif pimpinan (STD-0034): izin Dashboard › Eksekutif (permissions.ts) + fitur dashboard_eksekutif.
+    {
+      path: "/dashboard/eksekutif",
+      name: "dashboard-eksekutif",
+      meta: { layout: SidebarLayout, requiresAuth: true },
+      component: () => import("@/views/Dashboard/DashboardEksekutifView.vue"),
     },
     // Pratinjau modul segmen yang masih "Segera" (Setting › Manajemen Modul)
     {
@@ -1867,6 +1894,15 @@ const router = createRouter({
       ["/mutu/dokumen", "mutu-dokumen", DokumenMutuPage],
       ["/mutu/kredensial", "mutu-kredensial", KredensialMutuPage],
       ["/mutu/surveior", "mutu-surveior", SurveiorMutuPage],
+      ["/mutu/indikator", "mutu-indikator", CapaianIndikatorPage],
+      ["/mutu/indikator/master", "mutu-indikator-master", MasterIndikatorPage],
+      ["/mutu/indikator/data", "mutu-indikator-data", DataIndikatorPage],
+      ["/mutu/indikator/tindak-lanjut", "mutu-indikator-tindak-lanjut", TindakLanjutIndikatorPage],
+      ["/mutu/ikp", "mutu-ikp", DaftarIkpPage],
+      ["/mutu/ikp/lapor", "mutu-ikp-lapor", LaporIkpPage],
+      ["/mutu/ikp/dasbor", "mutu-ikp-dasbor", DasborIkpPage],
+      ["/mutu/ikp/risiko", "mutu-ikp-risiko", RisikoIkpPage],
+      ["/mutu/ikp/pengaturan", "mutu-ikp-pengaturan", PengaturanIkpPage],
     ]),
     // !SECTION
 
@@ -1885,6 +1921,17 @@ const router = createRouter({
     ...halamanModul(SdmView, [
       ["/sdm/kepegawaian", "sdm-kepegawaian", KepegawaianSdmPage],
       ["/sdm/kredensial", "sdm-kredensial", KredensialSdmPage],
+    ]),
+    { path: "/akuntansi", name: "akuntansi", redirect: "/akuntansi/jurnal" },
+    ...halamanModul(AkuntansiView, [
+      ["/akuntansi/coa", "akuntansi-coa", CoaAkuntansiPage],
+      ["/akuntansi/pemetaan", "akuntansi-pemetaan", PemetaanAkuntansiPage],
+      ["/akuntansi/jurnal", "akuntansi-jurnal", JurnalAkuntansiPage],
+      ["/akuntansi/persetujuan", "akuntansi-persetujuan", PersetujuanAkuntansiPage],
+      ["/akuntansi/buku-besar", "akuntansi-buku-besar", BukuBesarAkuntansiPage],
+      ["/akuntansi/neraca-saldo", "akuntansi-neraca-saldo", NeracaSaldoAkuntansiPage],
+      ["/akuntansi/periode", "akuntansi-periode", PeriodeAkuntansiPage],
+      ["/akuntansi/laporan", "akuntansi-laporan", LaporanAkuntansiPage],
     ]),
     // !SECTION
 

@@ -78,31 +78,31 @@
       "kode": "klinik_pratama",
       "nama": "Klinik Pratama",
       "urutan": 2,
-      "ringkas": "Pelayanan dasar, apotek & lab sederhana; FKTP BPJS."
+      "ringkas": "Pelayanan dasar, apotek & lab sederhana; FKTP BPJS; mutu & akreditasi."
     },
     {
       "kode": "klinik_utama",
       "nama": "Klinik Utama",
       "urutan": 3,
-      "ringkas": "Pelayanan spesialistik, penunjang, rawat inap terbatas; FKRTL BPJS."
+      "ringkas": "Pelayanan spesialistik, penunjang, rawat inap terbatas; FKRTL BPJS; mutu, SDM & sarpras."
     },
     {
       "kode": "puskesmas",
       "nama": "Puskesmas",
       "urutan": 4,
-      "ringkas": "FKTP pemerintah: banyak poli, program, laporan dinkes."
+      "ringkas": "FKTP pemerintah: banyak poli, program, laporan dinkes; mutu & ambulans."
     },
     {
       "kode": "rs_d",
       "nama": "Rumah Sakit Kelas D",
       "urutan": 5,
-      "ringkas": "Pelayanan dasar RS: rawat jalan, IGD, rawat inap, penunjang."
+      "ringkas": "Pelayanan dasar RS: rawat jalan, IGD, rawat inap, penunjang; mutu, SDM, sarpras & ambulans."
     },
     {
       "kode": "rs_c",
       "nama": "Rumah Sakit Kelas C",
       "urutan": 6,
-      "ringkas": "Kelas D + kamar operasi, gizi, koding rekam medis."
+      "ringkas": "Kelas D + kamar operasi, gizi, koding rekam medis, hemodialisa, akuntansi."
     },
     {
       "kode": "rs_b",
@@ -556,10 +556,10 @@
       "bidang": "Keuangan & Administrasi",
       "instalasi": "Akuntansi & Remunerasi",
       "inti": false,
-      "tersedia": false,
-      "deskripsi": "Jurnal, laporan keuangan, jasa pelayanan.",
-      "menu": [],
-      "rute": [],
+      "tersedia": true,
+      "deskripsi": "Akuntansi RS: bagan akun (COA) standar yang dapat disesuaikan per faskes, aturan pemetaan transaksi → akun, jurnal otomatis dari tagihan, pembayaran kasir, penerimaan & retur barang, dan pemakaian stok (idempoten, tertelusur ke dokumen sumber), jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang, buku besar, neraca saldo, tutup buku, serta laporan keuangan. Remunerasi (jasa pelayanan) menyusul.",
+      "menu": ["Akuntansi & Remunerasi"],
+      "rute": ["/akuntansi"],
       "urutan": 26
     },
     {
@@ -698,7 +698,7 @@
       "instalasi": "Manajemen Mutu",
       "inti": false,
       "tersedia": true,
-      "deskripsi": "Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dan dasbor kesiapan akreditasi.",
+      "deskripsi": "Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dasbor kesiapan akreditasi, indikator mutu (INM, IMP-RS, IMPU) dengan validasi data, capaian, dan tindak lanjut, serta pelaporan insiden keselamatan pasien dengan grading risiko, investigasi/RCA, dan register risiko unit.",
       "menu": ["Mutu & Akreditasi"],
       "rute": ["/mutu"],
       "urutan": 34
@@ -1720,6 +1720,36 @@
       "urutan": 82
     },
     {
+      "kode": "mutu_indikator",
+      "modul": "mutu",
+      "nama": "Indikator Mutu (INM, IMP-RS, IMPU)",
+      "deskripsi": "Profil indikator dengan set INM bawaan (perlu disahkan Komite Mutu) dan IMP-RS/IMPU buatan faskes, pengumpulan data per tanggal & unit (manual; waktu tunggu rawat jalan dapat dihitung otomatis), validasi pengumpul → validator, capaian & tren bulanan/triwulanan terhadap target, tindak lanjut, dan ekspor laporan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/mutu/indikator"],
+      "urutan": 102
+    },
+    {
+      "kode": "mutu_ikp",
+      "modul": "mutu",
+      "nama": "Insiden Keselamatan Pasien & Manajemen Risiko",
+      "deskripsi": "Pelaporan insiden keselamatan pasien (KTD, KNC, KTC, KPC, sentinel) oleh petugas dengan opsi anonim dan batas waktu 2 × 24 jam, penerimaan kepala unit, grading risiko matriks dampak × probabilitas (biru/hijau/kuning/merah), investigasi sederhana/RCA, rekomendasi & tindak lanjut terverifikasi, register risiko unit, dasbor & tren, serta ekspor rekap internal.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/mutu/ikp"],
+      "urutan": 103
+    },
+    {
+      "kode": "dashboard_eksekutif",
+      "modul": "dashboard",
+      "nama": "Dashboard Eksekutif",
+      "deskripsi": "Indikator pimpinan lintas modul: kunjungan RJ/RI/IGD, BOR/ALOS/TOI/BTO/NDR/GDR, waktu tunggu, pendapatan/kas/piutang, SEP BPJS, kesiapan akreditasi, kredensial & SDM; target KPI per faskes dengan warna status, tren, rincian agregat, dan ekspor PDF tanpa identitas pasien.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/dashboard/eksekutif"],
+      "urutan": 83
+    },
+    {
       "kode": "sdm_kepegawaian",
       "modul": "sdm",
       "nama": "Kepegawaian",
@@ -1778,6 +1808,26 @@
       "wajib": false,
       "rute": [],
       "urutan": 88
+    },
+    {
+      "kode": "akuntansi_jurnal",
+      "modul": "akuntansi",
+      "nama": "Jurnal & Buku Besar",
+      "deskripsi": "Bagan akun bawaan RS (perlu disahkan bagian keuangan) yang dapat disesuaikan, aturan pemetaan event → akun bertanggal berlaku, proses jurnal otomatis per periode dari tagihan final, pembayaran kasir (termasuk pengalihan ke piutang penjamin), penerimaan & retur barang supplier, dan pemakaian/pemusnahan stok — idempoten dan tertelusur ke dokumen sumber; jurnal manual/penyesuaian/koreksi beralasan dengan persetujuan berjenjang (pembuat ≠ penyetuju), buku besar, neraca saldo, serta tutup buku periode.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/akuntansi/coa", "/akuntansi/pemetaan", "/akuntansi/jurnal", "/akuntansi/persetujuan", "/akuntansi/buku-besar", "/akuntansi/neraca-saldo", "/akuntansi/periode"],
+      "urutan": 103
+    },
+    {
+      "kode": "akuntansi_laporan",
+      "modul": "akuntansi",
+      "nama": "Laporan Keuangan",
+      "deskripsi": "Neraca, laba rugi/laporan operasional, arus kas (metode langsung & tidak langsung), perubahan ekuitas, aging piutang per penjamin, dan aging utang supplier dari jurnal final, dengan ekspor Excel/PDF tercatat di Audit Trail.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/akuntansi/laporan"],
+      "urutan": 104
     }
   ],
   "bagian": [
@@ -2084,7 +2134,8 @@
         "inventory",
         "laboratorium",
         "bpjs_fktp",
-        "mcu"
+        "mcu",
+        "mutu"
       ],
       "klinik_utama": [
         "dashboard",
@@ -2103,7 +2154,10 @@
         "rawat_inap",
         "bpjs_fkrtl",
         "mcu",
-        "laundry"
+        "laundry",
+        "mutu",
+        "sdm",
+        "sarpras"
       ],
       "puskesmas": [
         "dashboard",
@@ -2118,7 +2172,9 @@
         "inventory",
         "laboratorium",
         "bpjs_fktp",
-        "program_puskesmas"
+        "program_puskesmas",
+        "mutu",
+        "ambulans"
       ],
       "rs_d": [
         "dashboard",
@@ -2137,7 +2193,11 @@
         "igd",
         "bpjs_fkrtl",
         "mcu",
-        "laundry"
+        "laundry",
+        "mutu",
+        "sdm",
+        "sarpras",
+        "ambulans"
       ],
       "rs_c": [
         "dashboard",
@@ -2161,7 +2221,13 @@
         "koding_rm",
         "mcu",
         "patologi_anatomi",
-        "laundry"
+        "laundry",
+        "mutu",
+        "sdm",
+        "sarpras",
+        "ambulans",
+        "hemodialisa",
+        "akuntansi"
       ],
       "rs_b": [
         "dashboard",
@@ -2190,7 +2256,12 @@
         "mcu",
         "patologi_anatomi",
         "mikrobiologi",
-        "laundry"
+        "laundry",
+        "mutu",
+        "sdm",
+        "sarpras",
+        "ambulans",
+        "hemodialisa"
       ],
       "rs_a": [
         "dashboard",
@@ -2220,7 +2291,12 @@
         "mcu",
         "patologi_anatomi",
         "mikrobiologi",
-        "laundry"
+        "laundry",
+        "mutu",
+        "sdm",
+        "sarpras",
+        "ambulans",
+        "hemodialisa"
       ]
     },
     "fitur_mati": {

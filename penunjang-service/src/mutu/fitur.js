@@ -3,7 +3,7 @@ import { fiturSarprasAktif } from "../sarpras/fitur.js";
 // Status fitur katalog (Manajemen Modul) modul Mutu & Akreditasi untuk faskes pengguna. Aturannya sama dengan
 // setting-service (fitur aktif = tersedia ∧ modul induk aktif ∧ (wajib ∨ override ∨ tidak dimatikan preset)); fungsi
 // pembacanya dipakai ulang dari sarpras/fitur.js (generik, fail-closed: galat database → nonaktif).
-export const FITUR_MUTU = ["mutu_dokumen_kredensial"];
+export const FITUR_MUTU = ["mutu_dokumen_kredensial", "mutu_indikator", "mutu_ikp"];
 
 export const fiturMutuAktif = (kode, faskesUuid) => fiturSarprasAktif(kode, faskesUuid);
 

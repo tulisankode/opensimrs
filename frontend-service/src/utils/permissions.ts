@@ -320,6 +320,9 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/sarpras/laporan", permission: read("Sarana dan Prasarana (IPSRS)", "Laporan Sarpras") },
   { path: "/sarpras", mode: "prefix", permission: read("Sarana dan Prasarana (IPSRS)", null, null, null) },
 
+  // Dashboard Eksekutif — laporan-service (STD-0034)
+  { path: "/dashboard/eksekutif", permission: read("Dashboard", "Eksekutif") },
+
   // Unit Hemodialisa — penunjang-service (STD-0033)
   { path: "/hemodialisa/jadwal", permission: read("Hemodialisa", "Registrasi & Jadwal") },
   { path: "/hemodialisa/registrasi", permission: read("Hemodialisa", "Registrasi & Jadwal") },
@@ -337,12 +340,31 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/mutu/dokumen", permission: read("Mutu & Akreditasi", "Dokumen Akreditasi") },
   { path: "/mutu/kredensial", permission: read("Mutu & Akreditasi", "Kredensial Staf") },
   { path: "/mutu/surveior", permission: read("Mutu & Akreditasi", "Akses Surveior") },
+  // Mutu & Akreditasi — indikator mutu (STD-0025, fitur mutu_indikator): capaian, master, data, tindak lanjut
+  { path: "/mutu/indikator", mode: "prefix", permission: read("Mutu & Akreditasi", "Indikator Mutu") },
+  // Mutu & Akreditasi — insiden keselamatan pasien (STD-0026, fitur mutu_ikp): izin terpisah per aksi
+  { path: "/mutu/ikp", permission: read("Mutu & Akreditasi", "Insiden Keselamatan Pasien") },
+  { path: "/mutu/ikp/lapor", permission: read("Mutu & Akreditasi", "Insiden Keselamatan Pasien", null, "LAPOR") },
+  { path: "/mutu/ikp/dasbor", permission: read("Mutu & Akreditasi", "Insiden Keselamatan Pasien", null, "DASBOR") },
+  { path: "/mutu/ikp/pengaturan", permission: read("Mutu & Akreditasi", "Insiden Keselamatan Pasien", null, "PENGATURAN") },
+  { path: "/mutu/ikp/risiko", permission: read("Mutu & Akreditasi", "Register Risiko") },
   { path: "/mutu", mode: "prefix", permission: read("Mutu & Akreditasi", null, null, null) },
 
   // HR / SDM — penunjang-service (STD-0035 fase 1: kepegawaian & kredensial pegawai; kredensial satu sumber dengan Mutu)
   { path: "/sdm/kepegawaian", permission: read("HR / SDM", "Kepegawaian") },
   { path: "/sdm/kredensial", permission: read("HR / SDM", "Kredensial") },
   { path: "/sdm", mode: "prefix", permission: read("HR / SDM", null, null, null) },
+
+  // Akuntansi & Remunerasi — penunjang-service (STD-0031: COA, pemetaan, jurnal, persetujuan, buku besar, periode, laporan)
+  { path: "/akuntansi/coa", permission: read("Akuntansi & Remunerasi", "Bagan Akun") },
+  { path: "/akuntansi/pemetaan", permission: read("Akuntansi & Remunerasi", "Pemetaan Akun") },
+  { path: "/akuntansi/jurnal", permission: read("Akuntansi & Remunerasi", "Jurnal") },
+  { path: "/akuntansi/persetujuan", permission: read("Akuntansi & Remunerasi", "Persetujuan Jurnal") },
+  { path: "/akuntansi/buku-besar", permission: read("Akuntansi & Remunerasi", "Buku Besar") },
+  { path: "/akuntansi/neraca-saldo", permission: read("Akuntansi & Remunerasi", "Buku Besar") },
+  { path: "/akuntansi/periode", permission: read("Akuntansi & Remunerasi", "Periode") },
+  { path: "/akuntansi/laporan", permission: read("Akuntansi & Remunerasi", "Laporan Keuangan") },
+  { path: "/akuntansi", mode: "prefix", permission: read("Akuntansi & Remunerasi", null, null, null) },
 
   // Bank Darah RS (BDRS) — penunjang-service
   { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },

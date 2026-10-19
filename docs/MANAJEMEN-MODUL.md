@@ -220,20 +220,20 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 1 berstatus Segera), **100 fitur** (4 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 0 berstatus Segera), **105 fitur** (4 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
 | Urutan | Singkatan | Kode | Nama | Gambaran | Modul bawaan |
 |---|---|---|---|---|---|
 | 1 | PM | `praktik_mandiri` | Dokter Praktik Mandiri | 1 dokter, rawat jalan; daftar–periksa–resep–bayar sederhana. | 9 |
-| 2 | KP | `klinik_pratama` | Klinik Pratama | Pelayanan dasar, apotek & lab sederhana; FKTP BPJS. | 13 |
-| 3 | KU | `klinik_utama` | Klinik Utama | Pelayanan spesialistik, penunjang, rawat inap terbatas; FKRTL BPJS. | 17 |
-| 4 | PKM | `puskesmas` | Puskesmas | FKTP pemerintah: banyak poli, program, laporan dinkes. | 13 |
-| 5 | RS D | `rs_d` | Rumah Sakit Kelas D | Pelayanan dasar RS: rawat jalan, IGD, rawat inap, penunjang. | 17 |
-| 6 | RS C | `rs_c` | Rumah Sakit Kelas C | Kelas D + kamar operasi, gizi, koding rekam medis. | 22 |
-| 7 | RS B | `rs_b` | Rumah Sakit Kelas B | Kelas C + ICU, CSSD, bank darah, akuntansi. | 27 |
-| 8 | RS A | `rs_a` | Rumah Sakit Kelas A | Pelayanan paripurna & rujukan nasional/provinsi, termasuk UTD. | 28 |
+| 2 | KP | `klinik_pratama` | Klinik Pratama | Pelayanan dasar, apotek & lab sederhana; FKTP BPJS; mutu & akreditasi. | 14 |
+| 3 | KU | `klinik_utama` | Klinik Utama | Pelayanan spesialistik, penunjang, rawat inap terbatas; FKRTL BPJS; mutu, SDM & sarpras. | 20 |
+| 4 | PKM | `puskesmas` | Puskesmas | FKTP pemerintah: banyak poli, program, laporan dinkes; mutu & ambulans. | 15 |
+| 5 | RS D | `rs_d` | Rumah Sakit Kelas D | Pelayanan dasar RS: rawat jalan, IGD, rawat inap, penunjang; mutu, SDM, sarpras & ambulans. | 21 |
+| 6 | RS C | `rs_c` | Rumah Sakit Kelas C | Kelas D + kamar operasi, gizi, koding rekam medis, hemodialisa, akuntansi. | 28 |
+| 7 | RS B | `rs_b` | Rumah Sakit Kelas B | Kelas C + ICU, CSSD, bank darah, akuntansi. | 32 |
+| 8 | RS A | `rs_a` | Rumah Sakit Kelas A | Pelayanan paripurna & rujukan nasional/provinsi, termasuk UTD. | 33 |
 
 ### B. Daftar modul per kelompok
 
@@ -277,7 +277,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `ambulans` | Manajemen Ambulans | Permintaan & penugasan ambulans, perjalanan (jarak/BBM/catatan pendamping), armada & kru, tarif, serta penerusan biaya ke tagihan kunjungan/kuitansi umum. | Tersedia | Penunjang Umum › Transportasi & Ambulans | Manajemen Ambulans |
 | `laundry` | Laundry & Linen | Siklus linen kotor–bersih: serah terima linen kotor dua petugas, batch cuci bertahap, distribusi linen bersih, stok & par level per ruangan, koreksi, rekonsiliasi, dan laporan beban cucian. | Tersedia | Penunjang Umum › Instalasi Laundry | Laundry |
 | `sarpras` | Sarana dan Prasarana (IPSRS) | Register aset medis & nonmedis, laporan kerusakan dan perbaikan (work order), pemeliharaan preventif, serta kalibrasi dan uji fungsi alat untuk Instalasi Pemeliharaan Sarana RS (IPSRS). | Tersedia | Penunjang Umum › IPSRS | Sarana dan Prasarana (IPSRS) |
-| `mutu` | Mutu & Akreditasi | Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dan dasbor kesiapan akreditasi. | Tersedia | Manajemen & Mutu › Manajemen Mutu | Mutu & Akreditasi |
+| `mutu` | Mutu & Akreditasi | Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dasbor kesiapan akreditasi, indikator mutu (INM, IMP-RS, IMPU) dengan validasi data, capaian, dan tindak lanjut, serta pelaporan insiden keselamatan pasien dengan grading risiko, investigasi/RCA, dan register risiko unit. | Tersedia | Manajemen & Mutu › Manajemen Mutu | Mutu & Akreditasi |
 | `sdm` | HR / SDM | Kepegawaian tertaut pegawai Data Master (status, unit, jabatan, golongan, pendidikan, riwayat bertanggal berlaku) dan kredensial pegawai yang satu sumber dengan Kredensial Staf Mutu & Akreditasi. Jadwal dinas, kehadiran/cuti, pelatihan, dan penggajian menyusul. | Tersedia | Keuangan & Administrasi › SDM & Kepegawaian | HR / SDM |
 
 #### Penjaminan
@@ -303,7 +303,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Tersedia | Penunjang Medis › Instalasi Rekam Medis | Koding Rekam Medis |
 | `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Penunjang Medis › Pelayanan Darah | Bank Darah RS (BDRS) |
 | `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Tersedia | Penunjang Medis › Pelayanan Darah | UTD |
-| `akuntansi` | Akuntansi & Remunerasi | Jurnal, laporan keuangan, jasa pelayanan. | Segera | Keuangan & Administrasi › Akuntansi & Remunerasi | – |
+| `akuntansi` | Akuntansi & Remunerasi | Akuntansi RS: bagan akun (COA) standar yang dapat disesuaikan per faskes, aturan pemetaan transaksi → akun, jurnal otomatis dari tagihan, pembayaran kasir, penerimaan & retur barang, dan pemakaian stok (idempoten, tertelusur ke dokumen sumber), jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang, buku besar, neraca saldo, tutup buku, serta laporan keuangan. Remunerasi (jasa pelayanan) menyusul. | Tersedia | Keuangan & Administrasi › Akuntansi & Remunerasi | Akuntansi & Remunerasi |
 | `hemodialisa` | Unit Hemodialisa | Registrasi HD akut/kronis, jadwal per mesin & shift, resep HD, asesmen pra-HD, pemantauan intradialitik, Kt/V & URR, pemakaian BHP & reuse dializer, tagihan tindakan, dan laporan unit. | Tersedia | Pelayanan Medis & Keperawatan › Unit Hemodialisa | Hemodialisa |
 
 ### C. Matriks modul × segmen (preset bawaan)
@@ -338,17 +338,17 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | CSSD (`cssd`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | Bank Darah RS (BDRS) (`bank_darah`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | UTD / UPTD Produksi Darah (`utd`) | Tersedia | – | – | – | – | – | – | – | ✓ |
-| Akuntansi & Remunerasi (`akuntansi`) | Segera | – | – | – | – | – | – | ✓ | ✓ |
+| Akuntansi & Remunerasi (`akuntansi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | Kelas Training (`training`) | Tersedia | – | – | – | – | – | – | – | – |
 | Medical Check Up (MCU) (`mcu`) | Tersedia | – | ✓ | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 | Patologi Anatomi (`patologi_anatomi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | Mikrobiologi (`mikrobiologi`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
-| Manajemen Ambulans (`ambulans`) | Tersedia | – | – | – | – | – | – | – | – |
+| Manajemen Ambulans (`ambulans`) | Tersedia | – | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Laundry & Linen (`laundry`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
-| Sarana dan Prasarana (IPSRS) (`sarpras`) | Tersedia | – | – | – | – | – | – | – | – |
-| Mutu & Akreditasi (`mutu`) | Tersedia | – | – | – | – | – | – | – | – |
-| Unit Hemodialisa (`hemodialisa`) | Tersedia | – | – | – | – | – | – | – | – |
-| HR / SDM (`sdm`) | Tersedia | – | – | – | – | – | – | – | – |
+| Sarana dan Prasarana (IPSRS) (`sarpras`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
+| Mutu & Akreditasi (`mutu`) | Tersedia | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Unit Hemodialisa (`hemodialisa`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
+| HR / SDM (`sdm`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
 
 ### D. Fitur per modul
 
@@ -360,6 +360,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 |---|---|---|---|---|---|---|
 | `helpdesk_ai` | Asisten Bantuan (Helpdesk AI) | Tombol Bantuan untuk bertanya cara memakai OpenSIMRS ke asisten AI. Hanya berlaku bila Gateway helpdesk dikonfigurasi di setting-service. | Tersedia | – | – | – |
 | `command_center` | Command Center | Dasbor operasional agregat untuk tempat tidur, IGD, dan antrean. | Tersedia | – | – | – |
+| `dashboard_eksekutif` | Dashboard Eksekutif | Indikator pimpinan lintas modul: kunjungan RJ/RI/IGD, BOR/ALOS/TOI/BTO/NDR/GDR, waktu tunggu, pendapatan/kas/piutang, SEP BPJS, kesiapan akreditasi, kredensial & SDM; target KPI per faskes dengan warna status, tren, rincian agregat, dan ekspor PDF tanpa identitas pasien. | Tersedia | – | – | – |
 
 #### Pendaftaran Pasien (`pendaftaran`)
 
@@ -499,6 +500,13 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `utd_distribusi` | Penyimpanan & Distribusi | Stok per golongan/komponen, distribusi ke BDRS/RS lain, pemusnahan kantong reaktif/kedaluwarsa. | Tersedia | – | – | – |
 | `utd_pelaporan` | Pelaporan UTD | Laporan produksi, donor & distribusi untuk Dinkes/Kemenkes. | Tersedia | – | – | – |
 
+#### Akuntansi & Remunerasi (`akuntansi`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `akuntansi_jurnal` | Jurnal & Buku Besar | Bagan akun bawaan RS (perlu disahkan bagian keuangan) yang dapat disesuaikan, aturan pemetaan event → akun bertanggal berlaku, proses jurnal otomatis per periode dari tagihan final, pembayaran kasir (termasuk pengalihan ke piutang penjamin), penerimaan & retur barang supplier, dan pemakaian/pemusnahan stok — idempoten dan tertelusur ke dokumen sumber; jurnal manual/penyesuaian/koreksi beralasan dengan persetujuan berjenjang (pembuat ≠ penyetuju), buku besar, neraca saldo, serta tutup buku periode. | Tersedia | Ya | – | – |
+| `akuntansi_laporan` | Laporan Keuangan | Neraca, laba rugi/laporan operasional, arus kas (metode langsung & tidak langsung), perubahan ekuitas, aging piutang per penjamin, dan aging utang supplier dari jurnal final, dengan ekspor Excel/PDF tercatat di Audit Trail. | Tersedia | – | – | – |
+
 #### Medical Check Up (MCU) (`mcu`)
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
@@ -566,6 +574,8 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
 | `mutu_dokumen_kredensial` | Dokumen Akreditasi & Kredensial Staf | Instrumen akreditasi milik faskes (bab/standar/elemen, impor CSV), dokumen akreditasi berversi dengan pemetaan bukti & pengingat tinjau ulang, kredensial staf (STR/SIP/sertifikat/RKK/SPK) dengan peringatan 90/30 hari, dasbor kesiapan, dan akses baca surveior. | Tersedia | – | – | – |
+| `mutu_indikator` | Indikator Mutu (INM, IMP-RS, IMPU) | Profil indikator dengan set INM bawaan (perlu disahkan Komite Mutu) dan IMP-RS/IMPU buatan faskes, pengumpulan data per tanggal & unit (manual; waktu tunggu rawat jalan dapat dihitung otomatis), validasi pengumpul → validator, capaian & tren bulanan/triwulanan terhadap target, tindak lanjut, dan ekspor laporan. | Tersedia | – | – | – |
+| `mutu_ikp` | Insiden Keselamatan Pasien & Manajemen Risiko | Pelaporan insiden keselamatan pasien (KTD, KNC, KTC, KPC, sentinel) oleh petugas dengan opsi anonim dan batas waktu 2 × 24 jam, penerimaan kepala unit, grading risiko matriks dampak × probabilitas (biru/hijau/kuning/merah), investigasi sederhana/RCA, rekomendasi & tindak lanjut terverifikasi, register risiko unit, dasbor & tren, serta ekspor rekap internal. | Tersedia | – | – | – |
 
 #### Unit Hemodialisa (`hemodialisa`)
 

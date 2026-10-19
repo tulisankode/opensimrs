@@ -11,6 +11,10 @@ import dokumen from "./dokumen.js";
 import kredensial from "./kredensial.js";
 import dasbor from "./dasbor.js";
 import surveior from "./surveior.js";
+import indikator from "./indikator.js";
+import indikatorData from "./indikator-data.js";
+import indikatorCapaian from "./indikator-capaian.js";
+import ikp from "./ikp.js";
 
 // Mutu & Akreditasi — /api/v3/penunjang/mutu/...
 // Fitur mutu_dokumen_kredensial (STD-0028):
@@ -21,11 +25,20 @@ import surveior from "./surveior.js";
 //   /dasbor                             dasbor kesiapan (dasbor.js)
 //   /surveior                           akses baca surveior (surveior.js)
 // Seluruh rute fitur ini mensyaratkan fitur mutu_dokumen_kredensial (dan modul mutu) aktif untuk faskes (403 bila
-// tidak); izin diperiksa per rute (Setting › Hak Akses, modul "Mutu & Akreditasi"). Fitur mutu berikutnya (indikator
-// mutu, IKP, PPI) memasang router & gerbang fiturnya sendiri di sini tanpa mengubah rute fitur ini.
+// tidak); izin diperiksa per rute (Setting › Hak Akses, modul "Mutu & Akreditasi"). Fitur mutu berikutnya (IKP, PPI)
+// memasang router & gerbang fiturnya sendiri di sini tanpa mengubah rute fitur ini.
+// Fitur mutu_indikator (STD-0025) — gerbang fitur & izin submodul "Indikator Mutu" sendiri:
+//   /indikator/data...                              pengumpulan, hitung otomatis, validasi (indikator-data.js)
+//   /indikator/dasbor, /laporan, /tindak-lanjut, /:uuid/tren   capaian & tindak lanjut (indikator-capaian.js)
+//   /indikator/referensi, /pasang-inm, /, /:uuid    master indikator (indikator.js; dipasang terakhir)
+// Fitur mutu_ikp (STD-0026) — gerbang fitur & izin submodul "Insiden Keselamatan Pasien" / "Register Risiko" sendiri:
+//   /ikp/...                                        pelaporan insiden, grading, investigasi/RCA, tindak lanjut,
+//                                                   register risiko, pengaturan, dasbor & ekspor (ikp*.js)
 const rute = express.Router();
 const MODUL = "Mutu & Akreditasi";
 const fiturDokumen = wajibFiturMutu("mutu_dokumen_kredensial");
+const fiturIndikator = wajibFiturMutu("mutu_indikator");
+const fiturIkp = wajibFiturMutu("mutu_ikp");
 
 rute.get(
   "/referensi",
@@ -63,6 +76,8 @@ rute.use("/dokumen", fiturDokumen, dokumen);
 rute.use("/kredensial", fiturDokumen, kredensial);
 rute.use("/dasbor", fiturDokumen, dasbor);
 rute.use("/surveior", fiturDokumen, surveior);
+rute.use("/indikator", fiturIndikator, indikatorData, indikatorCapaian, indikator);
+rute.use("/ikp", fiturIkp, ikp);
 // instrumen.js memasang gerbang fiturnya sendiri pada /instrumen, /bab, /standar, /elemen (rute lain diteruskan).
 rute.use(instrumen);
 
