@@ -1152,7 +1152,9 @@ export const sdmPermission = {
 
 // Akuntansi & Remunerasi (STD-0031): bagan akun, pemetaan event → akun, jurnal otomatis dari transaksi (idempoten),
 // jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang (pembuat ≠ penyetuju), buku besar & neraca saldo,
-// periode & tutup buku, serta laporan keuangan. Remunerasi (STD-0032) menambah submodul di modul yang sama.
+// periode & tutup buku, serta laporan keuangan. Remunerasi / jasa pelayanan (STD-0032): konfigurasi skema & penerima,
+// periode jaspel (hitung, kinerja, koreksi), verifikasi, persetujuan (pembuat ≠ verifikator ≠ penyetuju), pembayaran,
+// slip milik sendiri, dan rekap/ekspor — submodul tambahan di modul yang sama.
 export const akuntansiPermission = {
   module: "Akuntansi & Remunerasi",
   subModules: [
@@ -1163,6 +1165,13 @@ export const akuntansiPermission = {
     { name: "Buku Besar", allows: ["READ"] },
     { name: "Periode", allows: ["READ", "TUTUP BUKU", "BUKA KEMBALI", "PENGATURAN"] },
     { name: "Laporan Keuangan", allows: ["READ", "EKSPOR"] },
+    { name: "Konfigurasi Remunerasi", allows: ["READ", "CREATE", "UPDATE", "SAHKAN"] },
+    { name: "Periode Remunerasi", allows: ["READ", "CREATE", "HITUNG", "UPDATE", "KOREKSI"] },
+    { name: "Verifikasi Remunerasi", allows: ["READ", "VALIDASI", "KEMBALIKAN"] },
+    { name: "Persetujuan Remunerasi", allows: ["READ", "SETUJUI", "TOLAK"] },
+    { name: "Pembayaran Remunerasi", allows: ["READ", "BAYAR"] },
+    { name: "Slip Remunerasi", allows: ["READ"] },
+    { name: "Rekap Remunerasi", allows: ["READ", "EKSPOR"] },
   ],
 };
 

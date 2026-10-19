@@ -343,6 +343,11 @@ import BukuBesarAkuntansiPage from "@/views/Akuntansi/BukuBesarPage.vue";
 import NeracaSaldoAkuntansiPage from "@/views/Akuntansi/NeracaSaldoPage.vue";
 import PeriodeAkuntansiPage from "@/views/Akuntansi/PeriodePage.vue";
 import LaporanAkuntansiPage from "@/views/Akuntansi/LaporanPage.vue";
+// Remunerasi — jasa pelayanan (STD-0032, fitur katalog akuntansi_remunerasi)
+import PeriodeRemunerasiPage from "@/views/Akuntansi/Remunerasi/PeriodePage.vue";
+import RekapRemunerasiPage from "@/views/Akuntansi/Remunerasi/RekapPage.vue";
+import SlipRemunerasiPage from "@/views/Akuntansi/Remunerasi/SlipPage.vue";
+import KonfigurasiRemunerasiPage from "@/views/Akuntansi/Remunerasi/KonfigurasiPage.vue";
 
 // NOTE Unit Hemodialisa — jadwal, sesi HD, dializer, bridging HDIS (STD-0033, penunjang-service)
 import HemodialisaView from "@/views/Hemodialisa/HemodialisaView.vue";
@@ -1933,7 +1938,12 @@ const router = createRouter({
       ["/akuntansi/neraca-saldo", "akuntansi-neraca-saldo", NeracaSaldoAkuntansiPage],
       ["/akuntansi/periode", "akuntansi-periode", PeriodeAkuntansiPage],
       ["/akuntansi/laporan", "akuntansi-laporan", LaporanAkuntansiPage],
+      ["/akuntansi/remunerasi/periode", "akuntansi-remunerasi-periode", PeriodeRemunerasiPage],
+      ["/akuntansi/remunerasi/rekap", "akuntansi-remunerasi-rekap", RekapRemunerasiPage],
+      ["/akuntansi/remunerasi/slip", "akuntansi-remunerasi-slip", SlipRemunerasiPage],
+      ["/akuntansi/remunerasi/konfigurasi", "akuntansi-remunerasi-konfigurasi", KonfigurasiRemunerasiPage],
     ]),
+    { path: "/akuntansi/remunerasi", name: "akuntansi-remunerasi", redirect: "/akuntansi/remunerasi/periode" },
     // !SECTION
 
     // SECTION Program Puskesmas (program-puskesmas-service)

@@ -105,4 +105,9 @@ export const PEMETAAN_BAWAAN = [
   ["pemakaian_stok", "persediaan", "1-1403"],
   ["jaspel", "beban_jaspel", "5-1101"],
   ["jaspel", "utang_jaspel", "2-1301"],
+  // Pembayaran jaspel (STD-0032). Faskes yang sudah memasang bawaan: jalankan "Pasang COA & Pemetaan Bawaan" lagi —
+  // hanya komponen yang belum punya aturan yang ditambahkan.
+  ["jaspel_bayar", "utang_jaspel", "2-1301"],
+  ["jaspel_bayar", "kas:CASH", "1-1101"],
+  ["jaspel_bayar", "kas", "1-1201"],
 ];
