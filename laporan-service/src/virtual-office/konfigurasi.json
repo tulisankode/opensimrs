@@ -1,5 +1,5 @@
 {
-  "versi": 2,
+  "versi": 3,
   "interval_polling": 30,
   "batas_ruang": 12,
   "unit": [
@@ -94,6 +94,7 @@
   },
   "jalur": [
     { "asal": "pendaftaran", "tujuan": "rawat_jalan", "label": "Kunjungan rawat jalan terdaftar hari ini" },
+    { "asal": "pendaftaran", "tujuan": "igd", "label": "Pasien IGD terdaftar hari ini" },
     { "asal": "rawat_jalan", "tujuan": "laboratorium", "label": "Order laboratorium dari rawat jalan" },
     { "asal": "rawat_jalan", "tujuan": "radiologi", "label": "Order radiologi dari rawat jalan" },
     { "asal": "rawat_jalan", "tujuan": "farmasi", "label": "Resep dari rawat jalan" },

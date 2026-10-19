@@ -37,6 +37,12 @@ export type Unit = {
   metrik?: Metrik[]
   ruang?: Ruang[]
   posisi: Posisi
+  // Deskripsi tampilan Kantor dari konfigurasi server: jenis perabot, label peran bidang kerja (bukan nama pegawai),
+  // dan kata satuan untuk log aktivitas.
+  jenisRuang?: string | null
+  petugas?: string[]
+  petugasRuang?: string[]
+  satuan?: string
 }
 export type Jalur = { asal: string; tujuan: string; label: string; jumlah: number }
 export type Snapshot = {
@@ -93,3 +99,13 @@ export const posisiAvatar = (p: Posisi, menunggu: number, dilayani: number) => {
   }
   return hasil.sort((a, b) => a.y - b.y)
 }
+
+// Turunan warna merek dari warna utama tema faskes (warnaTema): t > 0 dicampur putih, t < 0 dicampur hitam.
+export const campur = (hex: string, t: number) => {
+  const h = hex.replace('#', '')
+  const rgb = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16))
+  if (rgb.some((n) => Number.isNaN(n))) return hex
+  return '#' + rgb.map((c) => Math.round(t >= 0 ? c + (255 - c) * t : c * (1 + t)).toString(16).padStart(2, '0')).join('')
+}
+export const paletMerek = (utama: string) => ({ utama, tua: campur(utama, -0.3), muda: campur(utama, 0.92), lembut: campur(utama, 0.8), sedang: campur(utama, 0.62) })
+export type PaletMerek = ReturnType<typeof paletMerek>

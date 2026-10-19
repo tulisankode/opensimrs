@@ -1,29 +1,26 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { warnaTema } from '@/utils/tema'
 import {
   type Jalur, type Pilihan, type Posisi, type Snapshot,
   MAKS_AVATAR_DILAYANI, MAKS_AVATAR_MENUNGGU, SETENGAH_LEBAR, SETENGAH_TINGGI,
-  dindingBarat, dindingSelatan, dindingTimur, dindingUtara, iso, lantai, posisiAvatar, tengah, titik, warnaBeban,
+  dindingBarat, dindingSelatan, dindingTimur, dindingUtara, iso, lantai, paletMerek, posisiAvatar, tengah, titik, warnaBeban,
 } from './petaIsometrik'
+import { type Gerakan, jalurBeraliran } from './gerakan'
+import { useAngkaHalus, useGerakKurang } from './animasi'
+import LapisanPejalan from './LapisanPejalan.vue'
 
 // Peta isometrik 2.5D (SVG) Virtual Office: lantai berpetak, zona unit, ruang berdinding rendah, avatar beban kerja,
 // jalur lintas unit. Geser = seret / tombol panah; zoom = roda mouse / cubit (pinch) / tombol + −. Hanya membaca snapshot.
-const props = defineProps<{ snapshot: Snapshot; pilihan: Pilihan }>()
+// Hidup tanpa data karangan: avatar berjalan hanya untuk selisih nyata antar-snapshot (`gerakan`), antrean bergoyang
+// pelan, ruang Padat berdenyut, angka berubah dengan count-up + kilatan. prefers-reduced-motion mematikan semuanya.
+const props = defineProps<{ snapshot: Snapshot; pilihan: Pilihan; gerakan?: Gerakan | null }>()
 const emit = defineEmits<{ (e: 'pilih', p: Pilihan): void }>()
 
 const TINGGI_UNIT = 30
 const TINGGI_RUANG = 24
 const TINGGI_DEPAN = 7
 
-// Turunan warna merek dihitung dari warna utama tema faskes (warnaTema), t > 0 dicampur putih, t < 0 dicampur hitam.
-const campur = (hex: string, t: number) => {
-  const h = hex.replace('#', '')
-  const rgb = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16))
-  if (rgb.some((n) => Number.isNaN(n))) return hex
-  return '#' + rgb.map((c) => Math.round(t >= 0 ? c + (255 - c) * t : c * (1 + t)).toString(16).padStart(2, '0')).join('')
-}
-const paletMerek = (utama: string) => ({ utama, tua: campur(utama, -0.3), muda: campur(utama, 0.92), lembut: campur(utama, 0.8), sedang: campur(utama, 0.62) })
 const brand = ref(paletMerek('#14b8a6'))
 onMounted(() => { brand.value = paletMerek(warnaTema('300')) })
 
@@ -36,14 +33,16 @@ type Ruangan = {
   posisi: Posisi
   menunggu: number
   dilayani: number
+  selesai: number
   tinggi: number
   terkunci: boolean
   galat: boolean
   beban: any
   aria: string
 }
-type Zona = { kodeUnit: string; nama: string; posisi: Posisi; sub: string }
+type Zona = { kodeUnit: string; nama: string; posisi: Posisi; sub: string; menunggu: number; dilayani: number; selesai: number }
 
+const kurang = useGerakKurang()
 const ringkas = (m?: number, d?: number) => `Antre ${m ?? 0} · Dilayani ${d ?? 0}`
 
 const susunan = computed(() => {
@@ -53,20 +52,20 @@ const susunan = computed(() => {
     const terkunci = !!u.terkunci
     const galat = !!u.galat
     if (u.ruang?.length && !terkunci) {
-      zona.push({ kodeUnit: u.kodeUnit, nama: u.nama, posisi: u.posisi, sub: `${ringkas(u.menunggu, u.dilayani)} · Selesai ${u.selesai ?? 0}` })
+      zona.push({ kodeUnit: u.kodeUnit, nama: u.nama, posisi: u.posisi, sub: `${ringkas(u.menunggu, u.dilayani)} · Selesai ${u.selesai ?? 0}`, menunggu: u.menunggu ?? 0, dilayani: u.dilayani ?? 0, selesai: u.selesai ?? 0 })
       for (const r of u.ruang) {
         ruangan.push({
           kunci: `${u.kodeUnit}:${r.kodeRuang}`, kodeUnit: u.kodeUnit, kodeRuang: r.kodeRuang, nama: r.nama,
-          sub: r.bor !== undefined && r.bor !== null ? `${ringkas(r.menunggu, r.dilayani)} · BOR ${r.bor}%` : ringkas(r.menunggu, r.dilayani),
-          posisi: r.posisi, menunggu: r.menunggu, dilayani: r.dilayani, tinggi: TINGGI_RUANG, terkunci: false, galat: false, beban: r.beban,
+          sub: r.bor !== undefined && r.bor !== null ? ` · BOR ${r.bor}%` : '',
+          posisi: r.posisi, menunggu: r.menunggu, dilayani: r.dilayani, selesai: r.selesai, tinggi: TINGGI_RUANG, terkunci: false, galat: false, beban: r.beban,
           aria: `${u.nama} › ${r.nama}: ${r.menunggu} menunggu, ${r.dilayani} dilayani, ${r.selesai} selesai`,
         })
       }
     } else {
       ruangan.push({
         kunci: u.kodeUnit, kodeUnit: u.kodeUnit, nama: u.nama,
-        sub: terkunci ? 'Terkunci' : galat ? 'Sumber gagal dimuat' : ringkas(u.menunggu, u.dilayani),
-        posisi: u.posisi, menunggu: u.menunggu ?? 0, dilayani: u.dilayani ?? 0, tinggi: TINGGI_UNIT, terkunci, galat, beban: u.beban,
+        sub: terkunci ? 'Terkunci' : galat ? 'Sumber gagal dimuat' : '',
+        posisi: u.posisi, menunggu: u.menunggu ?? 0, dilayani: u.dilayani ?? 0, selesai: u.selesai ?? 0, tinggi: TINGGI_UNIT, terkunci, galat, beban: u.beban,
         aria: terkunci ? `${u.nama}: terkunci, perlu izin ${u.izinDibutuhkan}` : galat ? `${u.nama}: sumber data gagal dimuat` : `${u.nama}: ${u.menunggu} menunggu, ${u.dilayani} dilayani, ${u.selesai} selesai`,
       })
     }
@@ -75,6 +74,45 @@ const susunan = computed(() => {
   ruangan.sort((a, b) => a.posisi.x + a.posisi.y + a.posisi.w + a.posisi.d - (b.posisi.x + b.posisi.y + b.posisi.w + b.posisi.d))
   return { ruangan, zona }
 })
+
+// ---- angka count-up & kilatan perubahan ----
+const angkaSumber = () => {
+  const m: Record<string, number> = {}
+  for (const r of susunan.value.ruangan) { m[`${r.kunci}|m`] = r.menunggu; m[`${r.kunci}|d`] = r.dilayani }
+  for (const z of susunan.value.zona) { m[`z-${z.kodeUnit}|m`] = z.menunggu; m[`z-${z.kodeUnit}|d`] = z.dilayani; m[`z-${z.kodeUnit}|s`] = z.selesai }
+  for (const j of props.snapshot.jalur) m[`j-${j.asal}>${j.tujuan}`] = j.jumlah
+  return m
+}
+const angka = useAngkaHalus(angkaSumber, kurang)
+const n = (k: string, cadangan: number) => angka.value[k] ?? cadangan
+const subRuang = (r: Ruangan) => (r.terkunci || r.galat ? r.sub : `${ringkas(n(`${r.kunci}|m`, r.menunggu), n(`${r.kunci}|d`, r.dilayani))}${r.sub}`)
+const subZona = (z: Zona) => `${ringkas(n(`z-${z.kodeUnit}|m`, z.menunggu), n(`z-${z.kodeUnit}|d`, z.dilayani))} · Selesai ${n(`z-${z.kodeUnit}|s`, z.selesai)}`
+
+const kilat = ref<{ versi: number; kunci: Set<string> }>({ versi: 0, kunci: new Set() })
+let pewaktuKilat: ReturnType<typeof setTimeout> | undefined
+watch(() => props.snapshot, (baru, lama) => {
+  if (!lama || lama.tanggal !== baru.tanggal) return
+  const sidik = (s: Snapshot) => {
+    const m = new Map<string, string>()
+    for (const u of s.unit) {
+      if (u.terkunci || u.galat) continue
+      m.set(u.kodeUnit, `${u.menunggu}|${u.dilayani}|${u.selesai}`)
+      for (const r of u.ruang ?? []) m.set(`${u.kodeUnit}:${r.kodeRuang}`, `${r.menunggu}|${r.dilayani}|${r.selesai}`)
+    }
+    return m
+  }
+  const a = sidik(lama)
+  const b = sidik(baru)
+  const kunci = new Set([...b].filter(([k, v]) => a.has(k) && a.get(k) !== v).map(([k]) => k))
+  if (!kunci.size) return
+  kilat.value = { versi: kilat.value.versi + 1, kunci }
+  clearTimeout(pewaktuKilat)
+  pewaktuKilat = setTimeout(() => (kilat.value = { versi: kilat.value.versi, kunci: new Set() }), 1600)
+})
+onUnmounted(() => clearTimeout(pewaktuKilat))
+
+// Garis jalur hanya beranimasi bila ada arus nyata pada pembaruan terakhir.
+const beraliran = computed(() => jalurBeraliran(props.gerakan ?? null))
 
 const batas = computed(() => {
   const { lebar, dalam } = props.snapshot.denah
@@ -253,7 +291,8 @@ const tombolPeta = (e: KeyboardEvent) => {
             <polygon :points="meja(r.posisi).selatan" fill="#cbd5e1" />
             <polygon :points="meja(r.posisi).timur" fill="#94a3b8" />
           </g>
-          <g v-for="(a, i) in posisiAvatar(r.posisi, r.menunggu, r.dilayani)" :key="i" class="avatar" :style="{ animationDelay: `${(i % 5) * 0.35}s` }">
+          <g v-for="(a, i) in posisiAvatar(r.posisi, r.menunggu, r.dilayani)" :key="i" :class="a.jenis === 'dilayani' ? 'layani' : 'antre'"
+            :style="{ animationDelay: `${-((i * 0.53) % 3)}s` }">
             <ellipse :cx="a.x" :cy="a.y" rx="5" ry="2.4" fill="#0f172a" opacity="0.12" />
             <path :d="`M${a.x - 4.5},${a.y} q0,-11 4.5,-11 q4.5,0 4.5,11 z`" :fill="a.jenis === 'dilayani' ? brand.utama : '#f59e0b'" />
             <circle :cx="a.x" :cy="a.y - 14" r="3.6" :fill="a.jenis === 'dilayani' ? brand.tua : '#b45309'" />
@@ -271,8 +310,10 @@ const tombolPeta = (e: KeyboardEvent) => {
           <text v-else :x="tengah(r.posisi, 6)[0]" :y="tengah(r.posisi, 6)[1]" text-anchor="middle" font-size="16" font-weight="700" fill="#64748b">!</text>
         </g>
         <!-- dinding depan rendah = warna beban -->
-        <polygon :points="dindingSelatan(r.posisi, TINGGI_DEPAN)" :fill="warnaBeban(r.beban, r.terkunci, r.galat).garis" opacity="0.9" />
-        <polygon :points="dindingTimur(r.posisi, TINGGI_DEPAN)" :fill="warnaBeban(r.beban, r.terkunci, r.galat).garis" opacity="0.7" />
+        <polygon v-if="r.beban === 'merah' && !r.terkunci && !r.galat" :points="lantai(r.posisi)" fill="#dc2626" class="denyut-lantai" />
+        <polygon :points="dindingSelatan(r.posisi, TINGGI_DEPAN)" :fill="warnaBeban(r.beban, r.terkunci, r.galat).garis" opacity="0.9" :class="{ denyut: r.beban === 'merah' }" />
+        <polygon :points="dindingTimur(r.posisi, TINGGI_DEPAN)" :fill="warnaBeban(r.beban, r.terkunci, r.galat).garis" opacity="0.7" :class="{ denyut: r.beban === 'merah' }" />
+        <polygon v-if="kilat.kunci.has(r.kunci)" :key="'k' + kilat.versi" :points="lantai(r.posisi)" :fill="brand.utama" class="kilat" />
         <polygon v-if="unitDipilih(r.kodeUnit, r.kodeRuang) && (r.kodeRuang || !(pilihan as any)?.kodeRuang)" :points="lantai(r.posisi)" fill="none" :stroke="brand.tua" stroke-width="3" />
       </g>
 
@@ -283,19 +324,23 @@ const tombolPeta = (e: KeyboardEvent) => {
         <title>{{ x.j.label }}: {{ x.j.jumlah }}</title>
         <path :d="x.g!.d" fill="none" stroke="transparent" stroke-width="14" />
         <path :d="x.g!.d" fill="none" :stroke="jalurDipilih(x.j) ? brand.tua : brand.utama" :stroke-width="jalurDipilih(x.j) ? x.tebal + 1.5 : x.tebal"
-          :stroke-opacity="x.j.jumlah > 0 ? 0.75 : 0.25" stroke-linecap="round" :stroke-dasharray="x.j.jumlah > 0 ? '10 8' : '2 6'" :class="{ alir: x.j.jumlah > 0 }" />
+          :stroke-opacity="x.j.jumlah > 0 ? 0.75 : 0.25" stroke-linecap="round" :stroke-dasharray="x.j.jumlah > 0 ? '10 8' : '2 6'"
+          :class="{ alir: beraliran.has(x.j.asal + '>' + x.j.tujuan) }" />
         <g v-if="x.j.jumlah > 0">
           <rect :x="x.g!.label[0] - 13" :y="x.g!.label[1] - 9" width="26" height="16" rx="8" fill="#ffffff" :stroke="brand.utama" />
-          <text :x="x.g!.label[0]" :y="x.g!.label[1] + 3" text-anchor="middle" font-size="10" font-weight="600" :fill="brand.tua">{{ x.j.jumlah }}</text>
+          <text :x="x.g!.label[0]" :y="x.g!.label[1] + 3" text-anchor="middle" font-size="10" font-weight="600" :fill="brand.tua">{{ n(`j-${x.j.asal}>${x.j.tujuan}`, x.j.jumlah) }}</text>
         </g>
       </g>
+
+      <!-- pasien berjalan untuk perpindahan nyata sejak snapshot sebelumnya -->
+      <LapisanPejalan :snapshot="snapshot" :gerakan="gerakan ?? null" :kurang="kurang" :warna="brand.tua" />
 
       <!-- label (lapisan teratas agar tetap terbaca) -->
       <g pointer-events="none">
         <!-- nama zona "dicat" di tepi depan lantai zona, mengikuti sumbu x isometrik -->
         <g v-for="z in susunan.zona" :key="'lz-' + z.kodeUnit" :transform="tulisLantai(z.posisi)">
           <text x="0" y="-12" font-size="13" font-weight="700" :fill="brand.tua">{{ z.nama }}</text>
-          <text x="0" y="0" font-size="10" fill="#475569">{{ z.sub }}</text>
+          <text x="0" y="0" font-size="10" fill="#475569">{{ subZona(z) }}</text>
         </g>
         <g v-for="r in susunan.ruangan" :key="'l-' + r.kunci">
           <circle :cx="tengah(r.posisi, r.tinggi + 34)[0] - Math.min(r.nama.length, 22) * 3.2 - 8" :cy="tengah(r.posisi, r.tinggi + 34)[1] - 3.5" r="4"
@@ -303,7 +348,7 @@ const tombolPeta = (e: KeyboardEvent) => {
           <text :x="tengah(r.posisi, r.tinggi + 34)[0]" :y="tengah(r.posisi, r.tinggi + 34)[1]" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1e293b" class="label">
             {{ r.nama.length > 22 ? r.nama.slice(0, 21) + '…' : r.nama }}
           </text>
-          <text :x="tengah(r.posisi, r.tinggi + 21)[0]" :y="tengah(r.posisi, r.tinggi + 21)[1]" text-anchor="middle" font-size="9.5" fill="#475569" class="label">{{ r.sub }}</text>
+          <text :x="tengah(r.posisi, r.tinggi + 21)[0]" :y="tengah(r.posisi, r.tinggi + 21)[1]" text-anchor="middle" font-size="9.5" fill="#475569" class="label">{{ subRuang(r) }}</text>
         </g>
       </g>
     </g>
@@ -320,7 +365,20 @@ const tombolPeta = (e: KeyboardEvent) => {
 .label { paint-order: stroke; stroke: #ffffff; stroke-width: 3px; stroke-linejoin: round; }
 .alir { animation: alir 1.4s linear infinite; }
 @keyframes alir { to { stroke-dashoffset: -18; } }
-.avatar { animation: napas 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom; }
-@keyframes napas { 50% { transform: translateY(-1.2px); } }
-@media (prefers-reduced-motion: reduce) { .alir, .avatar { animation: none; } }
+.antre, .layani { transform-box: fill-box; transform-origin: bottom; }
+/* menunggu: bergeser/bergoyang pelan di baris antre; dilayani: mengangguk ringan di depan meja */
+.antre { animation: antre 3.2s ease-in-out infinite; }
+@keyframes antre { 0%, 100% { transform: translate(0, 0); } 30% { transform: translate(0.9px, -0.8px); } 60% { transform: translate(-0.7px, 0); } }
+.layani { animation: layani 1.6s ease-in-out infinite; }
+@keyframes layani { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-4deg) translateY(-0.6px); } 50% { transform: rotate(2deg); } }
+.denyut { animation: denyut 1.8s ease-in-out infinite; }
+@keyframes denyut { 50% { opacity: 0.4; } }
+.denyut-lantai { opacity: 0; animation: denyut-lantai 1.8s ease-in-out infinite; pointer-events: none; }
+@keyframes denyut-lantai { 50% { opacity: 0.12; } }
+.kilat { opacity: 0; animation: kilat 1.4s ease-out 1; pointer-events: none; }
+@keyframes kilat { 15% { opacity: 0.35; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .alir, .antre, .layani, .denyut, .denyut-lantai { animation: none; }
+  .kilat { animation-duration: 0.01s; }
+}
 </style>

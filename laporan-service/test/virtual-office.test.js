@@ -20,7 +20,7 @@ const sumberContoh = () => ({
     ],
     masuk: { pendaftaran: 11 },
   },
-  igd: { menunggu: 1, dilayani: 2, selesai: 0, metrik: [] },
+  igd: { menunggu: 1, dilayani: 2, selesai: 0, metrik: [], masuk: { pendaftaran: 4 } },
   rawat_inap: {
     menunggu: 1, dilayani: 9, selesai: 1, bor: 90, metrik: [],
     ruang: [{ kode_ruang: "r-1", nama: "Melati", menunggu: 1, dilayani: 9, selesai: 1, bor: 90, metrik: [] }],
@@ -94,6 +94,7 @@ test("bawaan data nyata: angka per unit sesuai sumber, beban dari ambang, tanpa 
   assert.ok(u.rawat_jalan.ruang.every((r) => r.posisi && r.posisi.w > 0))
   const lab = p.jalur.find((j) => j.asal === "rawat_jalan" && j.tujuan === "laboratorium")
   assert.equal(lab.jumlah, 3)
+  assert.equal(p.jalur.find((j) => j.asal === "pendaftaran" && j.tujuan === "igd").jumlah, 4)
   assert.ok(!JSON.stringify(p).includes("simulasi"))
 })
 
