@@ -140,7 +140,7 @@ ui_mulai "$LANGKAH" "${TMPDIR:-/tmp}/opensimrs-uninstall-$(date +%Y%m%d-%H%M%S).
 printf '\n%sHapus instalasi OpenSIMRS%s  %s%s%s\n' "$T" "$N" "$R" "$ROOT" "$N"
 echo "  Yang akan dihapus:"
 if [ "$PODMAN" = 1 ]; then
-  echo "    • Podman: kontainer opensimrs-db, opensimrs-mongodb, opensimrs-redis + volumenya (semua data di dalamnya)"
+  echo "    • Podman: kontainer proyek opensimrs (db, mongodb, redis, dan sisa lain seperti opensimrs-gateway) + volumenya (semua data di dalamnya)"
 else
   echo "    • PostgreSQL (port $DB_PORT): database \"$DB_NAMA\" & role \"$DB_USER\""
   echo "    • MongoDB: database \"$MONGO_DB\" & akun \"$MONGO_USER\""
@@ -213,7 +213,8 @@ else warn "Tanpa cadangan"; fi
 ui_langkah "Basis data OpenSIMRS"
 if [ "$PODMAN" = 1 ]; then
   # Bila gagal, berhenti sebelum .env dihapus: tanpa .env, volume yang tertinggal tidak bisa dibuka lagi.
-  aksi "podman compose down -v (kontainer + volume OpenSIMRS)" podman compose -f docker-compose.yml down -v \
+  # --remove-orphans: ikut menghapus kontainer proyek yang sama dari compose lain (mis. opensimrs-gateway dari deploy/server).
+  aksi "podman compose down -v --remove-orphans (kontainer + volume OpenSIMRS)" podman compose -f docker-compose.yml down -v --remove-orphans \
     || mati "podman compose down gagal — berkas instalasi (.env dll.) tidak dihapus agar uninstall bisa diulang."
 else
   if ada psql; then
