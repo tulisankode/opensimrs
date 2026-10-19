@@ -341,6 +341,12 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/mutu/surveior", permission: read("Mutu & Akreditasi", "Akses Surveior") },
   // Mutu & Akreditasi — indikator mutu (STD-0025, fitur mutu_indikator): capaian, master, data, tindak lanjut
   { path: "/mutu/indikator", mode: "prefix", permission: read("Mutu & Akreditasi", "Indikator Mutu") },
+  // Mutu & Akreditasi — insiden keselamatan pasien (STD-0026, fitur mutu_ikp): izin terpisah per aksi
+  { path: "/mutu/ikp", permission: read("Mutu & Akreditasi", "Insiden Keselamatan Pasien") },
+  { path: "/mutu/ikp/lapor", permission: read("Mutu & Akreditasi", "Insiden Keselamatan Pasien", null, "LAPOR") },
+  { path: "/mutu/ikp/dasbor", permission: read("Mutu & Akreditasi", "Insiden Keselamatan Pasien", null, "DASBOR") },
+  { path: "/mutu/ikp/pengaturan", permission: read("Mutu & Akreditasi", "Insiden Keselamatan Pasien", null, "PENGATURAN") },
+  { path: "/mutu/ikp/risiko", permission: read("Mutu & Akreditasi", "Register Risiko") },
   { path: "/mutu", mode: "prefix", permission: read("Mutu & Akreditasi", null, null, null) },
 
   // HR / SDM — penunjang-service (STD-0035 fase 1: kepegawaian & kredensial pegawai; kredensial satu sumber dengan Mutu)

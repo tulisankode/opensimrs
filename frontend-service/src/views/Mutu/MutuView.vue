@@ -7,9 +7,25 @@ import { computed } from "vue";
 
 // Mutu & Akreditasi (penunjang-service). Fitur mutu_dokumen_kredensial (STD-0028): dasbor kesiapan, instrumen
 // akreditasi, dokumen akreditasi, kredensial staf, dan dokumen yang dibagikan ke surveior. Fitur mutu_indikator
-// (STD-0025): dasbor capaian, master indikator, pengumpulan & validasi data, dan tindak lanjut. Menu disaring izin oleh
-// Sidebar; setiap fitur menambah bagian sidebar sendiri dengan syarat fiturnya.
+// (STD-0025): dasbor capaian, master indikator, pengumpulan & validasi data, dan tindak lanjut. Fitur mutu_ikp
+// (STD-0026): lapor insiden, daftar laporan, dasbor IKP, register risiko unit, dan pengaturan matriks/batas waktu. Menu
+// disaring izin oleh Sidebar; setiap fitur menambah bagian sidebar sendiri dengan syarat fiturnya.
 const sidebarBodyList = computed<SidebarBody[]>(() => [
+  ...(fiturAktif("mutu_ikp")
+    ? [
+        {
+          name: "Insiden Keselamatan Pasien",
+          type: linkType.SECTION,
+          child: [
+            { name: "Lapor Insiden", icon: "PhWarningCircle", type: linkType.LINK, url: "/mutu/ikp/lapor" },
+            { name: "Daftar Laporan IKP", icon: "PhClipboardText", type: linkType.LINK, url: "/mutu/ikp" },
+            { name: "Dasbor IKP", icon: "PhChartBar", type: linkType.LINK, url: "/mutu/ikp/dasbor" },
+            { name: "Register Risiko", icon: "PhShieldWarning", type: linkType.LINK, url: "/mutu/ikp/risiko" },
+            { name: "Pengaturan IKP", icon: "PhGear", type: linkType.LINK, url: "/mutu/ikp/pengaturan" },
+          ],
+        },
+      ]
+    : []),
   ...(fiturAktif("mutu_indikator")
     ? [
         {
