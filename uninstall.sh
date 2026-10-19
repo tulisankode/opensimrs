@@ -147,6 +147,7 @@ else
   echo "    • Redis (port $REDIS_PORT, db $REDIS_DB): kunci sesi token-*"
 fi
 echo "    • Berkas buatan instalasi di repo: node_modules, .env*, dist, studio-service/data, worktree SIMRS Studio"
+echo "    • Gateway akses domain (bila ada): kontainer opensimrs-gateway, ~/.opensimrs/gateway-lokal.conf, frontend-service/.env.local buatan installer"
 WT="$(worktree_studio)"; [ -n "$WT" ] && echo "$WT" | sed 's/^/        worktree: /'
 [ "$HAPUS_FOLDER" = 1 ] && echo "    • FOLDER REPO INI: $ROOT"
 [ "$ALAT_AI" = 1 ] && echo "    • Claude Code, Codex & OpenCode CLI (npm global)"
@@ -253,12 +254,21 @@ for w in $WT; do
   aksi "Worktree SIMRS Studio $w" git -c safe.directory='*' worktree remove --force "$w" || warn "Worktree $w gagal dihapus"
 done
 [ "$SIMULASI" = 1 ] || git -c safe.directory='*' worktree prune 2>/dev/null || true
+# Gateway API akses domain (install.sh --domain): kontainer opensimrs-gateway + konfigurasinya di ~/.opensimrs
+for c in podman docker; do
+  if ada "$c" && "$c" container inspect opensimrs-gateway >/dev/null 2>&1; then
+    aksi "$c rm -f opensimrs-gateway (gateway API)" "$c" rm -f opensimrs-gateway || warn "Kontainer opensimrs-gateway ($c) gagal dihapus"
+  fi
+done
+if [ -f "$HOME/.opensimrs/gateway-lokal.conf" ]; then aksi "Konfigurasi gateway ~/.opensimrs/gateway-lokal.conf" rm -f "$HOME/.opensimrs/gateway-lokal.conf"; fi
+# frontend-service/.env.local hanya bila dibuat install.sh --domain (berkas buatan pengguna dibiarkan)
+env_lokal_buatan() { local f="$ROOT/frontend-service/.env.local"; if [ -f "$f" ] && head -1 "$f" | grep -q '^# Dibuat install.sh --domain'; then echo "$f"; fi; }
 # node_modules (root, layanan, frontend, SDK), .env*, dist, data Studio — hanya di dalam folder repo
 cari_buatan() { find "$ROOT" -maxdepth 3 \( -name node_modules -o -name dist \) -type d -prune -print 2>/dev/null; }
 # Catatan: blok ini dijalankan dengan set -e + pipefail, jadi perintah terakhirnya tidak boleh bernilai salah
 # (dulu "[ -d … ] && echo" menghentikan skrip diam-diam bila studio-service/data tidak ada).
 BERKAS_HAPUS="$( { cari_buatan; find "$ROOT" -maxdepth 2 -name '.env' -type f -print; find "$ROOT" -maxdepth 2 -name '.env.bak*' -type f -print; \
-  if [ -d "$ROOT/studio-service/data" ]; then echo "$ROOT/studio-service/data"; fi; } 2>/dev/null | sort -u)"
+  env_lokal_buatan; if [ -d "$ROOT/studio-service/data" ]; then echo "$ROOT/studio-service/data"; fi; } 2>/dev/null | sort -u)"
 JUMLAH=$(printf '%s\n' "$BERKAS_HAPUS" | grep -c . || true)
 i=0
 while IFS= read -r p; do

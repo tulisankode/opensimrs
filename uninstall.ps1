@@ -113,6 +113,7 @@ Write-Host "    - MongoDB: database '$MONGO_DB' & akun '$MONGO_USER'"
 Write-Host "    - Redis/Memurai (port $REDIS_PORT, db $REDIS_DB): kunci sesi token-*"
 Write-Host "    - Berkas buatan instalasi di repo: node_modules, .env, dist, studio-service\data, worktree SIMRS Studio"
 foreach ($w in $wt) { Write-Host "        worktree: $w" }
+Write-Host "    - Gateway akses domain (bila ada): kontainer opensimrs-gateway, %USERPROFILE%\.opensimrs\gateway-lokal.conf, frontend-service\.env.local buatan installer"
 if ($HapusFolder) { Write-Host "    - FOLDER REPO INI: $ROOT" -ForegroundColor Red }
 if ($AlatAi) { Write-Host "    - Claude Code, Codex & OpenCode CLI (npm global)" }
 Write-Host "  Tidak dihapus: PostgreSQL/MongoDB/Memurai/Node.js, database & akun lain, OpenClaw, Ollama (beserta model lokalnya)."
@@ -205,6 +206,15 @@ foreach ($w in $wt) {
   Aksi "Worktree SIMRS Studio $w" { HapusFolder $w } | Out-Null
 }
 if (-not $Simulasi) { & git -c "safe.directory=*" worktree prune 2>$null }
+# Gateway API akses domain (install.ps1 -Domain): kontainer opensimrs-gateway + konfigurasinya
+foreach ($c in @("podman", "docker")) {
+  if (Ada $c) {
+    & $c container inspect opensimrs-gateway 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) { Aksi "$c rm -f opensimrs-gateway (gateway API)" { & $c rm -f opensimrs-gateway 2>$null | Out-Null; $LASTEXITCODE -eq 0 } | Out-Null }
+  }
+}
+$konfGw = Join-Path $env:USERPROFILE ".opensimrs\gateway-lokal.conf"
+if (Test-Path $konfGw) { Aksi "Konfigurasi gateway $konfGw" { Remove-Item $konfGw -Force; $true } | Out-Null }
 $target = @()
 $target += Get-ChildItem -Path $ROOT -Directory -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq "node_modules" }
 foreach ($d in (Get-ChildItem -Path $ROOT -Directory -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -notin @("node_modules", ".git") })) {
@@ -214,6 +224,9 @@ foreach ($d in (Get-ChildItem -Path $ROOT -Directory -Force -ErrorAction Silentl
 $target += Get-ChildItem -Path $ROOT -Filter ".env" -File -Force -Depth 1 -ErrorAction SilentlyContinue
 $target += Get-ChildItem -Path $ROOT -Filter ".env.bak*" -File -Force -Depth 1 -ErrorAction SilentlyContinue
 if (Test-Path (Join-Path $ROOT "studio-service\data")) { $target += Get-Item (Join-Path $ROOT "studio-service\data") }
+# frontend-service\.env.local hanya bila dibuat installer (-Domain); berkas buatan pengguna dibiarkan
+$envLokal = Join-Path $ROOT "frontend-service\.env.local"
+if ((Test-Path $envLokal) -and ((Get-Content $envLokal -TotalCount 1) -like "# Dibuat install.sh --domain*")) { $target += Get-Item $envLokal -Force }
 $target = @($target | Where-Object { $_ -and $_.FullName.StartsWith($ROOT) } | Sort-Object FullName -Unique)
 $i = 0
 foreach ($t in $target) {
