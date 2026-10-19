@@ -1582,7 +1582,9 @@ export const profilePermission = {
 
 export const dashboardPermission = {
   module: "Dashboard",
-  subModules: [],
+  subModules: [
+    { name: "Command Center", allows: ["READ", "ATUR AMBANG", "TINJAU PERINGATAN", "ESKALASI PERINGATAN"] },
+  ],
 };
 
 // Dashboard Eksekutif (STD-0034, laporan-service): indikator layanan, keuangan, mutu & SDM untuk pimpinan. Modul sama

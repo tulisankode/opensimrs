@@ -15,7 +15,7 @@ import { PhMegaphone, PhX } from '@phosphor-icons/vue';
 import { useAntrianCallStore } from "@/stores/antrian/antrianCall";
 import AnnouncementIcon from "../icons/AnnouncementIcon.vue";
 import { useRJStore } from "@/stores/rawatJalan/laporanrajal";
-import { useModulFaskesStore, modulSegera } from "@/stores/modulFaskes";
+import { useModulFaskesStore, modulSegera, fiturAktif } from "@/stores/modulFaskes";
 import { studioAktif, EVENT_STUDIO, mungkinPunyaAkses, useSimrsStudioStore } from "@/stores/simrsStudio";
 import { adaEkstensi, muatEkstensi, EVENT_EKSTENSI } from "@/stores/ekstensi";
 import { usePermissionStore } from "@/stores/datamaster/permission";
@@ -55,6 +55,11 @@ const templistMenu = ref<ListMenu[]>([
     icon: "PhChartLine",
     iconWeight: "bold",
     url: "/dashboard",
+  },
+  {
+    title: "Command Center",
+    icon: "PhMonitor",
+    url: "/command-center",
   },
   {
     title: "Antrian",
@@ -332,6 +337,12 @@ onBeforeMount(async () => {
 // Menu atas = modul pada permission user ∩ modul aktif faskes (Setting › Manajemen Modul).
 const susunMenu = () => {
   const menu: ListMenu[] = [templistMenu.value[0]];
+  const izinDashboard = getStoredPermissions().find((item) => item.module === "Dashboard");
+  const izinCommandCenter = izinDashboard?.submodules?.find((item: any) => item.name === "Command Center");
+  if (fiturAktif("command_center") && izinCommandCenter?.allows?.some((izin: any) => (izin.name ?? izin).toUpperCase() === "READ")) {
+    const commandCenter = templistMenu.value.find((item) => item.url === "/command-center");
+    if (commandCenter) menu.push(commandCenter);
+  }
   getStoredPermissions().forEach((module) => {
     if (!canShowModuleInProduction(module.module)) return;
     if (!modulStore.menuAktif(module.module)) return;
