@@ -1,0 +1,13 @@
+# Arsitektur Virtual Office STD-0042
+
+Implementasi ini menyelesaikan tahap prototipe sintetis terintegrasi. **Belum tersedia pemantauan operasional, konsumen event nyata, stream SSE/WebSocket, penyimpanan proyeksi, atau penelusuran detail transaksi.** Tidak ada label Live pada prototipe.
+
+Halaman `/dashboard/virtual-office` memakai tata letak aplikasi, guard sesi, izin Dashboard ? Virtual Office ? READ, serta fitur katalog `dashboard_virtual_office`. Tautan tersedia pada Dashboard. Izin unit terpisah: PENDAFTARAN, RAWAT JALAN, LABORATORIUM, FARMASI. Pemberian READ tidak otomatis memberi seluruh unit atau detail klinis.
+
+`laporan-service/src/virtual-office/routes.js` memasang GET `/virtual-office/snapshot` di prefix laporan yang sudah tersedia. Middleware autentikasi layanan berjalan sebelum rute; `wajibIzin` memeriksa READ. `snapshot.js` menolak token tanpa konteks faskes dan seluruh parameter kueri. Hanya `req.author.faskesUuid` menentukan fasilitas. `akses.js` membaca katalog, preset segmen, dan override fasilitas; modul nonaktif dan unit tanpa izin tidak dimasukkan. Jalur harus memiliki kedua ujung yang terlihat. Tidak ada total global yang mengungkap unit tersembunyi.
+
+`konfigurasi.json` adalah konfigurasi teknis berversi untuk koordinat ruang, bidang kerja avatar, pemetaan sintetis, jalur, dan skenario. Perubahan dilakukan melalui peninjauan kode. Tidak ada endpoint tulis konfigurasi atau transaksi. `proyeksi.js` menyimpan pekerjaan sintetis sementara per permintaan; snapshot tidak membaca sumber klinis dan tidak dipersistenkan. Identitas sintetis dibuat memakai UUIDv7, waktu respons memakai epoch detik. Satu unit contoh memiliki pekerjaan antre, aktif, dan tertunda. Jalur hanya ilustrasi skenario, bukan bukti relasi transaksi nyata.
+
+Frontend memetakan kontrak snake_case menjadi camelCase, menyediakan pan dengan penunjuk dan tombol, zoom, seleksi papan ketik, avatar bidang kerja, dan daftar alternatif. Tidak ada penyimpanan snapshot persisten. Data dibersihkan ketika halaman ditutup, konteks faskes berubah, atau permintaan gagal. Respons permintaan lama diabaikan. Pemulihan online memuat ulang snapshot; setelah 45 detik tanpa snapshot baru, data ditandai tertunda. Kesegaran tersebut hanya untuk simulasi, bukan kesehatan konsumen sumber.
+
+Sebelum tahap operasional, verifikasi saluran event andal, revisi sumber, hubungan order/resep, audit penelusuran, retensi, dan transisi pembatalan/pembukaan kembali bersama pemilik modul. Tambahkan ledger/proyeksi atomik dan rekonsiliasi melalui rancangan serta migrasi baru. Jangan memakai kelas simulasi sebagai konsumen produksi; kelas ini belum menyediakan durabilitas, konkurensi pekerja, atau validasi kontrak produksi.

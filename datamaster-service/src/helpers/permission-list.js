@@ -1206,6 +1206,12 @@ export const profilePermission = {
   ],
 };
 
+// Definisi terpisah agar izin Dashboard bawaan tidak otomatis memberi ringkasan lintas unit.
+export const dashboardVirtualOfficePermission = {
+  module: "Dashboard",
+  subModules: [{ name: "Virtual Office", allows: ["READ", "PENDAFTARAN", "RAWAT JALAN", "LABORATORIUM", "FARMASI"] }],
+};
+
 export const dashboardPermission = {
   module: "Dashboard",
   subModules: [],
@@ -1236,6 +1242,7 @@ export function mapPermission(permissionList) {
     inventory: inventoryPermission,
     datamaster: datamasterPermission,
     dashboard: dashboardPermission,
+    "dashboard virtual office": dashboardVirtualOfficePermission,
     setting: settingPermission,
     profile: profilePermission,
     laporan: laporanPermission,

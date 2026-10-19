@@ -471,6 +471,12 @@ const router = createRouter({
       component: DashboardView,
     },
     {
+      path: "/dashboard/virtual-office",
+      name: "dashboard-virtual-office",
+      meta: { layout: SidebarLayout, requiresAuth: true },
+      component: () => import("@/views/Dashboard/VirtualOfficeView.vue"),
+    },
+    {
       path: "/command-center",
       name: "command-center",
       meta: { layout: SidebarLayout, requiresAuth: true },

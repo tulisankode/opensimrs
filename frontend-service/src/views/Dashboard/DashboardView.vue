@@ -21,6 +21,7 @@ import { fiturAktif } from '@/stores/modulFaskes';
 const dashboardStore = useDashboardStore()
 
 // Tautan Dashboard Eksekutif (STD-0034): hanya bila fitur aktif untuk faskes dan pengguna berizin Dashboard › Eksekutif.
+const bolehVirtualOffice = fiturAktif('dashboard_virtual_office') && hasPermission('Dashboard', 'Virtual Office', 'READ')
 const bolehEksekutif = fiturAktif('dashboard_eksekutif') && hasPermission('Dashboard', 'Eksekutif', 'READ')
 
 // Default: 30 hari terakhir
@@ -150,6 +151,7 @@ const WARNA_DONAT = ['#F28B82', '#C1E1C1', '#A7C7E7', '#AFE1E1', '#FFE0B2']
       </div>
       <div class="flex items-center justify-between w-full font-semibold text-opensimrs-300 text-subTitle ">Dashboard
         <div class="flex items-center">
+          <RouterLink v-if="bolehVirtualOffice" to="/dashboard/virtual-office" class="px-3 py-2 border rounded">Virtual Office</RouterLink>
           <RouterLink v-if="bolehEksekutif" to="/dashboard/eksekutif"
             class="mr-4 px-3 py-1.5 text-xs font-medium rounded-lg border border-opensimrs-300 text-opensimrs-300 hover:bg-opensimrs-50">
             Dashboard Eksekutif
