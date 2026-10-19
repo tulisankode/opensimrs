@@ -731,6 +731,30 @@ Buat blok serupa untuk domain frontend ke port 5520. Pastikan `FRONTEND_ALLOWED_
 
 Cara ini setara dengan cara Docker: semua komponen dipasang langsung di sistem operasi. Contoh perintah untuk **Ubuntu/Debian**; di **Windows**, pakai installer resmi masing-masing perangkat lunak (PostgreSQL, MongoDB Community Server, Node.js) dan, untuk Redis, Memurai Developer atau paket Redis di WSL (port Redis lama untuk Windows v3.0 terlalu lama; minimal Redis 5). Ganti semua `<...>` dengan nilai Anda sendiri; jangan memakai contoh sandi di server sungguhan.
 
+### Akses instalasi lokal lewat domain (Cloudflare Tunnel / reverse proxy)
+
+Instalasi lokal (`npm run dev`) bisa dibuka dari luar lewat domain HTTPS, mis. untuk uji coba di Mac mini atau mesin kantor. Semua API dilewatkan ke satu gateway di port 8080, karena port layanan (8081–8100) tidak diteruskan tunnel dan tidak melayani HTTPS.
+
+```bash
+./install.sh --domain simrs.contoh.id --api api-simrs.contoh.id        # boleh digabung dengan --podman
+# Windows: install.cmd -Domain simrs.contoh.id -Api api-simrs.contoh.id
+```
+
+Yang dilakukan installer:
+
+1. Menulis `frontend-service/.env.local` (diabaikan git): `ALLOWED_HOSTS=<domain>,<api>` untuk Vite, `VITE_KEEP_API_HOST=true`, dan semua `VITE_BASE_*` diarahkan ke `https://<api>/api/v3/...`. Berkas `.env.local` lama yang bukan buatan installer dicadangkan dulu.
+2. Membuat `~/.opensimrs/gateway-lokal.conf` dengan `node scripts/gateway-lokal.mjs`, dari `deploy/server/gateway.nginx.conf` dengan upstream diarahkan ke mesin ini.
+3. Menjalankan kontainer nginx `opensimrs-gateway` (Podman, atau Docker bila Podman tidak ada) di port 8080 dengan `--restart=always`. Tanpa Podman/Docker, konfigurasinya tetap dibuat untuk dipakai nginx di mesin itu.
+
+Lalu arahkan tunnel atau reverse proxy:
+
+| Hostname | Layanan |
+|---|---|
+| `simrs.contoh.id` | `http://localhost:5520` (frontend) |
+| `api-simrs.contoh.id` | `http://localhost:8080` (gateway API) |
+
+Cek `https://api-simrs.contoh.id/health` → `{"status":"ok"}`. Bila gateway tidak menyala setelah mesin dinyalakan ulang: `podman start opensimrs-gateway`. Untuk kembali ke `http://localhost:5520` saja, hapus `frontend-service/.env.local`. `uninstall.sh` ikut menghapus gateway, konfigurasinya, dan `.env.local` buatan installer.
+
 ### Menghapus instalasi lokal: `./uninstall.sh` (Windows: `uninstall.cmd`)
 
 Pasangan installer ini menghapus **hanya jejak OpenSIMRS**, dengan bilah kemajuan yang sama:
