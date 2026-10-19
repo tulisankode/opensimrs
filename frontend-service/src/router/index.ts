@@ -242,6 +242,10 @@ import LaporanPagePkm from "@/views/ProgramPuskesmas/LaporanPage.vue";
 import DatamasterJenisVaksinPage from "@/views/ProgramPuskesmas/DatamasterJenisVaksinPage.vue";
 import DatamasterFormatLaporanPage from "@/views/ProgramPuskesmas/DatamasterFormatLaporanPage.vue";
 
+import HduView from "@/views/Hdu/HduView.vue";
+import DaftarHduPage from "@/views/Hdu/DaftarHduPage.vue";
+import KonfigurasiHduPage from "@/views/Hdu/KonfigurasiHduPage.vue";
+import PerawatanHduPage from "@/views/Hdu/PerawatanHduPage.vue";
 import IcuView from "@/views/Icu/IcuView.vue";
 import DashboardIcuPage from "@/views/Icu/DashboardIcuPage.vue";
 import PerawatanIcuPage from "@/views/Icu/PerawatanIcuPage.vue";
@@ -1956,6 +1960,13 @@ const router = createRouter({
       ["/program-puskesmas/datamaster/format-laporan", "program-puskesmas-datamaster-format-laporan", DatamasterFormatLaporanPage],
     ]),
     // !SECTION
+
+    { path: "/rawat-inap/hdu", name: "hdu", redirect: "/rawat-inap/hdu/daftar" },
+    ...halamanModul(HduView, [
+      ["/rawat-inap/hdu/daftar", "hdu-daftar", DaftarHduPage],
+      ["/rawat-inap/hdu/konfigurasi", "hdu-konfigurasi", KonfigurasiHduPage],
+      ["/rawat-inap/hdu/:uuid", "hdu-perawatan", PerawatanHduPage],
+    ]),
 
     // SECTION ICU / Intensif
     { path: "/icu", name: "icu", redirect: "/icu/dashboard" },

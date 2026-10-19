@@ -719,6 +719,18 @@
   ],
   "fitur": [
     {
+      "kode": "rawat_inap_hdu",
+      "modul": "rawat_inap",
+      "nama": "HDU (High Dependency Unit)",
+      "deskripsi": "Episode HDU, konfigurasi ruangan, instruksi observasi, dan serah terima tertaut perpindahan rawat inap.",
+      "tersedia": false,
+      "wajib": false,
+      "rute": [
+        "/rawat-inap/hdu"
+      ],
+      "urutan": 49
+    },
+    {
       "kode": "dashboard_virtual_office",
       "modul": "dashboard",
       "nama": "Virtual Office",

@@ -73,6 +73,8 @@ const any = (
 ): PermissionRequirement => ({ module, submodule, action });
 
 export const permissionRouteRegistry: PermissionRouteEntry[] = [
+  { path: "/rawat-inap/hdu/konfigurasi", permission: read("Rawat Inap", "HDU Konfigurasi") },
+  { path: "/rawat-inap/hdu", mode: "prefix", permission: read("Rawat Inap", "HDU Episode") },
   { path: "/command-center", permission: read("Dashboard", "Command Center") },
   { path: "/setting/profil-faskes", permission: read("Setting", "Profile Faskes") },
   { path: "/setting/konfigurasi-integrasi", mode: "prefix", permission: read("Setting", "Konfigurasi Integrasi") },
