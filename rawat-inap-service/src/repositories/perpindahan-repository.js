@@ -20,11 +20,14 @@ import {
 } from "@opensimrs/model-sdk/datamaster";
 
 import moment from "moment";
-import sequelizeInstace from "@opensimrs/model-sdk/instance";
 import BadRequestException from "../exceptions/bad-request-exception.js";
 import {Op} from "sequelize";
 import Pagination from "../helpers/pagination.js";
 import sequelizeInstance from "../configs/sequelize-instance.js";
+import HduRepository from "./hdu-repository.js";
+import HduPerpindahanAdapter from "../services/hdu-perpindahan-adapter.js";
+import { gagal } from "../services/hdu-aturan.js";
+
 export default class PerpindahanRepository {
     
     static async GetCurrentBed(uuid) {
@@ -281,123 +284,35 @@ export default class PerpindahanRepository {
     }
 
     static async ApproveMoveBed(uuid) {
-        try{
-            const { faskesUuid } = Context.get(CTX_AUTHOR);
-            return sequelizeInstace.transaction(async (t) => {
-                const perpindahan = await PerpindahanModel.findOne({
-                    where: {
-                        uuid,
-                        faskesUuid
-                    }
-                });
-
-                if(!perpindahan) throw new NotfoundException("Data tidak ditemukan!");
-                const result = await perpindahan.update({
-                    statusPindah: "approve",
-                    waktuPindah: moment().unix(),
-                }, { transaction: t });
-
-                if(!result) throw new Error("Gagal melakukan persetujuan perpindahan!");
-
-                const currentBed = await RawatInapModel.findOne({
-                    where: {
-                        uuid: perpindahan.admissionRiUuid,
-                        faskesUuid
-                    }
-                });
-
-                if(!currentBed) throw new NotfoundException("Data tidak ditemukan!");
-
-                if(currentBed.monitoringRoomUuid !== perpindahan.originMonitoringRoomUuid) throw new BadRequestException("Bed RI tidak sama dengan bed asal perpindahan");
-
-                // Update Rawat Inap Bed
-                const resultUpdate = await currentBed.update({
-                    statusRi: 3,
-                    monitoringRoomUuid: perpindahan.destinationMonitoringRoomUuid
-                }, { transaction: t });
-
-                if(!resultUpdate) throw new Error("Gagal melakukan perubahan data!");
-
-                // Check If Bed Occupied
-                const checkBed = await RoomMonitoringModel.findOne({
-                    where: {
-                        uuid: perpindahan.destinationMonitoringRoomUuid,
-                        faskesUuid,
-                        deletedAt: null
-                    }
-                });
-
-                if(!checkBed) throw new NotfoundException("Data Bed tidak ditemukan!");
-                if(checkBed.patientUuid) throw new BadRequestException("Bed sudah terisi!");
-
-                // Update Bed Occupied
-                const resultUpdateBed = await checkBed.update({
-                    patientUuid: currentBed.patientUuid,
-                    status_operasional: "Penuh"
-                }, { transaction: t });
-
-                //* Update Origin Bed jadi Tersedia
-                await RoomMonitoringModel.update(
-                    {
-                        patientUuid: null,
-                        status_operasional: "Tersedia"
-                    },
-                    {
-                        where: {
-                            uuid: perpindahan.originMonitoringRoomUuid,
-                            faskesUuid,
-                        }
-                    }
-                )
-
-                if(!resultUpdateBed) throw new Error("Gagal melakukan perubahan data!");
-
-                return result;
-            });
-        }catch (error) {
-            throw error;
-        }
+        const repository = new HduRepository(sequelizeInstance, Context.get(CTX_AUTHOR));
+        return sequelizeInstance.transaction(async (transaction) => {
+            const q = (sql, data) => repository.query(sql, data, transaction);
+            await q(`SELECT pg_advisory_xact_lock(hashtext(:f))`);
+            const adapter = new HduPerpindahanAdapter(q);
+            const perpindahan = await adapter.kunci(uuid);
+            const { ri, tujuan } = perpindahan;
+            const terkaitHdu = await q(`SELECT uuid FROM hdu_episode WHERE rawat_inap_uuid = :ri AND faskes_uuid = :f AND status = 'aktif' AND deleted_at IS NULL
+                UNION ALL SELECT uuid FROM hdu_konfigurasi WHERE ruangan_uuid = :room AND faskes_uuid = :f AND deleted_at IS NULL`, { ri: ri.uuid, room: tujuan.room_uuid });
+            if (terkaitHdu.length) gagal("Perpindahan HDU harus dikonfirmasi melalui serah terima HDU.");
+            return adapter.pindahkan(perpindahan, moment().unix());
+        });
     }
 
 
     static async RejectMoveBed(uuid) {
-        try{
-            const { faskesUuid } = Context.get(CTX_AUTHOR);
-            return sequelizeInstace.transaction(async (t) => {
-                const perpindahan = await PerpindahanModel.findOne({
-                    where: {
-                        uuid,
-                        faskesUuid
-                    }
-                });
-
-                if(!perpindahan) throw new NotfoundException("Data tidak ditemukan!");
-                // Update Approval Status
-                const result = await perpindahan.update({
-                    statusPindah: "reject"
-                }, { transaction: t });
-
-                if(!result) throw new Error("Gagal melakukan persetujuan perpindahan!");
-
-                await RawatInapModel.update(
-                    {
-                        statusRi: 3
-                    },
-                    {
-                        where: {
-                            uuid: perpindahan.admissionRiUuid,
-                            faskesUuid,
-                        },
-                        transaction: t
-                    }
-                );
-
-                return result;
-            });
-        }catch (error) {
-            throw error;
-        }
+        const repository = new HduRepository(sequelizeInstance, Context.get(CTX_AUTHOR));
+        return sequelizeInstance.transaction(async (transaction) => {
+            const q = (sql, data) => repository.query(sql, data, transaction);
+            await q(`SELECT pg_advisory_xact_lock(hashtext(:f))`);
+            const { p, ri, asal } = await new HduPerpindahanAdapter(q).kunci(uuid);
+            if (p.status_pindah !== "pending") gagal("Hanya perpindahan menunggu yang dapat ditolak.");
+            if (ri.monitoring_room_uuid !== asal.uuid) gagal("Penempatan asal telah berubah.");
+            await q(`UPDATE perpindahans SET status_pindah = 'reject', updated_at = :sekarang WHERE uuid = :uuid AND faskes_uuid = :f AND deleted_at IS NULL`, { uuid });
+            await q(`UPDATE rawat_inaps SET status_ri = 3, updated_at = :sekarang WHERE uuid = :uuid AND faskes_uuid = :f AND deleted_at IS NULL`, { uuid: ri.uuid });
+            return { ...p, status_pindah: "reject" };
+        });
     }
+
 
     static async GetHistoryBed(uuid) {
         try{

@@ -220,7 +220,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 0 berstatus Segera), **106 fitur** (4 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 0 berstatus Segera), **107 fitur** (5 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -449,6 +449,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `rme_fpo` | Form Pemberian Obat (FPO) | Pencatatan pemberian obat harian pasien rawat inap/IGD. | Tersedia | – | – | – |
 | `ri_perpindahan` | Perpindahan Bed & Bangsal | Permintaan & persetujuan pindah bed/ruangan. | Tersedia | – | – | – |
 | `ri_bayi_baru_lahir` | Registrasi Bayi Baru Lahir | Pendaftaran bayi baru lahir dari ibu yang dirawat, beserta laporannya. | Tersedia | – | – | – |
+| `rawat_inap_hdu` | HDU (High Dependency Unit) | Episode HDU, konfigurasi ruangan, instruksi observasi, dan serah terima tertaut perpindahan rawat inap. | Segera | – | – | – |
 
 #### BPJS FKRTL (VClaim/SEP) (`bpjs_fkrtl`)
 

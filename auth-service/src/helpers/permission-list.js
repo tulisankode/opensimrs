@@ -240,6 +240,12 @@ export const rawatJalanPermission = {
 export const rawatInapPermission = {
   module: "Rawat Inap",
   subModules: [
+    { name: "HDU Episode", allows: ["READ"] },
+    { name: "HDU Konfigurasi", allows: ["READ", "KELOLA"] },
+    { name: "HDU Kebijakan Observasi", allows: ["KELOLA"] },
+    { name: "HDU Instruksi Observasi", allows: ["KELOLA"] },
+    { name: "HDU Observasi", allows: ["READ", "CREATE", "KOREKSI"] },
+    { name: "HDU Serah Terima", allows: ["READ", "CREATE", "KONFIRMASI"] },
     {
       name: "Rawat Inap",
       allows: ["READ", "BATAL DIRAWAT"],
