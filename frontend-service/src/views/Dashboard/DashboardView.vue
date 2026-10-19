@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import CardDashboard from './CardDashboard.vue'
 import CustomDatePicker from '@/components/Base/CustomDatePicker.vue';
-import LineChartDashboard from './Grafik/LineChartDashboard.vue';
+import GrafikDashboard from './Grafik/GrafikDashboard.vue';
 import DoughnutChart from './Grafik/DoughnutChart.vue';
 import ProgressBarDashboard from './Grafik/ProgressBarDashboard.vue';
 import IconTotalKunjungan from '../../assets/icons/icon_totalKunjungan.svg'
@@ -93,41 +93,63 @@ const statusRj = computed(() => {
   ]
 })
 
-const garis = (label: string, data: number[], warna: string, titik: string) => ({
-  label,
-  data,
-  fill: false,
-  borderColor: warna,
-  tension: 0.4,
-  pointBackgroundColor: titik,
-  pointBorderColor: titik,
-  pointBorderWidth: 2,
-  pointRadius: 5,
-  pointHoverRadius: 7,
+// ── Sumbu waktu: semua tanggal dalam rentang ikut tampil (hari tanpa data = 0). Rentang panjang dikelompokkan per minggu
+// (> 45 hari) atau per bulan (> 180 hari) agar batang tetap terbaca.
+const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+const jumlahHari = computed(() => Math.round((endDateFilter.value.getTime() - startDateFilter.value.getTime()) / 86400000) + 1)
+const satuanWaktu = computed(() => (jumlahHari.value > 180 ? 'bulan' : jumlahHari.value > 45 ? 'minggu' : 'hari'))
+const kunciWaktu = (iso: string) => {
+  const t = String(iso ?? '').slice(0, 10)
+  if (satuanWaktu.value === 'bulan') return t.slice(0, 7)
+  if (satuanWaktu.value === 'minggu') {
+    const d = new Date(`${t}T00:00:00`)
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7)) // Senin
+    return toParam(d)
+  }
+  return t
+}
+const kunciRentang = computed(() => {
+  const hasil: string[] = []
+  const d = new Date(startDateFilter.value)
+  d.setHours(0, 0, 0, 0)
+  for (let i = 0; i < jumlahHari.value && i < 800; i++) {
+    const k = kunciWaktu(toParam(d))
+    if (hasil[hasil.length - 1] !== k) hasil.push(k)
+    d.setDate(d.getDate() + 1)
+  }
+  return hasil
 })
+const labelWaktu = computed(() => kunciRentang.value.map((k) => {
+  const [y, m, d] = k.split('-')
+  if (satuanWaktu.value === 'bulan') return `${BULAN[Number(m) - 1]} ${y}`
+  return `${satuanWaktu.value === 'minggu' ? 'Mg ' : ''}${Number(d)} ${BULAN[Number(m) - 1]}`
+}))
+const perWaktu = (rows: any[], ambilTanggal: (row: any) => string, ambilNilai: (row: any) => number) => {
+  const jumlah = new Map<string, number>()
+  for (const row of rows) {
+    const k = kunciWaktu(ambilTanggal(row))
+    jumlah.set(k, (jumlah.get(k) ?? 0) + ambilNilai(row))
+  }
+  return kunciRentang.value.map((k) => jumlah.get(k) ?? 0)
+}
 
-// Kunjungan per tanggal (total & per status rawat)
-const tanggalKunjungan = computed(() => statusRawat.value.map((row) => row.tgl))
-const kunjunganPasien = computed(() => [
-  garis('Kunjungan Pasien', statusRawat.value.map((row) => toNumber(row.rawatJalan) + toNumber(row.rawatInap) + toNumber(row.igd)), warnaTema('100'), warnaTema('400')),
-])
-const kunjunganStatusRawat = computed(() => [
-  garis('Rawat Jalan', statusRawat.value.map((row) => toNumber(row.rawatJalan)), '#8EB8F0', '#2B5CA0'),
-  garis('Rawat Inap', statusRawat.value.map((row) => toNumber(row.rawatInap)), '#77CFA0', '#0E7840'),
-  garis('IGD', statusRawat.value.map((row) => toNumber(row.igd)), '#F29F97', '#A33E35'),
+// Kunjungan per waktu, bertumpuk per jenis rawat (seri yang nol semua disembunyikan grafik)
+const kunjunganPerJenis = computed(() => [
+  { label: 'Rawat Jalan', data: perWaktu(statusRawat.value, (r) => r.tgl, (r) => toNumber(r.rawatJalan)), warna: warnaTema('300') },
+  { label: 'Rawat Inap', data: perWaktu(statusRawat.value, (r) => r.tgl, (r) => toNumber(r.rawatInap)), warna: '#12B76A' },
+  { label: 'IGD', data: perWaktu(statusRawat.value, (r) => r.tgl, (r) => toNumber(r.igd)), warna: '#F04438' },
 ])
 
-// Pemasukan (tagihan) & pengeluaran (pembelian barang ke supplier) per tanggal
-const tanggalPendapatan = computed(() => [...new Set(pendapatan.value.map((row) => row.tanggal))].sort())
-const pemasukanPengeluaran = computed(() => {
-  const nilai = (type: string) =>
-    tanggalPendapatan.value.map((tgl) =>
-      pendapatan.value.filter((row) => row.tanggal === tgl && row.type === type).reduce((sum, row) => sum + toNumber(row.total), 0)
-    )
-  return [
-    garis('Pemasukan', nilai('masuk'), warnaTema('100'), warnaTema('400')),
-    garis('Pengeluaran', nilai('keluar'), '#F29F97', '#A33E35'),
-  ]
+// Pemasukan (tagihan) & pengeluaran (pembelian barang ke supplier)
+const pemasukanPengeluaran = computed(() => [
+  { label: 'Pemasukan', data: perWaktu(pendapatan.value.filter((r) => r.type === 'masuk'), (r) => r.tanggal, (r) => toNumber(r.total)), warna: warnaTema('300') },
+  { label: 'Pengeluaran', data: perWaktu(pendapatan.value.filter((r) => r.type === 'keluar'), (r) => r.tanggal, (r) => toNumber(r.total)), warna: '#F79009' },
+])
+const ringkasKeuangan = computed(() => {
+  const jumlah = (type: string) => pendapatan.value.filter((r) => r.type === type).reduce((a, r) => a + toNumber(r.total), 0)
+  const masuk = jumlah('masuk')
+  const keluar = jumlah('keluar')
+  return { masuk: formatPrice(Math.round(masuk)), keluar: formatPrice(Math.round(keluar)), selisih: formatPrice(Math.round(masuk - keluar)), positif: masuk >= keluar }
 })
 
 const genderData = computed(() => [toNumber(gender.value.totalFemale), toNumber(gender.value.totalMale)])
@@ -136,8 +158,6 @@ const top5 = (rows: any[], labelKey: string) =>
   [...rows].sort((a, b) => toNumber(b.total) - toNumber(a.total)).slice(0, 5).map((row) => ({ label: row[labelKey] ?? '-', total: toNumber(row.total) }))
 const top5Poli = computed(() => top5(topPoli.value, 'poli'))
 const top5Dpjp = computed(() => top5(topDpjp.value, 'name'))
-
-const WARNA_DONAT = ['#F28B82', '#C1E1C1', '#A7C7E7', '#AFE1E1', '#FFE0B2']
 </script>
 
 
@@ -177,8 +197,8 @@ const WARNA_DONAT = ['#F28B82', '#C1E1C1', '#A7C7E7', '#AFE1E1', '#FFE0B2']
           :iconKegiatan="IconPenjualanObat" :arrowIcon="ArrowIcon" />
       </div>
       <div class="w-1/4">
-        <CardDashboard namaKegiatan="Total Pendapatan Klinik" :data="totalPendapatan"
-          satuanData="Indonesian Rupiah (IDR)" dataFont="font-bold text-black text-[20px]"
+        <CardDashboard namaKegiatan="Total Pendapatan" :data="totalPendapatan"
+          satuanData="Indonesian Rupiah (IDR)" dataFont="font-bold text-black text-[28px] leading-[48px]"
           :iconKegiatan="IconPendapatanKlinik" :arrowIcon="ArrowIcon" />
       </div>
     </div>
@@ -186,7 +206,7 @@ const WARNA_DONAT = ['#F28B82', '#C1E1C1', '#A7C7E7', '#AFE1E1', '#FFE0B2']
     <div class="flex gap-5">
       <div class="bg-white rounded-lg shadow-md grow">
         <CardGrafik header-grafik="Kunjungan Pasien" />
-        <LineChartDashboard :labels="tanggalKunjungan" :datasets="kunjunganPasien" />
+        <GrafikDashboard :labels="labelWaktu" :datasets="kunjunganPerJenis" bertumpuk />
       </div>
       <div class="w-[500px]  bg-white rounded-lg shadow-md">
         <CardGrafik headerGrafik="Status Pelayanan Rawat Jalan" />
@@ -197,14 +217,14 @@ const WARNA_DONAT = ['#F28B82', '#C1E1C1', '#A7C7E7', '#AFE1E1', '#FFE0B2']
     </div>
 
     <div class="w-full bg-white rounded-lg shadow-md">
-      <CardGrafik headerGrafik="Kunjungan Berdasarkan Status Rawat" />
-      <LineChartDashboard :labels="tanggalKunjungan" :datasets="kunjunganStatusRawat" showLegend legendPosition="bottom"
-        labelsColor="#000000" />
-    </div>
-    <div class="w-full bg-white rounded-lg shadow-md">
       <CardGrafik headerGrafik="Pemasukan dan Pengeluaran" />
-      <LineChartDashboard :labels="tanggalPendapatan" :datasets="pemasukanPengeluaran" showLegend legendPosition="bottom"
-        labelsColor="#000000" title="Tanggal" />
+      <div class="flex flex-wrap gap-6 px-5 pb-2 text-sm">
+        <div><span class="text-grey-400">Pemasukan</span> <b class="ml-1 text-black">{{ ringkasKeuangan.masuk }}</b></div>
+        <div><span class="text-grey-400">Pengeluaran</span> <b class="ml-1 text-black">{{ ringkasKeuangan.keluar }}</b></div>
+        <div><span class="text-grey-400">Selisih</span>
+          <b class="ml-1" :class="ringkasKeuangan.positif ? 'text-success-300' : 'text-danger-300'">{{ ringkasKeuangan.selisih }}</b></div>
+      </div>
+      <GrafikDashboard :labels="labelWaktu" :datasets="pemasukanPengeluaran" satuan="rupiah" />
     </div>
 
     <div class="flex gap-5">
@@ -216,14 +236,14 @@ const WARNA_DONAT = ['#F28B82', '#C1E1C1', '#A7C7E7', '#AFE1E1', '#FFE0B2']
 
       <div class="w-1/3 bg-white rounded-lg shadow-md">
         <CardGrafik headerGrafik="Top 5 Poli" />
-        <DoughnutChart :labels="top5Poli.map((row) => row.label)" :data="top5Poli.map((row) => row.total)"
-          :backgroundColor="WARNA_DONAT" />
+        <GrafikDashboard :labels="top5Poli.map((row) => row.label)" horizontal tinggi="240px"
+          :datasets="[{ label: 'Kunjungan', data: top5Poli.map((row) => row.total), warna: warnaTema('300') }]" />
       </div>
 
       <div class="w-1/3 bg-white rounded-lg shadow-md">
         <CardGrafik headerGrafik="Top 5 DPJP" />
-        <DoughnutChart :labels="top5Dpjp.map((row) => row.label)" :data="top5Dpjp.map((row) => row.total)"
-          :backgroundColor="WARNA_DONAT" />
+        <GrafikDashboard :labels="top5Dpjp.map((row) => row.label)" horizontal tinggi="240px"
+          :datasets="[{ label: 'Kunjungan', data: top5Dpjp.map((row) => row.total), warna: warnaTema('300') }]" />
       </div>
     </div>
 
