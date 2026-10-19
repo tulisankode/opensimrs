@@ -698,7 +698,7 @@
       "instalasi": "Manajemen Mutu",
       "inti": false,
       "tersedia": true,
-      "deskripsi": "Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dasbor kesiapan akreditasi, dan indikator mutu (INM, IMP-RS, IMPU) dengan validasi data, capaian, dan tindak lanjut.",
+      "deskripsi": "Manajemen mutu & akreditasi faskes: dokumen akreditasi terkendali versi yang terpetakan ke elemen penilaian, kredensial staf dengan peringatan masa berlaku, dasbor kesiapan akreditasi, indikator mutu (INM, IMP-RS, IMPU) dengan validasi data, capaian, dan tindak lanjut, serta pelaporan insiden keselamatan pasien dengan grading risiko, investigasi/RCA, dan register risiko unit.",
       "menu": ["Mutu & Akreditasi"],
       "rute": ["/mutu"],
       "urutan": 34
@@ -1718,6 +1718,16 @@
       "wajib": false,
       "rute": ["/mutu/indikator"],
       "urutan": 102
+    },
+    {
+      "kode": "mutu_ikp",
+      "modul": "mutu",
+      "nama": "Insiden Keselamatan Pasien & Manajemen Risiko",
+      "deskripsi": "Pelaporan insiden keselamatan pasien (KTD, KNC, KTC, KPC, sentinel) oleh petugas dengan opsi anonim dan batas waktu 2 × 24 jam, penerimaan kepala unit, grading risiko matriks dampak × probabilitas (biru/hijau/kuning/merah), investigasi sederhana/RCA, rekomendasi & tindak lanjut terverifikasi, register risiko unit, dasbor & tren, serta ekspor rekap internal.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/mutu/ikp"],
+      "urutan": 103
     },
     {
       "kode": "dashboard_eksekutif",

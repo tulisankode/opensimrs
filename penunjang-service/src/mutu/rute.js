@@ -14,6 +14,7 @@ import surveior from "./surveior.js";
 import indikator from "./indikator.js";
 import indikatorData from "./indikator-data.js";
 import indikatorCapaian from "./indikator-capaian.js";
+import ikp from "./ikp.js";
 
 // Mutu & Akreditasi — /api/v3/penunjang/mutu/...
 // Fitur mutu_dokumen_kredensial (STD-0028):
@@ -30,10 +31,14 @@ import indikatorCapaian from "./indikator-capaian.js";
 //   /indikator/data...                              pengumpulan, hitung otomatis, validasi (indikator-data.js)
 //   /indikator/dasbor, /laporan, /tindak-lanjut, /:uuid/tren   capaian & tindak lanjut (indikator-capaian.js)
 //   /indikator/referensi, /pasang-inm, /, /:uuid    master indikator (indikator.js; dipasang terakhir)
+// Fitur mutu_ikp (STD-0026) — gerbang fitur & izin submodul "Insiden Keselamatan Pasien" / "Register Risiko" sendiri:
+//   /ikp/...                                        pelaporan insiden, grading, investigasi/RCA, tindak lanjut,
+//                                                   register risiko, pengaturan, dasbor & ekspor (ikp*.js)
 const rute = express.Router();
 const MODUL = "Mutu & Akreditasi";
 const fiturDokumen = wajibFiturMutu("mutu_dokumen_kredensial");
 const fiturIndikator = wajibFiturMutu("mutu_indikator");
+const fiturIkp = wajibFiturMutu("mutu_ikp");
 
 rute.get(
   "/referensi",
@@ -72,6 +77,7 @@ rute.use("/kredensial", fiturDokumen, kredensial);
 rute.use("/dasbor", fiturDokumen, dasbor);
 rute.use("/surveior", fiturDokumen, surveior);
 rute.use("/indikator", fiturIndikator, indikatorData, indikatorCapaian, indikator);
+rute.use("/ikp", fiturIkp, ikp);
 // instrumen.js memasang gerbang fiturnya sendiri pada /instrumen, /bab, /standar, /elemen (rute lain diteruskan).
 rute.use(instrumen);
 
