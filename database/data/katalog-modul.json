@@ -719,6 +719,18 @@
   ],
   "fitur": [
     {
+      "kode": "dashboard_virtual_office",
+      "modul": "dashboard",
+      "nama": "Virtual Office",
+      "deskripsi": "Prototipe simulasi peta isometrik agregat lintas unit; bukan pemantauan operasional.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/dashboard/virtual-office"
+      ],
+      "urutan": 30
+    },
+    {
       "kode": "rme_asesmen",
       "modul": "rawat_jalan",
       "nama": "Asesmen",

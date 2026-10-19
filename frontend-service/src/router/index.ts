@@ -460,6 +460,12 @@ const router = createRouter({
       meta: { layout: SidebarLayout, requiresAuth: true },
       component: DashboardView,
     },
+    {
+      path: "/dashboard/virtual-office",
+      name: "dashboard-virtual-office",
+      meta: { layout: SidebarLayout, requiresAuth: true },
+      component: () => import("@/views/Dashboard/VirtualOfficeView.vue"),
+    },
     // Dashboard Eksekutif pimpinan (STD-0034): izin Dashboard › Eksekutif (permissions.ts) + fitur dashboard_eksekutif.
     {
       path: "/dashboard/eksekutif",

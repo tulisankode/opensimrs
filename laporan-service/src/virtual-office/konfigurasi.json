@@ -1,0 +1,73 @@
+{
+  "versi": 1,
+  "unit": [
+    {
+      "kode_unit": "pendaftaran",
+      "modul": "pendaftaran",
+      "nama": "Pendaftaran",
+      "bidang_kerja": "Petugas pendaftaran",
+      "izin": "PENDAFTARAN",
+      "x": 170,
+      "y": 100
+    },
+    {
+      "kode_unit": "rawat_jalan",
+      "modul": "rawat_jalan",
+      "nama": "Rawat Jalan",
+      "bidang_kerja": "Pelayanan rawat jalan",
+      "izin": "RAWAT JALAN",
+      "x": 450,
+      "y": 100
+    },
+    {
+      "kode_unit": "laboratorium",
+      "modul": "laboratorium",
+      "nama": "Laboratorium",
+      "bidang_kerja": "Petugas laboratorium",
+      "izin": "LABORATORIUM",
+      "x": 170,
+      "y": 300
+    },
+    {
+      "kode_unit": "farmasi",
+      "modul": "farmasi",
+      "nama": "Farmasi",
+      "bidang_kerja": "Pelayanan resep",
+      "izin": "FARMASI",
+      "x": 450,
+      "y": 300
+    }
+  ],
+  "pemetaan": {
+    "order": "antre",
+    "penerimaan": "diproses",
+    "validasi": "selesai",
+    "resep": "antre",
+    "dispensing": "selesai",
+    "menunggu_dependensi": "menunggu_dependensi",
+    "menunggu_validasi": "menunggu_validasi",
+    "hambatan": "terhambat",
+    "perhatian": "perlu_perhatian"
+  },
+  "jalur": [
+    {
+      "asal": "rawat_jalan",
+      "tujuan": "laboratorium"
+    },
+    {
+      "asal": "rawat_jalan",
+      "tujuan": "farmasi"
+    }
+  ],
+  "skenario": [
+    {
+      "event_type": "order"
+    },
+    {
+      "event_type": "penerimaan"
+    },
+    {
+      "event_type": "menunggu_validasi"
+    }
+  ]
+}
