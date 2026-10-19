@@ -1209,7 +1209,7 @@ export const profilePermission = {
 // Definisi terpisah agar izin Dashboard bawaan tidak otomatis memberi ringkasan lintas unit.
 export const dashboardVirtualOfficePermission = {
   module: "Dashboard",
-  subModules: [{ name: "Virtual Office", allows: ["READ", "PENDAFTARAN", "RAWAT JALAN", "LABORATORIUM", "FARMASI"] }],
+  subModules: [{ name: "Virtual Office", allows: ["READ", "PENDAFTARAN", "RAWAT JALAN", "IGD", "RAWAT INAP", "LABORATORIUM", "RADIOLOGI", "FARMASI", "KASIR"] }],
 };
 
 export const dashboardPermission = {

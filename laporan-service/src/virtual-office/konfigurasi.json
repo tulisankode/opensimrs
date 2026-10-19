@@ -1,73 +1,106 @@
 {
-  "versi": 1,
+  "versi": 2,
+  "interval_polling": 30,
+  "batas_ruang": 12,
   "unit": [
     {
       "kode_unit": "pendaftaran",
       "modul": "pendaftaran",
-      "nama": "Pendaftaran",
+      "nama": "Pendaftaran / Admisi",
       "bidang_kerja": "Petugas pendaftaran",
       "izin": "PENDAFTARAN",
-      "x": 170,
-      "y": 100
+      "rute": "/admisi/rawat-jalan",
+      "ambang": { "kuning": 5, "merah": 15 }
     },
     {
       "kode_unit": "rawat_jalan",
       "modul": "rawat_jalan",
-      "nama": "Rawat Jalan",
-      "bidang_kerja": "Pelayanan rawat jalan",
+      "nama": "Poli Rawat Jalan",
+      "bidang_kerja": "Dokter & perawat poli",
       "izin": "RAWAT JALAN",
-      "x": 450,
-      "y": 100
+      "rute": "/rawat-jalan/poli",
+      "per_ruang": true,
+      "ambang": { "kuning": 5, "merah": 10 }
+    },
+    {
+      "kode_unit": "igd",
+      "modul": "igd",
+      "nama": "IGD",
+      "bidang_kerja": "Dokter & perawat IGD",
+      "izin": "IGD",
+      "rute": "/igd/pasien-igd",
+      "ambang": { "kuning": 3, "merah": 6 }
+    },
+    {
+      "kode_unit": "rawat_inap",
+      "modul": "rawat_inap",
+      "nama": "Rawat Inap",
+      "bidang_kerja": "Perawat ruangan",
+      "izin": "RAWAT INAP",
+      "rute": "/rawat-inap/ruangan",
+      "per_ruang": true,
+      "metrik_beban": "bor",
+      "ambang": { "kuning": 80, "merah": 95 }
     },
     {
       "kode_unit": "laboratorium",
       "modul": "laboratorium",
       "nama": "Laboratorium",
-      "bidang_kerja": "Petugas laboratorium",
+      "bidang_kerja": "Analis laboratorium",
       "izin": "LABORATORIUM",
-      "x": 170,
-      "y": 300
+      "rute": "/laboratorium/order-lab",
+      "ambang": { "kuning": 5, "merah": 15 }
+    },
+    {
+      "kode_unit": "radiologi",
+      "modul": "radiologi",
+      "nama": "Radiologi",
+      "bidang_kerja": "Radiografer",
+      "izin": "RADIOLOGI",
+      "rute": "/radiologi/order",
+      "ambang": { "kuning": 3, "merah": 8 }
     },
     {
       "kode_unit": "farmasi",
       "modul": "farmasi",
       "nama": "Farmasi",
-      "bidang_kerja": "Pelayanan resep",
+      "bidang_kerja": "Apoteker & TTK",
       "izin": "FARMASI",
-      "x": 450,
-      "y": 300
+      "rute": "/farmasi/resep-dokter",
+      "ambang": { "kuning": 5, "merah": 15 }
+    },
+    {
+      "kode_unit": "kasir",
+      "modul": "pembayaran",
+      "nama": "Kasir",
+      "bidang_kerja": "Petugas kasir",
+      "izin": "KASIR",
+      "rute": "/pembayaran/kasir",
+      "ambang": { "kuning": 5, "merah": 15 }
     }
   ],
-  "pemetaan": {
-    "order": "antre",
-    "penerimaan": "diproses",
-    "validasi": "selesai",
-    "resep": "antre",
-    "dispensing": "selesai",
-    "menunggu_dependensi": "menunggu_dependensi",
-    "menunggu_validasi": "menunggu_validasi",
-    "hambatan": "terhambat",
-    "perhatian": "perlu_perhatian"
+  "denah": {
+    "baris": [
+      ["pendaftaran", "kasir", "farmasi"],
+      ["rawat_jalan", "laboratorium", "radiologi"],
+      ["igd", "rawat_inap"]
+    ],
+    "jarak": 2,
+    "tepi": 1,
+    "ukuran_unit": { "w": 4, "d": 3 },
+    "ukuran_ruang": { "w": 3, "d": 3 },
+    "jarak_ruang": 1,
+    "maks_kolom_ruang": 4
   },
   "jalur": [
-    {
-      "asal": "rawat_jalan",
-      "tujuan": "laboratorium"
-    },
-    {
-      "asal": "rawat_jalan",
-      "tujuan": "farmasi"
-    }
-  ],
-  "skenario": [
-    {
-      "event_type": "order"
-    },
-    {
-      "event_type": "penerimaan"
-    },
-    {
-      "event_type": "menunggu_validasi"
-    }
+    { "asal": "pendaftaran", "tujuan": "rawat_jalan", "label": "Kunjungan rawat jalan terdaftar hari ini" },
+    { "asal": "rawat_jalan", "tujuan": "laboratorium", "label": "Order laboratorium dari rawat jalan" },
+    { "asal": "rawat_jalan", "tujuan": "radiologi", "label": "Order radiologi dari rawat jalan" },
+    { "asal": "rawat_jalan", "tujuan": "farmasi", "label": "Resep dari rawat jalan" },
+    { "asal": "rawat_jalan", "tujuan": "rawat_inap", "label": "Rawat inap asal rawat jalan" },
+    { "asal": "igd", "tujuan": "rawat_inap", "label": "Rawat inap asal IGD" },
+    { "asal": "igd", "tujuan": "laboratorium", "label": "Order laboratorium dari IGD" },
+    { "asal": "igd", "tujuan": "radiologi", "label": "Order radiologi dari IGD" },
+    { "asal": "igd", "tujuan": "farmasi", "label": "Resep dari IGD" }
   ]
 }

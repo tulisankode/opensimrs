@@ -722,7 +722,7 @@
       "kode": "dashboard_virtual_office",
       "modul": "dashboard",
       "nama": "Virtual Office",
-      "deskripsi": "Prototipe simulasi peta isometrik agregat lintas unit; bukan pemantauan operasional.",
+      "deskripsi": "Peta isometrik 2.5D aktivitas unit hari ini (antrean, dilayani, selesai, beban) dari transaksi nyata, agregat tanpa data pasien.",
       "tersedia": true,
       "wajib": false,
       "rute": [

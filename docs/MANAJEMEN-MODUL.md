@@ -358,7 +358,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
-| `dashboard_virtual_office` | Virtual Office | Prototipe simulasi peta isometrik agregat lintas unit; bukan pemantauan operasional. | Tersedia | – | – | – |
+| `dashboard_virtual_office` | Virtual Office | Peta isometrik 2.5D aktivitas unit hari ini (antrean, dilayani, selesai, beban) dari transaksi nyata, agregat tanpa data pasien. | Tersedia | – | – | – |
 | `helpdesk_ai` | Asisten Bantuan (Helpdesk AI) | Tombol Bantuan untuk bertanya cara memakai OpenSIMRS ke asisten AI. Hanya berlaku bila Gateway helpdesk dikonfigurasi di setting-service. | Tersedia | – | – | – |
 | `command_center` | Command Center | Dasbor operasional agregat untuk tempat tidur, IGD, dan antrean. | Tersedia | – | – | – |
 | `dashboard_eksekutif` | Dashboard Eksekutif | Indikator pimpinan lintas modul: kunjungan RJ/RI/IGD, BOR/ALOS/TOI/BTO/NDR/GDR, waktu tunggu, pendapatan/kas/piutang, SEP BPJS, kesiapan akreditasi, kredensial & SDM; target KPI per faskes dengan warna status, tren, rincian agregat, dan ekspor PDF tanpa identitas pasien. | Tersedia | – | – | – |

@@ -1,10 +1,7 @@
-# Aktivasi prototipe dan prasyarat operasional
+# Aktivasi Virtual Office
 
-1. Tinjau perubahan dan jalankan verifikasi kode tanpa data nyata.
-2. Pada lingkungan uji terisolasi, pengelola menjalankan migrasi baru `20261019180000-katalog_virtual_office.cjs` melalui proses migrasi proyek. Migrasi hanya memanggil sinkronKatalog yang menggunakan upsert idempoten. Uji ulang sinkronisasi tanpa perubahan hasil. Agen tidak menjalankan langkah database ini.
-3. Pastikan layanan laporan dan frontend memuat versi kode yang sama. Tidak ada dependensi npm baru atau variabel kredensial baru.
-4. Aktifkan fitur Dashboard ? Virtual Office melalui Manajemen Modul sesuai kebutuhan. Berikan izin READ serta izin unit yang diperlukan melalui editor peran; login ulang setelah perubahan izin. Izin ini tidak memberikan detail modul sumber.
-5. Buka Dashboard ? Virtual Office. Pastikan banner Simulasi, unit sesuai modul/izin, kontrol peta, snapshot, dan indikator tertunda/offline bekerja. Angka dan jalur selalu sintetis.
-6. Untuk menonaktifkan, matikan fitur katalog atau cabut izinnya. Tidak ada transaksi klinis maupun tabel proyeksi yang perlu dikembalikan.
-
-Integrasi operasional memerlukan pekerjaan lanjutan: produsen event andal, kontrak/revisi dan pemetaan terverifikasi, proyeksi tahan gangguan, penyaringan soft delete sumber, audit detail, transport live berautentikasi, retensi, pengujian beban/keamanan, serta keputusan manusia. Prototipe tidak boleh ditafsirkan sebagai pemantauan operasional. Tidak ada perubahan pada deploy, konfigurasi rahasia, atau alur produksi.
+1. Jalankan migrasi (`npm run db:migrate`), yaitu `20261019250000-katalog_virtual_office_operasional.cjs` (sinkron katalog) dan `20261019250010-izin_virtual_office_unit.cjs` (aksi unit baru untuk peran super admin). Keduanya idempoten.
+2. Muat ulang laporan-service dan frontend dengan versi kode yang sama. Tidak ada dependensi npm atau variabel rahasia baru. Variabel opsional: `REPORT_TZ_OFFSET` (bawaan `+07:00`) menentukan batas "hari ini", dan `VIRTUAL_OFFICE_SIMULASI=aktif` hanya untuk demo atau QA.
+3. Bila perlu, aktifkan fitur Dashboard › Virtual Office lewat Manajemen Modul. Berikan izin Dashboard › Virtual Office › READ dan aksi unit yang diperlukan lewat Setting › Hak Akses. Pengguna perlu login ulang setelah izin berubah (cache izin laporan-service 60 detik).
+4. Buka Dashboard, lalu tombol **Virtual Office**. Periksa bahwa unit sesuai modul aktif, angka sesuai transaksi hari ini, unit tanpa izin terkunci, dan status Live/Tertunda/Offline tampil.
+5. Untuk menonaktifkan, matikan fitur katalog atau cabut izinnya. Tidak ada data yang perlu dikembalikan.
