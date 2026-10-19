@@ -1,6 +1,6 @@
 # Laporan
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas rekam medis/pelaporan sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas rekam medis/pelaporan sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** petugas rekam medis dan pelaporan, manajemen, kepala unit
 **Menu:** Laporan › Jumlah Kunjungan Berdasarkan Status Rawat · Rekapitulasi Tindakan · Rekapitulasi Pemeriksaan Lab · Rekapitulasi Diagnosis berdasarkan Umur Pasien; menu **Ekstensi** (bila ada ekstensi terpasang)
@@ -76,7 +76,7 @@ Ekstensi adalah laporan, template cetak, atau formulir tambahan yang dirakit di 
 ## Pertanyaan yang sering diajukan
 **Mengapa angka laporan berbeda dengan laporan di menu modul?** Laporan di menu **Laporan** adalah rekap lintas layanan, sedangkan laporan modul hanya mencakup modul itu. Pastikan filter tanggal, jenis kunjungan, dan metode bayar sama.
 
-**Laporan pendapatan ada di mana?** Gunakan **Pembayaran › Laporan › Pendapatan** atau **Farmasi › Laporan › Pendapatan**. Rekapitulasi Pendapatan di menu Laporan belum tersedia.
+**Laporan pendapatan ada di mana?** Gunakan **Pembayaran › Laporan › Pendapatan** atau **Farmasi › Laporan › Pendapatan**. Rekapitulasi Pendapatan di menu Laporan belum tersedia. Pimpinan yang berizin juga dapat melihat pendapatan, kas, dan piutang di tab **Keuangan** pada **Dashboard Eksekutif** (lihat `dashboard.md`).
 
 **Mengapa menu Ekstensi tidak ada?** Menu ini hanya muncul bila ada ekstensi yang terpasang untuk faskes dan peran Anda punya hak modulnya.
 
@@ -89,4 +89,3 @@ Ekstensi adalah laporan, template cetak, atau formulir tambahan yang dirakit di 
 - Daftar izin Laporan memuat "Rekapitulasi Pendapatan Fisioterapi", tetapi tidak ada menunya di **Laporan**.
 - Pilihan **Jenis Kunjungan** di filter hanya **Rawat Jalan**, **Rawat Inap**, dan **IGD**, sedangkan kode juga mengenal "APS". Mohon dicek apakah APS perlu bisa disaring.
 - Pengelompokan umur pada **Rekapitulasi Diagnosis** (isi kolom **Kunjungan**) belum terbaca rinci dari kode. Mohon dilengkapi peninjau.
-- Nama menu **Setting › Ekstensi** diambil dari rute `/setting/ekstensi` dan belum dicek labelnya di layar.

@@ -83,7 +83,7 @@ git push origin fix/b-22-kode-status-dirujuk
 - Satu PR = satu tujuan. Pisahkan perbaikan yang tidak berhubungan.
 - Satu fitur yang menyentuh beberapa layanan cukup **satu PR** (repo ini monorepo): kode layanan + migrasi + katalog + dokumen.
 - PR kecil lebih cepat ditinjau. Buka **draft PR** lebih awal bila pekerjaan besar.
-- PR harus lulus CI (cek sintaks layanan & `packages/`, uji unit lab-service, `schema.sql` + migrasi dua kali, cek dokumen katalog, build frontend) dan disetujui sesuai jenis perubahannya: minimal 1 maintainer bidang, atau 2 persetujuan (termasuk Core Maintainer) untuk SDK, migrasi, autentikasi/izin, integrasi, lintas layanan, dan CI/deploy.
+- PR harus lulus CI (`.github/workflows/ci.yml`: cek sintaks semua layanan & `packages/`; uji unit lab, studio, laporan, setting, penunjang, dan program-puskesmas; `schema.sql` + migrasi dua kali; cek dokumen katalog; `node scripts/cek-integritas.mjs`; build frontend) dan disetujui sesuai jenis perubahannya: minimal 1 maintainer bidang, atau 2 persetujuan (termasuk Core Maintainer) untuk SDK, migrasi, autentikasi/izin, integrasi, lintas layanan, dan CI/deploy.
 - Tanggapi masukan reviewer dengan commit baru; jangan *force-push* setelah review dimulai kecuali diminta.
 
 ---
@@ -171,7 +171,7 @@ Repo ini **publik**. Apa pun yang di-commit bisa dibaca siapa saja, selamanya (r
 - Alamat IP/host server internal faskes atau kantor, dan email/nomor telepon pribadi.
 - Dokumen internal faskes atau dokumen kebutuhan produk yang bersifat rahasia.
 
-**Data uji harus fiktif.** Gunakan data demo (`npm run db:demo:seed`, `db:demo:transaksi`) atau buat identitas fiktif. Untuk email contoh, pakai domain yang memang dicadangkan untuk contoh, mis. `@contoh.test` atau `@example.com`; untuk host pakai `simrs.contoh.id`/`localhost`.
+**Data uji harus fiktif.** Gunakan data demo (`npm run db:demo:seed`, `db:demo:transaksi`) atau buat identitas fiktif. Data contoh harus jelas fiktif: email `@contoh.id`, nomor HP `080000000000`, NIK berawalan `9999`; untuk host pakai `simrs.contoh.id`/`localhost`.
 
 **Bila terlanjur meng-commit rahasia:** jangan hanya menghapusnya di commit berikutnya. Segera **ganti (rotasi)** rahasia tersebut, lalu kabari maintainer secara privat.
 
@@ -197,9 +197,13 @@ npm --prefix lab-service test          # uji bridging LIS (lis-peta, lis-bulk)
 npm --prefix rekamedis-service test    # mis. perhitungan biaya kamar
 npm --prefix bpjs-service test
 npm --prefix satusehat-service test
+npm --prefix penunjang-service test    # CSSD, gizi, bank darah, UTD, laundry, mutu, dst.
+npm --prefix program-puskesmas-service test
+npm --prefix setting-service test      # katalog modul & penyaring Helpdesk
+npm --prefix laporan-service test      # validator ekstensi & indikator Dashboard Eksekutif
 ```
 
-Layanan lain memakai `jest` atau `mocha` (lihat skrip `test` di `package.json` masing-masing). Beberapa layanan belum punya uji sama sekali; menambahkannya adalah kontribusi yang sangat berguna (backlog B-56).
+CI menjalankan uji unit lab, studio, laporan, setting, penunjang, dan program-puskesmas. Layanan lain memakai `jest` atau `mocha` (lihat skrip `test` di `package.json` masing-masing). Beberapa layanan belum punya uji sama sekali; menambahkannya adalah kontribusi yang sangat berguna (backlog B-56).
 
 ### 6.3 Uji bridging LIS tanpa server LIS asli
 
@@ -222,7 +226,7 @@ npm run db:migrate
 npm run db:migrate     # dijalankan dua kali: kali kedua tidak boleh mengubah apa pun
 ```
 
-CI menguji hal yang sama pada database kosong.
+CI menguji hal yang sama pada database kosong (setelah memuat `schema.sql`), lalu menjalankan `node scripts/cek-integritas.mjs` untuk memeriksa rute katalog, menu, nama migrasi, dan fragmen CHANGELOG.
 
 ---
 

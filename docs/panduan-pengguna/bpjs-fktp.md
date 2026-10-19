@@ -1,9 +1,9 @@
 # BPJS FKTP (PCare)
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas admin BPJS/pendaftaran di FKTP (klinik pratama, puskesmas) sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas admin BPJS/pendaftaran di FKTP (klinik pratama, puskesmas) sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** admin BPJS faskes tingkat pertama, petugas pendaftaran
-**Menu:** Setting › Konfigurasi Integrasi (kartu **Konfigurasi BPJS PCare (FKTP)**, **Pemetaan Poli & Dokter ke BPJS PCare**, **Sinkronisasi BPJS PCare**)
+**Menu:** Setting › Konfigurasi Integrasi › BPJS › BPJS PCare (kartu **Konfigurasi BPJS PCare (FKTP)**, **Pemetaan Poli & Dokter ke BPJS PCare**, **Sinkronisasi BPJS PCare**)
 **Hak akses yang dibutuhkan:** Setting › Konfigurasi Integrasi › READ (lihat catatan untuk peninjau)
 
 ## Untuk apa
@@ -12,7 +12,7 @@ Bagi faskes tingkat pertama (FKTP), OpenSIMRS mengirim kunjungan pasien BPJS ke 
 ## Tugas sehari-hari
 
 ### Mengisi konfigurasi PCare (sekali di awal)
-1. Klik foto/nama profil di kanan atas › **Setting** › **Konfigurasi Integrasi**.
+1. Klik foto/nama profil di kanan atas › **Setting** › **Konfigurasi Integrasi** › **BPJS** › **BPJS PCare**.
 2. Di kartu **Konfigurasi BPJS PCare (FKTP)**, klik **Edit**.
 3. Isi **Cons ID**, **Kode Provider (PPK)**, **Secret Key**, **User Key PCare**, **Username PCare**, **Password PCare**, dan **Kode Aplikasi** (bawaan `095`). Semua data ini diperoleh dari BPJS Kesehatan.
 4. Ubah sakelar **Status** menjadi **Aktif**, lalu klik **Simpan**.
@@ -23,7 +23,7 @@ Bagi faskes tingkat pertama (FKTP), OpenSIMRS mengirim kunjungan pasien BPJS ke 
 1. Di kartu **Konfigurasi BPJS PCare (FKTP)**, klik **Uji Koneksi**.
 2. Untuk mengecek kepesertaan, ketik nomor kartu (13 digit, contoh `0000000000000`) atau NIK (16 digit) di kolom **Cek Peserta JKN**, lalu klik **Cek**.
 
-**Hasilnya:** uji koneksi menampilkan **Koneksi BPJS PCare berhasil** beserta jumlah poli FKTP yang terbaca. Cek peserta menampilkan Nama, No. Kartu, Status (AKTIF/TIDAK AKTIF), Jenis Peserta, Kelas, dan FKTP Terdaftar.
+**Hasilnya:** uji koneksi menampilkan **Koneksi BPJS PCare berhasil** beserta jumlah poli FKTP yang terbaca, atau **Uji koneksi PCare gagal** dengan penyebabnya. Cek peserta menampilkan Nama, No. Kartu, Status (AKTIF/TIDAK AKTIF), Jenis Peserta, Kelas, dan FKTP Terdaftar.
 
 ### Memetakan poli dan dokter ke kode PCare
 1. Gulir ke kartu **Pemetaan Poli & Dokter ke BPJS PCare**.
@@ -88,4 +88,4 @@ Bagi faskes tingkat pertama (FKTP), OpenSIMRS mengirim kunjungan pasien BPJS ke 
 - Halaman **Rawat Jalan › BPJS › Monitoring Kunjungan / Monitoring Riwayat Kunjungan / Monitoring Obat Kunjungan** (juga di Rawat Inap dan IGD, izin BPJS-PCARE) tampaknya masih berisi data contoh statis, misalnya total data tetap. Halaman ini sengaja tidak dijadikan tugas.
 - Langkah "Mendaftarkan pasien BPJS" disimpulkan dari kode: kunjungan dianggap BPJS bila nama penjamin diawali "BPJS", dan No. Penjamin dipakai sebagai nomor kartu. Mohon dicek dengan alur pendaftaran yang sebenarnya.
 - Katalog modul menyebut "rujukan keluar, kapitasi" untuk modul ini, tetapi fitur tersebut tidak ditemukan di layar. Panduan hanya memuat konfigurasi, pemetaan, cek peserta, dan sinkronisasi pendaftaran/kunjungan.
-- Kartu PCare berada di halaman Setting yang sama dengan VClaim; belum dicek apakah kartu disembunyikan saat modul BPJS FKTP nonaktif.
+- Sejak Konfigurasi Integrasi dipecah per sistem tujuan, PCare punya halaman sendiri (**BPJS › BPJS PCare**). Submenu ini tetap tampil walau modul BPJS FKTP nonaktif (SettingView.vue tidak memeriksa modul). Mohon dipastikan apakah perlu disembunyikan.

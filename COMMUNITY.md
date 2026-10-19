@@ -2,7 +2,7 @@
 
 Halaman ini adalah **sumber utama** daftar kanal resmi komunitas OpenSIMRS dan aturan mainnya. Bila tautan undangan berubah, perbarui berkas ini terlebih dahulu (lalu bagian kontak di README).
 
-Website resmi: [OpenSIMRS.my.id](https://opensimrs.my.id)
+Website resmi: [OpenSIMRS.my.id](https://opensimrs.my.id) · Dokumentasi resmi: [docs.opensimrs.com](https://docs.opensimrs.com)
 
 ---
 

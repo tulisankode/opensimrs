@@ -44,15 +44,16 @@ OpenSIMRS adalah SIMRS berbasis microservice untuk fasilitas kesehatan Indonesia
 | `farmasi-service`, `stok-farmasi-service` | Resep, telaah & penyerahan obat, stok depo |
 | `inventory-service` | Gudang, pembelian ke supplier, distribusi ke depo, opname |
 | `lab-service` | Order, hasil & validasi lab (Patologi Klinik), tagihan lab, **bridging LIS** (kirim per order/bulk, tarik/terima hasil, mapping) |
-| `penunjang-service` | Fisioterapi, Radiologi, MCU, Patologi Anatomi, Mikrobiologi, CSSD (port 8099, `/api/v3/penunjang`) |
+| `penunjang-service` | Fisioterapi, Radiologi (+ bridging PACS/RIS), MCU, Patologi Anatomi (+ bridging LIS PA), Mikrobiologi (+ bridging LIS), Bank Darah/UTD, Hemodialisa (+ HDIS), CSSD, Gizi, Kamar Operasi, Koding RM, Mutu & Akreditasi, HR/SDM, Sarpras, Laundry, Ambulans, Kelas Training (port 8099, `/api/v3/penunjang`; satu folder `src/<modul>/` per modul) |
 | `program-puskesmas-service` | Program Puskesmas: KIA/KB, imunisasi, MTBS, sasaran, UKM, laporan LB1 & dinkes (port 8100, `/api/v3/program-puskesmas`) |
 | `payment-service` | Tagihan, kasir, shift, kuitansi |
 | `datamaster-service` | Faskes, lokasi, pegawai, praktisi, tarif, role, dan datamaster lain |
 | `setting-service` | Profil faskes, konfigurasi integrasi, cetak, **Manajemen Modul** |
 | `laporan-service` | Laporan & rekap |
 | `bpjs-service`, `satusehat-service` | Integrasi eksternal (ada langsung di repo root) |
+| `studio-service` | SIMRS Studio, mode pengembang berbasis AI (port 8090, `/api/v3/studio`). Dijalankan langsung di mesin pengembang dan tidak ada di `docker-compose.yml`; aktif bila `STUDIO_PENGEMBANG=aktif`. Agen tidak boleh mengubah folder ini. Lihat [SIMRS-STUDIO.md](./SIMRS-STUDIO.md) |
 
-Port masing-masing layanan ada di `.env.example` setiap service dan di `docker-compose.yml`.
+Ada 20 layanan backend (19 layanan aplikasi + `studio-service`). Port masing-masing layanan ada di [tabel port Petunjuk Instalasi](./INSTALLATION_GUIDE.md#3-gambaran-sistem--port) (acuan utama), `.env.example` setiap service, dan `docker-compose.yml`.
 
 ### Teknologi
 
@@ -76,11 +77,16 @@ Repo ini **monorepo**: semua `*-service` dan `frontend-service` adalah folder bi
 ├── <nama>-service/              # kode per layanan (folder biasa)
 ├── frontend-service/            # frontend Vue 3
 ├── bpjs-service/ satusehat-service/ penunjang-service/ program-puskesmas-service/
+├── studio-service/              # SIMRS Studio (mode pengembang AI; zona merah bagi agen)
 ├── packages/                    # SDK bersama: model-sdk, authorization-sdk, permission-sdk (@opensimrs/*)
 ├── scripts/
-│   ├── lis-tiruan.mjs           # LIS tiruan untuk uji bridging tanpa LIS asli (format adamLIS)
+│   ├── *-tiruan.mjs             # sistem tiruan untuk uji bridging: LIS, LIS mikro, LIS PA, PACS, UTD, HDIS, marketplace (README-*.md)
 │   ├── refresh-sdk.mjs          # npm run sdk:refresh — pasang ulang SDK ke layanan
-│   └── dokumen-katalog.mjs      # npm run docs:katalog — tabel katalog di MANAJEMEN-MODUL.md
+│   ├── dokumen-katalog.mjs      # npm run docs:katalog — tabel katalog di MANAJEMEN-MODUL.md
+│   ├── cek-integritas.mjs       # cek lintas berkas (katalog, menu, stempel migrasi, import @/main, fragmen CHANGELOG); dijalankan CI
+│   ├── gabung-changelog.mjs     # menggabungkan changelog.d/*.md ke CHANGELOG.md saat rilis
+│   ├── gateway-lokal.mjs        # konfigurasi gateway nginx untuk instalasi lokal (install.sh --domain)
+│   └── lib/                     # pustaka installer: tampilan.sh (bilah kemajuan), podman.sh (koneksi VM Podman)
 ├── database/
 │   ├── migrations/*.cjs         # migrasi sequelize-cli (SQL mentah, idempoten)
 │   ├── data/katalog-modul.json  # SUMBER katalog Manajemen Modul
@@ -91,6 +97,9 @@ Repo ini **monorepo**: semua `*-service` dan `frontend-service` adalah folder bi
 ├── mongo-init.js                # menyiapkan database MongoDB aplikasi (tanpa kredensial)
 ├── docker-compose.yml           # satu-satunya berkas compose
 ├── deploy/server/               # deploy.sh, docker-compose.server.yml, gateway.nginx.conf, .env.example
+├── deploy/helpdesk/             # Helpdesk AI (OpenClaw di VM terpisah)
+├── changelog.d/                 # fragmen CHANGELOG per branch / item Studio
+├── install.sh, install.ps1      # installer lokal (pasangannya uninstall.sh, uninstall.ps1)
 └── docs/                        # dokumentasi (ROADMAP, konteks ini, audit menu, rencana testing)
 ```
 
@@ -124,7 +133,7 @@ Untuk mengulang data demo dari awal: `npm run db:demo:reset -- --ya` (menghapus 
 - Kata sandi diambil dari variabel lingkungan `DEMO_PASSWORD` (bawaan `Demo@2026`). Daftar lengkap akun dicetak saat seeder selesai.
 - **Hanya untuk development dan staging** (lihat [Lingkungan](./LINGKUNGAN.md)). Jangan jalankan reset di server berisi data nyata.
 
-**SDK `@opensimrs/*`** (model-sdk, authorization-sdk, permission-sdk; versi 1.1.0, lisensi ISC dengan atribusi penulis asli) ada di `packages/`. Layanan memasangnya dengan `"@opensimrs/<sdk>": "file:../packages/<sdk>"` dan `.npmrc` berisi `install-links=true`, sehingga SDK terpasang sebagai **salinan** (bukan symlink) dan sequelize/mongoose tetap satu instans per layanan. Akibatnya, perubahan di `packages/` baru terlihat setelah `npm run sdk:refresh` (atau `npm run sdk:refresh -- lab-service`; lihat `scripts/refresh-sdk.mjs`). JWT memakai **HS256 dengan `SECRET_KEY`** (bagian kode `authorization-sdk`); semua layanan harus memakai `SECRET_KEY` yang sama, sedangkan `PRIVATE_KEY`/`PUBLIC_KEY` tidak dipakai. Di Docker, layanan ber-SDK dibangun dengan konteks root repo (`context: .`, `dockerfile: <layanan>/Dockerfile`) agar `packages/` ikut tersalin ke `/packages`.
+**SDK `@opensimrs/*`** (model-sdk 1.4.0, authorization-sdk 1.2.0, permission-sdk 1.1.0; lisensi ISC dengan atribusi penulis asli; naikkan versi SDK yang diubah) ada di `packages/`. Layanan memasangnya dengan `"@opensimrs/<sdk>": "file:../packages/<sdk>"` dan `.npmrc` berisi `install-links=true`, sehingga SDK terpasang sebagai **salinan** (bukan symlink) dan sequelize/mongoose tetap satu instans per layanan. Akibatnya, perubahan di `packages/` baru terlihat setelah `npm run sdk:refresh` (atau `npm run sdk:refresh -- lab-service`; lihat `scripts/refresh-sdk.mjs`). JWT memakai **HS256 dengan `SECRET_KEY`** (bagian kode `authorization-sdk`); semua layanan harus memakai `SECRET_KEY` yang sama, sedangkan `PRIVATE_KEY`/`PUBLIC_KEY` tidak dipakai. Di Docker, layanan ber-SDK dibangun dengan konteks root repo (`context: .`, `dockerfile: <layanan>/Dockerfile`) agar `packages/` ikut tersalin ke `/packages`.
 
 Konfigurasi rahasia (kredensial database, SATUSEHAT, BPJS) hanya ditaruh di file `.env` yang tidak di-commit. Kredensial integrasi per faskes diisi lewat menu Setting.
 
@@ -239,7 +248,7 @@ Pendaftaran (admisi) ─▶ antrian poli ─▶ panggil ─▶ mulai periksa ─
 - riwayat tindakan disalin ke PostgreSQL;
 - untuk rawat inap, biaya kamar ditagihkan dan bed dikosongkan.
 
-SATUSEHAT hanya menyinkronkan kunjungan RJ berstatus selesai, dengan diagnosis ICD-10 dari RME.
+SATUSEHAT hanya menyinkronkan kunjungan RJ berstatus selesai (Encounter + diagnosis ICD-10 + tanda vital dari RME). ID SATUSEHAT pasien & dokter dicari otomatis lewat NIK, Location poli dibuat otomatis, lalu disimpan (`patients.satu_sehat_uuid`, `practitioner.satu_sehat_id`, `lokasi.satu_sehat_id`; lihat `satusehat-service/src/sinkron.js`).
 
 ### Penagihan
 
@@ -263,7 +272,7 @@ SATUSEHAT hanya menyinkronkan kunjungan RJ berstatus selesai, dengan diagnosis I
 - Koneksi per faskes (`lab_lis_koneksi`): `url_registrasi`, `url_hasil` (GET, placeholder `{no_registrasi}`/`{no_lab}`), `api_key` (terenkripsi), `kode_rs`, `kode_lab`, `mode_kirim` (`per_order`/`bulk`), `url_registrasi_bulk`, `ukuran_batch` (≤ 149, batas gateway < 150).
 - Body registrasi = format adamLIS (`lis-peta.js buatRegistrasi`); kode tindakan, unit, dokter, penjamin diganti kode LIS dari **Laboratorium › Mapping LIS** (`tarif_lab.kode_lis`, `lab_lis_peta_ref`); hasil dipetakan lewat `item_pemeriksaan.kode_lis`.
 - "Validasi & Kirim ke LIS": gagal kirim = validasi dibatalkan. No. Lab LIS disimpan di `lab_lis_kirim.lis_no_lab` dan dipakai lebih dulu saat mencocokkan hasil.
-- Hasil masuk lewat **push** (`POST /adam-lis/bridging`, kunci masuk) atau **tarik** (`POST /api/v3/lab/lis/tarik/:order` → GET `url_hasil`); keduanya lewat `prosesHasil`.
+- Hasil masuk lewat **push** (`POST /adam-lis/bridging` atau alias `POST /api/v3/lab/lis/hasil`, kunci masuk) atau **tarik** (`POST /api/v3/lab/lis/tarik/:order` → GET `url_hasil`); keduanya lewat `prosesHasil`.
 - Kirim massal (MCU): `lab_lis_batch` diproses asinkron; **klaim atomik** per order (`INSERT … ON CONFLICT … WHERE status IN ('baru','gagal')`) mencegah kirim dobel; timeout/502 → status `tidak_pasti` (selesaikan dengan Cek Status sebelum kirim ulang); 409/400 bulk → item penyebab dikeluarkan, sisa dikirim ulang.
 - Uji tanpa LIS asli: `node scripts/lis-tiruan.mjs`.
 
@@ -299,6 +308,7 @@ Baca bagian ini sebelum menyentuh area terkait. Sebagian juga tercatat di backlo
 | Edit order lab | Mengganti tarif order harus menyinkronkan `observation_item` (sudah ditangani di `OrderLabService.update`; hanya sebelum validasi). |
 | SDK `packages/` | SDK dipasang sebagai salinan (`install-links=true`). Mengubah `packages/*` tanpa `npm run sdk:refresh` berarti layanan masih memakai kode lama. Jangan mengganti dependensi menjadi symlink: sequelize/mongoose bisa menjadi dua instans. |
 | Docker build | Layanan ber-SDK dibangun dari root repo (`context: .`); berkas yang dibutuhkan image jangan sampai tercakup `.dockerignore` root. Frontend, bpjs, satusehat, dan penunjang memakai konteks foldernya sendiri. |
+| Gateway | Gateway nginx hanya meneruskan `/api/v3/<layanan>/` dan `/adam-lis/` (lab-service). Titik masuk bridging baru di penunjang-service wajib punya alias `/api/v3/penunjang/...` (pola `ruteMasuk.post(["/adam-…/bridging", "/api/v3/penunjang/…"])`). Batas laju `payment-service` & `rawat-inap-service` (100/5 menit per IP, tanpa `trust proxy`) menghitung semua pengguna di belakang gateway sebagai satu IP. |
 | Windows / Git Bash | Argumen shell berawalan `/` atau `@/` diubah menjadi path Windows (`C:/Program Files/Git/...`). Tulis berkas lewat editor, bukan argumen shell. |
 
 ---

@@ -1,6 +1,6 @@
 # IGD
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas IGD (dokter dan perawat jaga IGD) sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas IGD (dokter dan perawat jaga IGD) sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** dokter jaga IGD, perawat IGD
 **Menu:** IGD › Pasien IGD
@@ -58,7 +58,7 @@ Caranya sama dengan rawat jalan. Lihat [RME Rawat Jalan](./rawat-jalan.md).
 **Hasilnya:** Pemberian obat tercatat pada tanggal tersebut.
 
 ### Membuat SPRI (pasien akan dirawat inap)
-1. Buka tab **Cetak Hasil & Surat** › **Surat Keterangan**.
+1. Buka tab **Cetak Hasil & Surat** › **List Surat Keterangan**.
 2. Tekan **Buat Surat**. Di **Cari & Pilih Surat**, pilih **Surat Permohonan Rawat Inap (SPRI)**, lalu tekan **Buat**.
 3. Isi **Tanggal rencana Rawat Inap**, **Dokter**, **Tujuan Ruangan Rawat Inap**, dan **Keterangan / Catatan**.
 4. Tekan **Simpan**.
@@ -72,6 +72,8 @@ Caranya sama dengan rawat jalan. Lihat [RME Rawat Jalan](./rawat-jalan.md).
 4. Bila perlu, tekan **Cetak Resume Medis**.
 
 **Hasilnya:** Status pasien menjadi **DISCHARGE** dan tagihan diteruskan ke kasir.
+
+> Untuk pasien BPJS di rumah sakit yang mengaktifkan fitur **Rencana Kontrol & SPRI**, tab **Resume & Discharge** juga menampilkan tombol **SPRI BPJS** untuk membuat surat perintah rawat inap VClaim yang diperlukan SEP rawat inap. Lihat [BPJS FKRTL](./bpjs-fkrtl.md).
 
 ### Membatalkan kunjungan IGD
 1. Di halaman **Pasien IGD**, tekan **Batal Kunjungan** di bawah tabel.

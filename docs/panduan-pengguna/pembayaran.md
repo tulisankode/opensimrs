@@ -1,6 +1,6 @@
 # Kasir & Pembayaran
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas kasir sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas kasir sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** petugas kasir, petugas keuangan
 **Menu:** Pembayaran › Kasir · Transaksi (Pelayanan, APS & OTC) · Closed Bill · Laporan (Pendapatan, Pembayaran Kunjungan, Closing Kasir)
@@ -16,7 +16,9 @@ Tagihan pasien terbentuk otomatis dari tindakan, obat, penunjang, dan kamar. Di 
 2. Isi **Saldo Awal (kas)** dan pilih shift pada **Pilih Shift** (**Pagi**, **Siang**, atau **Malam**).
 3. Klik **Open Kasir**.
 
-**Hasilnya:** tombol berubah menjadi **Close Kasir** dan kasir siap menerima pembayaran. Bila fitur Shift Kasir tidak aktif, kolom ini tidak tampil dan kasir bisa langsung menerima pembayaran.
+**Hasilnya:** tombol berubah menjadi **Close Kasir** dan kasir siap menerima pembayaran. Shift dicatat per akun kasir, jadi setiap kasir membuka shift-nya sendiri.
+
+Bila fitur Shift Kasir tidak aktif, kolom **Saldo Awal (kas)**, **Pilih Shift**, dan tombol **Open Kasir**/**Close Kasir**/**Closing Harian** tidak tampil. Sistem membuka shift secara otomatis (saldo awal 0) saat kasir pertama kali menerima pembayaran.
 
 ### Menerima pembayaran pasien
 1. Di **Pembayaran › Kasir**, cari pasien lewat **Pencarian Transaksi** (nama, No. Transaksi, atau No. RM), lalu pilih tagihannya.
@@ -35,7 +37,7 @@ Tagihan pasien terbentuk otomatis dari tindakan, obat, penunjang, dan kamar. Di 
    - Isi **Catatan** atau **Keterangan** bila perlu. **Cara Bayar** terisi otomatis sesuai penjamin kunjungan.
 6. Klik **Bayar**.
 
-**Hasilnya:** pembayaran tersimpan dan tombol **Cetak Kuitansi** muncul. Bila jumlah bayar kurang dari Grand Total, aplikasi menampilkan peringatan "Pembayaran kurang dari Grand Total, tetap melanjutkan dengan status piutang?". Bila dilanjutkan, sisanya menjadi piutang.
+**Hasilnya:** pembayaran tersimpan dengan nomor kuitansi unik (berawalan `KUI/`) dan tombol **Cetak Kuitansi** muncul. Bila jumlah bayar kurang dari Grand Total, aplikasi menampilkan peringatan "Pembayaran kurang dari Grand Total, tetap melanjutkan dengan status piutang?". Bila dilanjutkan, sisanya menjadi piutang.
 
 ### Mencetak kuitansi dan rincian tagihan
 1. Buka tagihan pasien di **Pembayaran › Kasir**, atau di **Pembayaran › Transaksi › Pelayanan** atau **APS & OTC**.
@@ -66,10 +68,16 @@ Tagihan pasien terbentuk otomatis dari tindakan, obat, penunjang, dan kamar. Di 
 ### Menutup kasir di akhir shift (bila fitur Shift Kasir aktif)
 1. Di **Pembayaran › Kasir**, klik **Close Kasir**.
 2. Di jendela **Closing Kasir**, bandingkan **Pendapatan System** dengan uang di laci. Isi **Pendapatan Aktual** bagian **Tunai**.
-3. Klik **Closing Kasir**.
-4. Di akhir hari, klik **Closing Harian**, lalu klik **Closing Harian** di jendela konfirmasi.
+3. Klik **Closing Kasir**. Slip tutup shift (rincian **TUNAI**, **DEBIT/KREDIT**, **TRANSFER**, dan **Total Pemasukan**) terbuka dan siap dicetak.
 
-**Hasilnya:** shift ditutup dan tercatat di **Laporan › Closing Kasir**.
+**Hasilnya:** shift ditutup, kolom **Saldo Awal (kas)** dan **Pilih Shift** kosong kembali, dan penutupan tercatat di **Laporan › Closing Kasir**.
+
+### Menutup hari (Closing Harian)
+1. Pastikan semua kasir sudah menutup shift-nya. Tombol **Closing Harian** hanya aktif bila shift Anda sudah ditutup.
+2. Di **Pembayaran › Kasir**, klik **Closing Harian**.
+3. Periksa nama akun dan **Tanggal & Jam Closing**, lalu klik **Closing Harian** pada pertanyaan "Apakah anda yakin ingin melakukan penutupan hari ini?".
+
+**Hasilnya:** penutupan hari tercatat di **Laporan › Closing Kasir**. Bila masih ada shift kasir yang terbuka di faskes, muncul pesan "Harus menutup shift kasir terlebih dahulu".
 
 ### Melihat laporan pembayaran
 - **Laporan › Pembayaran Kunjungan**: daftar pembayaran per pasien (**Waktu Bayar**, **Cara Bayar**, **Total Bayar**, **Kasir**). Saring berdasarkan **Shift** dan tanggal, lalu klik **Cetak**.
@@ -79,8 +87,11 @@ Tagihan pasien terbentuk otomatis dari tindakan, obat, penunjang, dan kamar. Di 
 ## Pesan galat yang sering muncul
 | Pesan | Arti | Yang perlu dilakukan |
 |---|---|---|
-| Shift kasir belum dibuka | Fitur Shift Kasir aktif, tetapi kasir belum dibuka. | Isi **Saldo Awal (kas)**, pilih shift, lalu klik **Open Kasir**. |
-| Shift kasir masih terbuka / Harus menutup shift kasir terlebih dahulu | Shift sebelumnya belum ditutup. | Klik **Close Kasir** terlebih dahulu, lalu lanjutkan. |
+| Shift kasir belum dibuka | Fitur Shift Kasir aktif, tetapi shift akun Anda belum dibuka. | Isi **Saldo Awal (kas)**, pilih shift, lalu klik **Open Kasir**. |
+| Shift kasir masih terbuka | Anda mencoba membuka shift, padahal shift Anda masih terbuka. | Lanjutkan memakai shift yang terbuka, atau klik **Close Kasir** dulu. |
+| Harus menutup shift kasir terlebih dahulu | **Closing Harian** ditolak karena masih ada shift kasir yang terbuka di faskes. | Minta setiap kasir menutup shift-nya dengan **Close Kasir**, lalu ulangi. |
+| Tagihan ini belum ditutup | Pelunasan piutang hanya bisa untuk tagihan yang sudah close bill. | Lakukan **Close Bill** dulu. |
+| Tagihan ini sudah tidak memiliki hutang | Piutang sudah lunas. | Tidak perlu pelunasan lagi. |
 | Pendapatan Aktual Tunai tidak sesuai. Sistem: …, Aktual: … | Uang yang diisikan berbeda dari catatan sistem. | Hitung ulang kas. Bila memang ada selisih, laporkan ke atasan sebelum menutup kasir. |
 | Tagihan sudah lunas / Tagihan ini sudah lunas | Tagihan sudah dibayar penuh. | Tidak perlu dibayar lagi. Cetak kuitansi bila diminta pasien. |
 | Tagihan sudah ditutup | Tagihan sudah close bill sehingga tidak dapat diubah. | Bila ada biaya yang tertinggal, hubungi atasan atau admin. |
@@ -88,7 +99,6 @@ Tagihan pasien terbentuk otomatis dari tindakan, obat, penunjang, dan kamar. Di 
 | Tagihan sudah memiliki diskon / … memiliki voucher | Diskon atau voucher hanya bisa dipakai sekali per tagihan. | Tidak perlu memasukkan lagi. |
 | Voucher tidak ditemukan / Voucher tidak aktif / Voucher telah habis digunakan / Masa berlaku voucher telah berakhir | Kode voucher tidak bisa dipakai. | Periksa kode dan masa berlaku di **Datamaster › Voucher**. |
 | Nilai voucher harus kurang dari total tagihan | Nilai voucher melebihi tagihan. | Gunakan voucher lain atau bayar tanpa voucher. |
-| Pembayaran asuransi tidak boleh melebihi sisa tagihan | Nilai **Dijamin** lebih besar dari sisa tagihan. | Turunkan nilai sampai sama dengan sisa tagihan. |
 | Tagihan ini tidak bisa dibayar menggunakan Asuransi. | Kunjungan pasien tidak memakai penjamin asuransi. | Proses sebagai pembayaran tunai. Bila penjaminnya salah, minta petugas pendaftaran memperbaiki kunjungan. |
 
 ## Pertanyaan yang sering diajukan
@@ -109,3 +119,6 @@ Tagihan pasien terbentuk otomatis dari tindakan, obat, penunjang, dan kamar. Di 
 - Tidak ditemukan fitur pembatalan atau void pembayaran di layar. Mohon dikonfirmasi prosedur resmi bila kasir salah input.
 - Tagihan di halaman **Kasir** dengan **Pembayaran › Transaksi** menampilkan tombol yang sama (**Bayar**, **Close Bill**, **Cetak**). Mohon dipastikan halaman mana yang dijadikan alur baku.
 - Halaman `Cashier2Page.vue` ada di kode tetapi tidak terdaftar di rute, jadi tidak dibahas.
+- Pemeriksaan "Pembayaran asuransi tidak boleh melebihi sisa tagihan" dinonaktifkan (dikomentari) di payment-service (`PaymentRepository.js`), sehingga nilai **Dijamin** yang melebihi sisa tagihan tidak ditolak. Mohon dipastikan apakah ini disengaja.
+- **Closing Harian** menolak bila masih ada shift terbuka milik kasir mana pun di faskes, tetapi tombolnya di layar hanya mengikuti status shift akun sendiri. Prosedur antarkasir perlu dijelaskan.
+- Tombol **Open Kasir**, **Close Kasir**, dan **Closing Harian** tidak tampak memeriksa izin OPEN KASIR/CLOSE KASIR/CLOSE HARIAN di halaman Kasir. Perlu dicek.

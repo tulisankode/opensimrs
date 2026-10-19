@@ -25,6 +25,8 @@ curl -X POST http://localhost:2412/_uji/atur -H "Content-Type: application/json"
   -d '{"push_url":"http://localhost:8099/adam-pacs/bridging","push_kunci":"<kunci masuk dari SIMRS>"}'
 ```
 
+> Lewat gateway API (`deploy/server/gateway.nginx.conf` atau `install.sh --domain`) alamat `/adam-…` penunjang-service tidak diteruskan; pakai alias `/api/v3/penunjang/radiologi/pacs/hasil` di domain API. Lihat [Petunjuk Instalasi 7.5](../docs/INSTALLATION_GUIDE.md#75-integrasi-eksternal).
+
 Perilaku yang ditiru:
 
 - **Kirim order** (`POST /adam-pacs/order`) — idempoten per `accession_number`: pengiriman ulang menambah hitungan "diterima" tapi tidak menggandakan studi ("terdaftar" tetap 1). Body `{ uji: true }` (dipakai tombol **Uji koneksi**) dibalas sukses tanpa registrasi.

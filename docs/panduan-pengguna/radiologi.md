@@ -1,6 +1,6 @@
 # Radiologi
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas radiologi sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas radiologi sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** petugas administrasi radiologi, radiografer, dokter spesialis radiologi (Sp.Rad), admin data master radiologi
 **Menu:** Penunjang › Radiologi › Order Radiologi / Penjadwalan / Pemeriksaan & Hasil / Datamaster / Laporan
@@ -103,7 +103,7 @@ Buka **Penunjang › Radiologi › Datamaster**:
 > Hanya tersedia bila superadmin mengaktifkan fitur **Bridging PACS/RIS** untuk faskes di **Setting › Manajemen Modul** (modul Radiologi tetap harus aktif).
 
 ### Menyiapkan koneksi PACS
-1. Buka **Setting › Konfigurasi Integrasi › Konfigurasi PACS**, lalu klik **Tambah PACS**.
+1. Buka **Setting › Konfigurasi Integrasi › Radiologi › PACS/RIS** (kartu **Konfigurasi PACS (Radiologi)**), lalu klik **Tambah PACS**.
 2. Isi **Nama**, **Kode RS di PACS**, **URL Kirim Order**, **URL Ambil Hasil/Status** (opsional, pakai `{accession_number}` sebagai placeholder), **URL Viewer** (opsional), dan **API Key**.
 3. Atur **Maks. request paralel** dan **Jeda antar-request**, tandai **Status: Aktif**, dan tandai **PACS Bawaan** bila ini satu-satunya/koneksi utama.
 4. Klik **Simpan**. Salin **alamat penerima hasil** dan **kunci masuk** yang tampil (hanya sekali) untuk dipasang di PACS sebagai URL pengembalian hasil.
@@ -128,7 +128,7 @@ Buka **Penunjang › Radiologi › Datamaster**:
 **Hasilnya:** setiap pemeriksaan mendapat **Accession Number** unik, order tervalidasi, dan status pengiriman tercatat di **Pengiriman PACS**. Accession Number tampil di detail order dan cetak hasil.
 
 ### Mengelola pengiriman yang gagal atau tidak pasti
-1. Buka **Setting › Konfigurasi Integrasi › Pengiriman PACS**.
+1. Buka **Setting › Konfigurasi Integrasi › Radiologi › PACS/RIS** (kartu **Pengiriman PACS**).
 2. Saring dengan **Status** bila perlu.
 3. Klik **Kirim Ulang** (status Gagal) atau **Kirim Lagi** (status lain) untuk mengirim ulang dengan Accession Number yang sama.
 4. Klik **Cek Status** pada baris berstatus **Tidak pasti** untuk memastikan status terbaru di PACS sebelum mengirim ulang.
@@ -156,7 +156,7 @@ Buka **Penunjang › Radiologi › Datamaster**:
 | Ruang masih memiliki … jadwal aktif; pindahkan atau batalkan dahulu | Ruang yang akan dihapus masih punya jadwal. | Pindahkan atau batalkan jadwalnya dulu. |
 | Jam tutup harus setelah jam buka | Jam operasional ruang terbalik. | Perbaiki **Jam Buka** dan **Jam Tutup**. |
 | Tindakan "…" belum dipetakan ke kode prosedur PACS | Pemeriksaan belum punya mapping di **Mapping PACS › Tindakan**. | Lengkapi mapping, atau klik **Validasi Saja** untuk melanjutkan tanpa kirim ke PACS. |
-| Belum ada koneksi PACS aktif | Fitur aktif tapi belum ada koneksi, atau semua koneksi nonaktif. | Tambahkan/koneksi aktifkan di **Setting › Konfigurasi Integrasi › Konfigurasi PACS**. |
+| Belum ada koneksi PACS aktif | Fitur aktif tapi belum ada koneksi, atau semua koneksi nonaktif. | Tambahkan/koneksi aktifkan di **Setting › Konfigurasi Integrasi › Radiologi › PACS/RIS** (kartu **Konfigurasi PACS (Radiologi)**). |
 | Lebih dari satu koneksi PACS aktif — pilih koneksi tujuan | Ada beberapa koneksi aktif tanpa koneksi bawaan. | Pilih koneksi tujuan pada dialog yang muncul, atau tandai satu koneksi sebagai **PACS Bawaan**. |
 | Pengiriman ke PACS gagal/sebagian gagal — validasi dibatalkan | PACS menolak atau tidak dapat dihubungi. | Perbaiki penyebab (lihat pesan), lalu kirim ulang dari **Pengiriman PACS**, atau pakai **Validasi Saja**. |
 | Item ini belum terkirim ke PACS | **Ambil Hasil PACS** ditekan sebelum order dikirim. | Kirim order ke PACS terlebih dahulu. |

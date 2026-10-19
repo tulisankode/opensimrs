@@ -1,9 +1,9 @@
 # Pendaftaran Pasien
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau petugas pendaftaran sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau petugas pendaftaran sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** petugas pendaftaran (admisi), petugas IGD, petugas rawat inap
-**Menu:** Admisi › Rawat Jalan / Rawat Inap / IGD / SEP / Data Pasien / Monitoring Kamar / Laporan
+**Menu:** Admisi › Rawat Jalan / Rawat Inap / IGD / SEP / Rencana Kontrol & SPRI / Data Pasien / Monitoring Kamar / Laporan
 **Hak akses yang dibutuhkan:**
 - Admisi › Admisi RJ › READ, CREATE PASIEN RJ, UPDATE ADMISI RJ, CETAK KUNJUNGAN, CETAK LABEL, BATAL RJ
 - Admisi › Admisi RI › READ, CREATE PASIEN RI, CREATE BAYI BARU LAHIR, UPDATE ADMISI RI
@@ -73,7 +73,7 @@ Pasien yang mendaftar sendiri lewat anjungan (APM) atau aplikasi (MOBILE) tampil
 **Hasilnya:** pasien tampil di **Admisi › IGD** dan di menu **IGD**.
 
 ### Menempatkan pasien rawat inap di kamar dan bed
-Pasien yang mendapat surat perintah rawat inap (SPRI) dari poli atau IGD otomatis tampil di **Admisi › Rawat Inap**. Nomor SPRI-nya terlihat di kolom **Data Kunjungan**.
+Pasien rawat inap tidak didaftarkan dengan tombol **Daftar**. Dokter di poli atau IGD membuat **Surat Permohonan Rawat Inap (SPRI)** di rekam medis (tab **Cetak Hasil & Surat** › **Buat Surat**) dan memilih dokter serta tujuan ruangan. Kunjungan rawat inap lalu dibuat otomatis dengan status **WAITING** dan tampil di **Admisi › Rawat Inap**. Nomor SPRI-nya terlihat di kolom **Data Kunjungan**. Langkah dokter ada di panduan [Rawat Inap](./rawat-inap.md).
 1. Buka **Admisi › Rawat Inap**, lalu klik baris pasien.
 2. Periksa identitas pasien dan cara bayar (**TUNAI**/**ASURANSI**).
 3. Di **Detail Kunjungan & Ruangan**, pilih **Kategori Ruangan**, **Kelas**, dan **Ruangan**.
@@ -81,9 +81,11 @@ Pasien yang mendapat surat perintah rawat inap (SPRI) dari poli atau IGD otomati
 5. Atur pilihan tambahan bila perlu, misalnya **Pasien Titipan**, **Naik Kelas**, atau **Gabung Tagihan Sebelumnya**.
 6. Klik **Simpan**.
 
-**Hasilnya:** bed tercatat untuk pasien. Status kamar terlihat di **Admisi › Monitoring Kamar**.
+**Hasilnya:** bed tercatat untuk pasien dan statusnya menjadi **DIRAWAT**. Status kamar terlihat di **Admisi › Monitoring Kamar**.
 
-> Bayi yang lahir saat ibunya dirawat didaftarkan lewat tombol **Bayi Baru Lahir** di **Admisi › Rawat Inap**.
+> Satu-satunya tombol pendaftaran di **Admisi › Rawat Inap** adalah **Bayi Baru Lahir**, untuk bayi yang lahir saat ibunya dirawat. Tombol ini tampil bila fitur *Registrasi Bayi Baru Lahir* aktif di **Setting › Manajemen Modul**.
+>
+> Pasien BPJS di rumah sakit juga memerlukan SEP rawat inap yang memakai **SPRI BPJS**. Lihat panduan [BPJS FKRTL](./bpjs-fkrtl.md).
 
 ### Mencetak dokumen kunjungan dan mengisi General Consent
 1. Buka daftar **Rawat Jalan**, **Rawat Inap**, atau **IGD** di menu **Admisi**, lalu klik baris pasien. Halaman **Detail** terbuka.
@@ -161,7 +163,9 @@ Poli dan dokter tidak bisa diubah setelah pendaftaran tersimpan. Bila poli atau 
 
 **Apa arti label APM atau MOBILE pada baris pasien?** Pasien mendaftar sendiri lewat anjungan (APM) atau aplikasi. Pasien seperti ini perlu di-check-in di loket.
 
-**Bagaimana cara mendaftarkan pasien rawat inap?** Pasien rawat inap berasal dari SPRI yang dibuat dokter di poli atau IGD. Petugas admisi melengkapi kamar dan bed di **Admisi › Rawat Inap**.
+**Bagaimana cara mendaftarkan pasien rawat inap?** Pasien rawat inap berasal dari Surat Permohonan Rawat Inap (SPRI) yang dibuat dokter di rekam medis poli atau IGD. Petugas admisi melengkapi kamar dan bed di **Admisi › Rawat Inap**. Bila pasien belum tampil, pastikan dokter sudah menyimpan SPRI.
+
+**Di mana membuat Rencana Kontrol atau SPRI BPJS?** Di **Admisi › Rencana Kontrol & SPRI** (bila fitur aktif), atau oleh dokter dari rekam medis. Lihat `bpjs-fkrtl.md`.
 
 **Pasien sudah dihapus atau dinonaktifkan, bisakah dikembalikan?** Pasien nonaktif bisa diaktifkan lagi dengan **Aktifkan**. Pasien yang dihapus tidak tampil lagi di aplikasi.
 
@@ -172,11 +176,14 @@ Poli dan dokter tidak bisa diubah setelah pendaftaran tersimpan. Bila poli atau 
   - **Admisi › Rawat Inap** dan **Monitoring Kamar**: modul *Rawat Inap*;
   - **Admisi › IGD**: modul *IGD*;
   - **Admisi › SEP**: modul *BPJS FKRTL (VClaim/SEP)*;
+  - **Admisi › Rencana Kontrol & SPRI**: fitur *Rencana Kontrol & SPRI* di modul BPJS FKRTL;
+  - tombol **Bayi Baru Lahir** di **Admisi › Rawat Inap**: fitur *Registrasi Bayi Baru Lahir*;
   - tombol **General Consent**: fitur *General Consent*.
 - Peran belum punya izin: admin › **Datamaster › Role**. Izin per pengguna diatur di **Datamaster › User**. Lihat juga `setting.md`.
 
 ## Catatan untuk peninjau
-- Pastikan alur rawat inap sudah benar: pasien masuk ke **Admisi › Rawat Inap** dari SPRI poli/IGD, lalu petugas melengkapi kamar dan bed. Di toolbar Rawat Inap hanya ada tombol **Bayi Baru Lahir**, tidak ada tombol **Daftar**.
+- Alur rawat inap sudah dicocokkan dengan kode (HeaderFilter.vue): toolbar **Admisi › Rawat Inap** hanya punya tombol **Bayi Baru Lahir** (fitur *ri_bayi_baru_lahir*). Mohon dipastikan prosedur untuk pasien rawat inap terencana yang tidak lewat poli/IGD.
+- Daftar izin **Admisi RI** tidak memuat aksi pembatalan (mis. "BATAL RI"), padahal ada tombol **Batal Rawat Inap**. Di tampilan (AdmisiPage.vue), tombol **Batal …** untuk RJ/RI/IGD tidak memeriksa izin BATAL RJ/BATAL IGD sama sekali. Perlu dicek.
 - Tombol cetak di detail: kode menampilkan **Cetak Kunjungan** hanya untuk rawat jalan, dan **Cetak Gelang** untuk rawat inap/IGD. Pastikan ini sesuai dengan yang terlihat di layar.
 - Label chip IGD tertulis "DATA TIDAK TIDAK LENGKAP" (kata "TIDAK" dobel) di kode. Kemungkinan salah ketik di aplikasi, perlu dipastikan.
 - Arti pesan "Jadwal periksa sudah terdaftar" (dari pengecekan booking pada tanggal yang sama) perlu dipastikan dengan petugas.

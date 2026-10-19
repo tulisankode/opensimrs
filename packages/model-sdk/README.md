@@ -1,6 +1,6 @@
 # @opensimrs/model-sdk
 
-Definisi model Sequelize/Mongoose bersama untuk layanan OpenSIMRS. Versi 1.1.0, lisensi ISC (atribusi penulis asli ada di `package.json`).
+Definisi model Sequelize/Mongoose bersama untuk layanan OpenSIMRS. Versi 1.4.0, lisensi ISC (atribusi penulis asli ada di `package.json`).
 
 Paket ini bagian dari monorepo (`packages/model-sdk`) dan dipasang layanan lewat `"@opensimrs/model-sdk": "file:../packages/model-sdk"` dengan `install-links=true` di `.npmrc` layanan, sehingga terpasang sebagai salinan dan sequelize/mongoose tetap satu instans. Setelah mengubah kode di sini, jalankan `npm run sdk:refresh` dari root repo.
 
@@ -26,7 +26,19 @@ const sequelizeInstance = createSequelizeInstance({
 export default sequelizeInstance;
 ```
 
-Setelah itu model per domain bisa diimpor dari berkas `exports/` (mis. admisi, farmasi, lab, rekam medis).
+Setelah itu model per domain bisa diimpor dari berkas `exports/` (mis. admisi, farmasi, lab, rekam medis, inventory termasuk model Pembelian via Marketplace).
+
+## Audit Trail terpusat
+
+Sejak 1.3.0, `createSequelizeInstance` otomatis memasang hook audit global (`afterCreate`/`afterUpdate`/`afterDestroy`/`afterBulkCreate`) yang mencatat perubahan tabel daftar putih ke tabel `audit_trail`. Agar pengguna dan permintaan ikut tercatat, pasang middleware konteks sebelum rute:
+
+```js
+import { auditContextMiddleware } from "@opensimrs/model-sdk/audit-context";
+
+app.use(auditContextMiddleware());
+```
+
+Ekspor terkait: `./audit-context`, `./audit-sequelize` (`pasangAuditSequelize(sequelize, { layanan })`, `catatPeristiwaAudit`), dan `./audit-core` (penyamaran nilai sensitif dan hash baris). Uji unit: `npm test` di folder ini. Riwayat versi ada di `CHANGE_LOG.md`.
 
 Perubahan skema database **tidak** dilakukan lewat sinkronisasi model, melainkan lewat migrasi di `database/migrations/` (lihat [Konteks Pengembangan](../../docs/KONTEKS-PENGEMBANGAN.md)).
 

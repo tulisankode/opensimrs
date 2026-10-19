@@ -65,7 +65,7 @@ Keterangan: **Wajib** = harus diisi; **Rahasia** = jangan dibagikan atau di-comm
 | `MONGO_DB_AUTH_SOURCE` | `admin` | `admin` | `admin` | Ya | – |
 | `REDIS_PASSWORD` | kosong | `<acak>` (disarankan) | `<acak>` (disarankan) | Tidak | Ya |
 | `SECRET_KEY` | `<acak>` | `<acak>` (beda dari dev) | `<acak>` (beda dari staging) | Ya | Ya |
-| `API_KEY_SECRET`, `API_KEY_CHECK_NORM`, `ADMISI_SECRET_KEY`, `ANTRIAN_KEY_SECRET` | `<acak>` | `<acak>` | `<acak>` | Ya | Ya |
+| `API_KEY_SECRET`, `API_KEY_CHECK_NORM`, `ADMISI_SECRET_KEY`, `ANTRIAN_KEY_SECRET`, `API_KEY_ANTRIAN` | `<acak>` | `<acak>` | `<acak>` | Ya | Ya |
 | `SYNC_DB` | `false` | `false` | `false` | Ya | – |
 | `DEMO_PASSWORD` | kosong (`Demo@2026`) | sandi kuat | **tidak diisi; data demo dilarang** | Tidak | Ya |
 | `SEED_ADMIN_PASSWORD` | opsional | opsional | hanya saat penyiapan awal, lalu dikosongkan | Tidak | Ya |
@@ -75,6 +75,8 @@ Keterangan: **Wajib** = harus diisi; **Rahasia** = jangan dibagikan atau di-comm
 | `BPJS_KUNCI_RAHASIA`, `LIS_KUNCI_RAHASIA`, `INVENTORY_MARKETPLACE_KUNCI_RAHASIA`, `HD_HDIS_KUNCI_RAHASIA` (penunjang-service, Bridging HDIS) | kosong (pakai `SECRET_KEY`) | `<acak>` | `<acak>` | Disarankan | Ya |
 | `PUBLIC_API_URL` | – | `https://api-staging.simrs.contoh.id` | `https://api.simrs.contoh.id` | Server | – |
 | `FRONTEND_ALLOWED_HOSTS` | – | `staging.simrs.contoh.id` | `simrs.contoh.id` | Server | – |
+| `ALLOWED_HOSTS` / `VITE_KEEP_API_HOST` (frontend-service, lokal) | kosong; diisi `install.sh --domain` di `frontend-service/.env.local` bila diakses lewat domain | – (server memakai `FRONTEND_ALLOWED_HOSTS`; `deploy.sh` menulis `VITE_KEEP_API_HOST=true`) | – | Tidak | – |
+| `STUDIO_PENGEMBANG` / `LINGKUNGAN` (studio-service) | `aktif` bila memakai SIMRS Studio / `development` | opsional / `staging` | **kosong** / `production` (coding, QA, dan rilis ditolak) | Tidak | – |
 | `BASE_URL_API_INVENTORY` (penunjang-service) | bawaan `http://localhost:8086/api/v3/inventory` | alamat inventory-service | alamat inventory-service | Tidak | – |
 | `MAX_UPLOAD_BERKAS_SARPRAS_MB` (penunjang-service) | bawaan `5` (1–20) | `5` | `5` | Tidak | – |
 | `MAX_UPLOAD_MUTU_MB` (penunjang-service) | bawaan `10` (1–20): batas berkas dokumen akreditasi (PDF) & kredensial staf (PDF/JPG/PNG) | `10` | `10` | Tidak | – |

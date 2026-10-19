@@ -1,6 +1,6 @@
 # Data Master
 
-> Draf disusun AI dari kode aplikasi pada 2026-10-16 — wajib ditinjau admin sistem faskes sebelum dipakai Helpdesk.
+> Draf disusun AI dari kode aplikasi pada 2026-10-16, diperbarui 2026-10-19 — wajib ditinjau admin sistem faskes sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** admin sistem faskes, admin SDM, admin keuangan/tarif
 **Menu:** Datamaster › User · Role · Pegawai · Praktisi · Ruangan · Kategori Ruangan · Diagnosis (ICD 10) · ICD 9 CM · Snomed CT · LOINC · Tarif · Komponen Tarif · Tindakan · Faskes · Organisasi · Lokasi · Penjamin · Voucher · General Consent (dan **Super Admin** khusus superadmin)
@@ -50,6 +50,10 @@ Data obat dan alkes tidak ada di menu ini, melainkan di **Farmasi › Datamaster
 5. Klik **Simpan**.
 
 **Hasilnya:** petugas dapat masuk ke aplikasi dengan username dan password tersebut.
+
+> Saat mengubah user yang sudah ada, kolom **Password** bertuliskan "Kosongkan bila tidak diubah". Isi **Password** dan **Verify Password** hanya bila ingin mengganti password petugas.
+>
+> Data kepegawaian (status, unit kerja, jabatan, golongan) dan kredensial (STR, SIP) dicatat di modul **HR / SDM** untuk pegawai yang sudah ada di **Datamaster › Pegawai**. Lihat [HR / SDM](./sdm.md).
 
 ### Mengatur peran dan hak akses (Role)
 1. Buka **Datamaster › Role**, lalu klik **Data**. Untuk mengubah peran yang sudah ada, klik ikon ubah.

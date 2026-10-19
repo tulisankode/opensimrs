@@ -5,7 +5,7 @@ Bagian dari monorepo [OpenSIMRS](../README.md). Antarmuka web untuk semua modul:
 | | |
 |---|---|
 | Port lokal | `5520` |
-| Konfigurasi | `frontend-service/.env` (lokal) atau `.env.production.local` (build server) |
+| Konfigurasi | `frontend-service/.env` (lokal), `.env.local` (akses lewat domain, ditulis `install.sh --domain`), atau `.env.production.local` (build server) |
 
 ## Menjalankan
 
@@ -18,6 +18,7 @@ npm --prefix frontend-service run build-only    # build produksi (hasil di dist/
 ```
 
 - Isi `.env` (alamat API per layanan, `VITE_*`) ada di [Petunjuk Instalasi bagian 5.3](../docs/INSTALLATION_GUIDE.md#53-env-frontend). Nilai `VITE_*` dibakar saat build.
+- Host selain `localhost`/`127.0.0.1` yang boleh membuka server Vite diatur lewat `ALLOWED_HOSTS` (dipisah koma), dari environment atau berkas `.env*` di folder ini (`vite.config.ts`). Bila semua API lewat satu domain/gateway, isi juga `VITE_KEEP_API_HOST=true`.
 - Docker: image `opensimrs/frontend`, kontainer `opensimrs-frontend`, dibangun dari folder ini.
 
 ## Konvensi UI
