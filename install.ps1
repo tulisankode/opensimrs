@@ -22,6 +22,10 @@
 #      -TanpaAi    lewati pemasangan alat AI (Claude Code, Codex, OpenCode, Ollama, OpenClaw)
 #      -Helpdesk   (tetap diterima, kini bawaan) OpenClaw ikut ditawarkan di langkah alat AI; produksi di VM terpisah
 #                  (deploy\helpdesk\README.md)
+#      -Domain simrs.contoh.id -Api api-simrs.contoh.id
+#                  akses dari luar lewat domain (Cloudflare Tunnel / reverse proxy HTTPS): frontend-service\.env.local
+#                  mengarahkan API ke https://<Api> dan mengizinkan host <Domain>, lalu gateway nginx (Podman/Docker)
+#                  dijalankan di port 8080. Arahkan tunnel: <Domain> -> http://localhost:5520, <Api> -> http://localhost:8080.
 #
 #  Sandi superuser PostgreSQL ("postgres"):
 #    - Bila PostgreSQL dipasang oleh skrip ini, sandinya dibuat acak dan ditampilkan SEKALI di akhir.
@@ -38,8 +42,20 @@ param(
   [switch]$TanpaDemo,
   [switch]$Jalankan,
   [switch]$TanpaAi,
-  [switch]$Helpdesk
+  [switch]$Helpdesk,
+  [string]$Domain = "",
+  [string]$Api = ""
 )
+
+# Domain tanpa skema/path; -Domain dan -Api wajib bersama.
+$Domain = ($Domain -replace '^https?://', '' -replace '/.*$', '').Trim()
+$Api = ($Api -replace '^https?://', '' -replace '/.*$', '').Trim()
+if ($Domain -or $Api) {
+  if (-not ($Domain -and $Api)) { Write-Host "-Domain dan -Api harus dipakai bersama (mis. -Domain simrs.contoh.id -Api api-simrs.contoh.id)" -ForegroundColor Red; exit 1 }
+  foreach ($d in @($Domain, $Api)) {
+    if ($d -notmatch '^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$') { Write-Host "Nama domain tidak sah: $d" -ForegroundColor Red; exit 1 }
+  }
+}
 
 # "Continue": di PowerShell 5.1 keluaran stderr program native (mis. NOTICE psql) tidak boleh menghentikan skrip;
 # keberhasilan perintah native dicek lewat $LASTEXITCODE.
@@ -61,7 +77,7 @@ function Warn($t)  { Write-Host "  [!]  $t" -ForegroundColor Yellow }
 function Gagal($t) { Write-Host "  [X]  $t" -ForegroundColor Red }
 function Mati($t)  { Write-Progress -Id 0 -Activity "Instalasi OpenSIMRS" -Completed; Write-Host ""; Write-Host "GAGAL: $t" -ForegroundColor Red; exit 1 }
 # Bilah kemajuan (Write-Progress): langkah utama (Id 0) & butir per folder npm (Id 1).
-$JUMLAH_LANGKAH = 9; $script:langkahKe = 0; $MULAI = Get-Date
+$JUMLAH_LANGKAH = 9 + [int][bool]$Domain; $script:langkahKe = 0; $MULAI = Get-Date
 function Langkah($t) {
   $script:langkahKe++
   $p = [int](($script:langkahKe - 1) * 100 / $JUMLAH_LANGKAH)
@@ -409,6 +425,21 @@ VITE_BASE_STUDIO=http://localhost:8090/api/v3/studio
   Ok "frontend-service\.env dibuat"
 }
 
+# Akses lewat domain (-Domain/-Api): .env.local menimpa .env saat Vite berjalan. Semua URL API http://localhost:<port>
+# menjadi https://<Api>/... (gateway), VITE_KEEP_API_HOST mencegah frontend menempelkan port layanan ke domain.
+$PENANDA_ENV_LOKAL = "# Dibuat install.sh --domain"
+if ($Domain) {
+  $f = "frontend-service\.env.local"
+  if ((Test-Path $f) -and -not ((Get-Content $f -TotalCount 1) -like "$PENANDA_ENV_LOKAL*")) {
+    Copy-Item $f ("$f.bak." + (Get-Date -Format "yyyyMMddHHmmss")); Warn "$f lama dicadangkan ke $f.bak.*"
+  }
+  $baris = @("$PENANDA_ENV_LOKAL $Domain --api $Api. Hapus berkas ini untuk kembali ke http://localhost:<port>.", "ALLOWED_HOSTS=$Domain,$Api", "VITE_KEEP_API_HOST=true")
+  $baris += Get-Content "frontend-service\.env" | Where-Object { $_ -match '^VITE_[A-Z_]+=https?://(localhost|127\.0\.0\.1):[0-9]+' } |
+    ForEach-Object { $_ -replace 'https?://(localhost|127\.0\.0\.1):[0-9]+', "https://$Api" }
+  TulisUtf8 $f (($baris -join "`n") + "`n")
+  Ok "${f}: API lewat https://$Api, host $Domain diizinkan"
+}
+
 # ---------- 6. dependensi npm, migrasi, data demo ----------
 function JalankanNpm($argumen) {
   & npm.cmd @argumen
@@ -441,6 +472,35 @@ else {
   if ($jml -and $jml -ne "0") { Ok "Database sudah berisi $jml faskes (data demo dilewati; reset: npm run db:demo:reset -- --ya)" }
   elseif (Tanya "Isi data demo (8 faskes fiktif + akun demo)?") {
     JalankanNpm @("run", "db:demo:seed"); JalankanNpm @("run", "db:demo:master-penunjang")
+  }
+}
+
+# ---------- gateway API untuk akses domain (-Domain/-Api) ----------
+# Layanan berjalan native; nginx di kontainer meneruskan /api/v3/<layanan>/ ke port layanan di mesin ini
+# (konfigurasi dari deploy\server\gateway.nginx.conf lewat scripts\gateway-lokal.mjs).
+$CLI_GW = $null
+if ($Domain) {
+  Langkah "Gateway API (port 8080) untuk $Api"
+  $konfGw = Join-Path $env:USERPROFILE ".opensimrs\gateway-lokal.conf"; $hostGw = "127.0.0.1"
+  function MesinKontainerSiap($c) { if (-not (Ada $c)) { return $false }; & $c info 2>$null | Out-Null; return ($LASTEXITCODE -eq 0) }
+  if (MesinKontainerSiap "podman") { $CLI_GW = "podman"; $hostGw = "host.containers.internal" }
+  elseif (MesinKontainerSiap "docker") { $CLI_GW = "docker"; $hostGw = "host.docker.internal" }
+  & node scripts\gateway-lokal.mjs --host $hostGw --keluar $konfGw
+  if ($LASTEXITCODE -ne 0) { Mati "Konfigurasi gateway gagal dibuat" }
+  $portDipakai = [bool](Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue)
+  $milikKita = $false
+  if ($CLI_GW) { & $CLI_GW container inspect opensimrs-gateway 2>$null | Out-Null; $milikKita = ($LASTEXITCODE -eq 0) }
+  if (-not $CLI_GW) { Warn "Podman/Docker tidak tersedia: gateway tidak dijalankan. Pakai $konfGw di nginx mesin ini (ubah listen ke 8080)." }
+  elseif ($portDipakai -and -not $milikKita) { Warn "Port 8080 sudah dipakai program lain: gateway tidak dijalankan (hentikan program itu lalu jalankan ulang)" }
+  else {
+    & $CLI_GW rm -f opensimrs-gateway 2>$null | Out-Null
+    & $CLI_GW run -d --name opensimrs-gateway --restart=always -p 8080:80 -v "${konfGw}:/etc/nginx/conf.d/default.conf:ro" docker.io/library/nginx:1.27-alpine | Out-Null
+    if ($LASTEXITCODE -ne 0) { Mati "Gateway gagal dijalankan" }
+    $gwOk = $false
+    for ($i = 0; $i -lt 10 -and -not $gwOk; $i++) {
+      try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 "http://127.0.0.1:8080/health" | Out-Null; $gwOk = $true } catch { Start-Sleep -Seconds 1 }
+    }
+    if ($gwOk) { Ok "Gateway menjawab di http://localhost:8080/health" } else { Warn "Gateway belum menjawab di port 8080 (cek: $CLI_GW logs opensimrs-gateway)" }
   }
 }
 
@@ -497,6 +557,14 @@ Write-Host "    npm run dev:core     # ringan: auth, datamaster, admisi, fronten
 Write-Host ""
 Write-Host "  Buka http://localhost:5520 - login demo: superadmin / Demo@2026"
 Write-Host "  Kata sandi DB, Mongo, dan kunci aplikasi tersimpan di .env (jangan di-commit / dibagikan)."
+if ($Domain) {
+  Write-Host ""
+  Write-Host "  Akses lewat domain - arahkan Cloudflare Tunnel / reverse proxy HTTPS:"
+  Write-Host "    https://$Domain  -> http://localhost:5520   (frontend)"
+  Write-Host "    https://$Api  -> http://localhost:8080   (gateway API)"
+  $cliTeks = if ($CLI_GW) { $CLI_GW } else { "podman" }
+  Write-Host "  Cek: https://$Api/health harus {`"status`":`"ok`"}. Gateway mati setelah restart: $cliTeks start opensimrs-gateway"
+}
 if ($PG_SUPERPASS_BARU) {
   Write-Host ""
   Warn "Sandi superuser PostgreSQL ('postgres') yang dibuat skrip: $PG_SUPERPASS_BARU"

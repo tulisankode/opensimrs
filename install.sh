@@ -24,6 +24,11 @@
 #    ./install.sh --tanpa-ai      lewati pemasangan alat AI (Claude Code, Codex, OpenCode, Ollama, OpenClaw)
 #    ./install.sh --helpdesk      (tetap diterima, kini bawaan) OpenClaw ikut ditawarkan di langkah alat AI; produksi di
 #                                 VM terpisah (deploy/helpdesk/README.md)
+#    ./install.sh --domain simrs.contoh.id --api api-simrs.contoh.id
+#                                 akses dari luar lewat domain (Cloudflare Tunnel / reverse proxy HTTPS):
+#                                 frontend-service/.env.local mengarahkan API ke https://<api> dan mengizinkan host <domain>,
+#                                 lalu gateway nginx (Podman/Docker) dijalankan di port 8080 untuk semua API.
+#                                 Arahkan tunnel: <domain> → http://localhost:5520, <api> → http://localhost:8080.
 #
 #  Hanya untuk development lokal. Untuk server/production lihat docs/INSTALLATION_GUIDE.md & docs/LINGKUNGAN.md.
 # =====================================================================================
@@ -32,9 +37,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-HANYA_CEK=0; SEMUA_YA=0; TANPA_DEMO=0; JALANKAN=0; PODMAN=0; TANPA_AI=0; HELPDESK=0
-for arg in "$@"; do
-  case "$arg" in
+HANYA_CEK=0; SEMUA_YA=0; TANPA_DEMO=0; JALANKAN=0; PODMAN=0; TANPA_AI=0; HELPDESK=0; DOMAIN=""; DOMAIN_API=""
+ARGUMEN=("$@")   # disimpan untuk "exec bash $0" setelah memasang dependensi (shift menghabiskan "$@")
+while [ $# -gt 0 ]; do
+  case "$1" in
     --cek) HANYA_CEK=1 ;;
     --ya|-y) SEMUA_YA=1 ;;
     --tanpa-demo) TANPA_DEMO=1 ;;
@@ -42,10 +48,24 @@ for arg in "$@"; do
     --podman) PODMAN=1 ;;
     --tanpa-ai) TANPA_AI=1 ;;
     --helpdesk) HELPDESK=1 ;;
-    -h|--help) sed -n '2,28p' "$0"; exit 0 ;;
-    *) echo "Opsi tidak dikenal: $arg (lihat ./install.sh --help)"; exit 1 ;;
+    --domain=*) DOMAIN="${1#*=}" ;;
+    --api=*) DOMAIN_API="${1#*=}" ;;
+    --domain|--api)
+      [ $# -ge 2 ] || { echo "Opsi $1 butuh nilai (lihat ./install.sh --help)"; exit 1; }
+      if [ "$1" = --domain ]; then DOMAIN="$2"; else DOMAIN_API="$2"; fi; shift ;;
+    -h|--help) awk 'NR == 1 { next } /^# =====/ { if (++n == 2) exit; next } { print }' "$0"; exit 0 ;;
+    *) echo "Opsi tidak dikenal: $1 (lihat ./install.sh --help)"; exit 1 ;;
   esac
+  shift
 done
+# Domain tanpa skema/path (https:// dan / di akhir dibuang); keduanya wajib bersama.
+DOMAIN="${DOMAIN#http*://}"; DOMAIN="${DOMAIN%%/*}"; DOMAIN_API="${DOMAIN_API#http*://}"; DOMAIN_API="${DOMAIN_API%%/*}"
+if [ -n "$DOMAIN$DOMAIN_API" ]; then
+  { [ -n "$DOMAIN" ] && [ -n "$DOMAIN_API" ]; } || { echo "--domain dan --api harus dipakai bersama (mis. --domain simrs.contoh.id --api api-simrs.contoh.id)"; exit 1; }
+  for d in "$DOMAIN" "$DOMAIN_API"; do
+    [[ "$d" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]] || { echo "Nama domain tidak sah: $d"; exit 1; }
+  done
+fi
 
 DB_NAMA="opensimrs"; DB_USER="opensimrs"; MONGO_USER="opensimrs"
 LAYANAN="admisi:8081 antrian:8082 auth:8083 farmasi:8084 igd:8085 inventory:8086 lab:8087 laporan:8088 payment:8089 rawat-inap:8091 rawat-jalan:8092 rekamedis:8093 setting:8094 stok-farmasi:8095 datamaster:8096 satusehat:8097 bpjs:8098 penunjang:8099 studio:8090 program-puskesmas:8100"
@@ -55,7 +75,8 @@ LAYANAN="admisi:8081 antrian:8082 auth:8083 farmasi:8084 igd:8085 inventory:8086
 . "$ROOT/scripts/lib/tampilan.sh"
 mati()  { printf '\n%sGAGAL:%s %s\n' "$M" "$N" "$1" >&2; [ "$UI_LOG" != /dev/null ] && printf '  Log lengkap: %s\n' "$UI_LOG" >&2; exit 1; }
 # Langkah: cek, layanan DB, PostgreSQL, MongoDB, .env, npm, migrasi, demo, alat AI (Podman: layanan DB+PG+Mongo = 1 langkah)
-JUMLAH_LANGKAH=$(( PODMAN == 1 ? 7 : 9 ))
+# (+ gateway API bila --domain)
+JUMLAH_LANGKAH=$(( PODMAN == 1 ? 7 : 9 )); [ -n "$DOMAIN" ] && JUMLAH_LANGKAH=$((JUMLAH_LANGKAH + 1))
 ui_mulai "$JUMLAH_LANGKAH" "${TMPDIR:-/tmp}/opensimrs-install-$(date +%Y%m%d-%H%M%S).log"
 # shellcheck source=scripts/lib/podman.sh
 . "$ROOT/scripts/lib/podman.sh"
@@ -175,7 +196,8 @@ if [ -n "$KURANG" ]; then
       ;;
     *) mati "Pasang dependensi di atas secara manual (docs/INSTALLATION_GUIDE.md bagian 9) lalu jalankan ulang." ;;
   esac
-  OPENSIMRS_ULANG_DEP=1 exec bash "$0" "$@"   # ulangi dari awal (sekali) agar versi dicek ulang
+  # ${A[@]+…}: larik kosong + set -u galat di bash 3.2 (bawaan macOS)
+  OPENSIMRS_ULANG_DEP=1 exec bash "$0" ${ARGUMEN[@]+"${ARGUMEN[@]}"}   # ulangi dari awal (sekali) agar versi dicek ulang
 fi
 ok "Semua dependensi tersedia"
 
@@ -432,6 +454,24 @@ EOF
   ok "frontend-service/.env dibuat"
 fi
 
+# Akses lewat domain (--domain/--api): .env.local menimpa .env saat Vite berjalan. Semua URL API http://localhost:<port>
+# menjadi https://<api>/… (gateway), VITE_KEEP_API_HOST mencegah frontend menempelkan port layanan ke domain.
+PENANDA_ENV_LOKAL="# Dibuat install.sh --domain"
+if [ -n "$DOMAIN" ]; then
+  f=frontend-service/.env.local
+  if [ -f "$f" ] && ! head -1 "$f" | grep -q "^$PENANDA_ENV_LOKAL"; then
+    cp "$f" "$f.bak.$(date +%Y%m%d%H%M%S)"; warn "$f lama dicadangkan ke $f.bak.*"
+  fi
+  {
+    echo "$PENANDA_ENV_LOKAL $DOMAIN --api $DOMAIN_API. Hapus berkas ini untuk kembali ke http://localhost:<port>."
+    echo "ALLOWED_HOSTS=$DOMAIN,$DOMAIN_API"
+    echo "VITE_KEEP_API_HOST=true"
+    { grep -E '^VITE_[A-Z_]+=https?://(localhost|127\.0\.0\.1):[0-9]+' frontend-service/.env || true; } \
+      | sed -E "s#https?://(localhost|127\.0\.0\.1):[0-9]+#https://$DOMAIN_API#"
+  } > "$f"
+  ok "$f: API lewat https://$DOMAIN_API, host $DOMAIN diizinkan"
+fi
+
 # ---------- 6. dependensi npm, migrasi, data demo ----------
 ui_langkah "Dependensi npm (10–20 menit pada instalasi pertama)"
 # npm audit menghubungi registry untuk tiap layanan dan bisa menggantung di jaringan lambat; jalankan terpisah bila perlu
@@ -460,6 +500,31 @@ else
   elif tanya "Isi data demo (8 faskes fiktif + akun demo)?"; then
     ui_jalankan "Data demo: faskes & akun fiktif" npm run db:demo:seed || mati "Data demo gagal"
     ui_jalankan "Data demo: master penunjang" npm run db:demo:master-penunjang || mati "Data demo penunjang gagal"
+  fi
+fi
+
+# ---------- gateway API untuk akses domain (--domain/--api) ----------
+# Layanan berjalan native; nginx di kontainer meneruskan /api/v3/<layanan>/ ke port layanan di mesin ini
+# (konfigurasi dari deploy/server/gateway.nginx.conf lewat scripts/gateway-lokal.mjs).
+if [ -n "$DOMAIN" ]; then
+  ui_langkah "Gateway API (port 8080) untuk $DOMAIN_API"
+  KONF_GW="$HOME/.opensimrs/gateway-lokal.conf"; CLI_GW=""; HOST_GW=127.0.0.1
+  if ada podman && { podman_siap || { [ "$PLATFORM" = mac ] && podman_sambungkan "$(podman_mesin)"; }; }; then CLI_GW=podman; HOST_GW=host.containers.internal
+  elif ada docker && docker info >/dev/null 2>&1; then CLI_GW=docker; HOST_GW=host.docker.internal; fi
+  ui_jalankan "Konfigurasi gateway → $KONF_GW (upstream $HOST_GW)" node scripts/gateway-lokal.mjs --host "$HOST_GW" --keluar "$KONF_GW" \
+    || mati "Konfigurasi gateway gagal dibuat"
+  if [ -z "$CLI_GW" ]; then
+    warn "Podman/Docker tidak tersedia: gateway tidak dijalankan. Pakai $KONF_GW di nginx mesin ini (ubah listen ke 8080)."
+  elif ! "$CLI_GW" container inspect opensimrs-gateway >/dev/null 2>&1 && (exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null; then
+    warn "Port 8080 sudah dipakai program lain: gateway tidak dijalankan (hentikan program itu lalu jalankan ulang)"
+  else
+    GW_EXTRA=(); if [ "$CLI_GW" = docker ] && [ "$PLATFORM" != mac ]; then GW_EXTRA=(--add-host host.docker.internal:host-gateway); fi
+    "$CLI_GW" rm -f opensimrs-gateway >/dev/null 2>&1 || true
+    ui_jalankan "$CLI_GW run opensimrs-gateway (nginx, port 8080)" "$CLI_GW" run -d --name opensimrs-gateway --restart=always -p 8080:80 \
+      ${GW_EXTRA[@]+"${GW_EXTRA[@]}"} -v "$KONF_GW:/etc/nginx/conf.d/default.conf:ro" docker.io/library/nginx:1.27-alpine \
+      || mati "Gateway gagal dijalankan"
+    GW_OK=0; for _ in 1 2 3 4 5 6 7 8 9 10; do curl -fsS -m 3 http://127.0.0.1:8080/health >/dev/null 2>&1 && { GW_OK=1; break; }; sleep 1; done
+    if [ "$GW_OK" = 1 ]; then ok "Gateway menjawab di http://localhost:8080/health"; else warn "Gateway belum menjawab di port 8080 (cek: $CLI_GW logs opensimrs-gateway)"; fi
   fi
 fi
 
@@ -521,6 +586,14 @@ cat <<EOF
   Buka http://localhost:5520 — login demo: superadmin / Demo@2026
   Kata sandi DB, Mongo, dan kunci aplikasi tersimpan di .env (jangan di-commit / dibagikan).
 EOF
+if [ -n "$DOMAIN" ]; then cat <<EOF
+
+  Akses lewat domain — arahkan Cloudflare Tunnel / reverse proxy HTTPS:
+    https://$DOMAIN      → http://localhost:5520   (frontend)
+    https://$DOMAIN_API  → http://localhost:8080   (gateway API)
+  Cek: https://$DOMAIN_API/health harus {"status":"ok"}. Gateway mati setelah restart: ${CLI_GW:-podman} start opensimrs-gateway
+EOF
+fi
 if [ "$PODMAN" = 1 ]; then cat <<EOF
 
   PostgreSQL, MongoDB, Redis berjalan di Podman:
