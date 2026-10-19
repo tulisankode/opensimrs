@@ -84,7 +84,8 @@ export const hitungPerpindahan = (lama: Snapshot | null, baru: Snapshot, batas =
 
 // ---- rute di koridor ----
 // Baris denah = kelompok unit dengan y awal sama; koridor = tengah celah di bawah baris. Antarbaris lewat lajur tepi
-// kiri/kanan (selalu kosong karena `tepi`), sehingga avatar tidak menembus ruang.
+// kiri/kanan (selalu kosong karena `tepi`), sehingga avatar tidak menembus ruang. Tata letak frontend (tataLetak.ts)
+// menumpuk unit tunggal dalam satu rak, sehingga koridor & lajur dibawa langsung oleh unit (`koridor`, `lajur`).
 const barisDenah = (s: Snapshot) => {
   const ys = [...new Set(s.unit.map((u) => u.posisi.y))].sort((a, b) => a - b)
   return ys.map((y, i) => {
@@ -107,19 +108,24 @@ type Simpul = { koridor: number; x: number; dalam: Titik[] } // dalam: dari kori
 const simpulUnit = (s: Snapshot, kode: string, kodeRuang: string | undefined, antre: number): Simpul | null => {
   const u = s.unit.find((x) => x.kodeUnit === kode)
   if (!u) return null
-  const baris = barisDenah(s).find((b) => b.y === u.posisi.y)
-  if (!baris) return null
+  const koridor = u.koridor ?? barisDenah(s).find((b) => b.y === u.posisi.y)?.koridor
+  if (koridor === undefined) return null
   const r = kodeRuang ? u.ruang?.find((x) => x.kodeRuang === kodeRuang) : undefined
   if (r) {
     // Masuk zona lewat celah kolom di kiri ruang, menyusuri depan ruang ke pintu, lalu ke ekor antrean ruang.
     const gx = r.posisi.x - 0.5
     const depan = r.posisi.y + r.posisi.d + 0.5
     const px = pintuX(r.posisi)
-    return { koridor: baris.koridor, x: gx, dalam: [[gx, depan], [px, depan], [px, r.posisi.y + r.posisi.d - 0.3], titikAntre(r.posisi, antre)] }
+    return { koridor, x: gx, dalam: [[gx, depan], [px, depan], [px, r.posisi.y + r.posisi.d - 0.3], titikAntre(r.posisi, antre)] }
   }
   const p = u.posisi
   const px = pintuX(p)
-  return { koridor: baris.koridor, x: px, dalam: [[px, p.y + p.d + 0.15], [px, p.y + p.d - 0.3], titikAntre(p, antre)] }
+  // Unit dalam tumpukan (tataLetak.ts): dari koridor naik lewat celah kolom (lajur), menyusuri celah di bawah unit ke pintu.
+  if (u.lajur !== undefined) {
+    const bawah = p.y + p.d + 0.5
+    return { koridor, x: u.lajur, dalam: [[u.lajur, bawah], [px, bawah], [px, p.y + p.d - 0.3], titikAntre(p, antre)] }
+  }
+  return { koridor, x: px, dalam: [[px, p.y + p.d + 0.15], [px, p.y + p.d - 0.3], titikAntre(p, antre)] }
 }
 
 export const ruteAntarunit = (s: Snapshot, asal: string, tujuan: string, kodeRuang?: string, nomor = 0): Titik[] | null => {
@@ -133,7 +139,8 @@ export const ruteAntarunit = (s: Snapshot, asal: string, tujuan: string, kodeRua
   if (asal === PINTU) {
     // Pintu masuk di tepi selatan denah, tengah; koridor baris terakhir menyambung ke sana.
     const x = s.denah.lebar / 2
-    a = { koridor: baris[baris.length - 1].koridor, x, dalam: [[x, s.denah.dalam - 0.05]] }
+    const akhir = s.unit.some((u) => u.koridor !== undefined) ? Math.max(...s.unit.map((u) => u.koridor ?? -Infinity)) : baris[baris.length - 1].koridor
+    a = { koridor: akhir, x, dalam: [[x, s.denah.dalam - 0.05]] }
   } else {
     // Unit asal berzona: berangkat bergiliran dari ruang yang sedang/selesai melayani.
     const uAsal = s.unit.find((u) => u.kodeUnit === asal)

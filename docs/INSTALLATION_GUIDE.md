@@ -285,6 +285,14 @@ npm run db:demo:transaksi -- --faskes PMD --bersihkan    # menghapus transaksi y
 
 Skrip ini menjalankan alur API sungguhan: pengadaan obat, ±30 pasien fiktif, ±60 kunjungan rawat jalan 30 hari terakhir (pendaftaran → periksa → resep → farmasi → kasir), dan penjualan obat bebas. Opsi lain: `--hari 30`, `--benih <angka>`.
 
+Untuk mencoba Virtual Office dan Command Center dalam kondisi sangat ramai (development/staging saja), `db:demo:ramai` mengisi ratusan transaksi fiktif **hari ini** langsung ke PostgreSQL untuk satu faskes demo (bawaan RSA) di semua unit: antrean admisi, poli, IGD, rawat inap dan bed, lab, radiologi, farmasi, serta kasir. Skrip ini tidak memerlukan layanan backend dan ditolak bila `NODE_ENV`/`LINGKUNGAN` = production.
+
+```bash
+npm run db:demo:ramai                                    # isi awal (bawaan --faskes RSA --intensitas sangat-ramai)
+npm run db:demo:ramai -- --hidup --interval 10           # terus memajukan status & menambah kedatangan; Ctrl+C untuk berhenti
+npm run db:demo:ramai -- --bersihkan                     # hapus semua baris yang dibuat skrip ini
+```
+
 ---
 
 ## 5. Konfigurasi `.env` secara rinci

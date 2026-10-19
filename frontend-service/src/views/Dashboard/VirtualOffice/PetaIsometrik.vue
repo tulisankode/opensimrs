@@ -9,13 +9,18 @@ import {
 import { type Gerakan, jalurBeraliran } from './gerakan'
 import { useAngkaHalus, useGerakKurang } from './animasi'
 import LapisanPejalan from './LapisanPejalan.vue'
+import { tataLetak } from './tataLetak'
 
 // Peta isometrik 2.5D (SVG) Virtual Office: lantai berpetak, zona unit, ruang berdinding rendah, avatar beban kerja,
 // jalur lintas unit. Geser = seret / tombol panah; zoom = roda mouse / cubit (pinch) / tombol + −. Hanya membaca snapshot.
 // Hidup tanpa data karangan: avatar berjalan hanya untuk selisih nyata antar-snapshot (`gerakan`), antrean bergoyang
 // pelan, ruang Padat berdenyut, angka berubah dengan count-up + kilatan. prefers-reduced-motion mematikan semuanya.
-const props = defineProps<{ snapshot: Snapshot; pilihan: Pilihan; gerakan?: Gerakan | null }>()
+// Tata letak dirapatkan di frontend (tataLetak.ts, keliling denah terkecil) lalu viewBox memaskan seluruh denah ke area;
+// zoom 1 + geser 0 = pas, dipulihkan saat tampil, saat ukuran area berubah, dan lewat "Pusatkan". cadangBawah = tinggi
+// (piksel CSS) bagian bawah area yang tertutup legenda; denah dipaskan di atasnya.
+const props = defineProps<{ snapshot: Snapshot; pilihan: Pilihan; gerakan?: Gerakan | null; cadangBawah?: number }>()
 const emit = defineEmits<{ (e: 'pilih', p: Pilihan): void }>()
+const tata = computed(() => tataLetak(props.snapshot, { mode: 'denah' }).snapshot)
 
 const TINGGI_UNIT = 30
 const TINGGI_RUANG = 24
@@ -48,7 +53,7 @@ const ringkas = (m?: number, d?: number) => `Antre ${m ?? 0} · Dilayani ${d ?? 
 const susunan = computed(() => {
   const ruangan: Ruangan[] = []
   const zona: Zona[] = []
-  for (const u of props.snapshot.unit) {
+  for (const u of tata.value.unit) {
     const terkunci = !!u.terkunci
     const galat = !!u.galat
     if (u.ruang?.length && !terkunci) {
@@ -114,17 +119,24 @@ onUnmounted(() => clearTimeout(pewaktuKilat))
 // Garis jalur hanya beranimasi bila ada arus nyata pada pembaruan terakhir.
 const beraliran = computed(() => jalurBeraliran(props.gerakan ?? null))
 
+const area = ref({ w: 0, h: 0 })
 const batas = computed(() => {
-  const { lebar, dalam } = props.snapshot.denah
+  const { lebar, dalam } = tata.value.denah
   const kiri = iso(0, dalam)[0] - 40
   const kanan = iso(lebar, 0)[0] + 40
-  const atas = iso(0, 0, 110)[1]
-  const bawah = iso(lebar, dalam)[1] + 60
-  return { kiri, atas, lebar: kanan - kiri, tinggi: bawah - atas }
+  const atas = iso(0, 0, 80)[1]
+  const bawah = iso(lebar, dalam)[1] + 24
+  const b = { kiri, atas, lebar: kanan - kiri, tinggi: bawah - atas }
+  const { w, h } = area.value
+  if (!w || !h) return b
+  // Skala pas di area di atas legenda; viewBox diperluas ke seluruh area (rasio sama) dengan denah di tengah bagian atas.
+  const r = Math.min(props.cadangBawah ?? 0, h / 3)
+  const s = Math.min(w / b.lebar, (h - r) / b.tinggi)
+  return { kiri: b.kiri - (w / s - b.lebar) / 2, atas: b.atas - ((h - r) / s - b.tinggi) / 2, lebar: w / s, tinggi: h / s }
 })
-const denahPos = computed<Posisi>(() => ({ x: 0, y: 0, w: props.snapshot.denah.lebar, d: props.snapshot.denah.dalam }))
+const denahPos = computed<Posisi>(() => ({ x: 0, y: 0, w: tata.value.denah.lebar, d: tata.value.denah.dalam }))
 const garisPetak = computed(() => {
-  const { lebar, dalam } = props.snapshot.denah
+  const { lebar, dalam } = tata.value.denah
   let d = ''
   for (let i = 0; i <= lebar; i++) { const a = iso(i, 0); const b = iso(i, dalam); d += `M${a[0]},${a[1]}L${b[0]},${b[1]}` }
   for (let j = 0; j <= dalam; j++) { const a = iso(0, j); const b = iso(lebar, j); d += `M${a[0]},${a[1]}L${b[0]},${b[1]}` }
@@ -150,7 +162,7 @@ const meja = (p: Posisi) => {
 const unitDipilih = (kodeUnit: string, kodeRuang?: string) =>
   props.pilihan?.jenis === 'unit' && props.pilihan.kodeUnit === kodeUnit && (kodeRuang === undefined || props.pilihan.kodeRuang === kodeRuang || !props.pilihan.kodeRuang)
 
-const posUnit = computed(() => Object.fromEntries(props.snapshot.unit.map((u) => [u.kodeUnit, u.posisi])))
+const posUnit = computed(() => Object.fromEntries(tata.value.unit.map((u) => [u.kodeUnit, u.posisi])))
 const maksJalur = computed(() => Math.max(1, ...props.snapshot.jalur.map((j) => j.jumlah)))
 const lengkung = (j: Jalur) => {
   const a = posUnit.value[j.asal]
@@ -195,6 +207,19 @@ const zoomDi = (faktor: number, q?: { x: number; y: number }) => {
 const pusatkan = () => { zoom.value = 1; panX.value = 0; panY.value = 0 }
 const geserTombol = (dx: number, dy: number) => { panX.value += dx; panY.value += dy }
 defineExpose({ perbesar: () => zoomDi(1.25), perkecil: () => zoomDi(0.8), pusatkan })
+
+// Ukuran area berubah (jendela, layar penuh, panel) → denah dipaskan ulang.
+let pengamat: ResizeObserver | null = null
+let ukuranLama = ''
+onMounted(() => {
+  pengamat = new ResizeObserver(([e]) => {
+    const u = `${Math.round(e.contentRect.width)}x${Math.round(e.contentRect.height)}`
+    if (u !== ukuranLama) { ukuranLama = u; area.value = { w: e.contentRect.width, h: e.contentRect.height }; pusatkan() }
+  })
+  if (svg.value) pengamat.observe(svg.value)
+})
+onUnmounted(() => pengamat?.disconnect())
+watch(() => props.cadangBawah, pusatkan)
 
 const roda = (e: WheelEvent) => zoomDi(Math.exp(-e.deltaY * 0.0015), keSvg(e.clientX, e.clientY))
 
@@ -333,7 +358,7 @@ const tombolPeta = (e: KeyboardEvent) => {
       </g>
 
       <!-- pasien berjalan untuk perpindahan nyata sejak snapshot sebelumnya -->
-      <LapisanPejalan :snapshot="snapshot" :gerakan="gerakan ?? null" :kurang="kurang" :warna="brand.tua" />
+      <LapisanPejalan :snapshot="tata" :gerakan="gerakan ?? null" :kurang="kurang" :warna="brand.tua" />
 
       <!-- label (lapisan teratas agar tetap terbaca) -->
       <g pointer-events="none">

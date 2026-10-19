@@ -166,6 +166,19 @@ const ringkasan = computed(() => {
   const jumlah = (k: 'menunggu' | 'dilayani' | 'selesai') => u.reduce((a, x) => a + (x[k] ?? 0), 0)
   return { menunggu: jumlah('menunggu'), dilayani: jumlah('dilayani'), selesai: jumlah('selesai'), padat: u.filter((x) => x.beban === 'merah').length }
 })
+// Tinggi legenda (melayang di kiri bawah peta) → denah dipaskan di atasnya agar tidak tertutup.
+const legenda = ref<HTMLElement | null>(null)
+const tinggiLegenda = ref(0)
+let pengamatLegenda: ResizeObserver | null = null
+watch(legenda, (el, lama) => {
+  if (lama) pengamatLegenda?.unobserve(lama)
+  if (!el) { tinggiLegenda.value = 0; return }
+  pengamatLegenda ??= new ResizeObserver(([e]) => { tinggiLegenda.value = Math.ceil((e.target as HTMLElement).offsetHeight) })
+  pengamatLegenda.observe(el)
+})
+onUnmounted(() => pengamatLegenda?.disconnect())
+const cadangBawah = computed(() => (tinggiLegenda.value ? tinggiLegenda.value + 16 : 0))
+
 const pilihUnit = (kodeUnit: string, kodeRuang?: string) => {
   pilihan.value = kodeRuang ? { jenis: 'unit', kodeUnit, kodeRuang } : { jenis: 'unit', kodeUnit }
   // Tampilan Kantor: kamera difokuskan ke ruang/zona unit yang dipilih dari panel.
@@ -247,22 +260,22 @@ const sepi = computed(() => {
 
       <div class="flex flex-col gap-4 lg:flex-row grow min-h-[480px]">
         <div class="relative overflow-hidden bg-white rounded-lg grow" :class="layarPenuh ? 'min-h-0' : 'min-h-[480px]'">
-          <KantorPiksel v-if="tampilan === 'kantor'" ref="peta" :snapshot="snapshot" :pilihan="pilihan" :gerakan="gerakan" class="absolute inset-0" @pilih="pilihan = $event" />
-          <PetaIsometrik v-else ref="peta" :snapshot="snapshot" :pilihan="pilihan" :gerakan="gerakan" class="absolute inset-0" @pilih="pilihan = $event" />
+          <KantorPiksel v-if="tampilan === 'kantor'" ref="peta" :snapshot="snapshot" :pilihan="pilihan" :gerakan="gerakan" :cadangBawah="cadangBawah" class="absolute inset-0" @pilih="pilihan = $event" />
+          <PetaIsometrik v-else ref="peta" :snapshot="snapshot" :pilihan="pilihan" :gerakan="gerakan" :cadangBawah="cadangBawah" class="absolute inset-0" @pilih="pilihan = $event" />
           <div v-if="sepi" class="absolute px-4 py-2 text-sm -translate-x-1/2 border rounded-lg shadow-sm pointer-events-none left-1/2 top-3 bg-white/95 border-grey-100 text-grey-500" role="status">
             Belum ada aktivitas hari ini di faskes ini. {{ tampilan === 'kantor' ? 'Petugas bersiaga; pasien muncul' : 'Peta bergerak' }} otomatis begitu ada transaksi baru.
           </div>
           <!-- Legenda -->
-          <div v-if="tampilan === 'kantor'" class="absolute flex flex-col gap-1 px-3 py-2 text-[11px] border rounded-lg left-3 bottom-3 bg-white/90 border-grey-100 text-grey-500 pointer-events-none max-w-[calc(100%-1.5rem)]">
+          <div v-if="tampilan === 'kantor'" ref="legenda" class="absolute flex flex-col gap-1 px-3 py-2 text-[11px] border rounded-lg left-3 bottom-3 bg-white/90 border-grey-100 text-grey-500 pointer-events-none max-w-[calc(100%-1.5rem)]">
             <div class="flex flex-wrap gap-x-3 gap-y-1">
               <span v-for="(w, k) in WARNA_BEBAN" :key="k" class="inline-flex items-center gap-1"><span class="w-3 h-1.5 rounded-sm" :style="{ background: w.garis }"></span>{{ w.label }}</span>
               <span class="inline-flex items-center gap-1"><PhLock :size="11" />Terkunci (tanpa izin)</span>
               <span>Gelembung petugas: cangkir = santai, titik-titik = melayani, tanda seru merah = sibuk</span>
             </div>
             <span class="text-grey-300">Petugas = label bidang kerja per ruang, bukan nama atau kehadiran pegawai. Pasien generik tanpa identitas sejumlah angka nyata
-              (duduk = menunggu, di meja/bed = dilayani, +n = di luar slot); pasien berjalan = transaksi baru sejak pembaruan sebelumnya. Seret untuk menggeser, roda/cubit untuk zoom 1×/2×/3×.</span>
+              (duduk = menunggu, di meja/bed = dilayani, +n = di luar slot); pasien berjalan = transaksi baru sejak pembaruan sebelumnya. Seret untuk menggeser, roda/cubit untuk zoom 1×/2×/3× (zoom pas bila layar kecil).</span>
           </div>
-          <div v-else class="absolute flex flex-col gap-1 px-3 py-2 text-[11px] border rounded-lg left-3 bottom-3 bg-white/90 border-grey-100 text-grey-500 pointer-events-none">
+          <div v-else ref="legenda" class="absolute flex flex-col gap-1 px-3 py-2 text-[11px] border rounded-lg left-3 bottom-3 bg-white/90 border-grey-100 text-grey-500 pointer-events-none">
             <div class="flex flex-wrap gap-x-3 gap-y-1">
               <span v-for="(w, k) in WARNA_BEBAN" :key="k" class="inline-flex items-center gap-1"><span class="w-3 h-1.5 rounded-sm" :style="{ background: w.garis }"></span>{{ w.label }}</span>
               <span class="inline-flex items-center gap-1"><span class="w-3 h-1.5 rounded-sm" :style="{ background: WARNA_TERKUNCI.garis }"></span>Terkunci (tanpa izin)</span>
