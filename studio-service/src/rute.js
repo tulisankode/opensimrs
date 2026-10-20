@@ -428,7 +428,7 @@ rute.post("/server/:uuid/siapkan", tangani(async (req, res) => {
 }));
 rute.post("/server/:uuid/deploy", tangani(async (req, res) => {
   await bolehDeploy(req);
-  kirim(res, await deploy.deploy(await deploy.ambilServer(req.params.uuid), { jalankanDeploy: req.body?.jalankanDeploy !== false }, req.author.username), "Pengiriman ke server dimulai");
+  kirim(res, await deploy.deploy(await deploy.ambilServer(req.params.uuid), { jalankanDeploy: (req.body?.jalankan_deploy ?? req.body?.jalankanDeploy) !== false }, req.author.username), "Pengiriman ke server dimulai");
 }));
 rute.get("/deploy/info", tangani(async (req, res) => {
   await bolehDeploy(req);

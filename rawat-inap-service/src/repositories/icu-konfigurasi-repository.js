@@ -128,7 +128,7 @@ export default class IcuKonfigurasiRepository {
         });
     }
     static async daftarRiwayat({ halaman, batas, dari, sampai }) {
-        const kondisi = "faskes_uuid=:f AND (:dari IS NULL OR created_at>=:dari) AND (:sampai IS NULL OR created_at<:sampai)";
+        const kondisi = "faskes_uuid=:f AND (:dari IS NULL OR created_at>=:dari) AND (:sampai IS NULL OR created_at< :sampai)";
         const r = { dari: dari ?? null, sampai: sampai ?? null, batas, offset: (halaman - 1) * batas };
         const [jumlah] = await pilihIcu(`SELECT COUNT(*) AS total FROM icu_konfigurasi_riwayats WHERE ${kondisi}`, r);
         const data = await pilihIcu(`SELECT * FROM icu_konfigurasi_riwayats WHERE ${kondisi} ORDER BY created_at DESC,uuid DESC LIMIT :batas OFFSET :offset`, r);

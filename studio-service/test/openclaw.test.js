@@ -19,3 +19,8 @@ test("aturAgen: masukan tidak valid ditolak sebelum menjalankan OpenClaw", async
 test("agen helpdesk: alat tulis, eksekusi, peramban, dan subagen selalu ditolak", () => {
   for (const alat of ["exec", "write", "edit", "apply_patch", "browser", "web_fetch", "sessions_spawn", "subagents"]) assert.ok(ALAT_DITOLAK.includes(alat), alat);
 });
+
+test("aturAgen: body snake_case dari frontend Studio (kunci_api, batas_bootstrap) dibaca", async () => {
+  await assert.rejects(aturAgen({ agen: "helpdesk-opensimrs", model: "ollama/qwen3:4b", kunci_api: "rahasia" }), /tidak memakai kunci API/);
+  await assert.rejects(aturAgen({ agen: "helpdesk-opensimrs", model: "ollama/qwen3:4b", batas_bootstrap: 10 }), /2\.000–200\.000/);
+});
