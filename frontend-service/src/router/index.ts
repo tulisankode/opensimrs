@@ -249,7 +249,13 @@ import HduView from "@/views/Hdu/HduView.vue";
 import DaftarHduPage from "@/views/Hdu/DaftarHduPage.vue";
 import KonfigurasiHduPage from "@/views/Hdu/KonfigurasiHduPage.vue";
 import PerawatanHduPage from "@/views/Hdu/PerawatanHduPage.vue";
-import PicuPage from "@/views/Picu/PicuPage.vue";
+import PicuView from "@/views/Picu/PicuView.vue";
+import DashboardPicuPage from "@/views/Picu/DashboardPicuPage.vue";
+import PenerimaanPicuPage from "@/views/Picu/PenerimaanPicuPage.vue";
+import EpisodePicuPage from "@/views/Picu/EpisodePicuPage.vue";
+import DetailEpisodePicuPage from "@/views/Picu/DetailEpisodePicuPage.vue";
+import KonfigurasiPicuPage from "@/views/Picu/KonfigurasiPicuPage.vue";
+import LaporanPicuPage from "@/views/Picu/LaporanPicuPage.vue";
 import IcuView from "@/views/Icu/IcuView.vue";
 import NicuView from "@/views/Nicu/NicuView.vue";
 import NicuPage from "@/views/Nicu/NicuPage.vue";
@@ -1990,10 +1996,14 @@ const router = createRouter({
       ["/rawat-inap/hdu/:uuid", "hdu-perawatan", PerawatanHduPage],
     ]),
     { path: "/picu", redirect: "/picu/dashboard" },
-    ...["dashboard", "penerimaan", "episode", "konfigurasi", "laporan"].map((bagian) => ({
-      path: `/picu/${bagian}`, name: `picu-${bagian}`, component: PicuPage, meta: { layout: DefaultLayout },
-    })),
-    { path: "/picu/episode/:episodeUuid", component: PicuPage, meta: { layout: DefaultLayout } },
+    ...halamanModul(PicuView, [
+      ["/picu/dashboard", "picu-dashboard", DashboardPicuPage],
+      ["/picu/penerimaan", "picu-penerimaan", PenerimaanPicuPage],
+      ["/picu/episode", "picu-episode", EpisodePicuPage],
+      ["/picu/episode/:episodeUuid", "picu-episode-detail", DetailEpisodePicuPage],
+      ["/picu/konfigurasi", "picu-konfigurasi", KonfigurasiPicuPage],
+      ["/picu/laporan", "picu-laporan", LaporanPicuPage],
+    ]),
 
     // SECTION ICU / Intensif
     { path: "/nicu", name: "nicu", redirect: "/nicu/dashboard" },

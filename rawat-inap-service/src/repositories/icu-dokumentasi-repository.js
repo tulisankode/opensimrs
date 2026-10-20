@@ -45,7 +45,7 @@ export default class IcuDokumentasiRepository {
         await this.episode(uuid);
         const r = { id: uuid, dari: kueri.dari ?? null, sampai: kueri.sampai ?? null, kode: kueri.kode_dokumen ?? null, batas: kueri.batas, offset: (kueri.halaman - 1) * kueri.batas };
         const kondisi = `faskes_uuid=:f AND perawatan_uuid=:id AND deleted_at IS NULL AND (:dari IS NULL OR waktu_pencatatan>=:dari)
-            AND (:sampai IS NULL OR waktu_pencatatan<:sampai) AND (:kode IS NULL OR kode_dokumen=:kode)`;
+            AND (:sampai IS NULL OR waktu_pencatatan< :sampai) AND (:kode IS NULL OR kode_dokumen=:kode)`;
         const [jumlah] = await pilihIcu(`SELECT COUNT(*) AS total FROM icu_dokumentasis WHERE ${kondisi}`, r);
         const data = await pilihIcu(`SELECT * FROM icu_dokumentasis WHERE ${kondisi} ORDER BY waktu_pencatatan DESC,uuid DESC LIMIT :batas OFFSET :offset`, r);
         return { data, total: Number(jumlah.total), halaman: kueri.halaman, batas: kueri.batas };
@@ -96,7 +96,7 @@ export default class IcuDokumentasiRepository {
         const unit = filterUnitIcu();
         const r = { ...unit.replacements, dari: kueri.dari, sampai: kueri.sampai, kode: kueri.layanan_kode ?? null, unit: kueri.ruangan_uuid ?? null };
         const episode = await pilihIcu(`SELECT uuid,layanan_kode FROM icu_perawatans WHERE faskes_uuid=:f AND deleted_at IS NULL AND ${unit.sql}
-            AND waktu_masuk<:sampai AND (waktu_keluar IS NULL OR waktu_keluar>=:dari)
+            AND waktu_masuk< :sampai AND (waktu_keluar IS NULL OR waktu_keluar>=:dari)
             AND (:kode IS NULL OR COALESCE(layanan_kode,'belum_diklasifikasikan')=:kode) AND (:unit IS NULL OR ruangan_uuid=:unit) ORDER BY waktu_masuk,uuid`, r);
         const ringkasan = { lengkap: 0, belum_lengkap: 0, belum_dikonfigurasi: 0 };
         const data = [];

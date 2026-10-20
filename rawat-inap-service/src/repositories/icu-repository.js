@@ -582,12 +582,12 @@ export default class IcuRepository {
         const observasi = episode.length ? await pilihIcu(`SELECT o.perawatan_uuid,p.rawat_inap_uuid,o.waktu_pengukuran,o.ventilator_terpasang FROM icu_observasis o
             JOIN icu_perawatans p ON p.uuid=o.perawatan_uuid AND p.faskes_uuid=o.faskes_uuid
             WHERE o.faskes_uuid=:f AND o.deleted_at IS NULL AND p.deleted_at IS NULL AND p.uuid IN (:ids)
-            AND o.waktu_pengukuran>=:dari AND o.waktu_pengukuran<:sampai`, { ...r, ids: episode.map((e) => e.uuid) }) : [];
+            AND o.waktu_pengukuran>=:dari AND o.waktu_pengukuran< :sampai`, { ...r, ids: episode.map((e) => e.uuid) }) : [];
         const cakupanBed = filterUnitIcu("b");
         const kapasitas = await pilihIcu(`SELECT b.*,l.kode AS layanan_kode FROM icu_layanan_beds b JOIN icu_layanans l ON l.uuid=b.layanan_uuid AND l.faskes_uuid=b.faskes_uuid
             WHERE b.faskes_uuid=:f AND b.deleted_at IS NULL AND l.deleted_at IS NULL AND ${cakupanBed.sql}
             AND (:unit IS NULL OR b.ruangan_uuid=:unit) AND (:kode IS NULL OR l.kode=:kode)
-            AND b.berlaku_mulai<:sampai AND (b.berlaku_sampai IS NULL OR b.berlaku_sampai>:dari)`, { ...r, ...cakupanBed.replacements });
+            AND b.berlaku_mulai< :sampai AND (b.berlaku_sampai IS NULL OR b.berlaku_sampai>:dari)`, { ...r, ...cakupanBed.replacements });
         // Faskes yang belum memetakan bed ICU (Konfigurasi Layanan): kapasitas diperkirakan dari bed yang pernah dipakai
         // episode, sama dengan definisi laporan ICU sebelum STD-0048, agar BOR tidak hilang bagi ICU umum yang berjalan.
         const [adaPemetaan] = kapasitas.length ? [true] : await pilihIcu("SELECT 1 FROM icu_layanan_beds WHERE faskes_uuid=:f AND deleted_at IS NULL LIMIT 1");

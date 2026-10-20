@@ -225,8 +225,10 @@ export const sinkronPanduan = async (agen = AGEN_BAWAAN, workspace = folderWorks
 };
 
 // Buat/ubah agen helpdesk: model, kunci API penyedia (opsional), mode berpikir, batas prompt, dan batasan alat.
-// body: { agen, model, penyedia?, kunciApi?, thinking?, batasBootstrap? }
-export const aturAgen = async (body = {}) => {
+// body: { agen, model, penyedia?, kunci_api?, thinking?, batas_bootstrap? } — frontend Studio mengirim snake_case
+// (interceptor axios); bentuk camelCase tetap diterima untuk pemanggil lain.
+export const aturAgen = async (masukan = {}) => {
+  const body = { ...masukan, kunciApi: masukan.kunci_api ?? masukan.kunciApi, batasBootstrap: masukan.batas_bootstrap ?? masukan.batasBootstrap };
   const agen = String(body.agen || AGEN_BAWAAN).trim();
   const model = String(body.model ?? "").trim();
   if (!POLA_AGEN.test(agen)) throw permintaanSalah("ID agen hanya huruf kecil, angka, - dan _ (maks. 64)");
