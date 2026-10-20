@@ -19,6 +19,7 @@ import { useModulFaskesStore, modulSegera, fiturAktif } from "@/stores/modulFask
 import { studioAktif, EVENT_STUDIO, mungkinPunyaAkses, useSimrsStudioStore } from "@/stores/simrsStudio";
 import { adaEkstensi, muatEkstensi, EVENT_EKSTENSI } from "@/stores/ekstensi";
 import { usePermissionStore } from "@/stores/datamaster/permission";
+import { hasPermission } from "@/utils/permissions";
 import { logoFaskes } from "@/utils/tema";
 import Popover from "primevue/popover";
 import TombolBantuan from "./TombolBantuan.vue";
@@ -337,12 +338,10 @@ onBeforeMount(async () => {
 // Menu atas = modul pada permission user ∩ modul aktif faskes (Setting › Manajemen Modul).
 const susunMenu = () => {
   const menu: ListMenu[] = [templistMenu.value[0]];
-  const izinDashboard = getStoredPermissions().find((item) => item.module === "Dashboard");
-  const izinCommandCenter = izinDashboard?.submodules?.find((item: any) => item.name === "Command Center");
-  if (fiturAktif("command_center") && izinCommandCenter?.allows?.some((izin: any) => (izin.name ?? izin).toUpperCase() === "READ")) {
-    const commandCenter = templistMenu.value.find((item) => item.url === "/command-center");
-    if (commandCenter) menu.push(commandCenter);
-  }
+  // Command Center, Dashboard Eksekutif & Virtual Office tidak di menu atas: dikumpulkan di grup "Dashboard Pimpinan"
+  // pada panel Lainnya (lihat menuPimpinan).
+  menuPimpinan.value = MENU_PIMPINAN.filter((m) => fiturAktif(m.fitur) && hasPermission("Dashboard", m.izin, "READ"))
+    .map(({ title, icon, url }) => ({ title, icon, url }));
   getStoredPermissions().forEach((module) => {
     if (!canShowModuleInProduction(module.module)) return;
     if (!modulStore.menuAktif(module.module)) return;
@@ -390,6 +389,14 @@ const URUTAN_BIDANG = [
   "Sistem",
 ];
 const BIDANG_LAIN = "Lainnya";
+// Dasbor untuk pimpinan & manajemen: satu grup di panel Lainnya (bidang Manajemen & Mutu).
+const INSTALASI_PIMPINAN = "Dashboard Pimpinan";
+const MENU_PIMPINAN = [
+  { title: "Command Center", icon: "PhMonitor", url: "/command-center", fitur: "command_center", izin: "Command Center" },
+  { title: "Dashboard Eksekutif", icon: "PhPresentationChart", url: "/dashboard/eksekutif", fitur: "dashboard_eksekutif", izin: "Eksekutif" },
+  { title: "Virtual Office", icon: "PhBuildings", url: "/dashboard/virtual-office", fitur: "dashboard_virtual_office", izin: "Virtual Office" },
+];
+const menuPimpinan = ref<ListMenu[]>([]);
 const BIDANG_MENU_NONMODUL: Record<string, { bidang: string; instalasi: string }> = {
   Datamaster: { bidang: "Sistem", instalasi: "Data Master" },
   Training: { bidang: "Sistem", instalasi: "Pelatihan" },
@@ -417,6 +424,11 @@ const modulMenu = (m: ListMenu) => {
 const URUTAN_AKHIR = 9999;
 const posisiOrganisasi = (m: ListMenu) => {
   const katalog = modulStore.konfigurasi?.katalog ?? [];
+  const pimpinan = MENU_PIMPINAN.findIndex((x) => x.url === m.url);
+  if (pimpinan >= 0) {
+    const urutanInstalasi = katalog.findIndex((x) => x.bidang === "Manajemen & Mutu");
+    return { bidang: "Manajemen & Mutu", instalasi: INSTALASI_PIMPINAN, urutanInstalasi: urutanInstalasi < 0 ? 0 : urutanInstalasi, urutan: pimpinan - MENU_PIMPINAN.length };
+  }
   const modul = modulMenu(m);
   if (modul?.bidang) {
     // Instalasi diurutkan menurut modul pertamanya di katalog (urutan katalog = alur layanan).
@@ -538,7 +550,7 @@ const hitungMenuTampil = () => {
 };
 const menuTampil = computed(() => listMenu.value.slice(0, jumlahTampil.value));
 const menuLainnya = computed(() => listMenu.value.slice(jumlahTampil.value));
-const lainnyaAktif = computed(() => menuLainnya.value.some(menuAktif));
+const lainnyaAktif = computed(() => menuLainnya.value.some(menuAktif) || menuPimpinan.value.some(menuAktif));
 const bukaLainnya = (url: string) => {
   popupLainnya.value?.hide();
   goToPage(url);
@@ -550,6 +562,7 @@ const inputCariLainnya = ref<HTMLInputElement>();
 const URL_STUDIO = "/studio";
 const itemLainnya = computed(() => [
   ...menuLainnya.value.flatMap((m) => m.anak ?? [m]).filter((m) => m.url !== URL_STUDIO),
+  ...menuPimpinan.value,
   ...menuSegera.value,
 ]);
 const cocokCari = (m: ListMenu) => {
@@ -765,7 +778,7 @@ const isSuperAdmin = getUserRole() === "super admin";
           <PhCaretDown v-if="menu.anak" :size="12" aria-hidden="true" />
         </div>
         <button
-          v-if="menuLainnya.length"
+          v-if="menuLainnya.length || menuPimpinan.length"
           type="button"
           class="flex h-8 shrink-0 items-center gap-1.5 rounded-xl bg-white px-3"
           :class="lainnyaAktif ? 'text-opensimrs-300 font-semibold' : 'bg-opacity-30'"
