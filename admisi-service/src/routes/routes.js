@@ -67,6 +67,7 @@ routes.delete("/igd/cancel", InstalasiGawatDaruratController.cancelVisitIgd);
 
 // Rawat Inap
 routes.post("/rawat-inap", RawatInapController.regist);
+routes.post("/rawat-inap/pasien", RawatInapController.registPatient);
 routes.post("/rawat-inap/spri", RawatInapController.registSpriPatient);
 routes.put("/rawat-inap/:uuid", RawatInapController.update);
 routes.get("/rawat-inap/:uuid", RawatInapController.getDetail);

@@ -40,6 +40,9 @@ export const useAdmisiRIStore = defineStore({
     async registNewBorn(payload = {}) {
       return apiAdmisiPost("/rawat-inap", payload);
     },
+    async registPatient(payload = {}) {
+      return apiAdmisiPost("/rawat-inap/pasien", payload);
+    },
     async updateRI(uuid: string = "", payload = {}) {
       return apiAdmisiPut(`/rawat-inap/${uuid}`, payload);
     },

@@ -389,7 +389,9 @@ const postRegisterPatient = async () => {
         const existingSpri = fullVisitData.value?.noSpri || fullVisitData.value?.no_spri;
         const isUpdate = props.formType !== "add" || !!existingSpri;
         if (!isUpdate) {
-          response = await admisiRIStore.registNewBorn(payload);
+          response = tempPatientData.isNewBorn
+            ? await admisiRIStore.registNewBorn(payload)
+            : await admisiRIStore.registPatient(payload);
         } else {
           const targetUuid = fullVisitData.value?.uuid || props.patientData.uuid;
           response = await admisiRIStore.updateRI(

@@ -25,6 +25,17 @@ export default class RawatInapService{
         return result;
     }
 
+    static async registPatient(data){
+        const user = Context.get(CTX_AUTHOR);
+        let validData = ZodValidator.validate(RawatInapValidation.CREATE_PATIENT, data);
+        const faskes = await FaskesRepository.getFaskesByUuid(user.faskesUuid);
+        if (!faskes) throw new NotfoundException('Faskes tidak ditemukan');
+        validData = convertSnakeToCamel(validData);
+        const result = await RawatInapRepository.registPatient(validData);
+        if (!result) throw new Error("Failed to create rawat inap");
+        return result;
+    }
+
     static async registSpriPatient(data){
         const result = await RawatInapRepository.registSpriPatient(data);
         if (!result) throw new Error("Failed to create rawat inap");
