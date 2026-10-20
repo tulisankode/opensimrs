@@ -11,6 +11,15 @@ export default class RawatInapController{
         }
     }
 
+    static async registPatient(req, res, next){
+        try{
+            const data = await RawatInapService.registPatient(req.body);
+            return res.status(201).json(successResponse("Rawat Inap Berhasil Dibuat", data));
+        }catch (error) {
+            next(error);
+        }
+    }
+
     static async registSpriPatient(req, res, next){
         try{
             console.log("Masuk sini", req.body);

@@ -160,7 +160,7 @@ onUpdated(() => {
 const timer = ref<any>();
 const listDataPatient = ref([]);
 const loadingSearchPatient = ref(false);
-const searchPatientData = async (filter: string) => {
+const searchPatientData = async (filter: string = "") => {
   if (timer.value) {
     clearTimeout(timer.value);
     timer.value = null;
@@ -168,11 +168,12 @@ const searchPatientData = async (filter: string) => {
   timer.value = setTimeout(async () => {
     loadingSearchPatient.value = true;
     try {
-      const response = await masterPasienStore.getMasterPasien({
-        q: filter,
-      });
+      const response = await masterPasienStore.getMasterPasien({ q: filter, limit: 9999, status: "aktif" });
       if (response && response.payload) {
-        listDataPatient.value = response.payload;
+        listDataPatient.value = response.payload.map((patient: any) => ({
+          ...patient,
+          searchableText: `${patient.name} ${patient.noRm}`,
+        }));
       } else listDataPatient.value = [];
     } catch (error) {
       console.error("Failed to fetch data", error);
@@ -197,6 +198,11 @@ const setSelectedPatientData = async (data: any) => {
   }
 };
 
+const fetchInitialPatientList = () => {
+  if (listDataPatient.value.length === 0) searchPatientData("");
+};
+
+const selectedDataPatient = ref<any>();
 const patientAge = ref("");
 
 const schema = toTypedSchema(
@@ -418,6 +424,25 @@ defineExpose({
     <template #content>
       <div class="pt-5">
         <div class="flex">
+          <CustomSelect
+            v-if="formType == 'Daftar'"
+            v-model="selectedDataPatient"
+            @update:model-value="setSelectedPatientData"
+            label="Cari Nama / No. RM"
+            placeHolder="Cari pasien yang akan dirawat inap"
+            class="grow mr-[30px]"
+            optionLabel="searchableText"
+            optionValue=""
+            :options="listDataPatient"
+            prependIcon="PhMagnifyingGlass"
+            :isLoading="loadingSearchPatient"
+            @filter="searchPatientData"
+            @click="fetchInitialPatientList"
+          >
+            <template #customOptions="{ option }">
+              {{ option.name }} ~ {{ option.noRm }}
+            </template>
+          </CustomSelect>
           <CustomTextfield
             v-model="noRm"
             label="No. RM"

@@ -1,0 +1,2 @@
+### Ditambahkan
+- **Admisi Rawat Inap: pendaftaran langsung untuk pasien terdaftar.** Tombol **Daftar Rawat Inap** membuka formulir dengan pencarian pasien (nama/No. RM), pemilihan bed, dokter, dan penjamin, lalu menyimpan lewat endpoint baru `POST /api/v3/admisi/rawat-inap/pasien`. Pendaftaran ditolak bila pasien masih memiliki kunjungan Rawat Inap aktif. Tombol **Bayi Baru Lahir** tetap tersedia terpisah bila fitur `ri_bayi_baru_lahir` aktif.

@@ -3,6 +3,28 @@ import PatientValidation from "./patient-validation.js";
 import AsuransiValidator from "./asuransi-validator.js";
 
 export default class RawatInapValidation {
+    static CREATE_PATIENT = z.object({
+        patient_data: z.object({
+            patient_uuid: z.string({ required_error: "Pasien perlu dipilih" }).uuid("Pasien tidak valid"),
+        }).passthrough(),
+        payment_method: z.enum(["TUNAI", "ASURANSI"]),
+        complaint: z.string().max(255).default(""),
+        note: z.string().max(255).default(""),
+        family_bill: z.boolean().default(false),
+        maternity: z.boolean().default(false),
+        upgrade_class: z.boolean().default(false),
+        entrusted_patient: z.boolean().default(false),
+        previous_bill: z.boolean().default(false),
+        spare_bed: z.boolean().default(false),
+        box_baby: z.boolean().default(false),
+        monitoring_room_uuid: z.string({ required_error: "Bed perlu dipilih" }).uuid("Bed tidak valid"),
+        practitioner_uuid: z.string({ required_error: "Dokter perlu dipilih" }).uuid("Dokter tidak valid"),
+        insurance: AsuransiValidator.ASURANSI_VALIDATOR.optional(),
+    }).refine((data) => data.payment_method !== "ASURANSI" || !!data.insurance, {
+        message: "Informasi asuransi diperlukan saat metode pembayaran adalah ASURANSI",
+        path: ["insurance"],
+    });
+
     static CREATE = z.object({
         patient_data: z.object({
             ...PatientValidation.NEWBORN_VALIDATOR.shape

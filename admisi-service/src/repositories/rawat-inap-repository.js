@@ -186,6 +186,88 @@ export default class RawatInapRepository {
         return this.getDetail(RI.uuid);
     }
 
+    static async registPatient(data) {
+        const rawatInap = await sequelizeInstance.transaction(async (transaction) => {
+            const user = Context.get(CTX_AUTHOR);
+            const patient = await PatientRepository.getOnePatientBy("uuid", data.patientData.patientUuid);
+            if (!patient) throw new NotfoundException("Pasien tidak ditemukan");
+
+            const activeAdmission = await RawatInapModel.findOne({
+                where: {
+                    faskesUuid: user.faskesUuid,
+                    patientUuid: patient.uuid,
+                    statusRi: { [Op.in]: [1, 2, 3] },
+                    deletedAt: null,
+                },
+                transaction,
+            });
+            if (activeAdmission) throw new DuplicateException("Pasien masih memiliki kunjungan Rawat Inap aktif");
+
+            const practitioner = await PractitionerRepository.getPractitionerBy("uuid", data.practitionerUuid);
+            if (!practitioner) throw new NotfoundException("Dokter tidak ditemukan");
+
+            const bedData = await MonitoringRoomRepository.getDetailBed(data.monitoringRoomUuid);
+            const monitoring = await MonitoringRoomRepository.registPatientToBed(
+                bedData.dataValues.uuid,
+                patient.uuid,
+                transaction
+            );
+            const now = moment().unix();
+            const result = await RawatInapModel.create({
+                faskesUuid: user.faskesUuid,
+                patientUuid: patient.uuid,
+                noReg: await generateNoReg(),
+                noPelayanan: await generateNoPelayanan("RI"),
+                noRm: patient.noRm,
+                name: patient.name,
+                birthDetailUuid: patient.birthDetailUuid,
+                gender: patient.gender,
+                tanggalDaftar: now,
+                tanggalMasuk: now,
+                tanggalDirawat: now,
+                familyBill: data.familyBill,
+                maternity: data.maternity,
+                upgradeClass: data.upgradeClass,
+                entrustedPatient: data.entrustedPatient,
+                previousBill: data.previousBill,
+                spareBed: data.spareBed,
+                boxBaby: data.boxBaby,
+                note: data.note,
+                complaint: data.complaint,
+                paymentMethod: data.paymentMethod === "TUNAI" ? 1 : 2,
+                monitoringRoomUuid: bedData.dataValues.uuid,
+                lokasiUuid: bedData.dataValues.room_uuid,
+                statusRi: 3,
+                encounter: "RI",
+                practitionerUuid: practitioner.uuid,
+            }, { transaction, returning: true });
+
+            await InsuranceAdmissionService.createInsuranceAdmission({
+                paymentMethod: data.paymentMethod,
+                insuranceData: data.insurance,
+                patientUuid: patient.uuid,
+                noReg: result.noReg,
+                admissionType: 3,
+            }, transaction);
+            eventEmitter.emit(HISTORY_BED_CHANNEL, {
+                faskesUuid: user.faskesUuid,
+                admissionUuid: result.uuid,
+                monitoringRuanganUuid: monitoring.uuid,
+            });
+            eventEmitter.emit(LOG_PELAYANAN_CHANNEL, {
+                tgl_registrasi: result.tanggalDaftar,
+                noreg: result.noReg,
+                practitioner_uuid: practitioner.uuid,
+                no_pelayanan: result.noPelayanan,
+                jenis_kunjungan: "RI",
+                patient_uuid: patient.uuid,
+                payment_method: result.paymentMethod,
+            });
+            return result;
+        });
+        return this.getDetail(rawatInap.uuid);
+    }
+
     static async registSpriPatient(data) {
 
         try {

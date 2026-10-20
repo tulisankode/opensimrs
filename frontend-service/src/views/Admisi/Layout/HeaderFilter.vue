@@ -588,12 +588,16 @@ defineExpose({
       textColor="text-opensimrs-300"
     />
     <CustomButton
-      v-if="!isSEP && (pageType != 'rawat-inap' || fiturAktif('ri_bayi_baru_lahir'))"
-      @click="
-        pageType == 'rawat-inap' ? emit('daftarBayi') : emit('daftar')
-      "
+      v-if="!isSEP"
+      @click="emit('daftar')"
       icon="PhPlus"
-      :label="pageType == 'rawat-inap' ? 'Bayi Baru Lahir' : 'Daftar'"
+      :label="pageType == 'rawat-inap' ? 'Daftar Rawat Inap' : 'Daftar'"
+    />
+    <CustomButton
+      v-if="!isSEP && pageType == 'rawat-inap' && fiturAktif('ri_bayi_baru_lahir')"
+      @click="emit('daftarBayi')"
+      icon="PhBaby"
+      label="Bayi Baru Lahir"
     />
   </PageToolbar>
 </template>
