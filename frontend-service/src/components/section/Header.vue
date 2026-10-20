@@ -83,9 +83,20 @@ const templistMenu = ref<ListMenu[]>([
     url: "/rawat-inap",
   },
   {
+    title: "CCU",
+    icon: "PhHeartbeat",
+    url: "/ccu",
+  },
+  {
     title: "ICU",
     icon: "PhHeartbeat",
     url: "/icu",
+  },
+  { title: "PICU", icon: "PhHeartbeat", url: "/picu" },
+  {
+    title: "NICU",
+    icon: "PhHeartbeat",
+    url: "/nicu",
   },
   {
     title: "IGD",
@@ -357,14 +368,14 @@ const susunMenu = () => {
   menu.sort((a, b) => templistMenu.value.indexOf(a) - templistMenu.value.indexOf(b));
   // Modul penunjang dikelompokkan dalam satu menu dropdown "Penunjang" (semua segmen).
   let tersusun = gabungGrup(menu, menu.filter(masukPenunjang).sort(bandingOrganisasi), { title: "Penunjang", icon: "PhFirstAidKit" });
-  // Ruang perawatan intensif (ICU, NICU, PICU, CCU, HDU, … + PACU dari Kamar Operasi) dalam satu dropdown bila >1.
-  const anakIntensif = tersusun.filter(masukIntensif).sort(bandingOrganisasi);
+  // Ruang perawatan intensif (ICU, NICU, PICU, CCU, HDU, … + PACU dari Kamar Operasi) tidak di menu atas: dikumpulkan
+  // di instalasi "Perawatan Intensif" pada panel Lainnya (lihat menuIntensif).
+  const anakIntensif = tersusun.filter(masukIntensif);
   const kamarOperasi = tersusun.find((m) => m.url === "/kamar-operasi");
-  if (kamarOperasi && fiturAktif("pacu")) anakIntensif.push({ title: "PACU / Recovery Room", icon: kamarOperasi.icon, url: "/kamar-operasi/pacu" });
-  if (anakIntensif.length > 1) {
-    tersusun = gabungGrup(tersusun, anakIntensif, { title: "Perawatan Intensif", icon: "PhHeartbeat", datar: true });
-  }
-  listMenu.value = tersusun;
+  menuIntensif.value = kamarOperasi && fiturAktif("pacu")
+    ? [...anakIntensif, { title: "PACU / Recovery Room", icon: kamarOperasi.icon, url: URL_PACU }]
+    : anakIntensif;
+  listMenu.value = tersusun.filter((m) => !anakIntensif.includes(m));
   // SIMRS Studio: hanya bila Mode Pengembang diaktifkan superadmin (Setting › System).
   // Ekstensi tanpa kode yang terpasang untuk pengguna ini (laporan/cetak/formulir dari SIMRS Studio).
   if (adaEkstensi()) listMenu.value = [...listMenu.value, { title: "Ekstensi", icon: "PhPuzzlePiece", url: "/ekstensi" }];
@@ -429,6 +440,12 @@ const posisiOrganisasi = (m: ListMenu) => {
     const urutanInstalasi = katalog.findIndex((x) => x.bidang === "Manajemen & Mutu");
     return { bidang: "Manajemen & Mutu", instalasi: INSTALASI_PIMPINAN, urutanInstalasi: urutanInstalasi < 0 ? 0 : urutanInstalasi, urutan: pimpinan - MENU_PIMPINAN.length };
   }
+  if (m.url === URL_PACU) {
+    // PACU milik modul Kamar Operasi, tetapi ditampilkan bersama ruang perawatan intensif (paling akhir).
+    const urutanInstalasi = katalog.findIndex((x) => x.instalasi === INSTALASI_INTENSIF);
+    const bidang = katalog[urutanInstalasi]?.bidang ?? "Pelayanan Medis & Keperawatan";
+    return { bidang, instalasi: INSTALASI_INTENSIF, urutanInstalasi, urutan: URUTAN_AKHIR };
+  }
   const modul = modulMenu(m);
   if (modul?.bidang) {
     // Instalasi diurutkan menurut modul pertamanya di katalog (urutan katalog = alur layanan).
@@ -451,6 +468,8 @@ const bandingOrganisasi = (a: ListMenu, b: ListMenu) => {
 // dst.); modul intensif baru otomatis masuk grup tanpa mengubah kode menu.
 const INSTALASI_INTENSIF = "Instalasi Perawatan Intensif";
 const MODUL_INTENSIF_CADANGAN = ["ICU", "NICU", "PICU", "CCU", "HDU"];
+const URL_PACU = "/kamar-operasi/pacu";
+const menuIntensif = ref<ListMenu[]>([]);
 const masukIntensif = (m: ListMenu) => {
   if (m.anak) return false;
   const modul = modulMenu(m);
@@ -491,13 +510,12 @@ const menuAktif = (m: ListMenu) =>
   m.anak ? m.anak.some((a) => checkActiveTab(a.url)) : checkActiveTab(m.url) || route.path === m.url;
 const popupGrup = ref();
 const grupTerbuka = ref<ListMenu[]>([]);
-const grupDatar = ref(false);
 // Isi dropdown grup tersusun per bidang (subjudul) → instalasi. Instalasi dengan >1 menu (mis. Laboratorium: PK,
 // PA, Mikrobiologi) menjadi submenu yang bisa dibuka-tutup; instalasi bermenu tunggal tampil sebagai item biasa.
 const JUDUL_DI_SUBMENU: Record<string, string> = { Laboratorium: "Patologi Klinik" };
 const instalasiTerbuka = ref<string[]>([]);
 const grupTersusun = computed(() =>
-  (grupDatar.value ? [] : kelompokkanBidang(grupTerbuka.value)).map((b) => ({
+  kelompokkanBidang(grupTerbuka.value).map((b) => ({
     bidang: b.bidang,
     // Tanpa data instalasi (katalog lama di cache) setiap menu berdiri sendiri, bukan satu submenu tanpa nama.
     instalasi: b.instalasi.flatMap((i) =>
@@ -515,7 +533,6 @@ const toggleInstalasi = (nama: string) => {
 const klikMenu = (m: ListMenu, e: Event) => {
   if (!m.anak) return goToPage(m.url);
   grupTerbuka.value = m.anak;
-  grupDatar.value = !!m.datar;
   // Submenu yang memuat halaman aktif langsung terbuka.
   instalasiTerbuka.value = kelompokkanBidang(m.anak)
     .flatMap((b) => b.instalasi)
@@ -550,7 +567,9 @@ const hitungMenuTampil = () => {
 };
 const menuTampil = computed(() => listMenu.value.slice(0, jumlahTampil.value));
 const menuLainnya = computed(() => listMenu.value.slice(jumlahTampil.value));
-const lainnyaAktif = computed(() => menuLainnya.value.some(menuAktif) || menuPimpinan.value.some(menuAktif));
+const lainnyaAktif = computed(() =>
+  [menuLainnya.value, menuPimpinan.value, menuIntensif.value].some((daftar) => daftar.some(menuAktif))
+);
 const bukaLainnya = (url: string) => {
   popupLainnya.value?.hide();
   goToPage(url);
@@ -562,6 +581,7 @@ const inputCariLainnya = ref<HTMLInputElement>();
 const URL_STUDIO = "/studio";
 const itemLainnya = computed(() => [
   ...menuLainnya.value.flatMap((m) => m.anak ?? [m]).filter((m) => m.url !== URL_STUDIO),
+  ...menuIntensif.value,
   ...menuPimpinan.value,
   ...menuSegera.value,
 ]);
@@ -778,7 +798,7 @@ const isSuperAdmin = getUserRole() === "super admin";
           <PhCaretDown v-if="menu.anak" :size="12" aria-hidden="true" />
         </div>
         <button
-          v-if="menuLainnya.length || menuPimpinan.length"
+          v-if="menuLainnya.length || menuPimpinan.length || menuIntensif.length"
           type="button"
           class="flex h-8 shrink-0 items-center gap-1.5 rounded-xl bg-white px-3"
           :class="lainnyaAktif ? 'text-opensimrs-300 font-semibold' : 'bg-opacity-30'"
@@ -793,21 +813,6 @@ const isSuperAdmin = getUserRole() === "super admin";
       <!-- Dropdown grup menu (mis. Penunjang). -->
       <Popover ref="popupGrup">
         <div class="flex min-w-[220px] flex-col gap-1" role="menu">
-          <!-- Grup datar (mis. Perawatan Intensif): semua menu dalam satu daftar. -->
-          <template v-if="grupDatar">
-            <button
-              v-for="m in grupTerbuka"
-              :key="m.url"
-              type="button"
-              role="menuitem"
-              class="flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
-              :class="{ 'bg-opensimrs-50 font-semibold text-opensimrs-300': checkActiveTab(m.url) }"
-              @click="bukaGrup(m.url)"
-            >
-              <component :is="m.icon" weight="fill" class="shrink-0 text-opensimrs-300" aria-hidden="true" />
-              <span class="grow">{{ namaRingkas(m.title) }}</span>
-            </button>
-          </template>
           <template v-for="(b, bi) in grupTersusun" :key="b.bidang">
             <div
               v-if="grupTersusun.length > 1"

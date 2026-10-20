@@ -80,6 +80,21 @@ export default class HduRepository {
         return { items, paginasi: { halaman, batas, jumlah: Number(jumlah.jumlah) } };
     }
 
+    async serahTerima({ halaman, batas, arah, status_penerimaan }) {
+        const sumber = `FROM hdu_serah_terima st
+            JOIN perpindahans p ON p.uuid = st.perpindahan_uuid AND p.faskes_uuid = st.faskes_uuid AND p.deleted_at IS NULL
+            JOIN rawat_inaps ri ON ri.uuid = p.admission_ri_uuid AND ri.faskes_uuid = st.faskes_uuid AND ri.deleted_at IS NULL
+            JOIN patients pt ON pt.uuid = ri.patient_uuid AND pt.faskes_uuid = st.faskes_uuid AND pt.deleted_at IS NULL`;
+        const filter = `st.faskes_uuid = :f AND st.deleted_at IS NULL AND (:arah IS NULL OR st.arah = :arah)
+            AND (:status IS NULL OR (:status = 'menunggu' AND st.penerima IS NULL)
+                OR (:status = 'dikonfirmasi' AND st.penerima IS NOT NULL))`;
+        const data = { arah: arah ?? null, status: status_penerimaan ?? null, batas, offset: (halaman - 1) * batas };
+        const items = await this.query(`SELECT st.*, p.status_pindah ${sumber} WHERE ${filter}
+            ORDER BY st.created_at DESC, st.uuid DESC LIMIT :batas OFFSET :offset`, data);
+        const [jumlah] = await this.query(`SELECT COUNT(*) AS jumlah ${sumber} WHERE ${filter}`, data);
+        return { items, paginasi: { halaman, batas, jumlah: Number(jumlah.jumlah) } };
+    }
+
     async detail(uuid) {
         const q = (sql, data) => this.query(sql, data);
         const episode = await this.satu(q, "hdu_episode", uuid);

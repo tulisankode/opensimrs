@@ -10,6 +10,7 @@ import BadRequestException from "../errors/bad-request-exception.js";
 import ModulService, { isSuperadmin } from "../services/modul-service.js";
 import { samarkanDataPribadi } from "./saring.js";
 import { dekripsi, enkripsi, samarkan } from "./rahasia.js";
+import { kutipanPanduan } from "./panduan.js";
 
 const FITUR = "helpdesk_ai";
 const RETENSI_DETIK = 90 * 86400;
@@ -100,9 +101,26 @@ const ATURAN = `Anda adalah asisten Bantuan OpenSIMRS untuk petugas fasilitas ke
 - Teks [NIK], [HP], [EMAIL], [NO-RM], [NO-KARTU] adalah data yang sudah disamarkan; jangan memintanya kembali.`;
 
 // Konteks faskes & pengguna untuk jawaban yang sesuai (mis. "menu Rawat Inap belum aktif untuk faskes Anda").
-const susunKonteks = (author, modul, halaman) => {
+// Kutipan panduan yang relevan ikut dikirim agar agen tidak perlu mencari berkas sendiri (lihat panduan.js).
+export const susunKonteks = (author, modul, halaman, pertanyaan = "") => {
   const aktif = modul.katalog.filter((m) => m.aktif && m.tersedia).map((m) => m.nama);
   const nonaktif = modul.katalog.filter((m) => !m.aktif && m.tersedia).map((m) => m.nama);
+  let kutipan = "";
+  try {
+    kutipan = kutipanPanduan(pertanyaan, halaman);
+  } catch (e) {
+    console.error("[bantuan] kutipan panduan:", e.message);
+  }
+  const bagianKutipan = kutipan
+    ? [
+      "",
+      "Kutipan panduan pengguna yang paling relevan dengan pertanyaan ini. Jawab berdasarkan kutipan ini dan sebutkan menu/tombol persis",
+      "seperti tertulis. Bila kutipan tidak memuat jawabannya, baca berkas lain di panduan-pengguna/; bila tetap tidak ada, katakan belum tahu.",
+      "Jangan menambah langkah, menu, atau tombol yang tidak ada di panduan.",
+      "",
+      kutipan,
+    ]
+    : [];
   return [
     ATURAN,
     "",
@@ -112,6 +130,7 @@ const susunKonteks = (author, modul, halaman) => {
     `- Modul aktif: ${aktif.join(", ") || "-"}`,
     `- Modul tidak aktif di faskes ini: ${nonaktif.join(", ") || "-"}`,
     `- Halaman yang sedang dibuka: ${halaman || "-"}`,
+    ...bagianKutipan,
   ].join("\n");
 };
 
@@ -157,7 +176,7 @@ export default class BantuanService {
           user: `${pengguna}${sesi ? `-${sesi}` : ""}`,
           stream: true,
           messages: [
-            { role: "system", content: susunKonteks(author, modul, halaman) },
+            { role: "system", content: susunKonteks(author, modul, halaman, pertanyaan) },
             { role: "user", content: pertanyaan },
           ],
         }),

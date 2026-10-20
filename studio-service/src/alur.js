@@ -12,7 +12,7 @@ import { berkasBerubah, branchSekarang, git, patchBerkas, potretKerja, saringBer
 import { branchDasar, branchLokal, direktoriKerja, folderBranchTerbuka, hapusWorktree, modeLokal, pastikanDiBranch, siapkanKerja } from "./kerja.js";
 import { pathDiubahDalamDesain, periksaKebijakan, temukanDataPribadi, zonaTersentuh } from "./kebijakan.js";
 import { FOLDER_MIGRASI, awalanLayak, hitungAwalan, rencanaUrutMigrasi, terapkanUrutMigrasi } from "./migrasi.js";
-import { sinkronkan } from "./gabung.js";
+import { batalGabung, dikenal, masihBerpenanda, sedangMenggabung, selesaikanGabung, sinkronkan } from "./gabung.js";
 import { FOLDER_LAMPIRAN, estimasiBiaya, jalankanAgen, periksaBatas } from "./agen/index.js";
 import { CATATAN_LANJUTAN, susunRantai, waktuLanjut } from "./agen/kuota.js";
 import { NAMA_TAHAP, susunPromptCoding, susunPromptDokumen, uraiKeluaran } from "./agen/prompt.js";
@@ -1090,7 +1090,12 @@ export const commitItem = async (item, pesanCommit, oleh) => {
   const base = direktoriKerja(item);
   const status = await statusBerkas(base);
   const jalur = (item.berkas ?? []).map((b) => b.path).filter((p) => p in status);
-  if (!jalur.length) throw permintaanSalah("Tidak ada perubahan untuk di-commit");
+  if (!jalur.length) {
+    // Semua perubahan sudah di-commit langsung di branch (oleh agen atau programmer): catat commit itu, bukan buntu.
+    const baru = await pindaiManual(item, oleh);
+    if (baru.commit_sha) return baru;
+    throw permintaanSalah("Tidak ada perubahan untuk di-commit");
+  }
   const { nilai } = await bacaSemua();
   const isiPesan = `${(pesanCommit || item.pesan_commit || `feat: ${item.judul}`).trim()}\n\nSIMRS Studio ${nomor(item)}${nilai.atribusi_commit ? `\n\n${nilai.atribusi_commit}` : ""}\n`;
   const berkasPesan = path.join(os.tmpdir(), `simrs-studio-commit-${item.uuid}.txt`);
@@ -1248,7 +1253,15 @@ const gabung = async (cwd, args, judul) => {
   const { keluaran } = await git(["diff", "--name-only", "--diff-filter=U"], { cwd, izinkanGagal: true });
   await git([args[0] === "revert" ? "revert" : "merge", "--abort"], { cwd, izinkanGagal: true });
   const bentrok = keluaran.split("\n").filter(Boolean);
-  throw new Galat(409, `${judul} gagal karena konflik${bentrok.length ? ` pada: ${bentrok.join(", ")}` : `: ${r.galat}`}. Selesaikan manual di VS Code, atau minta agen merevisi item.`);
+  // Bukan konflik: git menolak karena berkas yang belum di-commit di working tree tujuan akan tertimpa.
+  const tertimpa = !bentrok.length && /would be overwritten|akan ditimpa/i.test(r.galat ?? "")
+    ? [...(r.galat ?? "").matchAll(/^\s+(\S.*)$/gm)].map((m) => m[1].trim()).filter((p) => !/^(Please|Aborting|Mohon|Membatalkan)/.test(p))
+    : null;
+  if (tertimpa) {
+    throw new Galat(409, `${judul} dibatalkan: berkas berikut di ${cwd} belum di-commit dan akan tertimpa — ${tertimpa.join(", ") || r.galat}. ` +
+      "Commit atau simpan sementara (git stash) perubahan itu dulu, lalu ulangi.");
+  }
+  throw new Galat(409, `${judul} gagal karena konflik${bentrok.length ? ` pada: ${bentrok.join(", ")}` : `: ${r.galat}`}. Lihat "Kesiapan penerapan" di tab Rilis untuk menyelesaikannya.`);
 };
 
 // Pra-cek konflik tanpa menyentuh working tree (git merge-tree --write-tree, git ≥ 2.38). Merge yang berkonflik lalu
@@ -1307,9 +1320,11 @@ const catatCommitStudio = async (item, sha, pesanCommit, berkas) =>
 // baru yang lebih baru dari target, perbarui rujukan, commit di branch item. Migrasi yang sudah pernah dijalankan
 // (tercatat di SequelizeMeta database bersama) tidak boleh diganti namanya: Terapkan ditolak.
 // Mengembalikan { item, peta } (peta kosong bila sudah urut).
-export const urutkanMigrasiItem = async (item, target, oleh) => {
+// Rencana pengurutan migrasi item terhadap target tanpa mengubah apa pun: { milikItem, terakhir, peta, tercatat }.
+// tercatat = migrasi yang perlu diganti nama tetapi sudah pernah dijalankan (SequelizeMeta) → tidak boleh diurutkan otomatis.
+const rencanaMigrasiItem = async (item, target) => {
   const { milikItem, diTarget } = await migrasiItemDanTarget(target, item.branch);
-  if (!milikItem.length) return { item, peta: [] };
+  if (!milikItem.length) return { milikItem, terakhir: null, peta: [], tercatat: [] };
   const terakhir = diTarget.filter((n) => !milikItem.includes(n)).sort().at(-1)?.slice(0, 14) ?? null;
   const dipesan = (await awalanItemLain(item.uuid)).map((r) => r.awalan_migrasi);
   let peta;
@@ -1318,12 +1333,19 @@ export const urutkanMigrasiItem = async (item, target, oleh) => {
   } catch (e) {
     throw new Galat(409, `Migrasi item tidak dapat diurutkan otomatis: ${e.message}`);
   }
-  if (!peta.length) return { item, peta };
-  const tercatat = await query(`SELECT name FROM "SequelizeMeta" WHERE name = ANY($1)`, [peta.map((p) => p.lama)]).catch(() => []);
-  if (tercatat.length) {
-    throw new Galat(409, `Migrasi ${tercatat.map((r) => r.name).join(", ")} lebih tua dari migrasi terakhir di ${target}, tetapi sudah pernah dijalankan di database ` +
-      `(tercatat di SequelizeMeta), sehingga namanya tidak diganti otomatis. Ganti nama manual di branch item beserta baris SequelizeMeta-nya, atau terapkan apa adanya lewat git setelah ditinjau.`);
-  }
+  const tercatat = peta.length
+    ? (await query(`SELECT name FROM "SequelizeMeta" WHERE name = ANY($1)`, [peta.map((p) => p.lama)]).catch(() => [])).map((r) => r.name)
+    : [];
+  return { milikItem, terakhir, peta, tercatat };
+};
+const PESAN_MIGRASI_TERCATAT = (nama, target) =>
+  `Migrasi ${nama.join(", ")} lebih tua dari migrasi terakhir di ${target}, tetapi sudah pernah dijalankan di database ` +
+  `(tercatat di SequelizeMeta), sehingga namanya tidak diganti otomatis. Ganti nama manual di branch item beserta baris SequelizeMeta-nya, atau terapkan apa adanya lewat git setelah ditinjau.`;
+
+export const urutkanMigrasiItem = async (item, target, oleh) => {
+  const { milikItem, terakhir, peta, tercatat } = await rencanaMigrasiItem(item, target);
+  if (!milikItem.length || !peta.length) return { item, peta };
+  if (tercatat.length) throw new Galat(409, PESAN_MIGRASI_TERCATAT(tercatat, target));
   const pesanCommit = `chore(studio): urutkan migrasi ${nomor(item)} setelah ${terakhir}`;
   const hasil = await diBranchItem(item, async (cwd) => {
     const kotor = (await git(["status", "--porcelain", "--untracked-files=no"], { cwd })).keluaran;
@@ -1365,6 +1387,212 @@ export const sinkronkanItem = async (item, oleh, { target = null } = {}) => {
   if (!["digabung", "mutakhir"].includes(hasil.status)) throw new Galat(409, ringkasan);
   const baru = hasil.status === "digabung" ? await catatCommitStudio(item, hasil.sha, pesanCommit.split("\n")[0], hasil.otomatis.map((o) => o.path)) : item;
   return { item: baru, ...hasil, target: tujuan, ringkasan };
+};
+
+// ---------- Kesiapan Terapkan & penyelesaian konflik (tanpa VS Code/terminal) ----------
+
+const daftarGit = async (args, cwd) => (await git(args, { cwd, izinkanGagal: true })).keluaran.split("\n").filter(Boolean);
+
+// Folder tempat branch item terbuka (worktree item atau repo utama). Penyelesaian konflik butuh folder tetap, bukan
+// worktree sementara.
+const folderItemTerbuka = async (item) => {
+  if (item.worktree && fs.existsSync(item.worktree)) return item.worktree;
+  if ((await branchSekarang().catch(() => null)) === item.branch) return config.repoDir;
+  const terbuka = folderBranchTerbuka((await git(["worktree", "list", "--porcelain"], { izinkanGagal: true })).keluaran, item.branch);
+  if (terbuka) return terbuka;
+  throw new Galat(409, `Branch ${item.branch} tidak sedang terbuka di folder mana pun. Klik "Buka branch item" dulu.`);
+};
+
+// Berkas yang masih berpenanda konflik selama penggabungan berjalan.
+const penandaTersisa = async (cwd) =>
+  masihBerpenanda(cwd, [...new Set([...(await daftarGit(["diff", "--name-only", "--diff-filter=U"], cwd)), ...(await daftarGit(["diff", "--name-only", "HEAD"], cwd))])]);
+
+// Daftar periksa sebelum Terapkan: apa yang menghalangi dan aksi yang bisa diambil langsung dari Studio.
+// Setiap langkah: { kode, status: ok|info|blokir, judul, rincian, berkas?, aksi?: [nama aksi], folder? }. Hanya membaca.
+export const kesiapanTerapkan = async (item) => {
+  const langkah = [];
+  const tambah = (kode, status, judul, rincian = "", ekstra = {}) => langkah.push({ kode, status, judul, rincian, ...ekstra });
+  const { nilai } = await bacaSemua();
+  const target = await branchLokal(nilai, item);
+  const hasil = () => ({ target, siap: !langkah.some((l) => l.status === "blokir"), langkah });
+  if (!item.branch) {
+    tambah("branch", "blokir", "Item belum punya branch kerja", "Kerjakan item di tahap Coding dulu.");
+    return hasil();
+  }
+  if (await tugasBerjalan(item.uuid)) tambah("agen", "blokir", "Agen masih bekerja untuk item ini", "Tunggu sampai selesai, atau batalkan tugasnya di panel tugas.");
+
+  const adaTarget = target !== item.branch && (await git(["rev-parse", "--verify", "--quiet", `refs/heads/${target}`], { izinkanGagal: true })).ok;
+  if (target === item.branch) tambah("target", "blokir", "Branch lokal sama dengan branch item", "Atur Branch lokal di Pengaturan & Agen.");
+  else if (!adaTarget) tambah("target", "blokir", `Branch lokal ${target} tidak ditemukan`, "Atur Branch lokal di Pengaturan & Agen, atau buat branch itu.");
+  else tambah("target", "ok", `Tujuan penerapan: ${target}`);
+
+  // Working tree item: penggabungan yang belum ditutup, atau berkas belum di-commit.
+  let base = null;
+  try {
+    base = await folderItemTerbuka(item);
+  } catch {
+    tambah("bersih", "info", "Branch item tidak sedang terbuka di folder mana pun", "Pemeriksaan berkas yang belum di-commit dilewati.");
+  }
+  let menggabung = false;
+  if (base) {
+    menggabung = await sedangMenggabung(base);
+    if (menggabung) {
+      const sisa = await penandaTersisa(base);
+      tambah("gabung", "blokir",
+        sisa.length ? `Penyelesaian konflik berjalan: ${sisa.length} berkas masih berpenanda konflik` : "Penyelesaian konflik berjalan: penanda konflik sudah bersih",
+        sisa.length
+          ? `Buka folder di VS Code, cari <<<<<<< pada berkas berikut lalu satukan isinya (bagian atas = item ini, bagian bawah = ${target}), atau klik "Minta agen menyelesaikan". Setelah bersih, klik "Tutup penggabungan".`
+          : `Klik "Tutup penggabungan": Studio mengecek sintaks, dokumen katalog, dan integritas, lalu meng-commit hasilnya.`,
+        { berkas: sisa, folder: base, aksi: sisa.length ? ["konflik/agen", "konflik/selesai", "konflik/batal"] : ["konflik/selesai", "konflik/batal"] });
+    } else {
+      const kotor = Object.keys(await statusBerkas(base));
+      const tercatat = new Set((item.berkas ?? []).map((b) => b.path));
+      const belumDikenal = kotor.filter((p) => !tercatat.has(p));
+      if (kotor.length) {
+        tambah("bersih", "blokir", `${kotor.length} berkas di branch item belum di-commit`,
+          belumDikenal.length
+            ? `${belumDikenal.length} di antaranya belum dikenal Studio (mis. dibuat agen lalu tertinggal). Klik "Pindai perubahan" agar tercatat, periksa isinya, lalu "Commit perubahan". Berkas yang tidak dipakai hapus saja dari folder item.`
+            : `Isi pesan commit di bawah lalu klik "Commit perubahan".`,
+          { berkas: kotor, folder: base, aksi: [belumDikenal.length ? "coding/pindai" : "commit"] });
+      } else tambah("bersih", "ok", "Tidak ada perubahan yang belum di-commit");
+    }
+  }
+
+  // Commit: termasuk commit yang dibuat langsung di branch (agen/programmer) tetapi belum tercatat Studio.
+  const dasarRef = await titikDasar(base ?? config.repoDir, item.branch, item);
+  const shaBranch = await daftarGit(["log", "--format=%H", `${dasarRef}..${item.branch}`], base ?? config.repoDir);
+  const tercatatSha = new Set((item.riwayat_commit ?? []).map((c) => c.sha));
+  const belumTercatat = shaBranch.filter((s) => !tercatatSha.has(s));
+  if (!item.commit_sha && !shaBranch.length) tambah("commit", "blokir", "Belum ada commit di branch item", `Commit perubahan dulu (formulir "Commit perubahan" di bawah).`, { aksi: ["commit"] });
+  else if (belumTercatat.length) {
+    tambah("commit", "info", `${belumTercatat.length} commit di branch belum tercatat Studio`,
+      "Dibuat langsung di branch (oleh agen atau programmer). Dicatat otomatis saat Terapkan, atau klik Pindai perubahan sekarang.", { aksi: ["coding/pindai"] });
+  } else tambah("commit", "ok", `Commit tercatat (${item.commit_sha?.slice(0, 7)})`);
+
+  if (adaTarget) {
+    // Migrasi: diurutkan otomatis, kecuali yang sudah pernah dijalankan.
+    try {
+      const m = await rencanaMigrasiItem(item, target);
+      if (m.tercatat.length) tambah("migrasi", "blokir", "Migrasi item tertinggal dan sudah pernah dijalankan", PESAN_MIGRASI_TERCATAT(m.tercatat, target), { berkas: m.tercatat });
+      else if (m.peta.length) tambah("migrasi", "info", `${m.peta.length} migrasi item akan diurutkan ulang otomatis saat Terapkan`, m.peta.map((p) => `${p.lama} → ${p.baru}`).join(", "));
+      else if (m.milikItem.length) tambah("migrasi", "ok", `${m.milikItem.length} migrasi baru, urutannya sudah paling akhir`);
+    } catch (e) {
+      tambah("migrasi", "blokir", "Migrasi item tidak dapat diurutkan otomatis", e.message);
+    }
+
+    // Konflik dengan branch lokal (simulasi, tidak menyentuh berkas).
+    if (!menggabung) {
+      const bentrok = await pracekGabung(target, item.branch);
+      const manual = bentrok.filter((p) => !dikenal(p));
+      if (!bentrok.length) tambah("konflik", "ok", `Tidak ada konflik dengan ${target}`);
+      else if (!manual.length) {
+        tambah("konflik", "info", `Konflik berpola dikenal di ${bentrok.length} berkas: diselesaikan otomatis saat Terapkan`, "Katalog modul, daftar izin/menu/rute, CHANGELOG, dan dokumen katalog.", { berkas: bentrok });
+      } else {
+        tambah("konflik", "blokir", `Konflik kode dengan ${target} di ${manual.length} berkas`,
+          `Biasanya karena item lain yang sudah diterapkan mengubah berkas yang sama (mis. refactor). Klik "Mulai selesaikan konflik": Studio menggabungkan ${target} ke branch item, ` +
+          "pola yang dikenal diselesaikan otomatis, sisanya diberi penanda konflik untuk diselesaikan Anda atau agen. Branch lokal tidak tersentuh sampai Anda Terapkan.",
+          { berkas: manual, aksi: base ? ["konflik/mulai"] : [] });
+      }
+    }
+
+    // Working tree aplikasi (repo utama di branch lokal): perubahan belum di-commit yang ikut diubah item akan ditolak git.
+    if ((await branchSekarang().catch(() => null)) === target) {
+      const kotorUtama = Object.keys(await statusBerkas(config.repoDir));
+      const diubahItem = new Set(await daftarGit(["diff", "--name-only", `${target}...${item.branch}`], config.repoDir));
+      const tumpang = kotorUtama.filter((p) => diubahItem.has(p));
+      if (tumpang.length) {
+        tambah("aplikasi", "blokir", `${tumpang.length} berkas di ${target} belum di-commit dan juga diubah item`,
+          `Git menolak menimpanya. Di ${config.repoDir}, commit berkas ini atau simpan sementara (git stash), lalu periksa ulang.`, { berkas: tumpang, folder: config.repoDir });
+      } else if (kotorUtama.length) {
+        tambah("aplikasi", "info", `${kotorUtama.length} berkas belum di-commit di ${target}`, "Tidak bersinggungan dengan item, jadi tidak menghalangi penerapan.");
+      }
+    }
+  }
+  return hasil();
+};
+
+const targetKonflik = async (item) => {
+  const { nilai } = await bacaSemua();
+  return modeLokal(nilai) ? branchLokal(nilai, item) : branchDasar(nilai, item);
+};
+
+// Mulai penyelesaian konflik: gabungkan branch lokal ke branch item; pola dikenal diselesaikan otomatis, sisanya
+// dibiarkan berpenanda di folder item (tidak dibatalkan) untuk diselesaikan manual atau oleh agen.
+export const mulaiSelesaikanKonflik = async (item, oleh) => {
+  pastikanBukanProduksi();
+  if (!item.branch) throw permintaanSalah("Item belum punya branch");
+  if (await tugasBerjalan(item.uuid)) throw new Galat(409, "Masih ada tugas agen yang berjalan untuk item ini");
+  const target = await targetKonflik(item);
+  const cwd = await folderItemTerbuka(item);
+  if (await sedangMenggabung(cwd)) throw new Galat(409, "Penyelesaian konflik sudah berjalan: selesaikan lalu tutup, atau batalkan dulu");
+  const pesanCommit = `chore(studio): gabungkan ${target} ke ${item.branch}\n\nSIMRS Studio ${nomor(item)}`;
+  const h = await sinkronkan({ cwd, target, pesanCommit, biarkan: true });
+  const auto = h.otomatis?.length ? ` Diselesaikan otomatis: ${h.otomatis.map((o) => `${o.path} (${o.cara})`).join("; ")}.` : "";
+  if (h.status === "menunggu") {
+    await pesan(item, item.tahap, "sistem",
+      `Penyelesaian konflik dimulai: ${target} digabung ke branch item di ${cwd}. ${h.tersisa.length} berkas perlu diselesaikan: ${h.tersisa.join(", ")}.${auto} ` +
+      `Selesaikan penanda konflik di VS Code atau klik "Minta agen menyelesaikan", lalu "Tutup penggabungan".`, oleh);
+    await audit(oleh, `Memulai penyelesaian konflik dengan ${target}`, item.uuid, { tersisa: h.tersisa, otomatis: h.otomatis });
+    return { status: h.status, target, folder: cwd, tersisa: h.tersisa, otomatis: h.otomatis, item };
+  }
+  const baru = h.status === "digabung" ? await catatCommitStudio(item, h.sha, pesanCommit.split("\n")[0], h.otomatis.map((o) => o.path)) : item;
+  const ringkasan = ringkasSinkron(h, target);
+  await pesan(item, item.tahap, "sistem", ringkasan, oleh);
+  await audit(oleh, `Penyelesaian konflik dengan ${target}: ${h.status}`, item.uuid, { otomatis: h.otomatis, sha: h.sha });
+  if (!["digabung", "mutakhir"].includes(h.status)) throw new Galat(409, ringkasan);
+  return { status: h.status, target, folder: cwd, tersisa: [], otomatis: h.otomatis, item: baru };
+};
+
+// Tutup penggabungan: penanda harus bersih; cek sintaks/katalog/integritas, lalu commit (oleh Studio, bukan agen).
+export const tutupSelesaikanKonflik = async (item, oleh) => {
+  pastikanBukanProduksi();
+  if (await tugasBerjalan(item.uuid)) throw new Galat(409, "Masih ada tugas agen yang berjalan untuk item ini");
+  const target = await targetKonflik(item);
+  const cwd = await folderItemTerbuka(item);
+  const pesanCommit = `chore(studio): selesaikan konflik ${item.branch} dengan ${target}\n\nSIMRS Studio ${nomor(item)}`;
+  const h = await selesaikanGabung({ cwd, pesanCommit });
+  let baru = await catatCommitStudio(item, h.sha, pesanCommit.split("\n")[0], h.berkas);
+  baru = await ubah("studio_item", item.uuid, { berkas: saringBerkasKotor(baru.berkas, await statusBerkas(cwd)) });
+  await pesan(baru, item.tahap, "sistem", `Konflik dengan ${target} selesai dan di-commit (${h.sha.slice(0, 7)}): ${h.berkas.join(", ") || "-"}. Klik Terapkan lagi.`, oleh);
+  await audit(oleh, `Menutup penyelesaian konflik dengan ${target}`, item.uuid, { sha: h.sha, berkas: h.berkas });
+  return baru;
+};
+
+export const batalSelesaikanKonflik = async (item, oleh) => {
+  pastikanBukanProduksi();
+  if (await tugasBerjalan(item.uuid)) throw new Galat(409, "Masih ada tugas agen yang berjalan untuk item ini");
+  const cwd = await folderItemTerbuka(item);
+  await batalGabung({ cwd });
+  const baru = await ubah("studio_item", item.uuid, { berkas: saringBerkasKotor(item.berkas, await statusBerkas(cwd)) });
+  await pesan(baru, item.tahap, "sistem", "Penyelesaian konflik dibatalkan; branch item kembali seperti sebelum penggabungan.", oleh);
+  await audit(oleh, "Membatalkan penyelesaian konflik", item.uuid);
+  return baru;
+};
+
+// Agen menyunting berkas berpenanda konflik (tanpa perintah git); Studio yang menutup penggabungan.
+export const agenSelesaikanKonflik = async (item, oleh) => {
+  pastikanBukanProduksi();
+  const { nilai } = await bacaSemua();
+  if (nilai.fitur?.coding === false) throw new Galat(403, "Fitur Coding belum diaktifkan superadmin (Pengaturan & Agen › Fitur Studio)");
+  if (item.risiko === "kritis") throw new Galat(403, "Item berisiko kritis: konflik diselesaikan programmer.");
+  if (await tugasBerjalan(item.uuid)) throw new Galat(409, "Masih ada tugas agen yang berjalan untuk item ini");
+  const cwd = await folderItemTerbuka(item);
+  if (!(await sedangMenggabung(cwd))) throw permintaanSalah('Klik "Mulai selesaikan konflik" dulu');
+  const sisa = await penandaTersisa(cwd);
+  if (!sisa.length) throw permintaanSalah('Penanda konflik sudah bersih: klik "Tutup penggabungan"');
+  await periksaBatas(item, oleh);
+  const target = await targetKonflik(item);
+  const instruksi =
+    `Studio sedang menggabungkan branch ${target} ke branch item ini (git merge sudah dimulai oleh Studio). JANGAN menjalankan perintah git apa pun ` +
+    `(merge, add, commit, checkout, stash, reset). Berkas berikut masih berisi penanda konflik — bagian antara <<<<<<< dan ======= adalah versi item ini, ` +
+    `bagian antara ======= dan >>>>>>> adalah versi ${target} yang sudah dipakai aplikasi:\n${sisa.map((p) => `- ${p}`).join("\n")}\n\n` +
+    `Selesaikan setiap blok dengan menyunting berkasnya dan pertahankan maksud kedua sisi. Perubahan di ${target} adalah kode yang sudah berjalan ` +
+    "(mis. refactor bersama); sesuaikan kode item agar mengikuti struktur terbaru itu, jangan mengembalikannya ke versi lama. Hapus semua penanda konflik, " +
+    "jalankan node --check pada berkas JS yang disunting dan uji layanan terkait bila ada. Jangan mengubah berkas lain di luar keperluan penyelesaian konflik.";
+  const tugas = await buatTugasAgen(item, "coding", "coding", instruksi, oleh);
+  await audit(oleh, "Meminta agen menyelesaikan konflik", item.uuid, { berkas: sisa });
+  await mulaiAtauTunggu(tugas, item, () => kerjakanCoding(tugas, item, instruksi));
+  return tugas;
 };
 
 // Berkas masuk layanan yang dijalankan nodemon (scripts.dev "nodemon <berkas>", atau main).
@@ -1486,11 +1714,26 @@ export const pindahkanAplikasi = async (oleh) => {
   return statusAplikasi();
 };
 
+// Galat Terapkan juga dicatat di diskusi item (bukan hanya toast) agar penyebabnya bisa dibaca ulang.
 export const terapkanLokal = async (item, oleh, faskesUuid = null) => {
+  try {
+    return await terapkanLokalInti(item, oleh, faskesUuid);
+  } catch (e) {
+    await pesan(item, item.tahap, "sistem", `Terapkan gagal: ${e.message}\nLangkah perbaikannya ada di panel "Kesiapan penerapan" (tab Rilis).`, oleh).catch(() => {});
+    throw e;
+  }
+};
+
+const terapkanLokalInti = async (item, oleh, faskesUuid) => {
   pastikanBukanProduksi();
   if (!["rilis", "selesai"].includes(item.tahap)) throw permintaanSalah("Penerapan lokal dilakukan pada tahap rilis");
-  if (!item.commit_sha) throw permintaanSalah("Commit perubahan dulu sebelum diterapkan");
+  // Commit yang dibuat agen/programmer langsung di branch item (di luar tombol Commit) dicatat dulu.
+  if (!item.commit_sha && item.branch) item = await pindaiManual(item, oleh).catch(() => item);
+  if (!item.commit_sha) throw permintaanSalah("Belum ada commit di branch item: commit perubahan dulu sebelum diterapkan");
   const base = direktoriKerja(item);
+  if (fs.existsSync(base) && (await sedangMenggabung(base))) {
+    throw new Galat(409, "Penyelesaian konflik di branch item belum ditutup: selesaikan penanda konflik lalu klik Tutup penggabungan (atau batalkan).");
+  }
   const status = await statusBerkas(base);
   if ((item.berkas ?? []).some((b) => b.path in status)) throw permintaanSalah("Masih ada perubahan item yang belum di-commit");
   const { nilai } = await bacaSemua();

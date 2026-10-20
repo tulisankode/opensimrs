@@ -20,6 +20,10 @@ export default {
   codexBin: process.env.STUDIO_CODEX_BIN || "",
   // Runtime ekstensi tanpa kode (validasi, pratinjau, pasang) ada di laporan-service.
   laporanUrl: (process.env.BASE_URL_API_LAPORAN || "http://localhost:8088/api/v3/laporan").replace(/\/$/, ""),
+  // Helpdesk AI: OpenClaw di mesin ini (menu Helpdesk AI) & pengaturan Helpdesk di setting-service.
+  openclawBin: process.env.STUDIO_OPENCLAW_BIN || "openclaw",
+  settingUrl: (process.env.BASE_URL_API_SETTING || "http://localhost:8094/api/v3/setting").replace(/\/$/, ""),
+  ollamaUrl: (process.env.STUDIO_OLLAMA_URL || "http://127.0.0.1:11434").replace(/\/$/, ""),
   pg: {
     host: process.env.DB_HOST || "localhost",
     port: angka(process.env.DB_PORT, 5432),

@@ -32,8 +32,6 @@ export interface ListMenu {
   segera?: boolean;
   // Grup menu (mis. "Penunjang") berisi beberapa modul dalam dropdown.
   anak?: ListMenu[];
-  // Isi grup ditampilkan sebagai daftar datar (tanpa subjudul bidang/instalasi), mis. "Perawatan Intensif".
-  datar?: boolean;
 }
 
 export interface FilterAdmisi {

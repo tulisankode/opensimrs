@@ -10,6 +10,7 @@ const sidebarBodyList = ref<SidebarBody[]>([
     type: linkType.SECTION,
     child: [
       { name: "Daftar Tunggu OK", icon: "PhListChecks", type: linkType.LINK, url: "/kamar-operasi/daftar-tunggu" },
+      { name: "PACU / Recovery Room", icon: "PhHeartbeat", type: linkType.LINK, url: "/kamar-operasi/pacu" },
       { name: "Jadwal OK", icon: "PhCalendar", type: linkType.LINK, url: "/kamar-operasi/jadwal" },
     ],
   },

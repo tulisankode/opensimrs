@@ -22,6 +22,7 @@ import * as gitremote from "./gitremote.js";
 import * as alur from "./alur.js";
 import * as ekstensi from "./ekstensi.js";
 import * as deploy from "./deploy.js";
+import * as openclaw from "./openclaw.js";
 
 // /api/v3/studio/...
 // Lapis aktivasi (rancangan §4): L1 .env STUDIO_PENGEMBANG=aktif → L3 Mode Pengembang (Setting › System, superadmin)
@@ -240,6 +241,33 @@ rute.post("/item/:uuid/sinkron", tangani(async (req, res) => {
   if (!(await pastikan(req, "Rilis", "SIAPKAN").then(() => true, () => false))) await pastikan(req, "Coding", "BUKA PR");
   const hasil = await alur.sinkronkanItem(await item(req), req.author.username);
   kirim(res, { status: hasil.status, target: hasil.target, sha: hasil.sha ?? null, otomatis: hasil.otomatis, tersisa: hasil.tersisa }, hasil.ringkasan);
+}));
+// Kesiapan Terapkan: daftar periksa + aksi perbaikan (hanya membaca).
+rute.get("/item/:uuid/kesiapan", tangani(async (req, res) => {
+  await bolehBaca(req);
+  kirim(res, await alur.kesiapanTerapkan(await item(req)));
+}));
+// Penyelesaian konflik dengan branch lokal: mulai (penggabungan dibiarkan berpenanda), tutup (commit oleh Studio),
+// batal. Izin sama dengan sinkronisasi; meminta agen menyunting konflik butuh izin menjalankan agen coding.
+const pastikanIzinGabung = async (req) => {
+  if (!(await pastikan(req, "Rilis", "SIAPKAN").then(() => true, () => false))) await pastikan(req, "Coding", "BUKA PR");
+};
+rute.post("/item/:uuid/konflik/mulai", tangani(async (req, res) => {
+  await pastikanIzinGabung(req);
+  const h = await alur.mulaiSelesaikanKonflik(await item(req), req.author.username);
+  kirim(res, h, h.status === "menunggu" ? `${h.tersisa.length} berkas perlu diselesaikan` : "Branch item sudah tergabung tanpa konflik tersisa");
+}));
+rute.post("/item/:uuid/konflik/selesai", tangani(async (req, res) => {
+  await pastikanIzinGabung(req);
+  kirim(res, await alur.tutupSelesaikanKonflik(await item(req), req.author.username), "Konflik selesai dan di-commit");
+}));
+rute.post("/item/:uuid/konflik/batal", tangani(async (req, res) => {
+  await pastikanIzinGabung(req);
+  kirim(res, await alur.batalSelesaikanKonflik(await item(req), req.author.username), "Penyelesaian konflik dibatalkan");
+}));
+rute.post("/item/:uuid/konflik/agen", tangani(async (req, res) => {
+  await pastikan(req, "Coding", "JALANKAN AGEN");
+  kirim(res, await alur.agenSelesaikanKonflik(await item(req), req.author.username), "Agen sedang menyelesaikan konflik");
 }));
 rute.post("/item/:uuid/aktifkan", tangani(async (req, res) => {
   await pastikan(req, "Rilis", "SIAPKAN");
@@ -543,6 +571,41 @@ rute.post("/pengaturan/akun-claude/keluar", tangani(async (req, res) => {
 }));
 
 // Akun Codex (langganan ChatGPT): login kode perangkat di auth.openai.com/codex/device.
+// Helpdesk AI (OpenClaw di mesin ini): status, agen & model, sinkron panduan, token gateway, uji tanya. Superadmin.
+rute.get("/helpdesk-ai", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  kirim(res, await openclaw.status(token(req)));
+}));
+rute.post("/helpdesk-ai/agen", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  const h = await openclaw.aturAgen(req.body ?? {});
+  await audit(req.author.username, `Helpdesk AI: ${h.dibuat ? "membuat" : "mengatur"} agen ${h.agen} (model ${h.model})`, null,
+    { agen: h.agen, model: h.model, kunciDisimpan: h.kunciDisimpan, penyedia: h.penyedia });
+  kirim(res, h, h.kunciDisimpan ? `Agen ${h.agen} diatur; kunci API ${h.penyedia} disimpan di OpenClaw` : `Agen ${h.agen} diatur`);
+}));
+rute.post("/helpdesk-ai/sinkron", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  const h = await openclaw.sinkronPanduan(req.body?.agen || undefined);
+  await audit(req.author.username, `Helpdesk AI: sinkron panduan (${h.berkas} berkas, ${h.sha})`);
+  kirim(res, h, `${h.berkas} berkas panduan dari commit ${h.sha} disalin ke workspace agen`);
+}));
+rute.post("/helpdesk-ai/token", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  const h = await openclaw.gantiToken(token(req), req.body ?? {});
+  await audit(req.author.username, `Helpdesk AI: token gateway diganti (…${h.akhiran})`);
+  kirim(res, h, "Token baru dipasang di OpenClaw & pengaturan Helpdesk AI. Jalankan ulang gateway agar berlaku.");
+}));
+rute.post("/helpdesk-ai/gateway", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  const h = await openclaw.jalankanGateway();
+  await audit(req.author.username, "Helpdesk AI: menjalankan (ulang) gateway OpenClaw");
+  kirim(res, h, "Gateway berjalan");
+}));
+rute.post("/helpdesk-ai/uji", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  kirim(res, await openclaw.ujiTanya(req.body ?? {}));
+}));
+
 rute.get("/pengaturan/akun-codex", tangani(async (req, res) => {
   wajibSuperadmin(req);
   kirim(res, { akun: await codex.statusAkunCodex(), login: codex.statusLoginCodex(), model: codex.modelCodex() });

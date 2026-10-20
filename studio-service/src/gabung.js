@@ -280,12 +280,27 @@ const bacaJson = (teks) => {
     return null;
   }
 };
-const dikenal = (p) => p === KATALOG || p === DOK_KATALOG || Object.hasOwn(ATURAN_DAFTAR, p);
+export const dikenal = (p) => p === KATALOG || p === DOK_KATALOG || Object.hasOwn(ATURAN_DAFTAR, p);
+
+// Penggabungan yang sedang berjalan (MERGE_HEAD ada) di cwd.
+export const sedangMenggabung = async (cwd) => (await git(["rev-parse", "-q", "--verify", "MERGE_HEAD"], { cwd, izinkanGagal: true })).ok;
+
+// Berkas yang masih berpenanda konflik (<<<<<<< / ======= / >>>>>>>) di antara `jalur`.
+export const masihBerpenanda = (cwd, jalur) =>
+  jalur.filter((rel) => {
+    try {
+      return adaPenanda(fs.readFileSync(path.join(cwd, rel), "utf8"));
+    } catch {
+      return false; // berkas dihapus sebagai penyelesaian
+    }
+  });
 
 // Gabungkan `target` ke branch yang terbuka di `cwd` (branch item) dengan penyelesaian otomatis.
-// Hasil: { status: "mutakhir" | "digabung" | "konflik" | "gagal_integritas", sha?, otomatis: [{ path, cara }], tersisa: [path], integritas? }
-// Selain "digabung"/"mutakhir", penggabungan dibatalkan dan working tree kembali seperti semula.
-export const sinkronkan = async ({ cwd, target, pesanCommit }) => {
+// Hasil: { status: "mutakhir" | "digabung" | "konflik" | "gagal_integritas" | "menunggu", sha?, otomatis: [{ path, cara }], tersisa: [path], integritas? }
+// Selain "digabung"/"mutakhir", penggabungan dibatalkan dan working tree kembali seperti semula — kecuali `biarkan`:
+// konflik yang tidak dikenali dibiarkan berpenanda (status "menunggu") untuk diselesaikan manual/agen, lalu ditutup
+// dengan selesaikanGabung().
+export const sinkronkan = async ({ cwd, target, pesanCommit, biarkan = false }) => {
   const { keluaran: kotor } = await git(["status", "--porcelain", "--untracked-files=no"], { cwd });
   if (kotor.trim()) {
     throw new Galat(409, `Masih ada perubahan yang belum di-commit di ${cwd} (${kotor.split("\n").slice(0, 5).map((b) => b.slice(3)).join(", ")}). Commit dulu (tahap Rilis), lalu sinkronkan.`);
@@ -301,11 +316,11 @@ export const sinkronkan = async ({ cwd, target, pesanCommit }) => {
     const konflikAwal = await berkasKonflik(cwd);
     const otomatis = [];
     const tersisa = konflikAwal.filter((k) => !k.lengkap || !dikenal(k.path)).map((k) => k.path);
-    if (tersisa.length) {
+    if (tersisa.length && !biarkan) {
       await batal();
       return { status: "konflik", otomatis, tersisa, dikenal: konflikAwal.filter((k) => !tersisa.includes(k.path)).map((k) => k.path) };
     }
-    const jalur = new Set(konflikAwal.map((k) => k.path));
+    const jalur = new Set(konflikAwal.map((k) => k.path).filter((p) => !tersisa.includes(p)));
     const tulisBerkas = (rel, teks) => fs.writeFileSync(path.join(cwd, rel), teks);
     const pakaiCrlf = (rel) => {
       try {
@@ -342,6 +357,17 @@ export const sinkronkan = async ({ cwd, target, pesanCommit }) => {
         continue;
       }
       otomatis.push({ path: rel, cara: rel === "CHANGELOG.md" ? "entri kedua sisi digabung" : "daftar sisipan digabung" });
+    }
+
+    if (biarkan && tersisa.length) {
+      // Yang dikenal & berhasil diselesaikan ditandai selesai; sisanya menunggu. Dokumen katalog dibuat ulang saat ditutup.
+      if (jalur.has(DOK_KATALOG)) {
+        tulisBerkas(DOK_KATALOG, (await tampil(cwd, `:3:${DOK_KATALOG}`)) ?? "");
+        otomatis.push({ path: DOK_KATALOG, cara: "dibuat ulang dari katalog saat penggabungan ditutup" });
+      }
+      const selesai = otomatis.filter((o) => !tersisa.includes(o.path)).map((o) => o.path);
+      if (selesai.length) await git(["add", "--", ...selesai], { cwd });
+      return { status: "menunggu", otomatis: otomatis.filter((o) => !tersisa.includes(o.path)), tersisa: [...new Set(tersisa)] };
     }
 
     // 3. Dokumen hasil skrip: dibuat ulang dari katalog hasil penggabungan.
@@ -384,4 +410,59 @@ export const sinkronkan = async ({ cwd, target, pesanCommit }) => {
     await batal();
     throw e;
   }
+};
+
+// Tutup penggabungan yang dibiarkan (sinkronkan biarkan): semua penanda konflik harus sudah hilang. Dokumen katalog
+// dibuat ulang, berkas JS yang berkonflik dicek sintaksnya, lalu cek integritas sebelum commit. Penggabungan tidak
+// dibatalkan bila gagal — perbaiki lalu ulangi, atau batalGabung().
+export const selesaikanGabung = async ({ cwd, pesanCommit }) => {
+  if (!(await sedangMenggabung(cwd))) throw new Galat(409, "Tidak ada penggabungan yang sedang berjalan di branch item");
+  const konflik = (await berkasKonflik(cwd)).map((k) => k.path);
+  // Penanda dicari di semua berkas yang berubah terhadap HEAD, bukan hanya yang masih berstatus konflik: berkas yang
+  // sudah di-git add tanpa dibersihkan pun tertangkap.
+  const berubah = (await git(["diff", "--name-only", "HEAD"], { cwd, izinkanGagal: true })).keluaran.split("\n").filter(Boolean);
+  const berpenanda = masihBerpenanda(cwd, [...new Set([...konflik, ...berubah])]);
+  if (berpenanda.length) {
+    throw new Galat(409, `Masih ada penanda konflik (<<<<<<< ======= >>>>>>>) di: ${berpenanda.join(", ")}. Selesaikan dulu di VS Code atau minta agen, lalu tutup lagi.`);
+  }
+  for (const rel of konflik) {
+    const ada = fs.existsSync(path.join(cwd, rel));
+    await git(ada ? ["add", "--", rel] : ["rm", "-q", "--", rel], { cwd });
+  }
+  // Berkas hasil penyatuan = berbeda dari kedua sisi (item & target), termasuk yang sudah di-git add lebih dulu.
+  const bedaTarget = new Set((await git(["diff", "--name-only", "MERGE_HEAD"], { cwd, izinkanGagal: true })).keluaran.split("\n").filter(Boolean));
+  const disatukan = [...new Set([...konflik, ...berubah])].filter((p) => bedaTarget.has(p)).sort();
+  const masalah = [];
+  for (const rel of konflik.filter((p) => /\.(c|m)?js$/.test(p) && fs.existsSync(path.join(cwd, p)))) {
+    const r = await jalankanNode(["--check", rel], cwd);
+    if (!r.ok) masalah.push(`${rel}: ${r.keluaran.split("\n").slice(0, 4).join(" ")}`);
+  }
+  if (masalah.length) throw new Galat(409, `Sintaks JavaScript rusak setelah konflik diselesaikan — ${masalah.join("; ")}`);
+  if (fs.existsSync(path.join(cwd, "scripts", "dokumen-katalog.mjs"))) {
+    const g = await jalankanNode(["scripts/dokumen-katalog.mjs"], cwd);
+    if (!g.ok) throw new Galat(409, `Dokumen katalog gagal dibuat ulang (katalog modul mungkin tidak valid): ${g.keluaran.slice(-500)}`);
+    await git(["add", "--", DOK_KATALOG], { cwd, izinkanGagal: true });
+  }
+  if (fs.existsSync(path.join(cwd, "scripts", "cek-integritas.mjs"))) {
+    const cek = await jalankanNode(["scripts/cek-integritas.mjs"], cwd);
+    if (!cek.ok) throw new Galat(409, `Cek integritas gagal — perbaiki lalu tutup lagi:\n${cek.keluaran.slice(-1500)}`);
+  }
+  // Hanya berkas yang dilacak git (termasuk hasil penyelesaian); berkas baru yang belum tercatat tidak ikut.
+  await git(["add", "-u"], { cwd });
+  if ((await git(["diff", "--name-only", "--diff-filter=U"], { cwd })).keluaran.trim()) throw new Galat(409, "Masih ada berkas berstatus konflik");
+  const berkasPesan = path.join(os.tmpdir(), `simrs-studio-tutup-gabung-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`);
+  fs.writeFileSync(berkasPesan, `${pesanCommit}\n\nKonflik diselesaikan: ${disatukan.join(", ") || "-"}\n`, "utf8");
+  try {
+    await git(["commit", "-F", berkasPesan], { cwd });
+  } finally {
+    fs.rmSync(berkasPesan, { force: true });
+  }
+  return { sha: (await git(["rev-parse", "HEAD"], { cwd })).keluaran, berkas: disatukan };
+};
+
+export const batalGabung = async ({ cwd }) => {
+  if (!(await sedangMenggabung(cwd))) throw new Galat(409, "Tidak ada penggabungan yang sedang berjalan di branch item");
+  // merge --abort menolak bila berkas yang sudah di-stage diubah lagi. Penggabungan hanya dimulai dari working tree
+  // bersih (sinkronkan), jadi semua perubahan berkas terlacak adalah hasil penggabungan: aman dikembalikan ke HEAD.
+  if (!(await git(["merge", "--abort"], { cwd, izinkanGagal: true })).ok) await git(["reset", "--hard", "HEAD"], { cwd });
 };

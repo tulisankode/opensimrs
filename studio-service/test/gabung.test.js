@@ -4,7 +4,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { execFileSync } from "child_process";
-import { ATURAN_DAFTAR, KonflikTakDikenal, gabung3, gabungJson, modulTersediaItem, selesaikanTeks, sinkronkan } from "../src/gabung.js";
+import { ATURAN_DAFTAR, KonflikTakDikenal, batalGabung, gabung3, gabungJson, modulTersediaItem, selesaikanGabung, selesaikanTeks, sinkronkan } from "../src/gabung.js";
 
 // ---------- Katalog: gabung per entri ----------
 
@@ -292,6 +292,80 @@ test("sinkronkan: perubahan yang belum di-commit → ditolak tanpa menyentuh bra
     tulis("README.md", "# Diubah\n");
     await assert.rejects(sinkronkan({ cwd: repo, target: "rs-lokal", pesanCommit: "x" }), /belum di-commit/);
     assert.equal(fs.readFileSync(path.join(repo, "README.md"), "utf8"), "# Diubah\n");
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+// Konflik kode (README) + konflik berpola dikenal (CHANGELOG, permission) pada repo yang sama.
+const siapkanKonflikCampuran = () => {
+  const r = siapkanRepo();
+  const { g, tulis, commit } = r;
+  tulis("README.md", "# Uji\n\nBaris versi target.\n");
+  tulis("CHANGELOG.md", CHANGELOG(["ICU."]));
+  tulis("auth-service/src/controllers/permission-controller.js", PERMISSION(["Dashboard", "Laundry", "MCU", "ICU"]));
+  commit("feat: target");
+  g("switch", "-q", "-c", "feat/STD-0035-z", "HEAD~1");
+  tulis("README.md", "# Uji\n\nBaris versi item.\n");
+  tulis("CHANGELOG.md", CHANGELOG(["Z."]));
+  tulis("auth-service/src/controllers/permission-controller.js", PERMISSION(["Dashboard", "Gizi", "Laundry", "MCU"]));
+  commit("feat: item");
+  return r;
+};
+
+test("sinkronkan biarkan: pola dikenal diselesaikan, konflik kode dibiarkan berpenanda (merge tetap berjalan)", async () => {
+  const { repo, g } = siapkanKonflikCampuran();
+  try {
+    const hasil = await sinkronkan({ cwd: repo, target: "rs-lokal", pesanCommit: "x", biarkan: true });
+    assert.equal(hasil.status, "menunggu", JSON.stringify(hasil));
+    assert.deepEqual(hasil.tersisa, ["README.md"]);
+    assert.ok(hasil.otomatis.some((o) => o.path === "CHANGELOG.md"));
+    assert.equal(fs.existsSync(path.join(repo, ".git", "MERGE_HEAD")), true);
+    assert.match(fs.readFileSync(path.join(repo, "README.md"), "utf8"), /^<<<<<<< /m);
+    // Yang sudah diselesaikan otomatis tidak lagi berstatus konflik.
+    assert.deepEqual(g("diff", "--name-only", "--diff-filter=U").split("\n").filter(Boolean), ["README.md"]);
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test("selesaikanGabung: menolak selama penanda tersisa; setelah bersih → cek integritas lalu commit merge", async () => {
+  const { repo, g, tulis } = siapkanKonflikCampuran();
+  try {
+    const item = g("rev-parse", "HEAD");
+    await sinkronkan({ cwd: repo, target: "rs-lokal", pesanCommit: "x", biarkan: true });
+    await assert.rejects(selesaikanGabung({ cwd: repo, pesanCommit: "chore: tutup" }), /penanda konflik.*README\.md/);
+    // Berkas di-git add tanpa dibersihkan tetap tertangkap.
+    g("add", "README.md");
+    await assert.rejects(selesaikanGabung({ cwd: repo, pesanCommit: "chore: tutup" }), /README\.md/);
+    tulis("README.md", "# Uji\n\nBaris versi item dan target.\n");
+    tulis("catatan-lokal.txt", "berkas baru yang belum dilacak\n");
+    const h = await selesaikanGabung({ cwd: repo, pesanCommit: "chore: tutup" });
+    assert.equal(h.sha, g("rev-parse", "HEAD"));
+    assert.equal(g("rev-parse", "HEAD^1"), item);
+    assert.equal(g("rev-parse", "HEAD^2"), g("rev-parse", "rs-lokal"));
+    assert.equal(fs.existsSync(path.join(repo, ".git", "MERGE_HEAD")), false);
+    // Berkas baru yang tidak dilacak tidak ikut ter-commit.
+    assert.equal(g("status", "--porcelain"), "?? catatan-lokal.txt");
+    assert.match(g("log", "-1", "--format=%B"), /Konflik diselesaikan: .*README\.md/);
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test("selesaikanGabung: cek integritas gagal → merge tidak di-commit dan tetap bisa dibatalkan", async () => {
+  const { repo, g, tulis } = siapkanKonflikCampuran();
+  try {
+    const item = g("rev-parse", "HEAD");
+    await sinkronkan({ cwd: repo, target: "rs-lokal", pesanCommit: "x", biarkan: true });
+    tulis("README.md", "# Uji\n");
+    tulis("CHANGELOG.md", CHANGELOG(["TERLARANG."]));
+    await assert.rejects(selesaikanGabung({ cwd: repo, pesanCommit: "chore: tutup" }), /integritas gagal/);
+    assert.equal(fs.existsSync(path.join(repo, ".git", "MERGE_HEAD")), true);
+    await batalGabung({ cwd: repo });
+    assert.equal(g("rev-parse", "HEAD"), item);
+    assert.equal(g("status", "--porcelain"), "");
+    await assert.rejects(batalGabung({ cwd: repo }), /Tidak ada penggabungan/);
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
   }

@@ -18,6 +18,10 @@ export const paginasiSchema = z.object({
     halaman: z.coerce.number().int().positive().default(1), batas: z.coerce.number().int().min(1).max(100).default(25),
     status: z.enum(["aktif", "selesai"]).optional(), konfigurasi_uuid: uuid.optional(),
 }).strict();
+export const serahTerimaQuerySchema = paginasiSchema.pick({ halaman: true, batas: true }).extend({
+    arah: z.enum(["masuk", "keluar"]).optional(),
+    status_penerimaan: z.enum(["menunggu", "dikonfirmasi"]).optional(),
+}).strict();
 
 export const gagal = (message, status = 409) => {
     const error = new Error(message);

@@ -5,7 +5,9 @@
 **/.env
 **/.env.*
 !**/.env.example
-docs
+docs/*
+# Panduan pengguna dipakai Helpdesk setting-service (kutipan jawaban).
+!docs/panduan-pengguna
 database
 deploy
 scripts

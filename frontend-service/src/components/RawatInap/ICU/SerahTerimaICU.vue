@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { hasPermission } from "@/utils/permissions";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import CustomTextfield from "@/components/Base/CustomTextfield.vue";
 import CustomTextArea from "@/components/Base/CustomTextArea.vue";
@@ -7,14 +8,18 @@ import CustomDialog from "@/components/Base/CustomDialog.vue";
 import CustomSelect from "@/components/Base/CustomSelect.vue";
 import NoData from "@/components/section/NoData.vue";
 import { utilsStore } from "@/stores/utils";
-import { useIcuStore } from "@/stores/rawatInap/icu";
+import { apiIntensif } from "@/stores/rawatInap/icu";
 
 // Serah terima terstruktur (masuk/keluar), tertaut ke transaksi ri_perpindahan yang berlaku (KF-1/KF-18; aturan
 // bisnis use case STD-0008 §7 butir 2: tidak membuat status perpindahan paralel).
-const props = defineProps<{ perawatanUuid: string; status: string; serahTerima: any[] }>();
+// basis/label: unit intensif pemilik episode ("/icu"·"ICU" bawaan, "/ccu"·"CCU", "/hdu"·"HDU").
+const props = withDefaults(
+  defineProps<{ perawatanUuid: string; status: string; serahTerima: any[]; basis?: string; label?: string }>(),
+  { basis: "/icu", label: "ICU" },
+);
 const emit = defineEmits<{ selesai: [] }>();
 const storeUtils = utilsStore();
-const icuStore = useIcuStore();
+const icuStore = apiIntensif(props.basis);
 
 const kosongKeluar = () => ({
   perpindahanKeluarUuid: "",
@@ -31,15 +36,23 @@ const formKeluar = ref(kosongKeluar());
 const dialogKeluar = ref(false);
 const galat = ref("");
 
-const bukaDialogKeluar = () => {
+// Pilihan perpindahan keluar = perpindahan Rawat Inap berstatus approve dari bed episode ini (tanpa mengetik UUID).
+const perpindahanSiap = ref<any[]>([]);
+const labelPerpindahan = (p: any) =>
+  `${p.ruanganTujuan ?? "-"} · Bed ${p.bedTujuan ?? "-"}${p.waktuPindah ? " · " + new Date(p.waktuPindah * 1000).toLocaleString("id-ID") : ""}`;
+
+const bukaDialogKeluar = async () => {
   formKeluar.value = kosongKeluar();
   galat.value = "";
   dialogKeluar.value = true;
+  const res = await icuStore.getPerpindahanSiap("keluar", props.perawatanUuid);
+  perpindahanSiap.value = (res?.payload ?? []).map((p: any) => ({ ...p, labelPilihan: labelPerpindahan(p) }));
+  if (perpindahanSiap.value.length === 1) formKeluar.value.perpindahanKeluarUuid = perpindahanSiap.value[0].uuid;
 };
 
 const simpanKeluar = async () => {
   galat.value = "";
-  if (!formKeluar.value.perpindahanKeluarUuid.trim()) return (galat.value = "UUID perpindahan keluar (sudah approve di Rawat Inap) wajib diisi");
+  if (!formKeluar.value.perpindahanKeluarUuid?.trim()) return (galat.value = "Pilih perpindahan keluar yang sudah disetujui (approve) di Rawat Inap");
   storeUtils.setLoading(true);
   try {
     const f = formKeluar.value;
@@ -70,7 +83,7 @@ const simpanKeluar = async () => {
   <div class="flex flex-col gap-4">
     <div class="flex justify-between">
       <div class="font-semibold">Riwayat Serah Terima</div>
-      <CustomButton v-if="status === 'aktif'" label="Keluar ICU" icon="PhSignOut" @click="bukaDialogKeluar" />
+      <CustomButton v-if="status === 'aktif' && hasPermission(label, 'Serah Terima', 'KELOLA')" :label="`Keluar ${label}`" icon="PhSignOut" @click="bukaDialogKeluar" />
     </div>
     <NoData v-if="!serahTerima.length" />
     <div v-else class="flex flex-col gap-3">
@@ -90,14 +103,21 @@ const simpanKeluar = async () => {
     </div>
 
     <CustomDialog v-model:visible="dialogKeluar" width="620px">
-      <template #header>Keluar ICU — Ringkasan Perawatan Intensif</template>
+      <template #header>Keluar {{ label }} — Ringkasan Perawatan Intensif</template>
       <template #body>
         <div class="flex flex-col gap-3 pt-4">
           <div class="text-xs text-grey-400">
-            Ajukan dan setujui perpindahan keluar terlebih dahulu di Rawat Inap › Perpindahan Bangsal, lalu masukkan UUID perpindahan yang sudah berstatus approve.
+            Ajukan dan setujui perpindahan keluar terlebih dahulu di Rawat Inap › Perpindahan Bangsal; perpindahan yang sudah berstatus approve dari bed ini tampil di bawah.
           </div>
           <div class="grid grid-cols-2 gap-3">
-            <CustomTextfield v-model="formKeluar.perpindahanKeluarUuid" label="UUID Perpindahan Keluar" />
+            <CustomSelect
+              v-model="formKeluar.perpindahanKeluarUuid"
+              label="Perpindahan keluar (tujuan)"
+              placeHolder="Belum ada perpindahan approve"
+              :options="perpindahanSiap"
+              optionValue="uuid"
+              optionLabel="labelPilihan"
+            />
             <CustomSelect
               v-model="formKeluar.kondisiKeluar"
               label="Kondisi Keluar"
@@ -120,7 +140,7 @@ const simpanKeluar = async () => {
       <template #footer>
         <div class="flex justify-end gap-2">
           <CustomButton label="Batal" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="dialogKeluar = false" />
-          <CustomButton label="Selesaikan Perawatan ICU" @click="simpanKeluar" />
+          <CustomButton :label="`Selesaikan Perawatan ${label}`" @click="simpanKeluar" />
         </div>
       </template>
     </CustomDialog>

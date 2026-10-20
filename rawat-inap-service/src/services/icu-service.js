@@ -1,3 +1,9 @@
+import { z } from "zod";
+import Dokumentasi from "../repositories/icu-dokumentasi-repository.js";
+import { punyaIzin } from "../middlewares/icu-permission-middleware.js";
+import { Context } from "../middlewares/context.js";
+import { CTX_AUTHOR } from "../constants/context-constant.js";
+import { pastikanModulIcu } from "../helpers/icu-modul-helper.js";
 import IcuRepository from "../repositories/icu-repository.js";
 import ZodValidator from "../validations/zod-validator.js";
 import IcuRequest from "../validations/icu-request.js";
@@ -76,38 +82,43 @@ const hitungSofa = (p) => {
 };
 
 export default class IcuService {
-    static async GetDashboard() {
-        return IcuRepository.GetDashboard();
+    static async GetDashboard(query = {}, unit = "icu") {
+        const hasil = await IcuRepository.GetDashboard(IcuRequest.KUERI.parse(query), unit);
+        if (unit === "icu" && (Context.get("icu_superadmin") || punyaIzin(Context.get("icu_izin") ?? [], "ICU", "Kelengkapan Dokumentasi", "READ"))) {
+            try { await pastikanModulIcu(Context.get(CTX_AUTHOR).faskesUuid, "icu_kelengkapan_dokumentasi"); }
+            catch (error) { if (error.code === 403) return hasil; throw error; }
+            for (const kartu of hasil) kartu.kelengkapan = await Dokumentasi.kelengkapan(kartu.perawatan_uuid);
+        }
+        return hasil;
     }
 
-    static async GetPerawatan(perawatanUuid) {
-        if (!perawatanUuid) throw new BadRequestException("Bad Request");
-        return IcuRepository.GetPerawatan(perawatanUuid);
+    static async GetPerawatan(perawatanUuid, unit = "icu") {
+        z.string().uuid().parse(perawatanUuid);
+        return IcuRepository.GetPerawatan(perawatanUuid, unit);
     }
 
-    static async MulaiPerawatan(perpindahanUuid, body) {
-        if (!perpindahanUuid) throw new BadRequestException("Bad Request");
+    static async MulaiPerawatan(perpindahanUuid, body, unit = "icu") {
+        z.string().uuid().parse(perpindahanUuid);
         const data = ZodValidator.validate(IcuRequest.MULAI_PERAWATAN, body);
-        return IcuRepository.MulaiPerawatan(perpindahanUuid, data);
+        return IcuRepository.MulaiPerawatan(perpindahanUuid, data, unit);
     }
 
-    static async KeluarPerawatan(perawatanUuid, body) {
-        if (!perawatanUuid) throw new BadRequestException("Bad Request");
+    static async KeluarPerawatan(perawatanUuid, body, unit = "icu") {
+        z.string().uuid().parse(perawatanUuid);
         const data = ZodValidator.validate(IcuRequest.KELUAR_PERAWATAN, body);
-        return IcuRepository.KeluarPerawatan(perawatanUuid, data);
+        return IcuRepository.KeluarPerawatan(perawatanUuid, data, unit);
     }
 
-    static async TambahObservasi(perawatanUuid, body) {
-        if (!perawatanUuid) throw new BadRequestException("Bad Request");
+    static async TambahObservasi(perawatanUuid, body, unit = "icu") {
+        z.string().uuid().parse(perawatanUuid);
         const data = ZodValidator.validate(IcuRequest.OBSERVASI, body);
-        return IcuRepository.TambahObservasi(perawatanUuid, data);
+        return IcuRepository.TambahObservasi(perawatanUuid, data, unit);
     }
 
-    static async GetObservasi(perawatanUuid, query) {
-        if (!perawatanUuid) throw new BadRequestException("Bad Request");
-        const dari = query?.dari ? Number(query.dari) : undefined;
-        const sampai = query?.sampai ? Number(query.sampai) : undefined;
-        const observasi = await IcuRepository.GetObservasi(perawatanUuid, { dari, sampai });
+    static async GetObservasi(perawatanUuid, query, unit = "icu") {
+        z.string().uuid().parse(perawatanUuid);
+        const { dari, sampai } = IcuRequest.KUERI.parse(query);
+        const observasi = await IcuRepository.GetObservasi(perawatanUuid, { dari, sampai }, unit);
         return {
             observasi,
             tren: observasi.map((o) => ({
@@ -117,32 +128,32 @@ export default class IcuService {
                 nadi: o.nadi,
                 spo2: o.spo2,
                 suhu: o.suhu,
+                laju_napas: o.laju_napas,
             })),
         };
     }
 
-    static async KoreksiObservasi(observasiUuid, body) {
-        if (!observasiUuid) throw new BadRequestException("Bad Request");
+    static async KoreksiObservasi(observasiUuid, body, unit = "icu") {
+        z.string().uuid().parse(observasiUuid);
         const data = ZodValidator.validate(IcuRequest.KOREKSI_OBSERVASI, body);
-        return IcuRepository.KoreksiObservasi(observasiUuid, data);
+        return IcuRepository.KoreksiObservasi(observasiUuid, data, unit);
     }
 
-    static async TambahIntakeOutput(perawatanUuid, body) {
-        if (!perawatanUuid) throw new BadRequestException("Bad Request");
+    static async TambahIntakeOutput(perawatanUuid, body, unit = "icu") {
+        z.string().uuid().parse(perawatanUuid);
         const data = ZodValidator.validate(IcuRequest.INTAKE_OUTPUT, body);
-        return IcuRepository.TambahIntakeOutput(perawatanUuid, data);
+        return IcuRepository.TambahIntakeOutput(perawatanUuid, data, unit);
     }
 
-    static async GetBalance(perawatanUuid, query) {
-        if (!perawatanUuid) throw new BadRequestException("Bad Request");
-        const dari = Number(query?.dari);
-        const sampai = Number(query?.sampai);
+    static async GetBalance(perawatanUuid, query, unit = "icu") {
+        z.string().uuid().parse(perawatanUuid);
+        const { dari, sampai } = IcuRequest.KUERI.parse(query);
         if (!dari || !sampai) throw new BadRequestException("Parameter dari dan sampai (epoch detik) wajib diisi.");
-        return IcuRepository.GetBalance(perawatanUuid, { dari, sampai });
+        return IcuRepository.GetBalance(perawatanUuid, { dari, sampai }, unit);
     }
 
-    static async TambahSkorSofa(perawatanUuid, body) {
-        if (!perawatanUuid) throw new BadRequestException("Bad Request");
+    static async TambahSkorSofa(perawatanUuid, body, unit = "icu") {
+        z.string().uuid().parse(perawatanUuid);
         const data = ZodValidator.validate(IcuRequest.SKOR_SOFA, body);
         const hasil = hitungSofa(data);
         return IcuRepository.TambahSkorSofa(perawatanUuid, {
@@ -150,19 +161,24 @@ export default class IcuService {
             parameter: data,
             catatan: data.catatan,
             ...hasil,
-        });
+        }, unit);
     }
 
-    static async GetSkorSofa(perawatanUuid) {
-        if (!perawatanUuid) throw new BadRequestException("Bad Request");
-        return IcuRepository.GetSkorSofa(perawatanUuid);
+    static async GetSkorSofa(perawatanUuid, unit = "icu") {
+        z.string().uuid().parse(perawatanUuid);
+        return IcuRepository.GetSkorSofa(perawatanUuid, unit);
     }
 
-    static async GetLaporan(query) {
-        const dari = Number(query?.dari);
-        const sampai = Number(query?.sampai);
+    static async GetLaporan(query, unit = "icu") {
+        const { dari, sampai } = IcuRequest.KUERI.parse(query);
         if (!dari || !sampai) throw new BadRequestException("Parameter dari dan sampai (epoch detik) wajib diisi.");
-        if (sampai < dari) throw new BadRequestException("Parameter sampai harus setelah dari.");
-        return IcuRepository.GetLaporan({ dari, sampai, ruangan_uuid: query?.ruangan_uuid });
+        if (!Number.isSafeInteger(dari) || !Number.isSafeInteger(sampai) || sampai <= dari) throw new BadRequestException("Parameter sampai harus setelah dari.");
+        return IcuRepository.GetLaporan({ ...IcuRequest.KUERI.parse(query), dari, sampai }, unit);
+    }
+
+    static async GetPerpindahanSiap(query, unit) {
+        const arah = query?.arah === "keluar" ? "keluar" : "masuk";
+        if (arah === "keluar" && !query?.perawatan_uuid) throw new BadRequestException("Parameter perawatan_uuid wajib untuk arah keluar.");
+        return IcuRepository.GetPerpindahanSiap(arah, query?.perawatan_uuid, unit);
     }
 }

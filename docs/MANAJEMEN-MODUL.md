@@ -220,7 +220,7 @@ Singkatan segmen di tabel: **PM** praktik mandiri · **KP** klinik pratama · **
 <!-- Bagian ini DIHASILKAN OTOMATIS oleh scripts/dokumen-katalog.mjs dari database/data/katalog-modul.json. -->
 <!-- Jangan diedit manual: ubah JSON-nya, lalu jalankan `node scripts/dokumen-katalog.mjs`. -->
 
-Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 0 berstatus Segera), **108 fitur** (5 berstatus Segera), dan **27 bagian**.
+Ringkasan katalog saat ini: **8 segmen**, **40 modul** (8 inti, 0 berstatus Segera), **141 fitur** (5 berstatus Segera), dan **27 bagian**.
 
 ### A. Segmen faskes
 
@@ -232,8 +232,8 @@ Ringkasan katalog saat ini: **8 segmen**, **37 modul** (8 inti, 0 berstatus Sege
 | 4 | PKM | `puskesmas` | Puskesmas | FKTP pemerintah: banyak poli, program, laporan dinkes; mutu & ambulans. | 15 |
 | 5 | RS D | `rs_d` | Rumah Sakit Kelas D | Pelayanan dasar RS: rawat jalan, IGD, rawat inap, penunjang; mutu, SDM, sarpras & ambulans. | 21 |
 | 6 | RS C | `rs_c` | Rumah Sakit Kelas C | Kelas D + kamar operasi, gizi, koding rekam medis, hemodialisa, akuntansi. | 28 |
-| 7 | RS B | `rs_b` | Rumah Sakit Kelas B | Kelas C + ICU, CSSD, bank darah, akuntansi. | 32 |
-| 8 | RS A | `rs_a` | Rumah Sakit Kelas A | Pelayanan paripurna & rujukan nasional/provinsi, termasuk UTD. | 33 |
+| 7 | RS B | `rs_b` | Rumah Sakit Kelas B | Kelas C + ICU, CSSD, bank darah, akuntansi. | 33 |
+| 8 | RS A | `rs_a` | Rumah Sakit Kelas A | Pelayanan paripurna & rujukan nasional/provinsi, termasuk UTD. | 34 |
 
 ### B. Daftar modul per kelompok
 
@@ -299,12 +299,15 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 |---|---|---|---|---|---|
 | `kamar_operasi` | Kamar Operasi | Order & jadwal operasi, checklist keselamatan bedah WHO, laporan operasi & anestesi. | Tersedia | Pelayanan Medis & Keperawatan › Instalasi Bedah Sentral | Kamar Operasi |
 | `icu` | ICU / Intensif | Pemantauan intensif & flowsheet. | Tersedia | Pelayanan Medis & Keperawatan › Instalasi Perawatan Intensif | ICU |
+| `ccu` | CCU (Coronary Care Unit) | Perawatan intensif kardiovaskular: EKG & irama, troponin/penanda jantung, skor Killip/TIMI, intervensi kardiak (PCI, trombolisis, pacu jantung), flowsheet, serah terima, dan laporan door-to-balloon. | Tersedia | Pelayanan Medis & Keperawatan › Instalasi Perawatan Intensif | CCU |
 | `gizi` | Gizi | Skrining & asesmen gizi, order diet, serta distribusi makan pasien rawat inap. | Tersedia | Penunjang Medis › Instalasi Gizi | Gizi |
 | `koding_rm` | Koding & Rekam Medis | Koding ICD untuk klaim, peminjaman & retensi berkas. | Tersedia | Penunjang Medis › Instalasi Rekam Medis | Koding Rekam Medis |
 | `bank_darah` | Bank Darah RS (BDRS) | Permintaan darah dari ruangan, uji silang serasi (crossmatch), stok & serah terima darah untuk transfusi. | Tersedia | Penunjang Medis › Pelayanan Darah | Bank Darah RS (BDRS) |
 | `utd` | UTD / UPTD Produksi Darah | Unit Transfusi Darah (RS provinsi / UPTD Dinkes): donor, aftap, uji saring IMLTD, pengolahan komponen, distribusi. | Tersedia | Penunjang Medis › Pelayanan Darah | UTD |
 | `akuntansi` | Akuntansi & Remunerasi | Akuntansi RS: bagan akun (COA) standar yang dapat disesuaikan per faskes, aturan pemetaan transaksi → akun, jurnal otomatis dari tagihan, pembayaran kasir, penerimaan & retur barang, dan pemakaian stok (idempoten, tertelusur ke dokumen sumber), jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang, buku besar, neraca saldo, tutup buku, serta laporan keuangan; remunerasi jasa pelayanan (jaspel) dokter & tenaga kesehatan berbasis indeks dan kinerja yang dijurnal otomatis. | Tersedia | Keuangan & Administrasi › Akuntansi & Remunerasi | Akuntansi & Remunerasi |
 | `hemodialisa` | Unit Hemodialisa | Registrasi HD akut/kronis, jadwal per mesin & shift, resep HD, asesmen pra-HD, pemantauan intradialitik, Kt/V & URR, pemakaian BHP & reuse dializer, tagihan tindakan, dan laporan unit. | Tersedia | Pelayanan Medis & Keperawatan › Unit Hemodialisa | Hemodialisa |
+| `picu` | PICU / Intensif Anak | Episode intensif anak melalui perpindahan rawat inap, dokumentasi pediatrik berversi, dan laporan operasional tanpa aturan klinis bawaan. | Tersedia | Pelayanan Medis & Keperawatan › Instalasi Perawatan Intensif | PICU |
+| `nicu` | NICU / Intensif Neonatus | Episode intensif neonatus, identitas bayi, penempatan bed atau inkubator, formulir neonatal berversi, dan laporan operasional. | Tersedia | Pelayanan Medis & Keperawatan › Instalasi Perawatan Intensif | NICU |
 
 ### C. Matriks modul × segmen (preset bawaan)
 
@@ -333,6 +336,7 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Program Puskesmas (`program_puskesmas`) | Tersedia | – | – | – | ✓ | – | – | – | – |
 | Kamar Operasi (`kamar_operasi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | ICU / Intensif (`icu`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
+| CCU (Coronary Care Unit) (`ccu`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
 | Gizi (`gizi`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | Koding & Rekam Medis (`koding_rm`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | CSSD (`cssd`) | Tersedia | – | – | – | – | – | – | ✓ | ✓ |
@@ -349,6 +353,8 @@ Status: **Inti** = selalu aktif di semua faskes · **Tersedia** = bisa dipakai �
 | Mutu & Akreditasi (`mutu`) | Tersedia | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Unit Hemodialisa (`hemodialisa`) | Tersedia | – | – | – | – | – | ✓ | ✓ | ✓ |
 | HR / SDM (`sdm`) | Tersedia | – | – | ✓ | – | ✓ | ✓ | ✓ | ✓ |
+| PICU / Intensif Anak (`picu`) | Tersedia | – | – | – | – | – | – | – | – |
+| NICU / Intensif Neonatus (`nicu`) | Tersedia | – | – | – | – | – | – | – | – |
 
 ### D. Fitur per modul
 
@@ -467,6 +473,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 
 | Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
 |---|---|---|---|---|---|---|
+| `pacu` | PACU / Pemulihan Pascaanestesi | Episode pemulihan tertaut operasi, pemantauan, asesmen, serah terima, dan biaya idempoten sesuai protokol faskes. | Tersedia | – | – | – |
 | `rme_order_operasi` | Order Operasi dari RME | Tab Order Operasi pada Plan asesmen Rajal/Ranap/IGD: diagnosis, rencana tindakan ICD-9-CM, jenis elektif/cito, perkiraan durasi. | Tersedia | – | – | – |
 | `ok_jadwal` | Jadwal & Daftar Tunggu OK | Daftar tunggu order operasi (cito diprioritaskan) dan penjadwalan ke ruang, waktu, serta tim operasi. | Tersedia | – | – | – |
 | `ok_checklist_keselamatan` | Checklist Keselamatan Bedah (WHO) | Sign in, time out, dan sign out; wajib lengkap sebelum laporan operasi dapat difinalkan. | Tersedia | Ya | – | – |
@@ -481,6 +488,24 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `icu_balance_cairan` | Balance Cairan | Intake-output & balance otomatis per shift dan 24 jam. | Tersedia | – | – | – |
 | `icu_skor_sofa` | Skor SOFA | Skor keparahan SOFA saat masuk & harian, beserta riwayat penilaian. | Tersedia | – | – | – |
 | `icu_laporan` | Laporan ICU | BOR, ALOS, angka kematian & hari ventilator ruang intensif. | Tersedia | – | – | – |
+| `icu_konfigurasi_layanan` | Konfigurasi Layanan ICU | Aktivasi layanan ICU per fasilitas, pemetaan bed dan akses unit. | Tersedia | – | – | – |
+| `icu_template_klinis` | Template Klinis ICU | Penyusunan draf dan penetapan versi template observasi serta dokumentasi. | Tersedia | – | – | – |
+| `icu_dokumentasi_klinis` | Dokumentasi Klinis ICU | Dokumentasi tambahan sesuai versi episode dengan koreksi berjejak. | Tersedia | – | – | – |
+| `icu_kelengkapan_dokumentasi` | Kelengkapan Dokumentasi ICU | Status dan daftar kekurangan dokumentasi berdasarkan aturan versi template. | Tersedia | – | – | – |
+
+#### CCU (Coronary Care Unit) (`ccu`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `ccu_dashboard` | Dasbor CCU | Bed CCU terisi: sindrom, Killip, irama EKG terakhir, tren troponin & peringatan (irama berbahaya, elevasi ST, QTc memanjang). | Tersedia | Ya | – | – |
+| `ccu_serah_terima` | Serah Terima CCU | Masuk/keluar CCU tertaut perpindahan bangsal (ri_perpindahan) dari IGD, rawat inap, ICU, atau Cath Lab. | Tersedia | Ya | – | – |
+| `ccu_flowsheet` | Flowsheet Observasi CCU | Observasi berkala tanda vital, SpO2, GCS & tren dengan koreksi berjejak (sama dengan ICU). | Tersedia | Ya | – | – |
+| `ccu_ekg` | EKG & Irama | Pencatatan EKG/irama (laju, PR, QRS, QT/QTc Bazett, perubahan ST, blok cabang) dengan pembatalan berjejak. | Tersedia | Ya | – | – |
+| `ccu_penanda_jantung` | Penanda Jantung | Troponin/hs-troponin, CK-MB, NT-proBNP & elektrolit dengan batas atas rujukan dan delta antar-sampel. | Tersedia | Ya | – | – |
+| `ccu_skor_risiko` | Skor Risiko Kardiak | Kelas Killip, skor TIMI UA/NSTEMI dan TIMI STEMI beserta riwayat penilaian. | Tersedia | – | – | – |
+| `ccu_intervensi` | Intervensi Kardiak | PCI primer, trombolisis, pacu jantung sementara, IABP, kardioversi/defibrilasi & RJP dengan waktu tindakan. | Tersedia | Ya | – | – |
+| `ccu_balance_cairan` | Balance Cairan CCU | Intake-output & balance otomatis per periode (sama dengan ICU). | Tersedia | – | – | – |
+| `ccu_laporan` | Laporan CCU | BOR, ALOS, mortalitas, distribusi sindrom & Killip, door-to-balloon/needle STEMI. | Tersedia | – | – | – |
 
 #### Bank Darah RS (BDRS) (`bank_darah`)
 
@@ -597,6 +622,35 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `sdm_pelatihan` | Pelatihan | Riwayat pelatihan & jam diklat pegawai dengan verifikasi. | Segera | – | – | – |
 | `sdm_penggajian` | Penggajian | Komponen gaji, rancangan & pengesahan penggajian per periode, slip gaji, serta integrasi jaspel/jurnal. | Segera | – | – | – |
 
+#### PICU / Intensif Anak (`picu`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `picu_dasbor` | Dasbor PICU | Kapasitas tempat tidur sumber dan ringkasan penerimaan serta keluar. | Tersedia | – | – | – |
+| `picu_episode` | Penerimaan dan Episode PICU | Verifikasi identitas dan penerimaan melalui perpindahan sumber. | Tersedia | – | – | – |
+| `picu_tempat_tidur` | Tempat Tidur dan Perpindahan PICU | Pemetaan tempat tidur sumber serta histori perpindahan dan penutupan. | Tersedia | – | – | – |
+| `picu_antropometri` | Antropometri Pediatrik | Pengukuran sesuai formulir berversi yang ditetapkan rumah sakit. | Tersedia | – | – | – |
+| `picu_dokumentasi` | Dokumentasi Pelayanan PICU | Asesmen, perkembangan, keperawatan, tindakan, terapi, dan rencana sesuai izin. | Tersedia | – | – | – |
+| `picu_observasi` | Observasi PICU | Parameter sesuai konfigurasi tanpa ambang atau nilai klinis bawaan. | Tersedia | – | – | – |
+| `picu_transaksi` | Transaksi Sumber PICU | Referensi transaksi kunjungan pada laboratorium, radiologi, dan farmasi tanpa duplikasi. | Tersedia | – | – | – |
+| `picu_konfigurasi` | Konfigurasi PICU | Draf dan penetapan versi formulir dengan referensi kewenangan manusia. | Tersedia | – | – | – |
+| `picu_laporan` | Laporan Operasional PICU | Ringkasan operasional per periode tanpa indikator klinis bawaan. | Tersedia | – | – | – |
+
+#### NICU / Intensif Neonatus (`nicu`)
+
+| Kode | Fitur | Deskripsi | Status | Wajib | Syarat modul | Dimatikan bawaan di |
+|---|---|---|---|---|---|---|
+| `nicu_dashboard` | Dasbor NICU | Kapasitas, status alat, hunian, dan pergerakan unit. | Tersedia | – | – | – |
+| `nicu_penerimaan` | Penerimaan Bayi | Verifikasi identitas bayi dan penautan transaksi rawat inap. | Tersedia | – | – | – |
+| `nicu_penempatan` | Penempatan dan Alat | Pemetaan tempat rawat inap, status alat terpisah, dan riwayat perpindahan. | Tersedia | – | – | – |
+| `nicu_data_neonatal` | Data Neonatal | Data neonatal mengikuti formulir yang ditetapkan pemilik proses klinis. | Tersedia | – | – | – |
+| `nicu_observasi` | Observasi Neonatal | Pencatatan parameter berdasarkan konfigurasi terbit tanpa ambang klinis bawaan. | Tersedia | – | – | – |
+| `nicu_dokumentasi` | Dokumentasi Neonatal | Dokumentasi berjejak dan koreksi dengan alasan, pelaku, dan waktu. | Tersedia | – | – | – |
+| `nicu_integrasi_order` | Akses Layanan Terkait | Navigasi ke alur sumber order, hasil, dan farmasi tanpa transaksi tambahan. | Tersedia | – | – | – |
+| `nicu_penyelesaian` | Penyelesaian Episode | Validasi transfer atau pemulangan dari transaksi rawat inap. | Tersedia | – | – | – |
+| `nicu_laporan` | Laporan NICU | Rekap operasional dan ekspor berizin menurut faskes. | Tersedia | – | – | – |
+| `nicu_konfigurasi` | Konfigurasi NICU | Draf dan penerbitan formulir tetap dengan referensi pengesahan. | Tersedia | – | – | – |
+
 ### E. Bagian (unit terkecil)
 
 Bagian adalah potongan form/daftar di dalam sebuah fitur, mis. satu form asesmen atau satu jenis surat. **Khusus poli**: bagian hanya tampil di lokasi berjenis poli tersebut. **Dimatikan bawaan di**: dari `preset.bagian_mati`.
@@ -673,7 +727,7 @@ Field `bidang` dan `instalasi` menempatkan menu modul di panel **Lainnya** pada 
 | Pelayanan Medis & Keperawatan | Instalasi Rawat Inap | Rawat Inap (`rawat_inap`) |
 | Pelayanan Medis & Keperawatan | Instalasi Gawat Darurat | IGD (`igd`) |
 | Pelayanan Medis & Keperawatan | Instalasi Bedah Sentral | Kamar Operasi (`kamar_operasi`) |
-| Pelayanan Medis & Keperawatan | Instalasi Perawatan Intensif | ICU / Intensif (`icu`) |
+| Pelayanan Medis & Keperawatan | Instalasi Perawatan Intensif | ICU / Intensif (`icu`), CCU (Coronary Care Unit) (`ccu`), PICU / Intensif Anak (`picu`), NICU / Intensif Neonatus (`nicu`) |
 | Pelayanan Medis & Keperawatan | Medical Check Up | Medical Check Up (MCU) (`mcu`) |
 | Pelayanan Medis & Keperawatan | Unit Hemodialisa | Unit Hemodialisa (`hemodialisa`) |
 | Penunjang Medis | Instalasi Farmasi | Farmasi (`farmasi`) |

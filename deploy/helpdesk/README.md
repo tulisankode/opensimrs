@@ -147,6 +147,14 @@ OpenSIMRS menyimpannya terenkripsi dan hanya menampilkan 4 karakter terakhir. Un
 
 Untuk mencoba OpenClaw sungguhan di mesin pengembang (bukan produksi), installer OpenSIMRS menawarkannya di langkah alat AI: `./install.sh` (Windows: `install.cmd`); jawab ya saat ditanya OpenClaw, atau lewati semua alat AI dengan `--tanpa-ai`. Setelah itu ikuti langkah 3–5 di atas dengan `gateway.bind` dibiarkan `loopback` (bawaan), sehingga Gateway hanya bisa diakses dari mesin itu sendiri.
 
+Bila SIMRS Studio aktif, langkah 3–5 bisa dilakukan tanpa terminal di **SIMRS Studio › Helpdesk AI** (superadmin): menyalakan endpoint HTTP, membuat agen terbatas, memilih model (Ollama lokal atau penyedia API + kunci), sinkron panduan, membuat token dan menyelaraskannya ke pengaturan OpenSIMRS, menjalankan gateway, dan uji tanya. Lihat [SIMRS Studio §5a](../../docs/SIMRS-STUDIO.md#5a-helpdesk-ai-openclaw-lokal).
+
+Catatan mesin pengembang Windows (paket OpenClaw dari Microsoft Store):
+- OpenClaw berjalan di sesi terisolasi dengan akun Windows sendiri. Workspace agen ditaruh di `C:\Users\Public\openclaw-helpdesk\<agen>` agar bisa dibaca.
+- `openclaw gateway restart` menghentikan gateway tanpa menyalakannya kembali. Jalankan ulang dengan `openclaw gateway --force` atau tombol di Studio.
+- Sandbox Docker butuh Docker yang terjangkau dari sesi itu. Bila tidak ada, matikan sandbox agen (`sandbox.mode: "off"`) dan andalkan `tools.deny`. Di VM produksi sandbox tetap wajib.
+- Model lokal yang lebih besar dari memori GPU sangat lambat (prompt agen 7–10 ribu token) dan cenderung mengarang jawaban. Untuk uji mutu jawaban, pakai model API.
+
 Tanpa OpenClaw sama sekali, pakai Gateway tiruan:
 
 ```bash

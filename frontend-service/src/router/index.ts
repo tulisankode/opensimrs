@@ -228,6 +228,7 @@ import RetensiBerkasPage from "@/views/KodingRM/RetensiBerkasPage.vue";
 import LaporanKodingPage from "@/views/KodingRM/LaporanKodingPage.vue";
 import KamarOperasiView from "@/views/KamarOperasi/KamarOperasiView.vue";
 import DaftarTungguOkPage from "@/views/KamarOperasi/DaftarTungguPage.vue";
+import PacuPage from "@/views/KamarOperasi/PacuPage.vue";
 import JadwalOkPage from "@/views/KamarOperasi/JadwalPage.vue";
 import MasterRuangOkPage from "@/views/KamarOperasi/MasterRuangOkPage.vue";
 import LaporanRekapOkPage from "@/views/KamarOperasi/LaporanRekapPage.vue";
@@ -242,14 +243,23 @@ import LaporanPagePkm from "@/views/ProgramPuskesmas/LaporanPage.vue";
 import DatamasterJenisVaksinPage from "@/views/ProgramPuskesmas/DatamasterJenisVaksinPage.vue";
 import DatamasterFormatLaporanPage from "@/views/ProgramPuskesmas/DatamasterFormatLaporanPage.vue";
 
+import KonfigurasiIcuPage from "@/views/Icu/KonfigurasiIcuPage.vue";
+import TemplateIcuPage from "@/views/Icu/TemplateIcuPage.vue";
 import HduView from "@/views/Hdu/HduView.vue";
 import DaftarHduPage from "@/views/Hdu/DaftarHduPage.vue";
 import KonfigurasiHduPage from "@/views/Hdu/KonfigurasiHduPage.vue";
 import PerawatanHduPage from "@/views/Hdu/PerawatanHduPage.vue";
+import PicuPage from "@/views/Picu/PicuPage.vue";
 import IcuView from "@/views/Icu/IcuView.vue";
+import NicuView from "@/views/Nicu/NicuView.vue";
+import NicuPage from "@/views/Nicu/NicuPage.vue";
 import DashboardIcuPage from "@/views/Icu/DashboardIcuPage.vue";
 import PerawatanIcuPage from "@/views/Icu/PerawatanIcuPage.vue";
 import LaporanIcuPage from "@/views/Icu/LaporanIcuPage.vue";
+import CcuView from "@/views/Ccu/CcuView.vue";
+import DashboardCcuPage from "@/views/Ccu/DashboardCcuPage.vue";
+import PerawatanCcuPage from "@/views/Ccu/PerawatanCcuPage.vue";
+import LaporanCcuPage from "@/views/Ccu/LaporanCcuPage.vue";
 
 // NOTE CSSD — Sterilisasi Alat & Pelacakan Set Instrumen (penunjang-service)
 import CssdView from "@/views/Cssd/CssdView.vue";
@@ -436,6 +446,7 @@ import AuditStudio from "@/views/SimrsStudio/Template/AuditStudio.vue";
 import EkstensiStudio from "@/views/SimrsStudio/Template/EkstensiStudio.vue";
 import AturanStudio from "@/views/SimrsStudio/Template/AturanStudio.vue";
 import ServerDeploy from "@/views/SimrsStudio/Template/ServerDeploy.vue";
+import HelpdeskAiStudio from "@/views/SimrsStudio/Template/HelpdeskAiStudio.vue";
 import EkstensiView from "@/views/Ekstensi/EkstensiView.vue";
 import HalamanEkstensi from "@/views/Ekstensi/HalamanEkstensi.vue";
 import KelolaEkstensiPage from "@/views/SettingPage/Template/Ekstensi/KelolaEkstensiPage.vue";
@@ -648,6 +659,7 @@ const router = createRouter({
     { path: "/studio/ekstensi", name: "studio-ekstensi", meta: { layout: SidebarLayout, page: EkstensiStudio, requiresAuth: true, studio: true }, component: SimrsStudioView },
     { path: "/studio/aturan", name: "studio-aturan", meta: { layout: SidebarLayout, page: AturanStudio, requiresAuth: true, studio: true }, component: SimrsStudioView },
     { path: "/studio/server", name: "studio-server", meta: { layout: SidebarLayout, page: ServerDeploy, requiresAuth: true, studio: true }, component: SimrsStudioView },
+    { path: "/studio/helpdesk-ai", name: "studio-helpdesk-ai", meta: { layout: SidebarLayout, page: HelpdeskAiStudio, requiresAuth: true, studio: true }, component: SimrsStudioView },
     // !SECTION
 
     // SECTION Router Datamaster
@@ -1977,13 +1989,39 @@ const router = createRouter({
       ["/rawat-inap/hdu/konfigurasi", "hdu-konfigurasi", KonfigurasiHduPage],
       ["/rawat-inap/hdu/:uuid", "hdu-perawatan", PerawatanHduPage],
     ]),
+    { path: "/picu", redirect: "/picu/dashboard" },
+    ...["dashboard", "penerimaan", "episode", "konfigurasi", "laporan"].map((bagian) => ({
+      path: `/picu/${bagian}`, name: `picu-${bagian}`, component: PicuPage, meta: { layout: DefaultLayout },
+    })),
+    { path: "/picu/episode/:episodeUuid", component: PicuPage, meta: { layout: DefaultLayout } },
 
     // SECTION ICU / Intensif
+    { path: "/nicu", name: "nicu", redirect: "/nicu/dashboard" },
+    ...halamanModul(NicuView, [
+      ["/nicu/dashboard", "nicu-dashboard", NicuPage],
+      ["/nicu/penerimaan", "nicu-penerimaan", NicuPage],
+      ["/nicu/episode", "nicu-episode", NicuPage],
+      ["/nicu/episode/:uuid", "nicu-episode-detail", NicuPage],
+      ["/nicu/tempat", "nicu-tempat", NicuPage],
+      ["/nicu/konfigurasi", "nicu-konfigurasi", NicuPage],
+      ["/nicu/laporan", "nicu-laporan", NicuPage],
+    ]),
     { path: "/icu", name: "icu", redirect: "/icu/dashboard" },
     ...halamanModul(IcuView, [
+      ["/icu/konfigurasi", "icu-konfigurasi", KonfigurasiIcuPage],
+      ["/icu/template", "icu-template", TemplateIcuPage],
       ["/icu/dashboard", "icu-dashboard", DashboardIcuPage],
       ["/icu/perawatan", "icu-perawatan", PerawatanIcuPage],
       ["/icu/laporan", "icu-laporan", LaporanIcuPage],
+    ]),
+    // !SECTION
+
+    // SECTION CCU (Coronary Care Unit)
+    { path: "/ccu", name: "ccu", redirect: "/ccu/dashboard" },
+    ...halamanModul(CcuView, [
+      ["/ccu/dashboard", "ccu-dashboard", DashboardCcuPage],
+      ["/ccu/perawatan", "ccu-perawatan", PerawatanCcuPage],
+      ["/ccu/laporan", "ccu-laporan", LaporanCcuPage],
     ]),
     // !SECTION
 
@@ -2051,6 +2089,8 @@ const router = createRouter({
     ...halamanModul(KamarOperasiView, [
       ["/kamar-operasi/daftar-tunggu", "kamar-operasi-daftar-tunggu", DaftarTungguOkPage],
       ["/kamar-operasi/jadwal", "kamar-operasi-jadwal", JadwalOkPage],
+      ["/kamar-operasi/pacu", "kamar-operasi-pacu", PacuPage],
+      ["/kamar-operasi/pacu/:uuid", "kamar-operasi-pacu-detail", PacuPage],
       ["/kamar-operasi/datamaster/ruang", "kamar-operasi-datamaster-ruang", MasterRuangOkPage],
       ["/kamar-operasi/laporan/rekap", "kamar-operasi-laporan-rekap", LaporanRekapOkPage],
     ]),

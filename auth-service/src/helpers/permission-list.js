@@ -367,9 +367,62 @@ export const rawatInapPermission = {
   ],
 };
 
+export const picuPermission = {
+  module: "PICU",
+  subModules: [
+    { name: "Dasbor", allows: ["READ"] },
+    { name: "Episode", allows: ["READ", "CREATE", "PINDAH", "TUTUP"] },
+    { name: "Tempat Tidur", allows: ["READ", "KELOLA"] },
+    { name: "Konfigurasi", allows: ["READ", "CREATE", "VALIDASI"] },
+    ...["Antropometri", "Observasi", "Asesmen", "Perkembangan", "Keperawatan", "Tindakan", "Terapi", "Rencana"].map((name) => ({
+      name, allows: ["READ", "CREATE", "FINALISASI", "KOREKSI"],
+    })),
+    { name: "Transaksi Sumber", allows: ["READ"] },
+    { name: "Laporan Operasional", allows: ["READ"] },
+  ],
+};
+
+export const nicuPermission = {
+  module: "NICU",
+  subModules: [
+    { name: "Dasbor", allows: ["READ"] },
+    { name: "Episode", allows: ["READ"] },
+    { name: "Identitas", allows: ["READ"] },
+    { name: "Penerimaan", allows: ["READ", "TERIMA"] },
+    { name: "Tempat", allows: ["READ", "KELOLA"] },
+    { name: "Penempatan", allows: ["READ", "PINDAH"] },
+    { name: "Penyelesaian", allows: ["SELESAIKAN"] },
+    { name: "Dokumentasi", allows: ["READ", "CREATE", "KOREKSI", "RIWAYAT"] },
+    { name: "Konfigurasi", allows: ["READ", "KELOLA", "TERBITKAN"] },
+    { name: "Laporan", allows: ["READ", "EKSPOR"] },
+  ],
+};
+
+// CCU (Coronary Care Unit, STD-0045): submodul dasar sama dengan ICU (episode intensif bersama) + data kardiologi.
+export const ccuPermission = {
+  module: "CCU",
+  subModules: [
+    { name: "Dasbor", allows: ["READ"] },
+    { name: "Perawatan", allows: ["READ"] },
+    { name: "Serah Terima", allows: ["READ", "KELOLA"] },
+    { name: "Flowsheet Observasi", allows: ["READ", "CREATE", "KOREKSI"] },
+    { name: "Balance Cairan", allows: ["READ", "CREATE"] },
+    { name: "Data Klinis Kardiak", allows: ["READ", "KELOLA"] },
+    { name: "EKG & Irama", allows: ["READ", "CREATE", "BATAL"] },
+    { name: "Penanda Jantung", allows: ["READ", "CREATE", "BATAL"] },
+    { name: "Skor Risiko", allows: ["READ", "CREATE"] },
+    { name: "Intervensi Kardiak", allows: ["READ", "CREATE", "BATAL"] },
+    { name: "Laporan CCU", allows: ["READ", "CETAK LAPORAN"] },
+  ],
+};
+
 export const icuPermission = {
   module: "ICU",
   subModules: [
+    { name: "Konfigurasi Layanan", allows: ["READ", "KELOLA"] },
+    { name: "Template Klinis", allows: ["READ", "CREATE", "UPDATE", "TETAPKAN"] },
+    { name: "Dokumentasi Klinis", allows: ["READ", "CREATE", "KOREKSI"] },
+    { name: "Kelengkapan Dokumentasi", allows: ["READ"] },
     { name: "Dasbor", allows: ["READ"] },
     { name: "Perawatan", allows: ["READ"] },
     { name: "Serah Terima", allows: ["READ", "KELOLA"] },
@@ -955,6 +1008,15 @@ export const kodingRmPermission = {
 export const kamarOperasiPermission = {
   module: "Kamar Operasi",
   subModules: [
+    { name: "Episode PACU", allows: ["READ", "CREATE", "TERIMA", "UPDATE", "SELESAIKAN"] },
+    { name: "Pemantauan PACU", allows: ["READ", "CREATE"] },
+    { name: "Asesmen PACU", allows: ["READ", "VALIDASI"] },
+    { name: "Intervensi PACU", allows: ["READ", "CREATE"] },
+    { name: "Serah Terima PACU", allows: ["READ", "CREATE", "TERIMA"] },
+    { name: "Protokol PACU", allows: ["READ", "CREATE", "VALIDASI"] },
+    { name: "Koreksi PACU", allows: ["UPDATE"] },
+    { name: "Biaya PACU", allows: ["READ", "KIRIM"] },
+    { name: "Riwayat PACU", allows: ["READ"] },
     { name: "Order Operasi", allows: ["READ", "CREATE", "UPDATE", "KLARIFIKASI", "BATAL"] },
     { name: "Jadwal OK", allows: ["READ", "CREATE", "UPDATE", "BATAL", "VALIDASI"] },
     { name: "Pra-Operasi", allows: ["READ", "CREATE", "UPDATE"] },
@@ -1655,6 +1717,9 @@ export function mapPermission(permissionList) {
     "rawat jalan": rawatJalanPermission,
     "rawat inap": rawatInapPermission,
     icu: icuPermission,
+    picu: picuPermission,
+    nicu: nicuPermission,
+    ccu: ccuPermission,
     igd: igdPermission,
     farmasi: farmasiPermission,
     laboratorium: laboraturiumPermission,

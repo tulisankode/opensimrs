@@ -11,12 +11,33 @@ const terapiBerjalan = ref("");
 const tindakLanjut = ref("");
 const tujuanIcu = ref(false);
 const daftar = ref<any[]>([]);
+const halaman = ref(1);
+const jumlah = ref(0);
+const filterArah = ref("");
+const statusPenerimaan = ref("");
 const pesan = ref("");
 const sibuk = ref(false);
+const memuat = ref(false);
+let permintaanTerakhir = 0;
 async function muat() {
   if (!bolehHdu("Serah Terima")) return;
-  try { daftar.value = await store.baca("/serah-terima"); } catch (error) { pesan.value = pesanHdu(error); }
+  const permintaan = ++permintaanTerakhir;
+  memuat.value = true;
+  try {
+    const kueri = new URLSearchParams({ halaman: String(halaman.value), batas: "25" });
+    if (filterArah.value) kueri.set("arah", filterArah.value);
+    if (statusPenerimaan.value) kueri.set("status_penerimaan", statusPenerimaan.value);
+    const hasil = await store.baca(`/serah-terima?${kueri}`);
+    if (permintaan !== permintaanTerakhir) return;
+    const halamanTerakhir = Math.max(1, Math.ceil(hasil.paginasi.jumlah / 25));
+    if (halaman.value > halamanTerakhir) { halaman.value = halamanTerakhir; await muat(); return; }
+    daftar.value = hasil.items; jumlah.value = hasil.paginasi.jumlah;
+  } catch (error) {
+    if (permintaan === permintaanTerakhir) { daftar.value = []; jumlah.value = 0; pesan.value = pesanHdu(error); }
+  } finally { if (permintaan === permintaanTerakhir) memuat.value = false; }
 }
+async function saring() { halaman.value = 1; await muat(); }
+async function pindahHalaman(arahHalaman: number) { halaman.value += arahHalaman; await muat(); }
 async function simpan() {
   sibuk.value = true; pesan.value = "";
   try {
@@ -24,7 +45,7 @@ async function simpan() {
       waktuKejadian: Math.floor(new Date(waktuKejadian.value).getTime() / 1000), tujuanIcu: arah.value === "keluar" && tujuanIcu.value,
       ringkasan: { kondisi: kondisi.value, terapiBerjalan: terapiBerjalan.value, tindakLanjut: tindakLanjut.value } });
     pesan.value = "Serah terima dicatat. Petugas penerima perlu mengonfirmasi.";
-    await muat(); emit("tersimpan");
+    await saring(); emit("tersimpan");
   } catch (error) { pesan.value = pesanHdu(error); }
   finally { sibuk.value = false; }
 }
@@ -55,13 +76,23 @@ muat();
       <label>Tindak lanjut <textarea v-model="tindakLanjut" required maxlength="2000" class="border rounded p-2 w-full" /></label>
       <button :disabled="sibuk" class="border rounded p-2">Catat serah terima</button>
     </form>
-    <button :disabled="sibuk" class="border rounded p-2" @click="muat">Muat ulang serah terima</button>
+    <button :disabled="sibuk || memuat" class="border rounded p-2" @click="muat">Muat ulang serah terima</button>
+    <div class="flex flex-wrap gap-3">
+      <label>Arah serah terima <select v-model="filterArah" :disabled="sibuk || memuat" class="border rounded p-2" @change="saring"><option value="">Semua arah</option><option value="masuk">Masuk HDU</option><option value="keluar">Keluar HDU</option></select></label>
+      <label>Status penerimaan <select v-model="statusPenerimaan" :disabled="sibuk || memuat" class="border rounded p-2" @change="saring"><option value="">Semua status</option><option value="menunggu">Menunggu konfirmasi</option><option value="dikonfirmasi">Telah dikonfirmasi</option></select></label>
+    </div>
+    <p v-if="!daftar.length">Tidak ada serah terima pada halaman ini.</p>
     <article v-for="item in daftar" :key="item.uuid" class="border rounded p-3 space-y-1">
       <p>{{ item.arah }} · Perpindahan {{ item.perpindahanUuid }} · {{ item.statusPindah }}</p>
       <p>Kondisi: {{ item.ringkasan.kondisi }} · Terapi: {{ item.ringkasan.terapiBerjalan }} · Tindak lanjut: {{ item.ringkasan.tindakLanjut }}</p>
       <p>Pengirim: {{ item.pengirim }} · Kejadian: {{ waktuHdu(item.waktuKejadian) }} · Dicatat: {{ waktuHdu(item.createdAt) }}</p>
       <p v-if="item.penerima">Penerima: {{ item.penerima }} · Penerimaan: {{ waktuHdu(item.waktuPenerimaan) }} · Dicatat: {{ waktuHdu(item.waktuKonfirmasi) }}</p>
-      <button v-else-if="item.statusPindah === 'pending' && bolehHdu('Serah Terima', 'KONFIRMASI')" :disabled="sibuk" class="border rounded p-2" @click="konfirmasi(item)">Konfirmasi penerimaan</button>
+      <button v-else-if="item.statusPindah === 'pending' && bolehHdu('Serah Terima', 'KONFIRMASI')" :disabled="sibuk || memuat" class="border rounded p-2" @click="konfirmasi(item)">Konfirmasi penerimaan</button>
     </article>
+    <nav aria-label="Halaman serah terima" class="flex gap-3">
+      <button :disabled="sibuk || memuat || halaman <= 1" @click="pindahHalaman(-1)">Sebelumnya</button>
+      <span>Halaman {{ halaman }} · {{ jumlah }} serah terima</span>
+      <button :disabled="sibuk || memuat || halaman * 25 >= jumlah" @click="pindahHalaman(1)">Berikutnya</button>
+    </nav>
   </section>
 </template>

@@ -1,3 +1,6 @@
+import { ambilBuktiPacu, simpanBuktiPacu, izinBiayaPacu } from "./pacu-idempotensi.js";
+import { Context } from '../middlewares/context.js';
+import { CTX_AUTHOR } from '../constants/context-constant.js';
 import db from '../configs/knex-config.js';
 import { uuidv7 } from 'uuidv7';
 import { MERGE_TYPES } from '../constants/app-constants.js';
@@ -22,6 +25,37 @@ export default class BillService {
 
     return db.transaction(async (trx) => {
       const now = moment().unix();
+      const referensiPacu = data.services.find((sv) => String(sv.replace_ref ?? '').startsWith('pacu:'))?.replace_ref;
+      if (referensiPacu) {
+        const author = Context.get(CTX_AUTHOR);
+        if (!author?.faskesUuid || author.faskesUuid !== data.faskes_uuid || data.services.length !== 1 || data.target_patient_uuid) {
+          throw new BadRequestException('Cakupan biaya PACU tidak valid');
+        }
+        // Referensi permanen dikunci sebelum membaca tagihan, termasuk saat tagihan lama telah ditutup.
+        // Izin dibaca per username (sama dengan penunjang-service/src/umum/izin.js): super admin dapat berpindah faskes.
+        const pengguna = await trx('users').where('username', author.username).whereNull('deleted_at').first('permissions');
+        if (!izinBiayaPacu(pengguna?.permissions, author.role)) throw new BadRequestException('Izin pengiriman biaya PACU tidak tersedia');
+        const bukti = await ambilBuktiPacu(trx, author.faskesUuid, referensiPacu);
+        if (bukti) return bukti.hasil;
+        const biaya = await trx('pacu_biaya as b')
+          .join('pacu_episode as e', function () { this.on('e.uuid', 'b.episode_uuid').andOn('e.faskes_uuid', 'b.faskes_uuid'); })
+          .where('b.faskes_uuid', author.faskesUuid).where('b.kunci_idempoten', referensiPacu)
+          .join('ok_jadwal as j', function () { this.on('j.uuid', 'e.jadwal_operasi_uuid').andOn('j.faskes_uuid', 'e.faskes_uuid'); })
+          .join('ok_order as o', function () { this.on('o.uuid', 'j.order_uuid').andOn('o.faskes_uuid', 'j.faskes_uuid'); })
+          .where('o.patient_uuid', data.patient_uuid).whereNull('j.deleted_at').whereNull('o.deleted_at')
+          .whereNull('b.deleted_at').whereNull('e.deleted_at').where('e.status', 'selesai')
+          .select('b.konfigurasi_snapshot', 'e.kunjungan_uuid', 'e.sumber', 'o.no_reg').first();
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtextextended(?,0))', [`pacu-pasien:${author.faskesUuid}:${data.patient_uuid}`]);
+        const sv = data.services[0];
+        const item = sv.items?.[0];
+        if (!biaya || sv.layanan_uuid !== biaya.kunjungan_uuid || sv.type !== biaya.sumber || sv.service_code !== biaya.no_reg || sv.items?.length !== 1 ||
+          Number(item?.price) !== biaya.konfigurasi_snapshot.tarif || Number(item?.qty) !== 1 ||
+          item?.item_name !== biaya.konfigurasi_snapshot.nama || String(item?.category_code) !== '5' ||
+          item?.additional_info?.ref !== referensiPacu || item?.additional_info?.layanan_uuid !== biaya.konfigurasi_snapshot.layanan_uuid ||
+          Number(item?.service_fee ?? 0) !== 0 || sv.replace_category_codes?.length) {
+          throw new BadRequestException('Item biaya PACU tidak sesuai sumber');
+        }
+      }
 
       let billUuid = uuidv7();
       let isUpdateSelf = false;
@@ -246,7 +280,7 @@ export default class BillService {
         }
       }
 
-      return {
+      const hasil = {
         success: true,
         message: parentBillUuid ? 'Tagihan berhasil dibuat & digabung ke Ibu' : 'Tagihan berhasil dibuat',
         data: {
@@ -255,6 +289,8 @@ export default class BillService {
           grand_total: newGrandTotal,
         },
       };
+      if (referensiPacu) await simpanBuktiPacu(trx, data.faskes_uuid, referensiPacu, hasil, now, uuidv7(), Context.get(CTX_AUTHOR).username);
+      return hasil;
     });
   }
 }

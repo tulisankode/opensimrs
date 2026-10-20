@@ -469,6 +469,23 @@
       "urutan": 20
     },
     {
+      "kode": "ccu",
+      "nama": "CCU (Coronary Care Unit)",
+      "kelompok": "Rumah Sakit",
+      "bidang": "Pelayanan Medis & Keperawatan",
+      "instalasi": "Instalasi Perawatan Intensif",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Perawatan intensif kardiovaskular: EKG & irama, troponin/penanda jantung, skor Killip/TIMI, intervensi kardiak (PCI, trombolisis, pacu jantung), flowsheet, serah terima, dan laporan door-to-balloon.",
+      "menu": [
+        "CCU"
+      ],
+      "rute": [
+        "/ccu"
+      ],
+      "urutan": 20
+    },
+    {
       "kode": "gizi",
       "nama": "Gizi",
       "kelompok": "Rumah Sakit",
@@ -715,9 +732,53 @@
       "menu": ["HR / SDM"],
       "rute": ["/sdm"],
       "urutan": 36
+    },
+    {
+      "kode": "picu",
+      "nama": "PICU / Intensif Anak",
+      "kelompok": "Rumah Sakit",
+      "bidang": "Pelayanan Medis & Keperawatan",
+      "instalasi": "Instalasi Perawatan Intensif",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Episode intensif anak melalui perpindahan rawat inap, dokumentasi pediatrik berversi, dan laporan operasional tanpa aturan klinis bawaan.",
+      "menu": [
+        "PICU"
+      ],
+      "rute": [
+        "/picu"
+      ],
+      "urutan": 38
+    },
+    {
+      "kode": "nicu",
+      "nama": "NICU / Intensif Neonatus",
+      "kelompok": "Rumah Sakit",
+      "bidang": "Pelayanan Medis & Keperawatan",
+      "instalasi": "Instalasi Perawatan Intensif",
+      "inti": false,
+      "tersedia": true,
+      "deskripsi": "Episode intensif neonatus, identitas bayi, penempatan bed atau inkubator, formulir neonatal berversi, dan laporan operasional.",
+      "menu": [
+        "NICU"
+      ],
+      "rute": [
+        "/nicu"
+      ],
+      "urutan": 43
     }
   ],
   "fitur": [
+    {
+      "kode": "pacu",
+      "modul": "kamar_operasi",
+      "nama": "PACU / Pemulihan Pascaanestesi",
+      "deskripsi": "Episode pemulihan tertaut operasi, pemantauan, asesmen, serah terima, dan biaya idempoten sesuai protokol faskes.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/kamar-operasi/pacu"],
+      "urutan": 1
+    },
     {
       "kode": "rawat_inap_hdu",
       "modul": "rawat_inap",
@@ -1472,6 +1533,96 @@
       "urutan": 60
     },
     {
+      "kode": "ccu_dashboard",
+      "modul": "ccu",
+      "nama": "Dasbor CCU",
+      "deskripsi": "Bed CCU terisi: sindrom, Killip, irama EKG terakhir, tren troponin & peringatan (irama berbahaya, elevasi ST, QTc memanjang).",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/ccu/dashboard"],
+      "urutan": 61
+    },
+    {
+      "kode": "ccu_serah_terima",
+      "modul": "ccu",
+      "nama": "Serah Terima CCU",
+      "deskripsi": "Masuk/keluar CCU tertaut perpindahan bangsal (ri_perpindahan) dari IGD, rawat inap, ICU, atau Cath Lab.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": ["/ccu/perawatan"],
+      "urutan": 62
+    },
+    {
+      "kode": "ccu_flowsheet",
+      "modul": "ccu",
+      "nama": "Flowsheet Observasi CCU",
+      "deskripsi": "Observasi berkala tanda vital, SpO2, GCS & tren dengan koreksi berjejak (sama dengan ICU).",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 63
+    },
+    {
+      "kode": "ccu_ekg",
+      "modul": "ccu",
+      "nama": "EKG & Irama",
+      "deskripsi": "Pencatatan EKG/irama (laju, PR, QRS, QT/QTc Bazett, perubahan ST, blok cabang) dengan pembatalan berjejak.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 64
+    },
+    {
+      "kode": "ccu_penanda_jantung",
+      "modul": "ccu",
+      "nama": "Penanda Jantung",
+      "deskripsi": "Troponin/hs-troponin, CK-MB, NT-proBNP & elektrolit dengan batas atas rujukan dan delta antar-sampel.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 65
+    },
+    {
+      "kode": "ccu_skor_risiko",
+      "modul": "ccu",
+      "nama": "Skor Risiko Kardiak",
+      "deskripsi": "Kelas Killip, skor TIMI UA/NSTEMI dan TIMI STEMI beserta riwayat penilaian.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 66
+    },
+    {
+      "kode": "ccu_intervensi",
+      "modul": "ccu",
+      "nama": "Intervensi Kardiak",
+      "deskripsi": "PCI primer, trombolisis, pacu jantung sementara, IABP, kardioversi/defibrilasi & RJP dengan waktu tindakan.",
+      "tersedia": true,
+      "wajib": true,
+      "rute": [],
+      "urutan": 67
+    },
+    {
+      "kode": "ccu_balance_cairan",
+      "modul": "ccu",
+      "nama": "Balance Cairan CCU",
+      "deskripsi": "Intake-output & balance otomatis per periode (sama dengan ICU).",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 68
+    },
+    {
+      "kode": "ccu_laporan",
+      "modul": "ccu",
+      "nama": "Laporan CCU",
+      "deskripsi": "BOR, ALOS, mortalitas, distribusi sindrom & Killip, door-to-balloon/needle STEMI.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": ["/ccu/laporan"],
+      "urutan": 69
+    },
+    {
       "kode": "rad_bridging_pacs",
       "modul": "radiologi",
       "nama": "Bridging PACS/RIS",
@@ -1854,6 +2005,50 @@
       "urutan": 104
     },
     {
+      "kode": "icu_konfigurasi_layanan",
+      "modul": "icu",
+      "nama": "Konfigurasi Layanan ICU",
+      "deskripsi": "Aktivasi layanan ICU per fasilitas, pemetaan bed dan akses unit.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/icu/konfigurasi"
+      ],
+      "urutan": 105
+    },
+    {
+      "kode": "icu_template_klinis",
+      "modul": "icu",
+      "nama": "Template Klinis ICU",
+      "deskripsi": "Penyusunan draf dan penetapan versi template observasi serta dokumentasi.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/icu/template"
+      ],
+      "urutan": 106
+    },
+    {
+      "kode": "icu_dokumentasi_klinis",
+      "modul": "icu",
+      "nama": "Dokumentasi Klinis ICU",
+      "deskripsi": "Dokumentasi tambahan sesuai versi episode dengan koreksi berjejak.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 107
+    },
+    {
+      "kode": "icu_kelengkapan_dokumentasi",
+      "modul": "icu",
+      "nama": "Kelengkapan Dokumentasi ICU",
+      "deskripsi": "Status dan daftar kekurangan dokumentasi berdasarkan aturan versi template.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 108
+    },
+    {
       "kode": "akuntansi_remunerasi",
       "modul": "akuntansi",
       "nama": "Remunerasi (Jasa Pelayanan)",
@@ -1862,6 +2057,215 @@
       "wajib": false,
       "rute": ["/akuntansi/remunerasi"],
       "urutan": 105
+    },
+    {
+      "kode": "picu_dasbor",
+      "modul": "picu",
+      "nama": "Dasbor PICU",
+      "deskripsi": "Kapasitas tempat tidur sumber dan ringkasan penerimaan serta keluar.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/picu/dashboard"
+      ],
+      "urutan": 1
+    },
+    {
+      "kode": "picu_episode",
+      "modul": "picu",
+      "nama": "Penerimaan dan Episode PICU",
+      "deskripsi": "Verifikasi identitas dan penerimaan melalui perpindahan sumber.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/picu/penerimaan",
+        "/picu/episode"
+      ],
+      "urutan": 2
+    },
+    {
+      "kode": "picu_tempat_tidur",
+      "modul": "picu",
+      "nama": "Tempat Tidur dan Perpindahan PICU",
+      "deskripsi": "Pemetaan tempat tidur sumber serta histori perpindahan dan penutupan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 3
+    },
+    {
+      "kode": "picu_antropometri",
+      "modul": "picu",
+      "nama": "Antropometri Pediatrik",
+      "deskripsi": "Pengukuran sesuai formulir berversi yang ditetapkan rumah sakit.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 4
+    },
+    {
+      "kode": "picu_dokumentasi",
+      "modul": "picu",
+      "nama": "Dokumentasi Pelayanan PICU",
+      "deskripsi": "Asesmen, perkembangan, keperawatan, tindakan, terapi, dan rencana sesuai izin.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 5
+    },
+    {
+      "kode": "picu_observasi",
+      "modul": "picu",
+      "nama": "Observasi PICU",
+      "deskripsi": "Parameter sesuai konfigurasi tanpa ambang atau nilai klinis bawaan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 6
+    },
+    {
+      "kode": "picu_transaksi",
+      "modul": "picu",
+      "nama": "Transaksi Sumber PICU",
+      "deskripsi": "Referensi transaksi kunjungan pada laboratorium, radiologi, dan farmasi tanpa duplikasi.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 7
+    },
+    {
+      "kode": "picu_konfigurasi",
+      "modul": "picu",
+      "nama": "Konfigurasi PICU",
+      "deskripsi": "Draf dan penetapan versi formulir dengan referensi kewenangan manusia.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/picu/konfigurasi"
+      ],
+      "urutan": 8
+    },
+    {
+      "kode": "picu_laporan",
+      "modul": "picu",
+      "nama": "Laporan Operasional PICU",
+      "deskripsi": "Ringkasan operasional per periode tanpa indikator klinis bawaan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/picu/laporan"
+      ],
+      "urutan": 9
+    },
+    {
+      "kode": "nicu_dashboard",
+      "modul": "nicu",
+      "nama": "Dasbor NICU",
+      "deskripsi": "Kapasitas, status alat, hunian, dan pergerakan unit.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/nicu/dashboard"
+      ],
+      "urutan": 1
+    },
+    {
+      "kode": "nicu_penerimaan",
+      "modul": "nicu",
+      "nama": "Penerimaan Bayi",
+      "deskripsi": "Verifikasi identitas bayi dan penautan transaksi rawat inap.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/nicu/penerimaan"
+      ],
+      "urutan": 2
+    },
+    {
+      "kode": "nicu_penempatan",
+      "modul": "nicu",
+      "nama": "Penempatan dan Alat",
+      "deskripsi": "Pemetaan tempat rawat inap, status alat terpisah, dan riwayat perpindahan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/nicu/tempat"
+      ],
+      "urutan": 3
+    },
+    {
+      "kode": "nicu_data_neonatal",
+      "modul": "nicu",
+      "nama": "Data Neonatal",
+      "deskripsi": "Data neonatal mengikuti formulir yang ditetapkan pemilik proses klinis.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 4
+    },
+    {
+      "kode": "nicu_observasi",
+      "modul": "nicu",
+      "nama": "Observasi Neonatal",
+      "deskripsi": "Pencatatan parameter berdasarkan konfigurasi terbit tanpa ambang klinis bawaan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 5
+    },
+    {
+      "kode": "nicu_dokumentasi",
+      "modul": "nicu",
+      "nama": "Dokumentasi Neonatal",
+      "deskripsi": "Dokumentasi berjejak dan koreksi dengan alasan, pelaku, dan waktu.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 6
+    },
+    {
+      "kode": "nicu_integrasi_order",
+      "modul": "nicu",
+      "nama": "Akses Layanan Terkait",
+      "deskripsi": "Navigasi ke alur sumber order, hasil, dan farmasi tanpa transaksi tambahan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 7
+    },
+    {
+      "kode": "nicu_penyelesaian",
+      "modul": "nicu",
+      "nama": "Penyelesaian Episode",
+      "deskripsi": "Validasi transfer atau pemulangan dari transaksi rawat inap.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [],
+      "urutan": 8
+    },
+    {
+      "kode": "nicu_laporan",
+      "modul": "nicu",
+      "nama": "Laporan NICU",
+      "deskripsi": "Rekap operasional dan ekspor berizin menurut faskes.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/nicu/laporan"
+      ],
+      "urutan": 9
+    },
+    {
+      "kode": "nicu_konfigurasi",
+      "modul": "nicu",
+      "nama": "Konfigurasi NICU",
+      "deskripsi": "Draf dan penerbitan formulir tetap dengan referensi pengesahan.",
+      "tersedia": true,
+      "wajib": false,
+      "rute": [
+        "/nicu/konfigurasi"
+      ],
+      "urutan": 10
     }
   ],
   "bagian": [
@@ -2283,6 +2687,7 @@
         "kamar_operasi",
         "gizi",
         "koding_rm",
+        "ccu",
         "icu",
         "cssd",
         "bank_darah",
@@ -2317,6 +2722,7 @@
         "kamar_operasi",
         "gizi",
         "koding_rm",
+        "ccu",
         "icu",
         "cssd",
         "bank_darah",

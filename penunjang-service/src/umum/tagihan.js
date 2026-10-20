@@ -10,7 +10,7 @@ export const KATEGORI_PENUNJANG = "5";
 
 export const kirimTagihan = async ({
   faskesUuid, patientUuid, noReg, paymentMethod, ref, items, token, hapus = false,
-  apsType, apsServiceName, apsServiceCode, apsLayananUuid, apsPraktisi = null,
+  apsType, apsServiceName, apsServiceCode, apsLayananUuid, apsPraktisi = null, batasWaktuMs,
 }) => {
   const isi = hapus ? [] : items.map((i) => ({ qty: 1, category_code: KATEGORI_PENUNJANG, ...i, additional_info: { ...(i.additional_info ?? {}), ref } }));
   if (!hapus && isi.length === 0) return { dikirim: false, total: 0 };
@@ -30,6 +30,7 @@ export const kirimTagihan = async ({
 
   const res = await fetch(`${config.pembayaranUrl}/bills`, {
     method: "POST",
+    ...(batasWaktuMs ? { signal: AbortSignal.timeout(batasWaktuMs) } : {}),
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: token } : {}) },
     body: JSON.stringify({
       faskes_uuid: faskesUuid,

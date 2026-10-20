@@ -7,13 +7,18 @@ import CustomDatePicker from "@/components/Base/CustomDatePicker.vue";
 import CustomDialog from "@/components/Base/CustomDialog.vue";
 import NoData from "@/components/section/NoData.vue";
 import { utilsStore } from "@/stores/utils";
-import { useIcuStore } from "@/stores/rawatInap/icu";
+import { apiIntensif } from "@/stores/rawatInap/icu";
 
 // Flowsheet observasi ICU: input per jam/interval (KF-4/KF-5), tren 24 jam dalam satu layar (KF-6), dan koreksi
 // berjejak tanpa menimpa riwayat (KF-7/KT-5).
-const props = defineProps<{ perawatanUuid: string }>();
+import { hasPermission } from "@/utils/permissions";
+import FormTemplateIcu from "./FormTemplateIcu.vue";
+import type { TemplateIcu, NilaiIcu } from "@/stores/rawatInap/icu";
+const props = withDefaults(defineProps<{ perawatanUuid: string; template?: TemplateIcu | null; basis?: string }>(), { basis: "/icu" });
+const emit = defineEmits<{ tersimpan: [] }>();
+const tambahan = ref<NilaiIcu[]>([]); const tambahanKoreksi = ref<NilaiIcu[]>([]);
 const storeUtils = utilsStore();
-const icuStore = useIcuStore();
+const icuStore = apiIntensif(props.basis);
 
 const observasi = ref<any[]>([]);
 const tren = ref<any[]>([]);
@@ -59,6 +64,7 @@ const simpan = async () => {
   storeUtils.setLoading(true);
   try {
     const res = await icuStore.tambahObservasi(props.perawatanUuid, {
+      parameterTambahan: tambahan.value,
       waktuPengukuran: Math.floor(form.value.waktuPengukuran.getTime() / 1000),
       tekananSistolik: form.value.tekananSistolik,
       tekananDiastolik: form.value.tekananDiastolik,
@@ -79,7 +85,7 @@ const simpan = async () => {
       catatan: form.value.catatan || undefined,
     });
     if (res?.payload) {
-      form.value = kosongForm();
+      form.value = kosongForm(); tambahan.value = []; emit("tersimpan");
       await muat();
     }
   } finally {
@@ -94,12 +100,14 @@ const nilaiKoreksi = ref<Record<string, any>>({});
 const alasanKoreksi = ref("");
 const bukaKoreksi = (o: any) => {
   observasiDikoreksi.value = o;
+  tambahanKoreksi.value = (o.parameterTambahan ?? []).map((v: NilaiIcu) => ({ ...v }));
   nilaiKoreksi.value = {
     tekanan_sistolik: o.tekananSistolik,
     tekanan_diastolik: o.tekananDiastolik,
     nadi: o.nadi,
     suhu: o.suhu,
     spo2: o.spo2,
+    laju_napas: o.lajuNapas,
   };
   alasanKoreksi.value = "";
   dialogKoreksi.value = true;
@@ -109,11 +117,12 @@ const simpanKoreksi = async () => {
   storeUtils.setLoading(true);
   try {
     const res = await icuStore.koreksiObservasi(observasiDikoreksi.value.uuid, {
-      nilaiBaru: nilaiKoreksi.value,
+      revisi: observasiDikoreksi.value.revisi,
+      nilaiBaru: { ...nilaiKoreksi.value, parameterTambahan: tambahanKoreksi.value },
       alasan: alasanKoreksi.value.trim(),
     });
     if (res?.payload) {
-      dialogKoreksi.value = false;
+      dialogKoreksi.value = false; emit("tersimpan");
       await muat();
     }
   } finally {
@@ -128,6 +137,7 @@ const chartData = computed(() => ({
     { label: "Diastolik", data: tren.value.map((t) => t.tekananDiastolik), borderColor: "#f59e0b", tension: 0.3 },
     { label: "Nadi", data: tren.value.map((t) => t.nadi), borderColor: "#3b82f6", tension: 0.3 },
     { label: "SpO2", data: tren.value.map((t) => t.spo2), borderColor: "#10b981", tension: 0.3 },
+    { label: "Laju napas", data: tren.value.map((t) => t.lajuNapas), borderColor: "#8b5cf6", tension: 0.3, hidden: true },
   ],
 }));
 const chartOptions = { responsive: true, aspectRatio: 2.5, plugins: { legend: { display: true, position: "bottom" } } };
@@ -138,7 +148,7 @@ onMounted(muat);
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="p-4 border rounded-lg border-grey-75">
+    <div v-if="hasPermission(basis.slice(1).toUpperCase(), 'Flowsheet Observasi', 'CREATE')" class="p-4 border rounded-lg border-grey-75">
       <div class="mb-2 font-semibold">Observasi Baru</div>
       <div class="grid grid-cols-4 gap-3">
         <CustomDatePicker v-model="form.waktuPengukuran" label="Waktu pengukuran" showTime />
@@ -153,8 +163,8 @@ onMounted(muat);
         <CustomTextfield v-model.number="form.gcsV" label="GCS - Verbal" type="number" />
         <CustomTextfield v-model.number="form.gcsM" label="GCS - Motorik" type="number" />
         <div class="flex items-end gap-2 pb-2">
-          <Checkbox v-model="form.ventilatorTerpasang" binary inputId="icu-ventilator-terpasang" />
-          <label for="icu-ventilator-terpasang" class="text-sm font-semibold">Ventilator terpasang</label>
+          <Checkbox v-model="form.ventilatorTerpasang" binary :inputId="`ventilator-terpasang-${basis.slice(1)}`" />
+          <label :for="`ventilator-terpasang-${basis.slice(1)}`" class="text-sm font-semibold">Ventilator terpasang</label>
         </div>
         <template v-if="form.ventilatorTerpasang">
           <CustomTextfield v-model="form.ventilatorMode" label="Mode ventilator" placeholder="mis. SIMV, PSV" />
@@ -165,6 +175,7 @@ onMounted(muat);
         </template>
         <CustomTextArea v-model="form.catatan" label="Catatan" class="col-span-4" />
       </div>
+      <FormTemplateIcu v-model="tambahan" :elemen="template?.definisi.observasi ?? []" />
       <div v-if="galat" class="mt-2 text-sm text-danger-300">{{ galat }}</div>
       <div class="flex justify-end mt-3">
         <CustomButton label="Simpan Observasi" icon="PhPlus" @click="simpan" />
@@ -176,6 +187,7 @@ onMounted(muat);
       <Chart type="line" :data="chartData" :options="chartOptions" />
     </div>
 
+    <details v-for="o in observasi.filter((v) => v.parameterTambahan?.length)" :key="o.uuid"><summary>Observasi tambahan - {{ new Date(Number(o.waktuPengukuran) * 1000).toLocaleString('id-ID') }}</summary><p v-for="n in o.parameterTambahan" :key="n.kodeParameter">{{ template?.definisi.observasi.find((e) => e.kodeParameter === n.kodeParameter)?.label ?? n.kodeParameter }}: {{ n.nilai }}</p></details>
     <NoData v-if="!observasi.length" />
     <DataTable v-else :value="[...observasi].reverse()" stripedRows class="text-xs" scrollable scrollHeight="360px">
       <Column header="Waktu" headerClass="bg-opensimrs-50">
@@ -203,7 +215,7 @@ onMounted(muat);
       </Column>
       <Column header="" headerClass="bg-opensimrs-50">
         <template #body="{ data: d }">
-          <CustomButton label="Koreksi" size="small" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="bukaKoreksi(d)" />
+          <CustomButton v-if="hasPermission(basis.slice(1).toUpperCase(), 'Flowsheet Observasi', 'KOREKSI')" label="Koreksi" size="small" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="bukaKoreksi(d)" />
         </template>
       </Column>
     </DataTable>
@@ -218,7 +230,9 @@ onMounted(muat);
             <CustomTextfield v-model.number="nilaiKoreksi.nadi" label="Nadi" type="number" />
             <CustomTextfield v-model.number="nilaiKoreksi.suhu" label="Suhu" type="number" />
             <CustomTextfield v-model.number="nilaiKoreksi.spo2" label="SpO2" type="number" />
+            <CustomTextfield v-model.number="nilaiKoreksi.laju_napas" label="Laju napas" type="number" />
           </div>
+          <FormTemplateIcu v-model="tambahanKoreksi" :elemen="template?.definisi.observasi ?? []" />
           <CustomTextArea v-model="alasanKoreksi" label="Alasan koreksi" required />
         </div>
       </template>
