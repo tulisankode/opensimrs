@@ -1140,9 +1140,11 @@ const apiStudioPut = (url: string, data: object = {}, diam = false) => apiStudio
 const apiPenunjangKirim = async (metode: "get" | "post" | "put" | "patch" | "delete", url: string, data: object = {}, diam = false) => {
   url = cekHost(import.meta.env.VITE_BASE_PENUNJANG, url);
   try {
-    const response = metode === "get" || metode === "delete"
-      ? await baseInstancePenunjang[metode](url)
-      : await baseInstancePenunjang[metode](url, data);
+    const response = metode === "get"
+      ? await baseInstancePenunjang.get(url)
+      : metode === "delete"
+        ? await baseInstancePenunjang.delete(url, { data })
+        : await baseInstancePenunjang[metode](url, data);
     if (metode !== "get" && !diam && response.data?.message) {
       app.config.globalProperties.$toast.add({ severity: "success", summary: response.data.message, life: 3000 });
     }
@@ -1162,7 +1164,7 @@ const apiPenunjangGet = (url: string) => apiPenunjangKirim("get", url);
 const apiPenunjangPost = (url: string, data: object = {}, diam = false) => apiPenunjangKirim("post", url, data, diam);
 const apiPenunjangPut = (url: string, data: object = {}, diam = false) => apiPenunjangKirim("put", url, data, diam);
 const apiPenunjangPatch = (url: string, data: object = {}, diam = false) => apiPenunjangKirim("patch", url, data, diam);
-const apiPenunjangDelete = (url: string) => apiPenunjangKirim("delete", url);
+const apiPenunjangDelete = (url: string, data: object = {}) => apiPenunjangKirim("delete", url, data);
 
 // PROGRAM PUSKESMAS (program-puskesmas-service: KIA/KB, Imunisasi, MTBS/MTBM, Sasaran, UKM, Laporan Dinkes).
 // Path relatif terhadap VITE_BASE_PROGRAM_PUSKESMAS, mis. apiProgramPuskesmasGet("/kia/anc?page=1"). Tulis

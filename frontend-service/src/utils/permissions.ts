@@ -5,6 +5,8 @@ export type PermissionAction = string | string[] | null | undefined;
 
 export interface PermissionRequirement {
   module: string;
+  alternatif?: PermissionRequirement[];
+  alternatives?: PermissionRequirement[];
   submodule?: string | null;
   action?: PermissionAction;
   feature?: string | string[] | null;
@@ -374,8 +376,28 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/mutu", mode: "prefix", permission: read("Mutu & Akreditasi", null, null, null) },
 
   // HR / SDM — penunjang-service (STD-0035 fase 1: kepegawaian & kredensial pegawai; kredensial satu sumber dengan Mutu)
+  { path: "/sdm/penggajian/komponen", permission: read("HR / SDM", "Komponen Penggajian") },
+  { path: "/sdm/penggajian/konfigurasi", permission: { module: "HR / SDM", alternatif: [read("HR / SDM", "Konfigurasi Penggajian"), read("HR / SDM", "Rekening Penggajian")] } },
+  { path: "/sdm/penggajian/periode", mode: "prefix", permission: { module: "HR / SDM", alternatif: [read("HR / SDM", "Periode Penggajian"), read("HR / SDM", "Verifikasi Penggajian"), read("HR / SDM", "Persetujuan Penggajian"), read("HR / SDM", "Pembayaran Penggajian"), read("HR / SDM", "Slip Administratif Penggajian")] } },
+  { path: "/sdm/penggajian/slip", permission: read("HR / SDM", "Slip Penggajian") },
+  { path: "/sdm/penggajian/rekap", permission: { module: "HR / SDM", alternatif: [read("HR / SDM", "Rekap Penggajian"), read("HR / SDM", "Ekspor Bank Penggajian")] } },
   { path: "/sdm/kepegawaian", permission: read("HR / SDM", "Kepegawaian") },
+  { path: "/sdm/kehadiran/impor", permission: { module: "HR / SDM", submodule: "Kehadiran, Cuti & Izin", action: "IMPOR" } },
+  { path: "/sdm/kehadiran/rekap", permission: { module: "HR / SDM", submodule: "Kehadiran, Cuti & Izin", action: ["LIHAT REKAP", "EKSPOR REKAP", "KOREKSI"] } },
+  { path: "/sdm/cuti/persetujuan", permission: { module: "HR / SDM", submodule: "Kehadiran, Cuti & Izin", action: ["TINJAU ATASAN", "SAHKAN SDM"] } },
+  { path: "/sdm/cuti/pengaturan", permission: { module: "HR / SDM", submodule: "Kehadiran, Cuti & Izin", action: ["ATUR JENIS KEBIJAKAN", "ATUR CAKUPAN", "SESUAIKAN SALDO"] } },
+  { path: "/sdm/kehadiran", mode: "prefix", permission: read("HR / SDM", "Kehadiran, Cuti & Izin") },
+  { path: "/sdm/cuti", mode: "prefix", permission: read("HR / SDM", "Kehadiran, Cuti & Izin") },
   { path: "/sdm/kredensial", permission: read("HR / SDM", "Kredensial") },
+  { path: "/sdm/jadwal-dinas", permission: { ...read("HR / SDM", "Jadwal Dinas"), alternatives: [read("HR / SDM", "Persetujuan Jadwal")] } },
+  { path: "/sdm/pola-shift", permission: read("HR / SDM", "Pola Shift") },
+  { path: "/sdm/jadwal-saya", permission: read("HR / SDM", "Jadwal Saya") },
+  { path: "/sdm/tukar-dinas", permission: read("HR / SDM", "Tukar Dinas") },
+  { path: "/sdm/pelatihan", permission: { module: "HR / SDM", submodule: "Pelatihan", action: ["READ", "BACA REKAP", "KELOLA KEBIJAKAN"] } },
+  { path: "/sdm/pelatihan/katalog", mode: "prefix", permission: read("HR / SDM", "Pelatihan") },
+  { path: "/sdm/pelatihan/kegiatan", mode: "prefix", permission: read("HR / SDM", "Pelatihan") },
+  { path: "/sdm/pelatihan/rekap", permission: { module: "HR / SDM", submodule: "Pelatihan", action: "BACA REKAP" } },
+  { path: "/sdm/pelatihan/pengaturan", permission: { module: "HR / SDM", submodule: "Pelatihan", action: "KELOLA KEBIJAKAN" } },
   { path: "/sdm", mode: "prefix", permission: read("HR / SDM", null, null, null) },
 
   // Akuntansi & Remunerasi — penunjang-service (STD-0031: COA, pemetaan, jurnal, persetujuan, buku besar, periode, laporan)
@@ -537,6 +559,16 @@ export const getStoredPermissions = () => {
   }
 };
 
+export const akunSuperadminTanpaDaftar = () => {
+  if (getStoredPermissions().length) return false;
+  try {
+    const isi = String(localStorage.getItem("access_token") ?? "").replace(/^Bearer\s+/i, "").split(".")[1];
+    if (!isi) return false;
+    const json = atob(isi.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(isi.length / 4) * 4, "="));
+    return String(JSON.parse(json)?.role ?? "").trim().toLowerCase() === "super admin";
+  } catch { return false; }
+};
+
 // Username pengguna login (klaim `username` pada token akses), mis. untuk membandingkan dengan pembuat order.
 export const getLoginUsername = (): string => {
   try {
@@ -603,14 +635,16 @@ export const bolehLihatAlkesRm = () => {
   );
 };
 
-export const canAccessPermission = (permission?: PermissionRequirement | null) => {
+export const canAccessPermission = (permission?: PermissionRequirement | null): boolean => {
   if (!permission) return true;
+  if (permission.alternatif) return permission.alternatif.some((p) => canAccessPermission(p));
+  if (permission.module === "HR / SDM" && permission.submodule?.endsWith(" Penggajian") && akunSuperadminTanpaDaftar()) return true;
   return hasPermission(
     permission.module,
     permission.submodule,
     permission.action ?? "READ",
     permission.feature
-  );
+  ) || Boolean(permission.alternatives?.some((p) => canAccessPermission(p)));
 };
 
 export const hasModulePermission = (moduleName: string) =>

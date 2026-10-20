@@ -252,6 +252,11 @@ const centang = (ok: boolean | null | undefined) => (ok ? "text-success-300" : "
             </div>
             <div v-if="hasilUji" class="flex flex-col gap-1 rounded-lg bg-white p-2 text-XS">
               <div class="text-grey-400">Dijawab dalam <b>{{ (hasilUji.durasiMs / 1000).toFixed(1) }} detik</b> oleh agen {{ hasilUji.agen }}</div>
+              <div class="text-[11px] text-grey-400">
+                Kutipan panduan disertakan (sama dengan tombol Bantuan):
+                <template v-if="hasilUji.bagian?.length">{{ hasilUji.bagian.join(" · ") }}</template>
+                <template v-else>tidak ada bagian yang cocok — agen menjawab tanpa kutipan</template>
+              </div>
               <div class="whitespace-pre-wrap">{{ hasilUji.jawaban }}</div>
               <div class="text-[11px] text-grey-400">
                 Periksa kebenarannya terhadap panduan. Jawaban yang mengarang (menu/tombol yang tidak ada) tanda model terlalu kecil — pakai model API.

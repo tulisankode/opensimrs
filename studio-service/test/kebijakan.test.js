@@ -149,3 +149,52 @@ test("CHANGELOG: fragmen changelog.d lulus, CHANGELOG.md lama tetap diterima, RE
   assert.equal(cek(readme, "CHANGELOG").lulus, false);
   assert.match(cek(readme, "CHANGELOG").pesan, /changelog\.d\/STD-0031\.md/);
 });
+
+test("konvensi kode: SQL menempel pada <, rute DefaultLayout, dan halaman tanpa PageToolbar ditolak", () => {
+  const h = periksaKebijakan([
+    { path: "rawat-inap-service/src/repositories/x-repository.js", status: "M", patch: "+  AND waktu<:sampai AND waktu>=:dari" },
+    { path: "frontend-service/src/router/index.ts", status: "M", patch: '+    { path: "/xicu", component: XPage, meta: { layout: DefaultLayout } },' },
+    { path: "frontend-service/src/views/Xicu/DashboardXicuPage.vue", status: "??", patch: "+<template><h2>Dasbor</h2><button>Muat ulang</button></template>" },
+    { path: "rawat-inap-service/tests/x.test.js", status: "??", patch: "+uji" },
+    changelog,
+  ]);
+  const k = cek(h, "Konvensi kode");
+  assert.equal(k.lulus, false);
+  assert.match(k.pesan, /x-repository\.js/);
+  assert.match(k.pesan, /halamanModul/);
+  assert.match(k.pesan, /DashboardXicuPage\.vue/);
+  assert.equal(h.lulus, false);
+});
+
+test("konvensi kode: spasi sebelum parameter, <=:, halamanModul, dan halaman ber-PageToolbar lulus", () => {
+  const h = periksaKebijakan([
+    { path: "rawat-inap-service/src/repositories/x-repository.js", status: "M", patch: "+  AND waktu < :sampai AND mulai<=:waktu AND a<<:b" },
+    { path: "frontend-service/src/router/index.ts", status: "M", patch: '+    ...halamanModul(XView, [["/xicu/dashboard", "xicu-dashboard", DashboardXicuPage]]),' },
+    { path: "frontend-service/src/views/Xicu/DashboardXicuPage.vue", status: "??", patch: "+<template><Card><template #header><PageToolbar /></template></Card></template>" },
+    { path: "frontend-service/src/views/Kiosk/LayarPage.vue", status: "??", patch: "+<!-- studio: tanpa-toolbar (layar kiosk) -->" },
+    { path: "rawat-inap-service/tests/x.test.js", status: "??", patch: "+uji" },
+    changelog,
+  ]);
+  assert.equal(cek(h, "Konvensi kode").lulus, true, cek(h, "Konvensi kode").pesan);
+});
+
+test("konvensi kode: halaman tanpa Card, prompt()/confirm() peramban, dan isian UUID ditolak", () => {
+  const h = periksaKebijakan([
+    { path: "frontend-service/src/views/Sdm/penggajian/KomponenGajiPage.vue", status: "??", patch: '+<template><PageToolbar /><table></table></template>\n+const nama = prompt("Nama komponen");' },
+    { path: "frontend-service/src/views/Sdm/penggajian/FormulirData.vue", status: "??", patch: "+  { nama: 'komponenUuid', label: 'UUID komponen' }," },
+    changelog,
+  ]);
+  const k = cek(h, "Konvensi kode");
+  assert.equal(k.lulus, false);
+  assert.match(k.pesan, /tanpa Card \+ PageToolbar.*KomponenGajiPage/);
+  assert.match(k.pesan, /prompt\(\)\/confirm\(\).*KomponenGajiPage/);
+  assert.match(k.pesan, /UUID.*FormulirData/);
+});
+
+test("konvensi kode: CustomDialog, pilihan bernama, dan komentar yang menyebut confirm() lulus", () => {
+  const h = periksaKebijakan([
+    { path: "frontend-service/src/views/Sdm/penggajian/KomponenGajiPage.vue", status: "??", patch: '+<template><Card><template #header><PageToolbar /></template></Card><CustomDialog /></template>\n+// tidak memakai confirm() peramban\n+const pilih = (uuid) => muat(uuid);\n+<CustomSelect label="Komponen" optionValue="uuid" />' },
+    changelog,
+  ]);
+  assert.equal(cek(h, "Konvensi kode").lulus, true, cek(h, "Konvensi kode").pesan);
+});

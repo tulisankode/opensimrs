@@ -3,7 +3,7 @@
 > Draf disusun AI dari kode aplikasi pada 2026-10-19 — wajib ditinjau petugas kepegawaian/SDM faskes sebelum dipakai Helpdesk.
 
 **Dipakai oleh:** petugas kepegawaian/SDM, kepala unit, tim kredensial
-**Menu:** HR / SDM › Kepegawaian · Kredensial
+**Menu:** HR / SDM › Kepegawaian · Kredensial · Jadwal Dinas · Pola Shift · Jadwal Saya · Tukar Dinas
 **Hak akses yang dibutuhkan:**
 - HR / SDM › Kepegawaian › READ, CREATE, UPDATE, DELETE, TAUTKAN AKUN
 - HR / SDM › Kredensial › READ, CREATE, UPDATE, UNGGAH DOKUMEN, VERIFIKASI, CABUT, DELETE
@@ -11,7 +11,7 @@
 ## Untuk apa
 Modul ini mencatat data kepegawaian (status, unit kerja, jabatan, golongan, pendidikan) untuk pegawai yang sudah terdaftar di **Datamaster › Pegawai**, beserta riwayat perubahannya. Modul ini juga mencatat kredensial pegawai seperti STR dan SIP. Data pribadi pegawai (mis. NIK dan tanggal lahir) tetap dikelola di Data Master dan tidak ditampilkan di sini.
 
-Fitur **Kepegawaian** selalu aktif bila modul aktif. **Kredensial Pegawai** dapat diaktifkan terpisah. Jadwal dinas, kehadiran/cuti, pelatihan, dan penggajian masih dalam pengembangan dan belum tampil sebagai menu.
+Fitur **Kepegawaian** selalu aktif bila modul aktif. **Kredensial Pegawai** dan **Jadwal Dinas** dapat diaktifkan terpisah. Kehadiran/cuti, pelatihan, dan penggajian menyusul.
 
 ## Tugas sehari-hari
 
@@ -81,7 +81,7 @@ Fitur **Kepegawaian** selalu aktif bila modul aktif. **Kredensial Pegawai** dapa
 
 **Apakah riwayat lama hilang saat jabatan berubah?** Tidak. Setiap perubahan dicatat sebagai riwayat baru dengan tanggal berlaku.
 
-**Di mana jadwal dinas, cuti, dan penggajian?** Fitur tersebut masih dalam pengembangan dan belum tersedia.
+**Di mana jadwal dinas, cuti, dan penggajian?** Jadwal dinas tersedia melalui fitur **Jadwal Dinas**, dan penggajian dasar melalui menu HR / SDM sesuai izin dan aktivasi fitur. Kehadiran dan cuti menyusul.
 
 ## Bila menu tidak muncul
 - Modul belum aktif untuk faskes: superadmin › **Setting › Manajemen Modul** (modul **HR / SDM**, fitur **Kepegawaian** dan **Kredensial Pegawai**).
@@ -92,3 +92,57 @@ Fitur **Kepegawaian** selalu aktif bila modul aktif. **Kredensial Pegawai** dapa
 - Langkah membuka detail kredensial dan tombol verifikasinya ditulis dari kode (halaman yang sama dengan Mutu › Kredensial Staf) dan perlu dicoba di layar.
 - Izin UNGGAH DOKUMEN dan CABUT ada di daftar izin, tetapi langkah unggah berkas dan pencabutan kredensial belum dirinci di panduan ini.
 - Peringatan kredensial yang akan kedaluwarsa (90/30 hari, menurut dokumentasi situs) belum diverifikasi tampilannya di layar.
+
+
+## Penggajian dasar
+
+1. Aktifkan fitur Penggajian serta Jurnal dan Remunerasi Akuntansi melalui Manajemen Modul. Berikan izin setiap petugas melalui **Setting › Hak Akses**; admin faskes tidak mendapat izin gaji otomatis.
+2. Di **Komponen Penggajian**, catat komponen, skala gaji berdasarkan golongan/masa kerja, dan penetapan pegawai yang sudah tertaut SDM. Isi masa berlaku; akhir berlaku tidak termasuk dalam rentang.
+3. Di **Konfigurasi Penggajian**, masukkan aturan dan kasus uji dari keuangan, profil pegawai, serta kebijakan tanggal acuan dan sumber yang belum tersedia. Pengesah wajib berbeda dari pembuat. Tidak tersedia tarif BPJS/PPh 21 bawaan. Lihat [format konfigurasi](../penggajian-teknis.md).
+4. Buka **Periode Penggajian** dengan konfigurasi disahkan dan referensi periode Remunerasi final pada bulan yang sama. Seluruh jaspel sumber harus dapat dipetakan ke pegawai SDM. Kehadiran belum digunakan; kebijakan melewatinya wajib disahkan.
+5. Jalankan **Hitung ulang** dan tangani semua pengecualian. Ajukan verifikasi. Verifikator berbeda dari penghitung, dan penyetuju berbeda dari keduanya. Pengembalian/penolakan memerlukan alasan.
+6. Nominal dikunci setelah persetujuan. Siapkan ekspor bank melalui **Rekap Penggajian** jika format bank telah disahkan dan seluruh rekening terverifikasi. Unduhan berisi data rahasia; proses ini tidak mengirim instruksi transfer bank.
+7. Sesudah pembayaran dilakukan sesuai proses faskes, petugas berizin mencatat tanggal dan referensi transfer. Jika jurnal tertahan/gagal, catatan pembayaran tetap ada; lengkapi kesiapan Akuntansi lalu gunakan **Ulangi jurnal**.
+8. Pegawai membuka **Slip Penggajian** untuk melihat dan mencetak slipnya sendiri setelah pembayaran dan jurnal berhasil. Jangan menyimpan slip pada perangkat bersama.
+
+Jasa pelayanan yang sudah dicadangkan penggajian tidak dapat dibayar lagi secara mandiri di Remunerasi. Pembatalan draf beralasan melepaskan reservasinya. Koreksi hasil terkunci dicatat di periode bulan berikutnya, dengan referensi hasil asal dan alasan; hasil lama tetap dipertahankan.
+
+Metode yang didukung saat ini adalah periodik dengan tanggal acuan yang disahkan. Kebutuhan prorata, rekonsiliasi pajak tahunan, atau format bank selain CSV belum dapat diproses. Jangan memakai konfigurasi periodik untuk kebutuhan yang belum didukung.
+
+## Jadwal Dinas (STD-0038)
+
+### Persiapan
+
+1. Aktifkan modul **HR / SDM** dan fitur **Jadwal Dinas** melalui Manajemen Modul.
+2. Berikan izin **Pola Shift**, **Jadwal Dinas**, **Persetujuan Jadwal**, **Jadwal Saya**, atau **Tukar Dinas** sesuai tugas melalui editor Hak Akses. Tambahan izin otomatis hanya untuk super admin; peran lain diberikan manual.
+3. Super admin membuka **Pola Shift**, memilih unit, lalu mengisi **Kewenangan unit** untuk akun dalam faskes aktif: lihat, susun, setujui, terbitkan, dan putuskan tukar. Kewenangan tindakan juga diperlukan oleh super admin. Awal tanggal batas akhir sudah tidak termasuk masa kewenangan.
+4. Penyusun membuat pola shift unit, termasuk pola libur. Jam diisi dalam menit sejak 00.00 WIB, misalnya 07.00 = 420. Untuk 22.00–06.00, gunakan 1320 dan 360 serta centang **Lintas tengah malam**. Pola libur menggunakan jam nol dan tidak dihitung sebagai waktu kerja.
+5. Isi aturan unit: istirahat minimum, batas menit kerja mingguan, minggu kalender Senin–Senin atau tujuh hari dari jangkar, serta tingkat setiap aturan. Tidak ada batas jam kerja mingguan yang ditetapkan otomatis. Kebutuhan staf dapat diatur per hari atau tanggal khusus; tanggal khusus mengganti aturan hari biasa. Tetapkan pejabat penyetuju sebelum mengajukan jadwal.
+
+Pegawai harus sudah tertaut di Kepegawaian SDM. Kelayakan mengikuti riwayat unit dan status pada tanggal shift, termasuk berakhirnya masa kerja; identitas pegawai baru tidak dibuat di penjadwalan.
+
+### Menyusun dan menerbitkan
+
+1. Buka **Jadwal Dinas**, pilih unit dan bulan, lalu **Buat draf**.
+2. Isi tabel pegawai × tanggal, lalu **Simpan perubahan**. Warna latar sel menandai perubahan lokal. Penghapusan sel hanya diperbolehkan pada draf.
+3. Untuk salinan bulan lalu atau rotasi, pilih sumber dan gunakan **Pratinjau**. Periksa tanggal, pegawai, atau pola yang dilewati sebelum menerapkan. Offset rotasi dihitung dari tanggal jangkar. Tanggal tambahan bulan tujuan tetap kosong.
+4. Periksa hasil validasi. Klik temuan untuk menuju sel terkait. Benturan waktu selalu menolak penyimpanan. Pemblokir lain dapat tersimpan dalam draf, tetapi harus diperbaiki sebelum pengajuan, persetujuan, dan penerbitan. Peringatan tetap dicatat.
+5. Pilih **Ajukan** pada versi yang ditinjau. Pejabat unit yang berbeda dari pengaju kemudian memilih **Setujui** atau **Tolak** dengan alasan. Akun berkewenangan terbit menerbitkan versi yang telah disetujui.
+6. Bila aturan berubah setelah pengajuan atau persetujuan, kembalikan versi ke draf melalui penolakan beralasan untuk diperiksa dan diajukan ulang.
+7. Untuk perubahan jadwal terbit, pilih **Buat revisi** dan isi alasan. Versi lama tetap efektif sampai revisi diterbitkan. Hanya satu versi kerja diperbolehkan dalam satu keluarga jadwal.
+
+Jika muncul konflik versi, muat ulang dan tinjau kembali. Perubahan lokal tidak dikirim ulang secara otomatis. Simpan perubahan sebelum beralih versi atau memuat ulang.
+
+### Jadwal sendiri dan tukar dinas
+
+**Jadwal Saya** menampilkan jadwal terbit melalui tautan akun sendiri, tanpa pilihan identitas pegawai lain. Pilih shift kerja yang belum dimulai, pilih shift pegawai pengganti dalam unit yang sama, isi alasan, lalu kirim permohonan.
+
+Pengajuan merupakan pernyataan kehendak pemohon. Pengganti memberikan tanggapan melalui **Tukar Dinas**. Penolakan wajib beralasan; pemohon dapat membatalkan sebelum keputusan kepala ruangan. Kepala ruangan berwenang yang bukan peserta pertukaran memutuskan permohonan setelah pengganti menyatakan setuju.
+
+Sistem memvalidasi ulang kedua pegawai, termasuk penugasan lintas unit dan bulan. Pertukaran membuat versi terbit pengganti; versi lama dan keputusan tetap tersimpan. Sel libur yang ditempati shift pertukaran dipindahkan kepada pegawai yang menyerahkan shift pada tanggal tersebut. Shift kerja lain pada sel tujuan memblokir pertukaran. Revisi yang sedang berjalan atau perubahan versi aktif mengharuskan permohonan ditinjau kembali.
+
+### Ekspor dan cetak
+
+Pada versi terbit yang efektif, pilih **Siapkan ekspor** atau **Siapkan cetak** sesuai izin. Tinjau keluaran, lalu unduh CSV atau cetak. Keluaran mencantumkan versi dan waktu WIB serta dicatat dalam riwayat. CSV melindungi sel yang dapat dibaca sebagai rumus.
+
+Integrasi awal hanya menyediakan pembacaan jadwal terbit berizin. Presensi, cuti, penggajian, dan alur layanan klinis belum diubah oleh fitur ini.

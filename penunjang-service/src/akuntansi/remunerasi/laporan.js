@@ -6,6 +6,7 @@ import { dariSen, keSen, konflik } from "../bersama.js";
 import { namaPeriode, tanganiAkuntansi } from "../dasar.js";
 import { MODUL_IZIN, PROFESI, SUB, refPasien } from "./bersama.js";
 import { ambilPeriode, audit } from "./dasar.js";
+import { referensiPenggajian } from "./penggajian.js";
 
 // Slip & rekap remunerasi (KF-11/KF-12) — hanya dari periode DISETUJUI/DIBAYAR.
 //   GET /slip/saya                          periode yang memuat slip pengguna login (akun → users.practitioner_uuid)
@@ -53,6 +54,7 @@ const susunSlip = async (f, p, practitionerUuid) => {
     ),
   ]);
   return {
+    penggajian: await referensiPenggajian(undefined, f, p.uuid),
     periode: { uuid: p.uuid, nomor: p.nomor, nama: namaPeriode(p.tahun, p.bulan), status: p.status, skema_versi: p.skema_versi, disetujui_pada: p.disetujui_pada, tanggal_bayar: p.tanggal_bayar },
     penerima: { nama: rincian.nama, profesi: rincian.profesi, nama_profesi: PROFESI[rincian.profesi] ?? rincian.profesi, unit: rincian.unit },
     ringkasan: { jumlah_layanan: rincian.jumlah_layanan, nilai_dasar: rincian.nilai_dasar, langsung: rincian.langsung, kebersamaan: rincian.kebersamaan, koreksi: rincian.koreksi, total: rincian.total },
@@ -130,6 +132,7 @@ rute.get(
     );
     if (format) await transaksi((k) => audit(k, req, "ekspor", "remunerasi_rekap", p.uuid, { periode: p.nomor, format, jumlah_penerima: rincian.length, total: p.total }));
     kirim(res, {
+      penggajian: await referensiPenggajian(undefined, f, p.uuid),
       periode: { uuid: p.uuid, nomor: p.nomor, nama: namaPeriode(p.tahun, p.bulan), status: p.status, skema_versi: p.skema_versi, total: p.total, total_langsung: p.total_langsung, total_kebersamaan: p.total_kebersamaan, total_koreksi: p.total_koreksi, disetujui_oleh: p.disetujui_oleh, disetujui_pada: p.disetujui_pada },
       per_unit: kelompokkan(rincian, "unit", (k) => k),
       per_profesi: kelompokkan(rincian, "profesi", (k) => PROFESI[k] ?? k),

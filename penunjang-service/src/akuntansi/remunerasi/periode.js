@@ -6,6 +6,7 @@ import { cekPilihan, dariSen, keSen, konflik, periodeWajib, rentangPeriode, tang
 import { namaPeriode, tanganiAkuntansi } from "../dasar.js";
 import { susunBayarJaspel, susunJaspel } from "../event.js";
 import { jurnalkanEvent, muatAturan } from "../proses.js";
+import { pastikanPembayaranMandiri, referensiPenggajian } from "./penggajian.js";
 import {
   METODE_BAYAR,
   MODUL_IZIN,
@@ -169,7 +170,7 @@ rute.get(
         ? query(`SELECT uuid, nomor, tanggal, total_debit, jenis_event FROM akuntansi_jurnal WHERE faskes_uuid = $1 AND uuid = ANY($2::varchar[])`, [f, [p.jurnal_uuid, p.jurnal_bayar_uuid].filter(Boolean)])
         : [],
     ]);
-    kirim(res, { ...p, nama: namaPeriode(p.tahun, p.bulan), skema, rincian, kinerja, koreksi, penyelesaian, pengecualian, jurnal, status_sumber: STATUS_SUMBER });
+      kirim(res, { ...p, penggajian: await referensiPenggajian(undefined, f, p.uuid), nama: namaPeriode(p.tahun, p.bulan), skema, rincian, kinerja, koreksi, penyelesaian, pengecualian, jurnal, status_sumber: STATUS_SUMBER });
   }),
 );
 
@@ -506,6 +507,7 @@ rute.post(
     const hasil = await transaksi(async (k) => {
       const p = await ambilPeriode(k, f, req.params.uuid, true);
       pastikanStatus(p, "bayar");
+      await pastikanPembayaranMandiri(k, f, p.uuid);
       if (tanggal < rentangPeriode(p.tahun, p.bulan).awal) throw permintaanSalah("tanggal_bayar tidak boleh sebelum awal periode");
       if (tanggal > sekarang()) throw permintaanSalah("tanggal_bayar tidak boleh di masa depan");
       const ev = susunBayarJaspel({ uuid: p.uuid, nomor: p.nomor, tanggal_bayar: tanggal, total: p.total, metode_bayar: metode, referensi_bayar: referensi });

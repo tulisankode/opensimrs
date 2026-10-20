@@ -385,7 +385,7 @@ test("COA & pemetaan bawaan konsisten: induk ada, klasifikasi sesuai kelompok, k
     assert.equal(peta.get(k)?.[6], "rinci", `akun ${k} harus rinci`);
   }
   // Setiap komponen dasar event yang tersedia punya pemetaan bawaan (event tidak tertahan setelah pasang bawaan).
-  for (const [jenis, def] of Object.entries(JENIS_EVENT).filter(([, d]) => d.tersedia))
+  for (const [jenis, def] of Object.entries(JENIS_EVENT).filter(([, d]) => d.tersedia && !d.pemetaan_manual))
     for (const c of Object.keys(def.komponen)) assert.ok(PEMETAAN_BAWAAN.some(([j, kc]) => j === jenis && (kc === c || kc.startsWith(`${c}:`))), `pemetaan bawaan ${jenis}/${c}`);
 });
 

@@ -5,8 +5,9 @@ import config from "./config.js";
 export const pool = new pg.Pool({ ...config.pg, max: 10 });
 
 // Kueri sederhana (pool) atau di dalam transaksi (klien `k` dari transaksi()).
-export const query = async (sql, params = [], k = pool) => (await k.query(sql, params)).rows;
-export const satu = async (sql, params = [], k = pool) => (await query(sql, params, k))[0] ?? null;
+// k null/undefined = di luar transaksi (pool); repositori jadwal dinas meneruskan null untuk pembacaan biasa.
+export const query = async (sql, params = [], k) => (await (k ?? pool).query(sql, params)).rows;
+export const satu = async (sql, params = [], k) => (await query(sql, params, k))[0] ?? null;
 
 // Jalankan fn(klien) dalam satu transaksi; rollback bila melempar.
 export const transaksi = async (fn) => {

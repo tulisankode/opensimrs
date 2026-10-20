@@ -728,7 +728,7 @@
       "instalasi": "SDM & Kepegawaian",
       "inti": false,
       "tersedia": true,
-      "deskripsi": "Kepegawaian tertaut pegawai Data Master (status, unit, jabatan, golongan, pendidikan, riwayat bertanggal berlaku) dan kredensial pegawai yang satu sumber dengan Kredensial Staf Mutu & Akreditasi. Jadwal dinas, kehadiran/cuti, pelatihan, dan penggajian menyusul.",
+      "deskripsi": "Kepegawaian tertaut pegawai Data Master, riwayat bertanggal berlaku, kredensial pegawai yang satu sumber dengan Mutu & Akreditasi, serta jadwal dinas dengan pola shift, validasi, persetujuan, revisi, dan tukar dinas. Kehadiran/cuti, pelatihan, dan penggajian menyusul.",
       "menu": ["HR / SDM"],
       "rute": ["/sdm"],
       "urutan": 36
@@ -1949,9 +1949,9 @@
       "modul": "sdm",
       "nama": "Jadwal Dinas",
       "deskripsi": "Pola shift, jadwal dinas unit dengan validasi benturan & istirahat minimum, persetujuan, dan tukar dinas.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/sdm/jadwal-dinas", "/sdm/pola-shift", "/sdm/jadwal-saya", "/sdm/tukar-dinas"],
       "urutan": 85
     },
     {
@@ -1959,19 +1959,19 @@
       "modul": "sdm",
       "nama": "Kehadiran, Cuti & Izin",
       "deskripsi": "Impor/pencatatan kehadiran serta pengajuan cuti & izin dengan persetujuan berjenjang.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/sdm/kehadiran", "/sdm/cuti"],
       "urutan": 86
     },
     {
       "kode": "sdm_pelatihan",
       "modul": "sdm",
       "nama": "Pelatihan",
-      "deskripsi": "Riwayat pelatihan & jam diklat pegawai dengan verifikasi.",
-      "tersedia": false,
+      "deskripsi": "Katalog, rencana diklat, peserta, verifikasi hasil, sertifikat bersama, kebijakan dan rekap jam tahunan.",
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/sdm/pelatihan"],
       "urutan": 87
     },
     {
@@ -1979,10 +1979,11 @@
       "modul": "sdm",
       "nama": "Penggajian",
       "deskripsi": "Komponen gaji, rancangan & pengesahan penggajian per periode, slip gaji, serta integrasi jaspel/jurnal.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
-      "rute": [],
-      "urutan": 88
+      "rute": ["/sdm/penggajian"],
+      "urutan": 88,
+      "modul_syarat": "akuntansi"
     },
     {
       "kode": "akuntansi_jurnal",

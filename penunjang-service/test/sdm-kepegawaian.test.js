@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { registerHooks } from "node:module";
 import {
   JENJANG_PENDIDIKAN,
   STATUS_KEPEGAWAIAN,
@@ -130,14 +131,33 @@ test("kredensial satu sumber: jenis gabungan Mutu+SDM, verifikasi ulang bila dat
 });
 
 test("izin HR / SDM hanya berisi fitur yang ada; Mutu Kredensial Staf punya VERIFIKASI", () => {
-  assert.deepEqual(sdmPermission.subModules.map((s) => s.name), ["Kepegawaian", "Kredensial"]);
+  // Urutan submodul SDM gabungan (kepegawaian, kehadiran, kredensial, jadwal, pelatihan); submodul gaji diuji di tes penggajian.
+  assert.deepEqual(sdmPermission.subModules.filter((s) => !s.name.endsWith(" Penggajian")).map((s) => s.name), [
+    "Kepegawaian",
+    "Kehadiran, Cuti & Izin",
+    "Kredensial",
+    "Pola Shift",
+    "Jadwal Dinas",
+    "Persetujuan Jadwal",
+    "Jadwal Saya",
+    "Tukar Dinas",
+    "Pelatihan",
+  ]);
   assert.deepEqual(sdmPermission.subModules[0].allows, ["READ", "CREATE", "UPDATE", "DELETE", "TAUTKAN AKUN"]);
-  for (const a of ["READ", "CREATE", "UPDATE", "UNGGAH DOKUMEN", "VERIFIKASI", "CABUT", "DELETE"]) assert.ok(sdmPermission.subModules[1].allows.includes(a), a);
+  for (const a of ["READ", "CREATE", "UPDATE", "UNGGAH DOKUMEN", "VERIFIKASI", "CABUT", "DELETE"]) assert.ok(sdmPermission.subModules.find((s) => s.name === "Kredensial").allows.includes(a), a);
   assert.ok(mutuPermission.subModules.find((s) => s.name === "Kredensial Staf").allows.includes("VERIFIKASI"));
   assert.deepEqual(mapPermission(["hr / sdm"]).map((m) => m.module), ["HR / SDM"]);
 });
 
 test("router HR / SDM dapat dimuat tanpa koneksi basis data", async () => {
-  const modul = await import("../src/hr/rute.js");
-  assert.ok(modul.default);
+  const kode = (s) => `data:text/javascript;base64,${Buffer.from(s).toString("base64")}`;
+  const kait = registerHooks({ resolve(s, c, lanjut) {
+    if (s === "dotenv/config") throw new Error("Uji tidak boleh membaca konfigurasi runtime");
+    const r = lanjut(s, c);
+    if (r.url.endsWith("/penunjang-service/src/config.js")) return { url: kode("export default { maxUploadMutuMb: 10, berkasSarprasMaksMb: 5, pg: {} };"), shortCircuit: true };
+    if (r.url.endsWith("/penunjang-service/src/db.js")) return { url: kode("const tolak = () => { throw new Error('Akses database tidak diizinkan dalam uji router'); }; export const query=tolak,satu=tolak,transaksi=tolak,sisipkan=tolak,ubah=tolak,uuidv7=tolak,sekarang=tolak;"), shortCircuit: true };
+    return r;
+  } });
+  try { const modul = await import("../src/hr/rute.js"); assert.ok(modul.default); }
+  finally { kait.deregister(); }
 });

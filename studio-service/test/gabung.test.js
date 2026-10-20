@@ -4,7 +4,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { execFileSync } from "child_process";
-import { ATURAN_DAFTAR, KonflikTakDikenal, batalGabung, gabung3, gabungJson, modulTersediaItem, selesaikanGabung, selesaikanTeks, sinkronkan } from "../src/gabung.js";
+import { ATURAN_DAFTAR, KonflikTakDikenal, batalGabung, cekSintaksFrontend, gabung3, gabungJson, modulTersediaItem, selesaikanGabung, selesaikanTeks, sinkronkan } from "../src/gabung.js";
 
 // ---------- Katalog: gabung per entri ----------
 
@@ -368,5 +368,26 @@ test("selesaikanGabung: cek integritas gagal → merge tidak di-commit dan tetap
     await assert.rejects(batalGabung({ cwd: repo }), /Tidak ada penggabungan/);
   } finally {
     fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test("cekSintaksFrontend: router .ts dan komponen .vue yang rusak setelah penggabungan tertangkap", async () => {
+  const repo = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "../..");
+  const dir = path.join(repo, "frontend-service", "src", "__uji_sintaks__");
+  const rel = (n) => `frontend-service/src/__uji_sintaks__/${n}`;
+  fs.mkdirSync(dir, { recursive: true });
+  try {
+    fs.writeFileSync(path.join(dir, "rusak.ts"), 'const rute = [\n  ...halaman(View, [\n    ["/a", "a", A],\n  { path: "/b" },\n  ]),\n];\n});\n');
+    fs.writeFileSync(path.join(dir, "Rusak.vue"), '<script setup lang="ts">\nconst a = ref(1\n</script>\n<template><div>{{ a }}</div></template>\n');
+    fs.writeFileSync(path.join(dir, "Baik.vue"), '<script setup lang="ts">\nconst a = 1;\n</script>\n<template><div>{{ a }}</div></template>\n');
+    const galat = await cekSintaksFrontend(repo, [rel("rusak.ts"), rel("Rusak.vue"), rel("Baik.vue"), "README.md"]);
+    if (galat?.includes("dilewati")) return; // node_modules frontend belum dipasang
+    assert.match(galat, /rusak\.ts:\d+/);
+    assert.match(galat, /Rusak\.vue/);
+    assert.doesNotMatch(galat, /Baik\.vue/);
+    assert.equal(await cekSintaksFrontend(repo, [rel("Baik.vue"), "README.md"]), null);
+    assert.equal(await cekSintaksFrontend(repo, ["README.md"]), null);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });

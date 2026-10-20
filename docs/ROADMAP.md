@@ -77,7 +77,7 @@ Pengembangan dikerjakan dari segmen paling sederhana. Sebuah segmen harus **bena
 ### 2.2 Masih berstatus "Segera" (belum dibangun)
 
 - **Modul:** Akuntansi & Remunerasi (B-34).
-- **Fitur:** HR/SDM fase berikutnya: Jadwal Dinas, Kehadiran/Cuti/Izin, Pelatihan, Penggajian (B-58).
+- **Fitur:** HR/SDM fase berikutnya: Jadwal Dinas, Kehadiran/Cuti/Izin, Pelatihan (B-58). Penggajian dasar tersedia melalui STD-0041; aktivasi menunggu konfigurasi keuangan yang disahkan.
 
 Daftar lengkap dan statusnya ada di [katalog Manajemen Modul](./MANAJEMEN-MODUL.md#5-katalog-lengkap).
 
@@ -205,7 +205,7 @@ Kolom **Label** menunjukkan label utama yang disarankan. Status: `menunggu keput
 |---|---|---|---|---|---|
 | B-34 | **Akuntansi & remunerasi** (integrasi back office). | P3 | `bantuan dibutuhkan` | siap dikerjakan | Satu-satunya modul katalog yang masih "Segera". Ikuti [panduan menambah modul](./MANAJEMEN-MODUL.md#4-panduan-pengembang-menambah-modul-atau-fitur-baru). |
 | B-35 | **Antrean Online BPJS (Mobile JKN)**: konfirmasi kontrak resmi WS Antrean dan endpoint resmi web service untuk BPJS. | P2 | `integrasi` | siap dikerjakan | Fitur `antrian_online_bpjs` (sinkron antrean & task id) sudah dibangun (STD-0018). |
-| B-58 | **HR/SDM fase berikutnya**: Jadwal Dinas, Kehadiran/Cuti/Izin, Pelatihan, Penggajian. | P3 | `bantuan dibutuhkan` | siap dikerjakan | Fitur sudah terdaftar di katalog berstatus "Segera" (`sdm_jadwal_dinas`, `sdm_kehadiran`, `sdm_pelatihan`, `sdm_penggajian`). |
+| B-58 | **HR/SDM fase berikutnya**: Jadwal Dinas, Kehadiran/Cuti/Izin, Pelatihan. | P3 | `bantuan dibutuhkan` | siap dikerjakan | Fitur sudah terdaftar di katalog berstatus "Segera" (`sdm_jadwal_dinas`, `sdm_kehadiran`, `sdm_pelatihan`). Penggajian dasar (`sdm_penggajian`) tersedia melalui STD-0041 dengan konfigurasi keuangan wajib disahkan; prorata dan rekonsiliasi tahunan belum didukung. |
 | B-46 | **Patologi Anatomi & Mikrobiologi lanjutan**: izin READ di backend; halaman verifikasi publik QR hasil; ekspor WHONET; integrasi alat mikrobiologi; notifikasi nilai kritis; data demo dokter spesialis mikrobiologi klinik. | P2 | `butuh tenaga medis/klinis`, `integrasi` | siap dikerjakan | |
 | B-47 | **Radiologi lanjutan**: jam operasional per hari & libur alat, status "tidak hadir", dosis radiasi & BHP, tanda tangan final, layar antrean. | P2 | `butuh tenaga medis/klinis` | siap dikerjakan | Bridging PACS/RIS (`rad_bridging_pacs`) sudah tersedia. |
 | B-49 | **Fisioterapi**: hapus komponen prototipe lama yang tidak terpakai di `frontend-service/src/views/Fisioterapi/Layout/**` & `Section/**`. | P3 | `good first issue` | siap dikerjakan | Pastikan tidak ada impor tersisa sebelum menghapus. |
