@@ -4,6 +4,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { execFileSync } from "child_process";
+import { createRequire } from "module";
 import { ATURAN_DAFTAR, KonflikTakDikenal, batalGabung, cekSintaksFrontend, gabung3, gabungJson, modulTersediaItem, selesaikanGabung, selesaikanTeks, sinkronkan } from "../src/gabung.js";
 
 // ---------- Katalog: gabung per entri ----------
@@ -371,8 +372,31 @@ test("selesaikanGabung: cek integritas gagal → merge tidak di-commit dan tetap
   }
 });
 
-test("cekSintaksFrontend: router .ts dan komponen .vue yang rusak setelah penggabungan tertangkap", async () => {
-  const repo = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "../..");
+// Butuh esbuild & @vue/compiler-sfc dari frontend-service/node_modules. Di CI studio-service hanya modul layanan ini yang
+// dipasang, jadi uji dilewati (pemeriksa sintaks pun melewati pemeriksaan bila modul itu tidak ada).
+const AKAR_REPO = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "../..");
+const frontendTerpasang = (akar = AKAR_REPO) => {
+  try {
+    createRequire(path.join(akar, "frontend-service", "package.json")).resolve("esbuild");
+    return true;
+  } catch {
+    return false;
+  }
+};
+test("cekSintaksFrontend: tanpa node_modules frontend → pemeriksaan dilewati (null), bukan dianggap rusak", async () => {
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), "studio-uji-tanpa-fe-"));
+  try {
+    fs.mkdirSync(path.join(repo, "frontend-service", "src"), { recursive: true });
+    fs.writeFileSync(path.join(repo, "frontend-service", "package.json"), "{}");
+    fs.writeFileSync(path.join(repo, "frontend-service", "src", "rusak.ts"), "const a = [;\n");
+    assert.equal(frontendTerpasang(repo), false);
+    assert.equal(await cekSintaksFrontend(repo, ["frontend-service/src/rusak.ts"]), null);
+  } finally {
+    fs.rmSync(repo, { recursive: true, force: true });
+  }
+});
+test("cekSintaksFrontend: router .ts dan komponen .vue yang rusak setelah penggabungan tertangkap", { skip: !frontendTerpasang() && "node_modules frontend-service tidak terpasang" }, async () => {
+  const repo = AKAR_REPO;
   const dir = path.join(repo, "frontend-service", "src", "__uji_sintaks__");
   const rel = (n) => `frontend-service/src/__uji_sintaks__/${n}`;
   fs.mkdirSync(dir, { recursive: true });
@@ -381,7 +405,6 @@ test("cekSintaksFrontend: router .ts dan komponen .vue yang rusak setelah pengga
     fs.writeFileSync(path.join(dir, "Rusak.vue"), '<script setup lang="ts">\nconst a = ref(1\n</script>\n<template><div>{{ a }}</div></template>\n');
     fs.writeFileSync(path.join(dir, "Baik.vue"), '<script setup lang="ts">\nconst a = 1;\n</script>\n<template><div>{{ a }}</div></template>\n');
     const galat = await cekSintaksFrontend(repo, [rel("rusak.ts"), rel("Rusak.vue"), rel("Baik.vue"), "README.md"]);
-    if (galat?.includes("dilewati")) return; // node_modules frontend belum dipasang
     assert.match(galat, /rusak\.ts:\d+/);
     assert.match(galat, /Rusak\.vue/);
     assert.doesNotMatch(galat, /Baik\.vue/);
