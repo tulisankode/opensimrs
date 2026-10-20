@@ -23,7 +23,8 @@ import {
   validasiBerkasMutu,
   wajibPilihan,
 } from "./bersama.js";
-import { NAMA_PEGAWAI, ambilMilik, catatAudit, cekPegawaiAktif, cekPractitioner, sisipkanBerkas, tanganiMutu, tanpaBerkas } from "./dasar.js";
+import { NAMA_PEGAWAI, ambilMilik, catatAudit, cekPractitioner, tanganiMutu, tanpaBerkas } from "./dasar.js";
+import { catatKredensial } from "./penulis-kredensial.js";
 
 // Kredensial staf (KF-8/KF-9): STR, SIP, sertifikat pelatihan/kompetensi, RKK, SPK tertaut pegawai (dan opsional
 // practitioner) aktif Datamaster — tidak membuat data induk baru. Masa berlaku dihitung saat baca dari tanggal_berakhir
@@ -143,42 +144,9 @@ export const buatRuteKredensial = ({ modul, submodul, aksi, berkasSaatCatat = fa
     izin("CREATE"),
     tanganiMutu(async (req, res) => {
       const b = req.body ?? {};
-      const f = req.author.faskesUuid;
-      const jenis = wajibPilihan(b.jenis, JENIS_KREDENSIAL, "jenis");
-      const mulai = tanggal(b.tanggal_mulai, "tanggal_mulai") ?? null;
-      const akhir = tanggal(b.tanggal_berakhir, "tanggal_berakhir") ?? null;
-      cekRentang(mulai, akhir);
-      const nomor = teks(b.nomor, "nomor", 100) ?? null;
-      const penerbit = teks(b.penerbit, "penerbit", 255) ?? null;
-      const uraian = teks(b.uraian, "uraian", 5000) ?? null;
       const berkas = b.berkas === undefined || b.berkas === null ? null : berkasKredensial(b.berkas);
       if (berkas && berkasSaatCatat) await pastikanIzin(req, modul, submodul, aksi.BERKAS);
-      const hasil = await transaksi(async (k) => {
-        const pegawai = await cekPegawaiAktif(b.pegawai_uuid, f, k);
-        const practitioner = (await cekPractitioner(b.practitioner_uuid, pegawai.uuid, f, k)) ?? null;
-        const row = await sisipkanBerkas(
-          "mutu_kredensial",
-          {
-            faskes_uuid: f,
-            pegawai_uuid: pegawai.uuid,
-            practitioner_uuid: practitioner,
-            jenis,
-            nomor,
-            penerbit,
-            uraian,
-            tanggal_mulai: mulai,
-            tanggal_berakhir: akhir,
-            status: "aktif",
-            status_verifikasi: "belum_diverifikasi",
-            berkas: berkas?.data ?? null,
-            berkas_info: berkas ? infoBerkas(berkas) : null,
-            dicatat_oleh: req.author.username ?? null,
-          },
-          k,
-        );
-        await catatAudit(k, req, "kredensial", row.uuid, "buat", null, row);
-        return denganMasaBerlaku({ ...tanpaBerkas(row), nama_pegawai: pegawai.nama });
-      });
+      const hasil = await transaksi(async (k) => denganMasaBerlaku(await catatKredensial(k, req, b, config.maxUploadMutuMb)));
       kirim(res, hasil, "Kredensial staf berhasil dicatat");
     }),
   );

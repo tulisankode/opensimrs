@@ -10,14 +10,20 @@ import { buatRuteKredensial } from "../mutu/kredensial.js";
 import { JENJANG_PENDIDIKAN, STATUS_KEPEGAWAIAN } from "./bersama.js";
 import { FITUR_SDM, fiturSdmAktif, wajibFiturSdm } from "./fitur.js";
 import kepegawaian from "./kepegawaian.js";
+import kehadiranCuti from "./kehadiran-cuti/rute.js";
+import jadwalDinas from "./jadwal-dinas/rute.js";
+import penggajian from "./penggajian/rute.js";
+import pelatihan from "./pelatihan/rute.js";
 
-// HR / SDM — /api/v3/penunjang/hr/... (STD-0035 fase 1: kepegawaian & kredensial pegawai).
+// HR / SDM — /api/v3/penunjang/hr/... (STD-0035 kepegawaian/kredensial, STD-0040 pelatihan, STD-0041 penggajian).
 //   /referensi    pilihan enum, unit kerja, pegawai & practitioner aktif, batas berkas, status fitur
 //   /kepegawaian  data kepegawaian tertaut pegawai Datamaster + riwayat + pendidikan (kepegawaian.js)
 //   /kredensial   kredensial pegawai — SATU sumber dengan Mutu & Akreditasi › Kredensial Staf (tabel mutu_kredensial,
 //                 router yang sama dari mutu/kredensial.js) dengan izin "HR / SDM › Kredensial"
+//   /pelatihan    katalog, kegiatan, peserta, hasil, sertifikat, kebijakan dan rekap diklat
+//   /penggajian   komponen gaji, konfigurasi BPJS/PPh 21, periode, slip, rekap dan ekspor bank (fitur sendiri di penggajian/rute.js)
 // Seluruh rute mensyaratkan modul sdm aktif (fitur wajib sdm_kepegawaian); /kredensial juga fitur sdm_kredensial.
-// Jadwal dinas, kehadiran/cuti, pelatihan, dan penggajian belum tersedia (fitur "Segera" di katalog).
+// Kehadiran/cuti, jadwal dinas, pelatihan, dan penggajian memakai fitur dan pemeriksaan izin tersendiri.
 const rute = express.Router();
 const MODUL = "HR / SDM";
 
@@ -28,6 +34,7 @@ const kredensial = buatRuteKredensial({
   berkasSaatCatat: true,
 });
 
+rute.use("/penggajian", penggajian);
 rute.use(wajibFiturSdm("sdm_kepegawaian"));
 
 rute.get(
@@ -57,6 +64,9 @@ rute.get(
 );
 
 rute.use("/kepegawaian", kepegawaian);
+rute.use("/kehadiran-cuti", wajibFiturSdm("sdm_kehadiran"), kehadiranCuti);
+rute.use("/jadwal-dinas", wajibFiturSdm("sdm_jadwal_dinas"), jadwalDinas);
 rute.use("/kredensial", wajibFiturSdm("sdm_kredensial"), kredensial);
+rute.use("/pelatihan", wajibFiturSdm("sdm_pelatihan"), pelatihan);
 
 export default rute;

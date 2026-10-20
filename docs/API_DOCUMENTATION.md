@@ -905,4 +905,54 @@ Format body tiap bridging mengikuti kontrak sistem mitra. Lihat skrip simulator 
 
 ---
 
+## Jadwal Dinas HR / SDM — STD-0038
+
+Basis: `/api/v3/penunjang/hr/jadwal-dinas`. Semua rute memerlukan autentikasi, modul SDM dan fitur `sdm_jadwal_dinas` aktif. Faskes hanya dari token; `faskes_uuid` atau `faskesUuid` dalam body/kueri, termasuk objek bertingkat, ditolak. UUID referensi diperiksa dalam faskes aktif dengan `deleted_at IS NULL`.
+
+Respons berupa `{ message, payload }`. Gunakan snake_case dalam permintaan. Waktu adalah epoch detik; tanggal kerja, periode, dan jangkar merupakan awal hari Asia/Jakarta. Periode harus tanggal pertama bulan. `versi_kunci` wajib sesuai hasil pembacaan terakhir pada setiap perubahan objek berversi.
+
+| Metode dan path relatif | Masukan utama | Izin HR / SDM |
+|---|---|---|
+| GET `/referensi` | Tanpa body; unit berwenang, kewenangan sendiri, akun tertaut, izin efektif | Salah satu izin fitur |
+| GET `/pegawai` | `unit_uuid`, `periode_mulai`, `cari`, `page`, `limit` (maksimal 500); rentang kelayakan disertakan | Jadwal Dinas READ dan lihat unit |
+| GET `/pola-shift` | `unit_uuid`, `aktif=true/false` opsional; mencakup pola faskes | Pola Shift READ dan lihat unit |
+| POST `/pola-shift` | `unit_uuid` atau null, `kode`, `nama`, `mulai_menit`, `selesai_menit`, `lintas_hari`, `libur`, `aktif` opsional | Pola Shift CREATE dan susun unit; pola faskes khusus super admin |
+| PUT/DELETE `/pola-shift/:uuid` | `versi_kunci`, perubahan definisi atau `alasan` untuk hapus lunak; cakupan unit tetap | Pola Shift UPDATE/DELETE dan susun unit |
+| GET `/aturan` | `unit_uuid`; `{aturan,kebutuhan}`, aturan null bila belum lengkap | Pola Shift READ dan lihat unit |
+| PUT `/aturan/:unitUuid` | `versi_kunci` (0 untuk pertama), `istirahat_minimum_menit`, `batas_kerja_mingguan_menit`, `jenis_minggu`, `jangkar_minggu`, `tingkat_istirahat`, `tingkat_jam_mingguan`, `tingkat_staf`, `kebutuhan` | Pola Shift PENGATURAN dan susun unit |
+| GET/POST `/rotasi`, PUT `/rotasi/:uuid` | Baca: `unit_uuid`; tulis: `unit_uuid`, `nama`, `urutan_pola`, `aktif`, `versi_kunci` untuk ubah | Pola Shift READ/CREATE/UPDATE dan kewenangan unit terkait |
+| GET `/kewenangan`, PUT `/kewenangan/:unitUuid` | Baca: `unit_uuid`; tulis: `anggota:[{username,kewenangan,berlaku_mulai,berlaku_sampai}]` mengganti susunan secara transaksional | Pola Shift READ/PENGATURAN; tulis hanya super admin |
+| GET/POST `/jadwal` | `unit_uuid`, `periode_mulai`; daftar mengembalikan versi terbaru dahulu, POST membuat keluarga dan draf pertama | Jadwal Dinas READ atau Persetujuan Jadwal READ untuk baca; CREATE dan susun unit untuk buat |
+| GET `/jadwal/:uuid` | UUID keluarga, `versi_uuid` opsional; `{versi,penempatan,validasi,peristiwa}` | Jadwal Dinas READ atau Persetujuan Jadwal READ dan lihat unit |
+| PUT `/versi/:uuid/penempatan` | `versi_kunci`, `penempatan:[{kepegawaian_uuid,tanggal_kerja,pola_shift_uuid}]`, `hapus:[uuid]`; hanya draf | Jadwal Dinas UPDATE dan susun unit |
+| POST `/versi/:uuid/salin` | `versi_kunci`, `sumber_versi_uuid`, `pratinjau` wajib; sumber periode terdahulu dalam unit sama | Jadwal Dinas UPDATE dan susun unit |
+| POST `/versi/:uuid/rotasi` | `versi_kunci`, `rotasi_uuid`, `tanggal_jangkar`, `pegawai:[{kepegawaian_uuid,offset}]`, `pratinjau` wajib | Jadwal Dinas UPDATE dan susun unit |
+| POST `/versi/:uuid/validasi` | `versi_kunci`; `{boleh_diajukan,temuan,potret,diperiksa_pada,versi_kunci}` | Jadwal Dinas READ dan lihat unit |
+| POST `/versi/:uuid/ajukan` | `versi_kunci` | Jadwal Dinas AJUKAN dan susun unit |
+| POST `/versi/:uuid/setujui` | `versi_kunci`, `catatan` opsional; penyetuju berbeda dari pengaju | Persetujuan Jadwal SETUJUI dan setujui unit |
+| POST `/versi/:uuid/tolak` | `versi_kunci`, `alasan`; diajukan/disetujui kembali menjadi draf | Persetujuan Jadwal TOLAK dan setujui unit |
+| POST `/versi/:uuid/terbitkan` | `versi_kunci`; mengubah penunjuk versi aktif | Jadwal Dinas TERBITKAN dan terbit unit |
+| POST `/versi/:uuid/revisi` | `versi_kunci`, `alasan`; hanya versi terbit efektif | Jadwal Dinas REVISI dan susun unit |
+| GET `/saya` | `mulai`, `selesai` eksklusif, maksimal 366 hari | Jadwal Saya READ; pegawai ditentukan dari akun tertaut |
+| GET `/terbit` | `unit_uuid`, `mulai`, `selesai` eksklusif, maksimal 366 hari | Jadwal Dinas READ dan lihat unit |
+| GET `/calon-tukar` | `penempatan_asal_uuid` milik sendiri; maksimal 500 kandidat unit sama dalam 93 hari mendatang | Tukar Dinas CREATE dan kepemilikan |
+| GET `/tukar` | `cakupan=saya/unit`, `unit_uuid` untuk unit, `status`, `page`, `limit`; `peran_saya` menunjukkan pemohon/pengganti/kepala | Tukar Dinas READ; cakupan unit memerlukan putus_tukar |
+| POST `/tukar` | `penempatan_asal_uuid`, `penempatan_pengganti_uuid`, `alasan` | Tukar Dinas CREATE dan kepemilikan shift asal |
+| POST `/tukar/:uuid/tanggapi` | `versi_kunci`, `setuju` boolean, `alasan` wajib jika menolak | Tukar Dinas TANGGAPI dan akun pengganti |
+| POST `/tukar/:uuid/batalkan` | `versi_kunci`, `alasan` | Tukar Dinas BATALKAN dan akun pemohon |
+| POST `/tukar/:uuid/putuskan` | `versi_kunci`, `setuju`, `alasan` wajib jika menolak | Tukar Dinas SETUJUI/TOLAK dan putus_tukar unit; bukan peserta |
+| POST `/keluaran` | `unit_uuid`, `periode_mulai`, `versi_uuid`, `jenis=ekspor/cetak`; hanya terbit efektif | Jadwal Dinas EKSPOR/CETAK dan lihat unit |
+
+Tingkat aturan adalah `pemblokir` atau `peringatan`; `jenis_minggu` adalah `kalender` (Senin 00.00 WIB) atau `tetap` (jangkar wajib). Kebutuhan adalah daftar `{pola_shift_uuid,hari_minggu,tanggal_kerja,minimum_staf}`. Tanggal khusus menggantikan kebutuhan mingguan. Nilai kebijakan dan pejabat unit tidak diisi migrasi. Pengajuan ditahan sampai konfigurasi lengkap. Status super admin tidak menggantikan kewenangan unit untuk tindakan operasional.
+
+Benturan selalu memblokir penyimpanan. Pemblokir lain dapat tersimpan dalam draf, tetapi memblokir transisi dan pertukaran. Jam mingguan dibagi menurut irisan interval pada batas minggu; versi terbit dan versi kerja keluarga lain diperlakukan sebagai alternatif. Setiap transisi memvalidasi ulang kelayakan, benturan, istirahat, dan jam kerja lintas unit/periode. Perubahan potret kebijakan setelah pengajuan mengharuskan pengajuan ulang.
+
+Status versi: `draf → diajukan → disetujui → terbit`; penolakan beralasan kembali ke draf. Versi terbit tidak diedit langsung. Revisi mempertahankan penunjuk versi terbit lama sampai diterbitkan. Status tukar: `menunggu_pengganti → menunggu_kepala → diterapkan`, atau `ditolak`/`dibatalkan`. Pengajuan menjadi pernyataan kehendak pemohon. Penerapan membuat versi terbit baru bagi seluruh keluarga terkait dalam satu transaksi; sel libur tujuan ikut dipindahkan. Revisi berjalan, shift sudah dimulai, atau perubahan versi efektif menghasilkan konflik.
+
+Mutasi mengambil kunci transaksi per faskes (waktu tunggu maksimal lima detik), memeriksa versi, menyimpan perubahan, hasil validasi, dan peristiwa wajib dalam transaksi yang sama. Audit pusat tetap dipanggil melalui helper SDM. Tidak ada API menghapus versi, keputusan, atau peristiwa. Keluaran ekspor/cetak juga dicatat dalam transaksi; CSV dibentuk klien dari keluaran terotorisasi dengan perlindungan rumus.
+
+Kode HTTP: `200/201` berhasil, `400` masukan/konfigurasi salah, `401` autentikasi, `403` izin/fitur/kepemilikan/kewenangan, `404` referensi tidak ditemukan sefaskes, `409` konflik versi/status/kunci, `422` pelanggaran validasi, `500` pesan umum. Galat validasi dapat menyertakan `{kode:"VALIDASI_JADWAL",boleh_diajukan:false,temuan:[...]}` dalam `payload`. Temuan memuat aturan, tingkat, pegawai/tanggal yang dapat dilihat, dan nilai aktual/batas terkait. Galat umum memakai `payload:null`; middleware lama dapat tetap hanya mengirim `{message}`.
+
+Migrasi baru: `20261021050000-sdm_jadwal_dinas.cjs`, `20261021050100-katalog_sdm_jadwal_dinas.cjs`, `20261021050200-izin_sdm_jadwal_dinas.cjs`. Migrasi izin hanya menggabungkan aksi super admin dan mempertahankan daftar izin kosong serta izin lama. Jadwal terbit dapat dibaca konsumen layanan berizin; fitur ini belum mengubah presensi, cuti, penggajian, atau alur klinis.
+
 > Kontak pengembang: `dev@opensimrs.id` · Kanal komunitas: [COMMUNITY.md](../COMMUNITY.md)

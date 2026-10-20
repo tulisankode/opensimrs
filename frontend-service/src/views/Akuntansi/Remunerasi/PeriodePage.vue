@@ -244,6 +244,7 @@ onMounted(async () => {
       <template #header>{{ d?.nama }} — {{ STATUS_PERIODE_REMUN[d?.status] ?? d?.status }}</template>
       <template #body>
         <div v-if="d" class="flex flex-col gap-3 pt-4 text-sm">
+          <p v-if="d.penggajian" class="p-3 border rounded-md">Jasa pelayanan disalurkan melalui penggajian {{ d.penggajian.periodeUuid }} · {{ d.penggajian.status }} · Jurnal: {{ d.penggajian.statusJurnal || 'belum dicatat' }} {{ d.penggajian.jurnalUuid }}</p>
           <div class="grid grid-cols-4 gap-3 text-xs">
             <div class="p-3 border rounded-md border-grey-100"><div class="text-grey-400">Dasar (item lunas berporsi)</div><div class="text-base font-semibold">Rp {{ rupiah(d.totalDasar) }}</div></div>
             <div class="p-3 border rounded-md border-grey-100"><div class="text-grey-400">Jasa langsung</div><div class="text-base font-semibold">Rp {{ rupiah(d.totalLangsung) }}</div></div>
@@ -360,7 +361,7 @@ onMounted(async () => {
           <CustomButton v-if="d.status === 'dihitung' && izinRemunerasi('verifikasi', 'VALIDASI')" label="Verifikasi" icon="PhCheckCircle" :disabled="d.jumlahPengecualian > 0" @click="verifikasi" />
           <CustomButton v-if="d.status === 'diverifikasi' && izinRemunerasi('persetujuan', 'TOLAK')" label="Tolak" icon="PhXCircle" outlined borderColor="border-danger-300" textColor="text-danger-300" @click="kembalikan" />
           <CustomButton v-if="d.status === 'diverifikasi' && izinRemunerasi('persetujuan', 'SETUJUI')" label="Setujui" icon="PhSealCheck" @click="setujui" />
-          <CustomButton v-if="d.status === 'disetujui' && izinRemunerasi('pembayaran', 'BAYAR')" label="Catat Pembayaran" icon="PhMoney" @click="dialogBayar = true" />
+          <CustomButton v-if="d.status === 'disetujui' && !d.penggajian && izinRemunerasi('pembayaran', 'BAYAR')" label="Catat Pembayaran" icon="PhMoney" @click="dialogBayar = true" />
         </div>
       </template>
     </CustomDialog>

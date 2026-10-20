@@ -350,9 +350,22 @@ import KalibrasiSarprasPage from "@/views/Sarpras/KalibrasiPage.vue";
 import UtilitasSarprasPage from "@/views/Sarpras/UtilitasPage.vue";
 import PengaturanSarprasPage from "@/views/Sarpras/PengaturanPage.vue";
 import LaporanSarprasPage from "@/views/Sarpras/LaporanPage.vue";
+import { halamanGaji } from "@/stores/penunjang/penggajian";
+import GajiKomponen from "@/views/Sdm/Penggajian/KomponenPage.vue";
+import GajiKonfigurasi from "@/views/Sdm/Penggajian/KonfigurasiPage.vue";
+import GajiPeriode from "@/views/Sdm/Penggajian/PeriodePage.vue";
+import GajiDetailPeriode from "@/views/Sdm/Penggajian/DetailPeriodePage.vue";
+import GajiSlip from "@/views/Sdm/Penggajian/SlipPage.vue";
+import GajiRekap from "@/views/Sdm/Penggajian/RekapPage.vue";
 import SdmView from "@/views/Sdm/SdmView.vue";
 import KepegawaianSdmPage from "@/views/Sdm/KepegawaianPage.vue";
+import KehadiranCutiSdmPage from "@/views/Sdm/KehadiranCutiPage.vue";
 import KredensialSdmPage from "@/views/Sdm/KredensialPage.vue";
+import JadwalDinasPage from "@/views/Sdm/JadwalDinasPage.vue";
+import PolaShiftPage from "@/views/Sdm/PolaShiftPage.vue";
+import JadwalSayaPage from "@/views/Sdm/JadwalSayaPage.vue";
+import TukarDinasPage from "@/views/Sdm/TukarDinasPage.vue";
+import PelatihanSdmPage from "@/views/Sdm/PelatihanPage.vue";
 // NOTE Akuntansi & Remunerasi — jurnal otomatis, buku besar, laporan keuangan (STD-0031, penunjang-service)
 import AkuntansiView from "@/views/Akuntansi/AkuntansiView.vue";
 import CoaAkuntansiPage from "@/views/Akuntansi/CoaPage.vue";
@@ -1951,10 +1964,40 @@ const router = createRouter({
       ["/sarpras/pengaturan", "sarpras-pengaturan", PengaturanSarprasPage],
       ["/sarpras/laporan", "sarpras-laporan", LaporanSarprasPage],
     ]),
+    { path: "/sdm", name: "sdm", redirect: () => canAccessPermission({ module: "HR / SDM", submodule: "Kepegawaian", action: "READ" })
+      ? "/sdm/kepegawaian" : canAccessPermission({ module: "HR / SDM", submodule: "Kredensial", action: "READ" })
+        ? "/sdm/kredensial" : "/sdm/kehadiran/saya" },
+    { path: "/sdm", name: "sdm", redirect: () => canAccessPermission({ module: "HR / SDM", submodule: "Kepegawaian", action: "READ" }) ? "/sdm/kepegawaian" : "/sdm/penggajian" },
+    { path: "/sdm/penggajian", redirect: () => `/sdm/penggajian/${halamanGaji() ?? "slip"}` },
     { path: "/sdm", name: "sdm", redirect: "/sdm/kepegawaian" },
+    { path: "/sdm", name: "sdm", redirect: () => ["/sdm/kepegawaian", "/sdm/kredensial", "/sdm/jadwal-dinas", "/sdm/pola-shift", "/sdm/jadwal-saya", "/sdm/tukar-dinas", "/sdm/pelatihan/kegiatan", "/sdm/pelatihan/rekap", "/sdm/pelatihan/pengaturan"].find((p) => ruteDiizinkanModul(p).boleh && canAccessPermission(resolveRoutePermission(p))) ?? "/dashboard" },
+    { path: "/sdm/pelatihan", name: "sdm-pelatihan", redirect: () =>
+      ["/sdm/pelatihan/kegiatan", "/sdm/pelatihan/rekap", "/sdm/pelatihan/pengaturan"].find((p) => canAccessPermission(resolveRoutePermission(p))) ?? "/403" },
     ...halamanModul(SdmView, [
+      ["/sdm/penggajian/komponen", "sdm-penggajian-komponen", GajiKomponen],
+      ["/sdm/penggajian/konfigurasi", "sdm-penggajian-konfigurasi", GajiKonfigurasi],
+      ["/sdm/penggajian/periode", "sdm-penggajian-periode", GajiPeriode],
+      ["/sdm/penggajian/periode/:uuid", "sdm-penggajian-detail", GajiDetailPeriode],
+      ["/sdm/penggajian/slip", "sdm-penggajian-slip", GajiSlip],
+      ["/sdm/penggajian/rekap", "sdm-penggajian-rekap", GajiRekap],
+
       ["/sdm/kepegawaian", "sdm-kepegawaian", KepegawaianSdmPage],
+      ["/sdm/kehadiran/saya", "sdm-kehadiran-saya", KehadiranCutiSdmPage],
+      ["/sdm/kehadiran/impor", "sdm-kehadiran-impor", KehadiranCutiSdmPage],
+      ["/sdm/kehadiran/rekap", "sdm-kehadiran-rekap", KehadiranCutiSdmPage],
+      ["/sdm/cuti/pengajuan", "sdm-cuti-pengajuan", KehadiranCutiSdmPage],
+      ["/sdm/cuti/persetujuan", "sdm-cuti-persetujuan", KehadiranCutiSdmPage],
+      ["/sdm/cuti/pengaturan", "sdm-cuti-pengaturan", KehadiranCutiSdmPage],
       ["/sdm/kredensial", "sdm-kredensial", KredensialSdmPage],
+      ["/sdm/jadwal-dinas", "sdm-jadwal-dinas", JadwalDinasPage],
+      ["/sdm/pola-shift", "sdm-pola-shift", PolaShiftPage],
+      ["/sdm/jadwal-saya", "sdm-jadwal-saya", JadwalSayaPage],
+      ["/sdm/tukar-dinas", "sdm-tukar-dinas", TukarDinasPage],
+      ["/sdm/pelatihan/katalog", "sdm-pelatihan-katalog", PelatihanSdmPage],
+      ["/sdm/pelatihan/kegiatan", "sdm-pelatihan-kegiatan", PelatihanSdmPage],
+      ["/sdm/pelatihan/kegiatan/:uuid", "sdm-pelatihan-detail", PelatihanSdmPage],
+      ["/sdm/pelatihan/rekap", "sdm-pelatihan-rekap", PelatihanSdmPage],
+      ["/sdm/pelatihan/pengaturan", "sdm-pelatihan-pengaturan", PelatihanSdmPage],
     ]),
     { path: "/akuntansi", name: "akuntansi", redirect: "/akuntansi/jurnal" },
     ...halamanModul(AkuntansiView, [

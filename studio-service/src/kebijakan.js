@@ -86,7 +86,8 @@ const POLA_KRIPTO = /\bcreate(?:Cipher|Decipher)iv\s*\(/;
 export const normalKripto = (teks = "") =>
   String(teks).replace(/\r\n/g, "\n").split("\n").map((b) => b.replace(/\s+$/, "")).filter((b) => b.trim() && !/^\s*\/\//.test(b))
     .map((b) => b.replace(/\b[A-Z][A-Z0-9_]*_KUNCI_RAHASIA\b/g, "X_KUNCI_RAHASIA")).join("\n");
-const POLA_IMPORT_MAIN = /\bfrom\s*["'](?:@\/main|(?:\.\.?\/)+main)(?:\.ts)?["']|\bimport\s*\(\s*["']@\/main(?:\.ts)?["']\s*\)/;
+const POLA_SQL_NEMPEL = /[^<]<:[a-zA-Z_]/;
+const POLA_IMPORT_MAIN =/\bfrom\s*["'](?:@\/main|(?:\.\.?\/)+main)(?:\.ts)?["']|\bimport\s*\(\s*["']@\/main(?:\.ts)?["']\s*\)/;
 
 // awalanMigrasi: awalan (YYYYMMDDHH) yang dipesan item ini; awalanLain: [{ nomor, awalan_migrasi }] milik item aktif lain;
 // fragmen: path fragmen CHANGELOG item (changelog.d/STD-NNNN.md).
@@ -176,8 +177,45 @@ export const periksaKebijakan = (berkas, { risiko = "sedang", migrasiTerakhir = 
     tambah("Import melingkar", !impMain.length, impMain.length ? `Mengimpor "@/main" (pakai "@/utils/aplikasi"): ${impMain.join(", ")}` : 'Tidak ada import "@/main"');
   }
 
+  // 4c. Konvensi kode yang pernah lolos lalu rusak setelah diterapkan:
+  // - parameter Sequelize yang menempel pada "<" (waktu<:sampai) tidak diganti → "syntax error at or near ':'";
+  // - rute modul dengan layout: DefaultLayout → halaman tanpa header/menu/sidebar (pakai halamanModul);
+  // - halaman baru (*Page.vue) tanpa PageToolbar → HTML polos yang tidak seragam dengan OpenSIMRS.
+  const sqlNempel = berkas
+    .filter((b) => /-service\/src\/.+\.(c|m)?js$/.test(b.path))
+    .filter((b) => barisTambahan(b.patch).some((baris) => POLA_SQL_NEMPEL.test(baris)))
+    .map((b) => b.path);
+  const layoutPolos = berkas
+    .filter((b) => b.path === "frontend-service/src/router/index.ts")
+    .some((b) => barisTambahan(b.patch).some((baris) => /layout:\s*DefaultLayout\b/.test(baris)));
+  const halamanPolos = berkas
+    .filter((b) => ["??", "A"].includes(b.status) && /^frontend-service\/src\/views\/.+Page\.vue$/.test(b.path))
+    .filter((b) => {
+      const isi = barisTambahan(b.patch).join("\n");
+      return !/studio:\s*tanpa-toolbar/.test(isi) && !(/<Card\b/.test(isi) && /PageToolbar/.test(isi));
+    })
+    .map((b) => b.path);
+  // Dialog bawaan browser & isian UUID manual (Penggajian STD-0041): pakai dialog OpenSIMRS dan pilihan bernama.
+  const frontendBaru = berkas.filter((b) => /^frontend-service\/src\/.+\.(vue|ts)$/.test(b.path));
+  const dialogPeramban = frontendBaru
+    .filter((b) => barisTambahan(b.patch).some((baris) => /(^|[^.\w])(window\.)?(prompt|confirm|alert)\s*\(/.test(baris) && !/^\s*(\/\/|\*)/.test(baris)))
+    .map((b) => b.path);
+  const isianUuid = frontendBaru
+    .filter((b) => barisTambahan(b.patch).some((baris) => /(label|placeholder|placeHolder)\s*[=:]\s*["'`][^"'`]*\bUUID\b/i.test(baris)))
+    .map((b) => b.path);
+  if (berkas.some((b) => /-service\//.test(b.path))) {
+    const masalah = [
+      ...(sqlNempel.length ? [`parameter SQL menempel pada "<" (tulis "kolom < :nilai"): ${sqlNempel.join(", ")}`] : []),
+      ...(layoutPolos ? ['rute baru memakai layout: DefaultLayout — rute modul wajib halamanModul(View, [...]) agar header & sidebar tampil'] : []),
+      ...(halamanPolos.length ? [`halaman baru tanpa Card + PageToolbar (pola Card + PageToolbar + komponen Custom*): ${halamanPolos.join(", ")}`] : []),
+      ...(dialogPeramban.length ? [`memakai prompt()/confirm()/alert() bawaan peramban — pakai CustomDialog berisi isian: ${dialogPeramban.join(", ")}`] : []),
+      ...(isianUuid.length ? [`isian meminta UUID diketik pengguna — pakai CustomSelect berlabel nama: ${isianUuid.join(", ")}`] : []),
+    ];
+    tambah("Konvensi kode", !masalah.length, masalah.length ? masalah.join("; ") : "Parameter SQL, rute modul, dan pola halaman sesuai konvensi");
+  }
+
   // 5. Uji & CHANGELOG
-  const logika = berkas.filter((b) => /-service\/src\/.+\.(js|cjs|mjs|ts)$/.test(b.path) && !b.path.startsWith("frontend-service/"));
+  const logika =berkas.filter((b) => /-service\/src\/.+\.(js|cjs|mjs|ts)$/.test(b.path) && !b.path.startsWith("frontend-service/"));
   const uji = berkas.some((b) => /(^|\/)test\/|\.test\.(js|ts|mjs)$/.test(b.path));
   tambah("Uji", !logika.length || uji, !logika.length ? "Tidak ada logika backend baru" : uji ? "Ada uji untuk perubahan backend" : "Logika backend berubah tanpa berkas uji (peringatan)");
   // CHANGELOG: fragmen changelog.d/<nama>.md (tidak konflik antar-PR); entri langsung di CHANGELOG.md tetap diterima.

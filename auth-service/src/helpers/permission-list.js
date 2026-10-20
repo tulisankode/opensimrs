@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus } from "../errors/http-exception.js";
 import { generateErrorMessage } from "./generate-message.js";
+import { SUBMODUL_JADWAL } from "./sdm-jadwal-izin.js";
 
 export const antrianPermission = {
   module: "Antrian",
@@ -1207,14 +1208,33 @@ export const hemodialisaPermission = {
 };
 
 // HR / SDM (STD-0035, penunjang-service /hr). Fase 1: kepegawaian & kredensial pegawai. Kredensial adalah data yang sama
+// dengan Mutu & Akreditasi › Kredensial Staf (satu tabel), tetapi diatur izin modul ini. Jadwal dinas ditambahkan pada
+// STD-0038. Kehadiran/cuti, pelatihan, dan penggajian menyusul bersama implementasinya.
+// HR / SDM (STD-0035 dan STD-0040, penunjang-service /hr): kepegawaian, kredensial dan pelatihan. Kredensial adalah data yang sama
 // dengan Mutu & Akreditasi › Kredensial Staf (satu tabel), tetapi diatur izin modul ini. Submodul fase berikutnya
-// (jadwal dinas, kehadiran/cuti, pelatihan, penggajian) ditambahkan bersama fiturnya agar Hak Akses tidak menjanjikan
+// (jadwal dinas, pelatihan, penggajian) ditambahkan bersama fiturnya agar Hak Akses tidak menjanjikan
+// (jadwal dinas, kehadiran/cuti, pelatihan) ditambahkan bersama fiturnya agar Hak Akses tidak menjanjikan
+// (jadwal dinas, kehadiran/cuti, penggajian) ditambahkan bersama fiturnya agar Hak Akses tidak menjanjikan
 // fitur yang belum ada.
 export const sdmPermission = {
   module: "HR / SDM",
   subModules: [
     { name: "Kepegawaian", allows: ["READ", "CREATE", "UPDATE", "DELETE", "TAUTKAN AKUN"] },
+    { name: "Kehadiran, Cuti & Izin", allows: ["READ", "ABSEN", "AJUKAN", "BATALKAN", "TINJAU ATASAN", "SAHKAN SDM", "IMPOR", "ATUR JENIS KEBIJAKAN", "ATUR CAKUPAN", "KOREKSI", "SESUAIKAN SALDO", "LIHAT REKAP", "EKSPOR REKAP"] },
     { name: "Kredensial", allows: ["READ", "CREATE", "UPDATE", "UNGGAH DOKUMEN", "VERIFIKASI", "CABUT", "DELETE"] },
+    { name: "Komponen Penggajian", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Konfigurasi Penggajian", allows: ["READ", "CREATE", "UPDATE", "SAHKAN"] },
+    { name: "Rekening Penggajian", allows: ["READ", "CREATE", "VERIFIKASI"] },
+    { name: "Periode Penggajian", allows: ["READ", "CREATE", "HITUNG", "AJUKAN", "KOREKSI", "BATALKAN"] },
+    { name: "Verifikasi Penggajian", allows: ["READ", "VALIDASI", "KEMBALIKAN"] },
+    { name: "Persetujuan Penggajian", allows: ["READ", "SETUJUI", "TOLAK"] },
+    { name: "Pembayaran Penggajian", allows: ["READ", "BAYAR", "ULANG JURNAL"] },
+    { name: "Rekap Penggajian", allows: ["READ"] },
+    { name: "Ekspor Bank Penggajian", allows: ["READ", "EKSPOR"] },
+    { name: "Slip Penggajian", allows: ["READ"] },
+    { name: "Slip Administratif Penggajian", allows: ["READ"] },
+    ...SUBMODUL_JADWAL,
+    { name: "Pelatihan", allows: ["READ", "KELOLA KATALOG", "KELOLA KEGIATAN", "KELOLA PESERTA", "CATAT HASIL", "VERIFIKASI HASIL", "KELOLA SERTIFIKAT", "KELOLA KEBIJAKAN", "BACA REKAP", "EKSPOR"] },
   ],
 };
 

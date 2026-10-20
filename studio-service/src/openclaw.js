@@ -12,6 +12,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { execFile, spawn } from "child_process";
+import { pathToFileURL } from "url";
 import config from "./config.js";
 import { git } from "./git.js";
 import { Galat, permintaanSalah } from "./respons.js";
@@ -314,17 +315,35 @@ export const jalankanGateway = async () => {
 export const gatewayDijalankanStudio = () => Boolean(prosesGateway && prosesGateway.exitCode == null);
 
 // Uji tanya-jawab ke agen helpdesk lewat gateway (memakai model sungguhan): jawaban & lama waktunya.
+const PENGANTAR_KUTIPAN = "Kutipan panduan pengguna yang paling relevan dengan pertanyaan ini. Jawab berdasarkan kutipan ini dan sebutkan menu/tombol persis seperti tertulis. Bila kutipan tidak memuat jawabannya, katakan belum tahu. Jangan menambah langkah, menu, atau tombol yang tidak ada di panduan.";
+const denganKutipan = async (pertanyaan) => {
+  try {
+    const p = await import(pathToFileURL(path.join(config.repoDir, "setting-service", "src", "bantuan", "panduan.js")).href);
+    const kutipan = p.kutipanPanduan(pertanyaan, "");
+    if (!kutipan) return { teks: pertanyaan, bagian: [] };
+    return { teks: `${PENGANTAR_KUTIPAN}
+
+${kutipan}
+
+Pertanyaan: ${pertanyaan}`, bagian: p.cariBagian(pertanyaan).map((b) => b.judul) };
+  } catch {
+    return { teks: pertanyaan, bagian: [] };
+  }
+};
+
 export const ujiTanya = async (body = {}) => {
   const agen = String(body.agen || AGEN_BAWAAN).trim();
   if (!POLA_AGEN.test(agen)) throw permintaanSalah("ID agen tidak valid");
   const pertanyaan = String(body.pertanyaan || "Bagaimana cara mengganti kata sandi?").slice(0, 300);
+  // Sama dengan tombol Bantuan: kutipan panduan yang relevan ikut dikirim (setting-service/src/bantuan/panduan.js).
+  const { teks: pesan, bagian } = await denganKutipan(pertanyaan);
   const mulai = Date.now();
   // Sesi baru per uji: jawaban tidak dipengaruhi riwayat percakapan uji sebelumnya.
   const sesi = `agent:${agen}:uji-studio-${crypto.randomUUID().slice(0, 8)}`;
-  const r = await jalankan(["agent", "--agent", agen, "--session-key", sesi, "--message", pertanyaan, "--json", "--timeout", "300"], 330000);
+  const r = await jalankan(["agent", "--agent", agen, "--session-key", sesi, "--message", pesan, "--json", "--timeout", "300"], 330000);
   const durasiMs = Date.now() - mulai;
   const json = ambilJson(r.keluaran);
   const jawaban = (json?.result?.payloads ?? []).map((p) => p.text).filter(Boolean).join("\n") || null;
   if (!r.ok && !jawaban) throw new Galat(502, `Agen tidak menjawab (${Math.round(durasiMs / 1000)} dtk): ${r.keluaran.trim().split("\n").slice(-4).join(" ")}`);
-  return { agen, pertanyaan, jawaban: jawaban ?? r.keluaran.trim().slice(-2000), durasiMs };
+  return { agen, pertanyaan, jawaban: jawaban ?? r.keluaran.trim().slice(-2000), durasiMs, bagian };
 };

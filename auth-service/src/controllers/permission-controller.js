@@ -1,9 +1,11 @@
+import { tambahanSinkronPenggajian } from "../helpers/penggajian-izin.js";
 import sequelizeInstance from "@opensimrs/model-sdk/instance";
 import { QueryTypes } from "sequelize";
 import { mapPermission } from "../helpers/permission-list.js";
 import { isSuperadmin } from "@opensimrs/authorization-sdk/peran";
 import generateRedisKeyByJwtToken from "@opensimrs/authorization-sdk/generateKeyRedis";
 import redisClient from "../configurations/redis-client-config.js";
+import { tambahanSinkronSdm, gabungIzinJadwal } from "../helpers/sdm-jadwal-izin.js";
 
 // Semua modul izin yang dikenal (kunci mapPermission). Sumber tunggal untuk editor Role di frontend.
 const SEMUA_MODUL = [
@@ -69,21 +71,32 @@ export default class PermissionController {
       const hasil = await sequelizeInstance.transaction(async (transaction) => {
         const q = (sql, replacements, type = QueryTypes.SELECT) => sequelizeInstance.query(sql, { replacements, type, transaction });
         const peran = await q(
-          `SELECT uuid, permissions FROM role
+          `SELECT uuid, name, permissions FROM role
            WHERE deleted_at IS NULL AND ((faskes_uuid = :f AND permissions LIKE '%"Profile Faskes"%') OR (faskes_uuid IS NULL AND LOWER(name) = 'super admin'))`,
           { f: author.faskesUuid }
         );
         let jumlahPeran = 0;
         let jumlahPengguna = 0;
         for (const r of peran) {
-          const baru = gabung(r.permissions, tambahan);
+          const superAdmin = String(r.name).toLowerCase() === "super admin";
+          // Penyaring dirangkai: submodul gaji (STD-0041) dan jadwal (STD-0038) hanya otomatis untuk super admin.
+          const terpilih = tambahanSinkronSdm(tambahanSinkronPenggajian(tambahan, r.name), superAdmin);
+          const sinkron = (nilai) => {
+            if (superAdmin && tambahan.some((m) => m.module === "HR / SDM") && baca(nilai)?.length === 0) return null;
+            const dasar = gabung(nilai, terpilih) ?? nilai;
+            const data = baca(dasar);
+            if (!superAdmin || !data?.length || !tambahan.some((m) => m.module === "HR / SDM")) return dasar !== nilai ? dasar : null;
+            const lengkap = JSON.stringify(gabungIzinJadwal(data));
+            return lengkap !== nilai ? lengkap : null;
+          };
+          const baru = sinkron(r.permissions);
           if (baru) {
             await q(`UPDATE role SET permissions = :p WHERE uuid = :u`, { p: baru, u: r.uuid }, QueryTypes.UPDATE);
             jumlahPeran++;
           }
           const pengguna = await q(`SELECT uuid, permissions FROM users WHERE role_uuid = :r AND deleted_at IS NULL`, { r: r.uuid });
           for (const u of pengguna) {
-            const baruU = gabung(u.permissions, tambahan);
+            const baruU = sinkron(u.permissions);
             if (baruU) {
               await q(`UPDATE users SET permissions = :p WHERE uuid = :u`, { p: baruU, u: u.uuid }, QueryTypes.UPDATE);
               jumlahPengguna++;

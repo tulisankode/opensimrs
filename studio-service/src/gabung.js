@@ -6,6 +6,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { execFile } from "child_process";
+import { fileURLToPath } from "url";
 import { Galat } from "./respons.js";
 import { git } from "./git.js";
 
@@ -250,6 +251,16 @@ export const selesaikanTeks = (teks, aturan, konteks = {}) => {
 
 // ---------- Alur git ----------
 
+// Sintaks berkas frontend (.ts/.vue) hasil penggabungan: node --check hanya mengenal JavaScript. Mengembalikan pesan
+// galat, atau null bila valid / tidak ada berkas frontend.
+const SKRIP_SINTAKS_FRONTEND = fileURLToPath(new URL("./cek-sintaks-frontend.mjs", import.meta.url));
+export const cekSintaksFrontend = async (cwd, jalur) => {
+  const fe = jalur.filter((p) => /^frontend-service\/.+\.(ts|vue)$/.test(p) && fs.existsSync(path.join(cwd, p)));
+  if (!fe.length) return null;
+  const r = await jalankanNode([SKRIP_SINTAKS_FRONTEND, cwd, ...fe], cwd);
+  return r.ok ? null : r.keluaran;
+};
+
 const jalankanNode = (args, cwd) =>
   new Promise((resolve) => {
     execFile(process.execPath, args, { cwd, maxBuffer: 20 * 1024 * 1024, windowsHide: true, timeout: 5 * 60 * 1000 }, (err, stdout, stderr) =>
@@ -388,6 +399,13 @@ export const sinkronkan = async ({ cwd, target, pesanCommit, biarkan = false }) 
     await git(["add", "--", ...jalur], { cwd });
     if ((await git(["diff", "--name-only", "--diff-filter=U"], { cwd })).keluaran.trim()) throw new Error("masih ada berkas berkonflik setelah diselesaikan");
 
+    // 3a. Sintaks berkas frontend yang diselesaikan otomatis (router, Header.vue, …).
+    const frontend = await cekSintaksFrontend(cwd, [...jalur]);
+    if (frontend) {
+      await batal();
+      return { status: "gagal_integritas", otomatis, tersisa: [], integritas: `Sintaks frontend rusak setelah penyelesaian otomatis:\n${frontend}` };
+    }
+
     // 4. Integritas lintas berkas (menu, katalog, migrasi kembar, fragmen CHANGELOG) sebelum commit.
     if (fs.existsSync(path.join(cwd, "scripts", "cek-integritas.mjs"))) {
       const cek = await jalankanNode(["scripts/cek-integritas.mjs"], cwd);
@@ -438,6 +456,8 @@ export const selesaikanGabung = async ({ cwd, pesanCommit }) => {
     if (!r.ok) masalah.push(`${rel}: ${r.keluaran.split("\n").slice(0, 4).join(" ")}`);
   }
   if (masalah.length) throw new Galat(409, `Sintaks JavaScript rusak setelah konflik diselesaikan — ${masalah.join("; ")}`);
+  const frontend = await cekSintaksFrontend(cwd, disatukan);
+  if (frontend) throw new Galat(409, `Sintaks frontend rusak setelah konflik diselesaikan (aplikasi akan gagal dibuka) — ${frontend}`);
   if (fs.existsSync(path.join(cwd, "scripts", "dokumen-katalog.mjs"))) {
     const g = await jalankanNode(["scripts/dokumen-katalog.mjs"], cwd);
     if (!g.ok) throw new Galat(409, `Dokumen katalog gagal dibuat ulang (katalog modul mungkin tidak valid): ${g.keluaran.slice(-500)}`);

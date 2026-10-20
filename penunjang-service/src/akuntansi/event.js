@@ -1,4 +1,6 @@
 import { awalHariWib, keSen, rapikanBaris } from "./bersama.js";
+import { sen, senAman, uang } from "../hr/penggajian/perhitungan.js";
+import { permintaanSalah } from "../umum/respons.js";
 
 // Daftar jenis event akuntansi (sumber jurnal otomatis) & penyusun baris jurnalnya (fungsi murni, diuji di
 // test/akuntansi.test.js). Setiap event menghasilkan baris berkomponen (mis. "pendapatan:RJ") yang dipetakan ke akun
@@ -12,6 +14,11 @@ import { awalHariWib, keSen, rapikanBaris } from "./bersama.js";
 // tulis penyusun baris murni di sini, pengambil data di sumber.js (penarikan) ATAU panggil jurnalkanEvent() dari
 // proses.js di dalam transaksi modul sumber (dorong), lalu tambahkan pemetaan bawaan di coa-bawaan.js.
 export const JENIS_EVENT = {
+  penggajian: {
+    nama: "Pembayaran Penggajian", sumber: "SDM › periode penggajian dibayar", tersedia: true, dorong: true,
+    pemetaan_manual: true,
+    komponen: { beban_gaji: "Beban gaji per kode", utang_jaspel: "Pelunasan utang jasa pelayanan", beban_iuran: "Beban iuran pemberi kerja per kode", utang_bpjs: "Utang iuran per kode", utang_pph21: "Utang PPh 21", potongan_lain: "Potongan lain per kode", kas: "Bank pembayaran" },
+  },
   tagihan_final: {
     nama: "Tagihan Final (Pengakuan Pendapatan)",
     sumber: "Pembayaran › tagihan ditutup (bills.close_bill)",
@@ -301,4 +308,25 @@ export const susunBayarJaspel = (p) => {
   };
   if (total <= 0) return lewati(ev, "Total jasa pelayanan periode nol");
   return { ...ev, baris: [D("utang_jaspel", total), K(`kas:${metode}`, total)] };
+};
+
+// Jaspel telah menjadi beban di Remunerasi; penggajian hanya melunasi utangnya.
+export const susunPenggajian = (p, rincian) => {
+  const jumlah = new Map();
+  const tambah = (komponen, nilai) => jumlah.set(komponen, (jumlah.get(komponen) ?? 0n) + nilai);
+  for (const r of rincian) {
+    const n = sen(r.nilai);
+    if (r.jenis === "penghasilan") tambah(r.kategori === "jaspel" ? "utang_jaspel" : `beban_gaji:${r.kode}`, n);
+    else if (r.jenis === "potongan") tambah(r.kategori === "pph21" ? "utang_pph21" : r.kategori === "bpjs" ? `utang_bpjs:${r.kode}` : `potongan_lain:${r.kode}`, -n);
+    else if (r.jenis === "iuran_pemberi_kerja") { tambah(`beban_iuran:${r.kode}`, n); tambah(`utang_bpjs:${r.kode}`, -n); }
+    else throw permintaanSalah("Jenis rincian penggajian tidak dikenal");
+  }
+  tambah("kas:TRANSFER", -sen(p.bersih));
+  const baris = [...jumlah].sort(([a], [b]) => a.localeCompare(b)).filter(([, n]) => n !== 0n).map(([komponen, n]) => ({ komponen, debit: n > 0n ? senAman(uang(n)) : 0, kredit: n < 0n ? senAman(uang(-n)) : 0 }));
+  const debit = baris.reduce((n, b) => n + BigInt(b.debit), 0n), kredit = baris.reduce((n, b) => n + BigInt(b.kredit), 0n);
+  if (debit !== kredit || debit <= 0n) throw permintaanSalah("Jurnal penggajian tidak seimbang atau bernilai nol");
+  const nilai = senAman(uang(debit));
+  return { jenis_event: "penggajian", kunci: `penggajian:${p.uuid}`, sumber_tabel: "hr_gaji_periode", sumber_uuid: p.uuid,
+    sumber_nomor: `${p.tahun}-${String(p.bulan).padStart(2, "0")}`, tanggal: Number(p.tanggal_bayar), nilai,
+    uraian: `Pembayaran penggajian ${p.tahun}-${p.bulan}`, data: { hash_hitung: p.hash_hitung, tanggal: Number(p.tanggal_bayar), baris }, baris };
 };
