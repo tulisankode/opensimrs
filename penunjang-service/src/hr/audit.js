@@ -10,7 +10,8 @@ import { uuidv7, sekarang } from "../db.js";
 // Kegagalan audit TIDAK menggagalkan transaksi utama (STD-0029 KT-19), tetapi galat SQL di PostgreSQL membatalkan
 // seluruh transaksi — karena itu penulisan dibungkus SAVEPOINT: bila gagal, hanya bagian audit yang di-rollback dan
 // perubahan data tetap di-COMMIT (tanpa savepoint, COMMIT diam-diam menjadi ROLLBACK padahal API melapor berhasil).
-export const catatAuditPusat = async (k, { faskesUuid, aksi, entitas, entitasUuid, ringkasan, pengguna }) => {
+// `layanan` membedakan modul penulis (bawaan penunjang-service/hr; Akuntansi memakai penunjang-service/akuntansi).
+export const catatAuditPusat = async (k, { faskesUuid, aksi, entitas, entitasUuid, ringkasan, pengguna, layanan = "penunjang-service/hr" }) => {
   await k.query("SAVEPOINT audit_hr");
   try {
     await k.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`audit:${faskesUuid}`]);
@@ -23,7 +24,7 @@ export const catatAuditPusat = async (k, { faskesUuid, aksi, entitas, entitasUui
       pengguna_uuid: null,
       identitas_akun: pengguna ?? null,
       peran: null,
-      layanan: "penunjang-service/hr",
+      layanan,
       aksi,
       entitas,
       entitas_uuid: entitasUuid ?? null,

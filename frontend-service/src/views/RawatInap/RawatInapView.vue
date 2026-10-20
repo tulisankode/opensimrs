@@ -148,6 +148,12 @@ const sidebarBodyList = ref<SidebarBody[]>([
     type: linkType.SECTION,
     child: [
       {
+        name: "HDU",
+        icon: "PhHeartbeat",
+        type: linkType.LINK,
+        url: "/rawat-inap/hdu",
+      },
+      {
         name: "Perpindahan Bangsal",
         icon: "HandshakeIcon",
         type: linkType.LINK,

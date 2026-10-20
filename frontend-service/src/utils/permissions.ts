@@ -73,6 +73,9 @@ const any = (
 ): PermissionRequirement => ({ module, submodule, action });
 
 export const permissionRouteRegistry: PermissionRouteEntry[] = [
+  { path: "/rawat-inap/hdu/konfigurasi", permission: read("Rawat Inap", "HDU Konfigurasi") },
+  { path: "/rawat-inap/hdu", mode: "prefix", permission: read("Rawat Inap", "HDU Episode") },
+  { path: "/command-center", permission: read("Dashboard", "Command Center") },
   { path: "/setting/profil-faskes", permission: read("Setting", "Profile Faskes") },
   { path: "/setting/konfigurasi-integrasi", mode: "prefix", permission: read("Setting", "Konfigurasi Integrasi") },
   { path: "/setting/permission-menu", permission: read("Setting", "Profile Faskes") },
@@ -320,6 +323,7 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/sarpras", mode: "prefix", permission: read("Sarana dan Prasarana (IPSRS)", null, null, null) },
 
   // Dashboard Eksekutif — laporan-service (STD-0034)
+  { path: "/dashboard/virtual-office", permission: read("Dashboard", "Virtual Office") },
   { path: "/dashboard/eksekutif", permission: read("Dashboard", "Eksekutif") },
 
   // Unit Hemodialisa — penunjang-service (STD-0033)
@@ -353,6 +357,23 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/sdm/kepegawaian", permission: read("HR / SDM", "Kepegawaian") },
   { path: "/sdm/kredensial", permission: read("HR / SDM", "Kredensial") },
   { path: "/sdm", mode: "prefix", permission: read("HR / SDM", null, null, null) },
+
+  // Akuntansi & Remunerasi — penunjang-service (STD-0031: COA, pemetaan, jurnal, persetujuan, buku besar, periode, laporan)
+  { path: "/akuntansi/coa", permission: read("Akuntansi & Remunerasi", "Bagan Akun") },
+  { path: "/akuntansi/pemetaan", permission: read("Akuntansi & Remunerasi", "Pemetaan Akun") },
+  { path: "/akuntansi/jurnal", permission: read("Akuntansi & Remunerasi", "Jurnal") },
+  { path: "/akuntansi/persetujuan", permission: read("Akuntansi & Remunerasi", "Persetujuan Jurnal") },
+  { path: "/akuntansi/buku-besar", permission: read("Akuntansi & Remunerasi", "Buku Besar") },
+  { path: "/akuntansi/neraca-saldo", permission: read("Akuntansi & Remunerasi", "Buku Besar") },
+  { path: "/akuntansi/periode", permission: read("Akuntansi & Remunerasi", "Periode") },
+  { path: "/akuntansi/laporan", permission: read("Akuntansi & Remunerasi", "Laporan Keuangan") },
+  // Remunerasi — jasa pelayanan (STD-0032): slip hanya milik sendiri (dibatasi backend); rekap & ekspor setelah disetujui
+  { path: "/akuntansi/remunerasi/konfigurasi", permission: read("Akuntansi & Remunerasi", "Konfigurasi Remunerasi") },
+  { path: "/akuntansi/remunerasi/slip", permission: read("Akuntansi & Remunerasi", "Slip Remunerasi") },
+  { path: "/akuntansi/remunerasi/rekap", permission: read("Akuntansi & Remunerasi", "Rekap Remunerasi") },
+  // Periode: dibuka tim remunerasi, verifikator, penyetuju, maupun keuangan (izin per aksi diperiksa halaman & backend).
+  { path: "/akuntansi/remunerasi/periode", permission: read("Akuntansi & Remunerasi", null, null, null) },
+  { path: "/akuntansi", mode: "prefix", permission: read("Akuntansi & Remunerasi", null, null, null) },
 
   // Bank Darah RS (BDRS) — penunjang-service
   { path: "/bank-darah/permintaan", permission: read("Bank Darah RS (BDRS)", "Permintaan Darah") },

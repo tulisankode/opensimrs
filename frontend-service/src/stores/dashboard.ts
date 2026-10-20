@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { apiLaporanGet, apiLaporanKirim } from "@/utils/apiHandler";
+import { apiLaporanGet, apiLaporanGetDiam, apiLaporanKirim } from "@/utils/apiHandler";
 
 // Parameter periode & faskes Dashboard Eksekutif. faskesUuid kosong = faskes aktif pada token; daftar faskes lain
 // hanya diterima server untuk super admin.
@@ -33,6 +33,22 @@ export const useDashboardStore = defineStore({
     },
     async simpanTargetEksekutif(target: Array<{ kode: string; target_min: number | null; target_maks: number | null; toleransi_persen: number }>) {
       return apiLaporanKirim("put", "/dashboard/eksekutif/target", { target }, true);
+    },
+    // Command Center (STD-0037, /api/v3/laporan/command-center/*). Ringkasan dipolling tanpa toast galat.
+    async getRingkasanCommandCenter() {
+      return apiLaporanGetDiam("/command-center/ringkasan");
+    },
+    async getPeringatanCommandCenter(status: "aktif" | "riwayat" = "aktif") {
+      return apiLaporanGet(`/command-center/peringatan?status=${status}`);
+    },
+    async tindakanPeringatanCommandCenter(uuid: string, data: { jenis: "tinjau" | "eskalasi"; catatan: string; tujuan?: string | null }) {
+      return apiLaporanKirim("post", `/command-center/peringatan/${uuid}/tindakan`, data, true);
+    },
+    async getAmbangCommandCenter() {
+      return apiLaporanGet("/command-center/ambang");
+    },
+    async simpanAmbangCommandCenter(ambang: Array<{ kode: string; operator: string; batas_peringatan: number | null; batas_kritis: number | null; aktif: boolean }>) {
+      return apiLaporanKirim("put", "/command-center/ambang", { ambang }, true);
     },
   },
 });

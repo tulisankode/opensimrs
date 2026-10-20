@@ -240,6 +240,12 @@ export const rawatJalanPermission = {
 export const rawatInapPermission = {
   module: "Rawat Inap",
   subModules: [
+    { name: "HDU Episode", allows: ["READ"] },
+    { name: "HDU Konfigurasi", allows: ["READ", "KELOLA"] },
+    { name: "HDU Kebijakan Observasi", allows: ["KELOLA"] },
+    { name: "HDU Instruksi Observasi", allows: ["KELOLA"] },
+    { name: "HDU Observasi", allows: ["READ", "CREATE", "KOREKSI"] },
+    { name: "HDU Serah Terima", allows: ["READ", "CREATE", "KONFIRMASI"] },
     {
       name: "Rawat Inap",
       allows: ["READ", "BATAL DIRAWAT"],
@@ -1150,6 +1156,31 @@ export const sdmPermission = {
   ],
 };
 
+// Akuntansi & Remunerasi (STD-0031): bagan akun, pemetaan event → akun, jurnal otomatis dari transaksi (idempoten),
+// jurnal manual/penyesuaian/koreksi dengan persetujuan berjenjang (pembuat ≠ penyetuju), buku besar & neraca saldo,
+// periode & tutup buku, serta laporan keuangan. Remunerasi / jasa pelayanan (STD-0032): konfigurasi skema & penerima,
+// periode jaspel (hitung, kinerja, koreksi), verifikasi, persetujuan (pembuat ≠ verifikator ≠ penyetuju), pembayaran,
+// slip milik sendiri, dan rekap/ekspor — submodul tambahan di modul yang sama.
+export const akuntansiPermission = {
+  module: "Akuntansi & Remunerasi",
+  subModules: [
+    { name: "Bagan Akun", allows: ["READ", "CREATE", "UPDATE"] },
+    { name: "Pemetaan Akun", allows: ["READ", "UPDATE"] },
+    { name: "Jurnal", allows: ["READ", "CREATE", "KOREKSI", "PROSES OTOMATIS"] },
+    { name: "Persetujuan Jurnal", allows: ["READ", "SETUJUI", "SETUJUI TINGKAT 2", "TOLAK"] },
+    { name: "Buku Besar", allows: ["READ"] },
+    { name: "Periode", allows: ["READ", "TUTUP BUKU", "BUKA KEMBALI", "PENGATURAN"] },
+    { name: "Laporan Keuangan", allows: ["READ", "EKSPOR"] },
+    { name: "Konfigurasi Remunerasi", allows: ["READ", "CREATE", "UPDATE", "SAHKAN"] },
+    { name: "Periode Remunerasi", allows: ["READ", "CREATE", "HITUNG", "UPDATE", "KOREKSI"] },
+    { name: "Verifikasi Remunerasi", allows: ["READ", "VALIDASI", "KEMBALIKAN"] },
+    { name: "Persetujuan Remunerasi", allows: ["READ", "SETUJUI", "TOLAK"] },
+    { name: "Pembayaran Remunerasi", allows: ["READ", "BAYAR"] },
+    { name: "Slip Remunerasi", allows: ["READ"] },
+    { name: "Rekap Remunerasi", allows: ["READ", "EKSPOR"] },
+  ],
+};
+
 export const trainingPermission = {
   module: "Training",
   subModules: [
@@ -1564,9 +1595,23 @@ export const profilePermission = {
   ],
 };
 
+// Definisi terpisah agar izin Dashboard bawaan tidak otomatis memberi ringkasan lintas unit.
+export const dashboardVirtualOfficePermission = {
+  module: "Dashboard",
+  subModules: [{ name: "Virtual Office", allows: ["READ", "PENDAFTARAN", "RAWAT JALAN", "IGD", "RAWAT INAP", "LABORATORIUM", "RADIOLOGI", "FARMASI", "KASIR"] }],
+};
+
 export const dashboardPermission = {
   module: "Dashboard",
   subModules: [],
+};
+
+// Command Center (STD-0037, laporan-service): dasbor operasional bed/IGD/antrean & peringatan ambang. Objek terpisah
+// dari dashboardPermission (diberikan ke hampir semua peran) agar hanya pimpinan/bed manager/petugas command center
+// yang diberi lewat Setting › Hak Akses. Aksi dipisah: lihat, atur ambang, tinjau peringatan, eskalasi peringatan.
+export const dashboardCommandCenterPermission = {
+  module: "Dashboard",
+  subModules: [{ name: "Command Center", allows: ["READ", "ATUR AMBANG", "TINJAU PERINGATAN", "ESKALASI PERINGATAN"] }],
 };
 
 // Dashboard Eksekutif (STD-0034, laporan-service): indikator layanan, keuangan, mutu & SDM untuk pimpinan. Modul sama
@@ -1629,6 +1674,7 @@ export function mapPermission(permissionList) {
     "manajemen ambulans": ambulansPermission,
     "mutu & akreditasi": mutuPermission,
     "hr / sdm": sdmPermission,
+    "akuntansi & remunerasi": akuntansiPermission,
     "sarana dan prasarana (ipsrs)": sarprasPermission,
     hemodialisa: hemodialisaPermission,
     training: trainingPermission,
@@ -1637,7 +1683,9 @@ export function mapPermission(permissionList) {
     inventory: inventoryPermission,
     datamaster: datamasterPermission,
     dashboard: dashboardPermission,
+    "dashboard virtual office": dashboardVirtualOfficePermission,
     "dashboard eksekutif": dashboardEksekutifPermission,
+    "dashboard command center": dashboardCommandCenterPermission,
     setting: settingPermission,
     profile: profilePermission,
     laporan: laporanPermission,
