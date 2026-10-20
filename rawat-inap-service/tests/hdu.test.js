@@ -6,6 +6,7 @@ import HduRepository from "../src/repositories/hdu-repository.js";
 import HduPerpindahanAdapter from "../src/services/hdu-perpindahan-adapter.js";
 import HduService from "../src/services/hdu-service.js";
 import migrasiHdu from "../../database/migrations/20261020120000-hdu_struktur.cjs";
+import migrasiIndeks from "../../database/migrations/20261020190200-hdu_indeks_serah_terima.cjs";
 
 const id = "019a0000-0000-7000-8000-000000000001";
 const author = { faskesUuid: "faskes-fiktif", user_uuid: "penerima-fiktif" };
@@ -254,4 +255,54 @@ test("migrasi baru memakai DDL idempoten dan keunikan penempatan seluruh rawat i
     assert.match(ddl, /hdu_episode_pasien_aktif_uq/);
     assert.doesNotMatch(ddl, /CREATE TABLE (?!IF NOT EXISTS)/);
     assert.doesNotMatch(ddl, /DROP TABLE|DELETE FROM|UPDATE rawat_inaps/);
+});
+
+test("daftar serah terima memvalidasi filter, halaman, dan menolak fasilitas dari klien", async () => {
+    const panggilan = [];
+    const service = new HduService({ serahTerima: async (data) => { panggilan.push(data); return { items: [], paginasi: data }; } });
+    const req = { params: {}, query: { halaman: "5", batas: "25", arah: "keluar", status_penerimaan: "menunggu" } };
+    await service.jalankan("serahTerima", req);
+    assert.deepEqual(panggilan, [{ halaman: 5, batas: 25, arah: "keluar", status_penerimaan: "menunggu" }]);
+    for (const query of [{ faskes_uuid: id }, { halaman: "0" }, { batas: "101" }, { arah: "lain" }, { status_penerimaan: "approve" }]) {
+        await assert.rejects(() => service.jalankan("serahTerima", { ...req, query }));
+    }
+    assert.equal(panggilan.length, 1);
+});
+
+test("halaman serah terima sesudah catatan ke-100 tetap memakai lingkup sumber dan urutan stabil", async () => {
+    const panggilan = [];
+    const repo = new HduRepository({ query: async (sql, opsi) => {
+        panggilan.push({ sql, opsi });
+        return sql.startsWith("SELECT COUNT") ? [{ jumlah: "126" }] : [{ uuid: id }];
+    } }, author);
+    const hasil = await repo.serahTerima({ halaman: 5, batas: 25, arah: "masuk", status_penerimaan: "menunggu" });
+    assert.deepEqual(hasil, { items: [{ uuid: id }], paginasi: { halaman: 5, batas: 25, jumlah: 126 } });
+    for (const { sql, opsi } of panggilan) {
+        assert.equal(opsi.replacements.f, author.faskesUuid);
+        assert.equal(opsi.replacements.offset, 100);
+        assert.equal(opsi.replacements.arah, "masuk");
+        assert.equal(opsi.replacements.status, "menunggu");
+        assert.match(sql, /st.faskes_uuid = :f AND st.deleted_at IS NULL/);
+        for (const alias of ["p", "ri", "pt"]) {
+            assert.ok(sql.includes(`${alias}.faskes_uuid = st.faskes_uuid`));
+            assert.ok(sql.includes(`${alias}.deleted_at IS NULL`));
+        }
+        assert.match(sql, /st.penerima IS NULL/);
+        assert.match(sql, /st.penerima IS NOT NULL/);
+    }
+    assert.match(panggilan[0].sql, /ORDER BY st.created_at DESC, st.uuid DESC LIMIT :batas OFFSET :offset/);
+    assert.equal(panggilan[0].sql.slice(panggilan[0].sql.indexOf("FROM"), panggilan[0].sql.indexOf("ORDER BY")).trim(),
+        panggilan[1].sql.slice(panggilan[1].sql.indexOf("FROM")).trim());
+});
+
+test("indeks daftar serah terima bersifat idempoten dan tidak mengubah data klinis", async () => {
+    let ddl = "";
+    await migrasiIndeks.up({ sequelize: {
+        transaction: async (jalankan) => jalankan("transaksi-fiktif"),
+        query: async (sql, opsi) => { ddl += sql; assert.equal(opsi.transaction, "transaksi-fiktif"); },
+    } });
+    assert.match(ddl, /CREATE INDEX IF NOT EXISTS hdu_serah_terima_daftar_idx/);
+    assert.match(ddl, /faskes_uuid, created_at DESC, uuid DESC/);
+    assert.match(ddl, /WHERE deleted_at IS NULL/);
+    assert.doesNotMatch(ddl, /DROP|DELETE|UPDATE|INSERT/);
 });

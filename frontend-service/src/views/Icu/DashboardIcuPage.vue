@@ -3,12 +3,16 @@ import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import PageToolbar from "@/components/Base/PageToolbar.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
+import CustomSelect from "@/components/Base/CustomSelect.vue";
+import CustomTextfield from "@/components/Base/CustomTextfield.vue";
 import NoData from "@/components/section/NoData.vue";
 import { utilsStore } from "@/stores/utils";
 import { useIcuStore } from "@/stores/rawatInap/icu";
 
 // Dasbor ruang intensif: satu kartu per bed terisi (episode icu_perawatans aktif), dengan ventilator & peringatan
 // nilai kritis dari observasi terakhir (KF-14/KT-10).
+const layananKode = ref(""); const ruanganUuid = ref("");
+const pilihanLayanan = [{ kode: '', nama: 'Semua layanan' }, { kode: 'umum', nama: 'ICU Umum' }, { kode: 'burn', nama: 'Burn ICU' }, { kode: 'neuro', nama: 'Neuro ICU' }, { kode: 'belum_diklasifikasikan', nama: 'Belum diklasifikasikan' }];
 const storeUtils = utilsStore();
 const icuStore = useIcuStore();
 const router = useRouter();
@@ -18,7 +22,7 @@ const data = ref<any[]>([]);
 const muat = async () => {
   storeUtils.setLoading(true);
   try {
-    const res = await icuStore.getDashboard();
+    const res = await icuStore.getDashboard({ layananKode: layananKode.value || undefined, ruanganUuid: ruanganUuid.value || undefined });
     data.value = res?.payload ?? [];
   } finally {
     storeUtils.setLoading(false);
@@ -36,6 +40,8 @@ onMounted(muat);
     <Card pt:body:class="h-full pt-0 overflow-auto" pt:content:class="h-full overflow-hidden" class="h-full overflow-hidden">
       <template #header>
         <PageToolbar>
+          <CustomSelect v-model="layananKode" label="Layanan" :options="pilihanLayanan" optionValue="kode" optionLabel="nama" />
+          <CustomTextfield v-model="ruanganUuid" label="UUID unit (opsional)" />
           <CustomButton icon="PhArrowClockwise" @click="muat" />
           <h1 class="toolbar-heading text-opensimrs-300">Dasbor ICU / Intensif</h1>
         </PageToolbar>
@@ -56,6 +62,7 @@ onMounted(muat);
               </div>
               <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-opensimrs-50 text-opensimrs-300">{{ hariRawatLabel(p.hariRawat) }}</span>
             </div>
+            <p class="text-sm">{{ p.layananNama }}<span v-if="p.kelengkapan"> - {{ p.kelengkapan.status }}</span></p>
             <div class="text-sm text-grey-500">{{ p.diagnosisRingkas || "Diagnosis belum diisi" }}</div>
             <div class="flex items-center gap-2 text-xs">
               <span v-if="p.ventilator?.terpasang" class="px-2 py-0.5 font-semibold rounded-full bg-warning-50 text-warning-400">

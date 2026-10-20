@@ -1,22 +1,26 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import PageToolbar from "@/components/Base/PageToolbar.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import CustomSelect from "@/components/Base/CustomSelect.vue";
-import CustomTextfield from "@/components/Base/CustomTextfield.vue";
-import CustomTextArea from "@/components/Base/CustomTextArea.vue";
-import CustomDialog from "@/components/Base/CustomDialog.vue";
 import NoData from "@/components/section/NoData.vue";
 import SerahTerimaICU from "@/components/RawatInap/ICU/SerahTerimaICU.vue";
 import FlowsheetICU from "@/components/RawatInap/ICU/FlowsheetICU.vue";
 import BalanceCairan from "@/components/RawatInap/ICU/BalanceCairan.vue";
 import SkorSOFA from "@/components/RawatInap/ICU/SkorSOFA.vue";
+import DialogMulaiIntensif from "@/components/RawatInap/ICU/DialogMulaiIntensif.vue";
 import { utilsStore } from "@/stores/utils";
 import { useIcuStore } from "@/stores/rawatInap/icu";
 
 // Halaman kerja perawatan ICU: pilih pasien aktif di ruang intensif, lalu kelola serah terima, flowsheet, balance
 // cairan & skor SOFA dalam satu halaman (Desain Teknis STD-0008 — PerawatanIcuPage menaungi komponen per fitur).
+import { hasPermission } from "@/utils/permissions";
+import { fiturAktif } from "@/stores/modulFaskes";
+import { useAuthStore } from "@/stores/auth";
+import DokumentasiIcu from "@/components/RawatInap/ICU/DokumentasiIcu.vue";
+const layanan = ref<any[]>([]); const templates = ref<any[]>([]); const kelengkapan = ref<any>(null); const riwayat = ref<any[]>([]);
+const halamanTemplate = ref(1); const totalTemplate = ref(0);
 const storeUtils = utilsStore();
 const icuStore = useIcuStore();
 const route = useRoute();
@@ -37,14 +41,28 @@ const muatDetail = async () => {
   }
   storeUtils.setLoading(true);
   try {
-    const res = await icuStore.getPerawatan(perawatanUuid.value);
+    const dipilih = perawatanUuid.value;
+    detail.value = null; kelengkapan.value = null; riwayat.value = [];
+    const res = await icuStore.getPerawatan(dipilih);
+    if (dipilih !== perawatanUuid.value) return;
     detail.value = res?.payload ?? null;
+    if (hasPermission("ICU", "Perawatan", "READ")) riwayat.value = (await icuStore.getRiwayat(dipilih))?.payload?.data ?? [];
+    await muatKelengkapan();
   } finally {
     storeUtils.setLoading(false);
   }
 };
 
+const muatKelengkapan = async () => {
+  if (!perawatanUuid.value || !hasPermission("ICU", "Kelengkapan Dokumentasi", "READ") || !fiturAktif("icu_kelengkapan_dokumentasi")) return;
+  const id = perawatanUuid.value;
+  const r = await icuStore.getKelengkapan(id);
+  if (id === perawatanUuid.value) kelengkapan.value = r?.payload;
+};
 watch(perawatanUuid, muatDetail);
+const bersihkan = () => { perawatanUuid.value = ""; detail.value = null; daftarAktif.value = []; riwayat.value = []; kelengkapan.value = null; templates.value = []; layanan.value = []; dialogMulai.value = false; formMulai.value = kosongMulai(); };
+const lepasLangganan = useAuthStore().$subscribe(bersihkan, { flush: "sync" });
+onBeforeUnmount(() => { lepasLangganan(); bersihkan(); });
 
 const selesaiKeluarIcu = async () => {
   await muatDaftarAktif();
@@ -53,50 +71,27 @@ const selesaiKeluarIcu = async () => {
 
 // ── Mulai perawatan ICU baru (tertaut ke perpindahan yang sudah approve di Rawat Inap)
 const dialogMulai = ref(false);
-const kosongMulai = () => ({
-  perpindahanUuid: "",
-  diagnosisRingkas: "",
-  kriteria: "",
-  kondisi: "",
-  tindakan: "",
-  terapiBerjalan: "",
-  alergiRelevan: "",
-  aksesAlat: "",
-  tindakLanjut: "",
-});
+const kosongMulai = () => ({ layananKode: "umum", templateVersiUuid: "" });
 const formMulai = ref(kosongMulai());
-const galatMulai = ref("");
-const bukaDialogMulai = () => {
+const muatPilihanTemplate = async (lanjut = false) => {
+  if (lanjut) halamanTemplate.value++;
+  else { halamanTemplate.value = 1; templates.value = []; }
+  const kode = formMulai.value.layananKode;
+  const res = await icuStore.getTemplate({ layananKode: kode, halaman: halamanTemplate.value }, true);
+  if (kode !== formMulai.value.layananKode) return;
+  templates.value = lanjut ? [...templates.value, ...(res?.payload?.data ?? [])] : res?.payload?.data ?? [];
+  totalTemplate.value = res?.payload?.total ?? 0;
+};
+const bukaDialogMulai = async () => {
+  layanan.value = (await icuStore.getLayanan(true))?.payload?.layanan ?? [];
   formMulai.value = kosongMulai();
-  galatMulai.value = "";
+  formMulai.value.layananKode = layanan.value[0]?.kode ?? "umum";
+  await muatPilihanTemplate();
   dialogMulai.value = true;
 };
-const simpanMulai = async () => {
-  galatMulai.value = "";
-  if (!formMulai.value.perpindahanUuid.trim()) return (galatMulai.value = "UUID perpindahan (sudah approve di Rawat Inap) wajib diisi");
-  storeUtils.setLoading(true);
-  try {
-    const f = formMulai.value;
-    const res = await icuStore.mulaiPerawatan(f.perpindahanUuid.trim(), {
-      diagnosisRingkas: f.diagnosisRingkas || undefined,
-      serahTerima: {
-        kriteria: f.kriteria || undefined,
-        kondisi: f.kondisi || undefined,
-        tindakan: f.tindakan || undefined,
-        terapiBerjalan: f.terapiBerjalan || undefined,
-        alergiRelevan: f.alergiRelevan || undefined,
-        aksesAlat: f.aksesAlat || undefined,
-        tindakLanjut: f.tindakLanjut || undefined,
-      },
-    });
-    if (res?.payload) {
-      dialogMulai.value = false;
-      await muatDaftarAktif();
-      perawatanUuid.value = res.payload.uuid;
-    }
-  } finally {
-    storeUtils.setLoading(false);
-  }
+const setelahMulai = async (perawatan: any) => {
+  await muatDaftarAktif();
+  perawatanUuid.value = perawatan.uuid;
 };
 
 onMounted(async () => {
@@ -121,7 +116,7 @@ onMounted(async () => {
             optionLabel="namaPasien"
             class="min-w-[260px]"
           />
-          <CustomButton label="Mulai Perawatan ICU Baru" icon="PhPlus" @click="bukaDialogMulai" />
+          <CustomButton v-if="hasPermission('ICU', 'Serah Terima', 'KELOLA')" label="Mulai Perawatan ICU Baru" icon="PhPlus" @click="bukaDialogMulai" />
         </PageToolbar>
       </template>
       <template #content>
@@ -133,15 +128,20 @@ onMounted(async () => {
             · {{ detail.perawatan.diagnosisRingkas || "Diagnosis belum diisi" }}
             · Status: <span class="font-semibold">{{ detail.perawatan.status === "aktif" ? "Aktif di ICU" : "Sudah keluar ICU" }}</span>
           </div>
+          <p>{{ detail.layanan?.nama }} - Template {{ detail.template?.nama ?? 'Belum memakai template' }} - Versi {{ detail.template?.nomorVersi ?? '-' }}</p>
+          <div v-if="kelengkapan"><b>Kelengkapan: {{ kelengkapan.status }}</b><p v-for="(k, i) in kelengkapan.kekurangan" :key="i">{{ k.sumber }} - {{ k.parameter.join(', ') }} - {{ new Date(k.dari * 1000).toLocaleString('id-ID') }}{{ k.periodeBerjalan ? ' (periode berjalan)' : '' }}</p></div>
+          <details v-if="detail.referensiIntegrasi"><summary>Referensi kesinambungan perawatan</summary><p>Episode ICU: {{ detail.referensiIntegrasi.perawatanUuid }}</p><p>Admisi Rawat Inap: {{ detail.referensiIntegrasi.rawatInapUuid }}</p><p>Rekam medis: {{ detail.referensiIntegrasi.rekamMedisUuid ?? 'Belum tersedia' }}</p></details>
+          <details><summary>Riwayat perawatan dan perpindahan</summary><p v-for="r in riwayat" :key="r.uuid">{{ r.layananKode ?? 'Belum diklasifikasikan' }} - {{ new Date(Number(r.waktuMasuk) * 1000).toLocaleString('id-ID') }} - Masuk {{ r.perpindahanMasukUuid }} - Keluar {{ r.perpindahanKeluarUuid ?? '-' }}</p></details>
           <Tabs value="serah-terima">
             <TabList>
-              <Tab value="serah-terima">Serah Terima</Tab>
-              <Tab value="flowsheet">Flowsheet Observasi</Tab>
-              <Tab value="balance">Balance Cairan</Tab>
-              <Tab value="sofa">Skor SOFA</Tab>
+              <Tab v-if="hasPermission('ICU', 'Serah Terima', 'READ')" value="serah-terima">Serah Terima</Tab>
+              <Tab v-if="hasPermission('ICU', 'Flowsheet Observasi', 'READ')" value="flowsheet">Flowsheet Observasi</Tab>
+              <Tab v-if="hasPermission('ICU', 'Balance Cairan', 'READ')" value="balance">Balance Cairan</Tab>
+              <Tab v-if="hasPermission('ICU', 'Skor SOFA', 'READ')" value="sofa">Skor SOFA</Tab>
+              <Tab v-if="fiturAktif('icu_dokumentasi_klinis') && hasPermission('ICU', 'Dokumentasi Klinis', 'READ')" value="dokumentasi">Dokumentasi Klinis</Tab>
             </TabList>
             <TabPanels>
-              <TabPanel value="serah-terima">
+              <TabPanel v-if="hasPermission('ICU', 'Serah Terima', 'READ')" value="serah-terima">
                 <SerahTerimaICU
                   :perawatan-uuid="perawatanUuid"
                   :status="detail.perawatan.status"
@@ -149,40 +149,22 @@ onMounted(async () => {
                   @selesai="selesaiKeluarIcu"
                 />
               </TabPanel>
-              <TabPanel value="flowsheet"><FlowsheetICU :perawatan-uuid="perawatanUuid" /></TabPanel>
-              <TabPanel value="balance"><BalanceCairan :perawatan-uuid="perawatanUuid" /></TabPanel>
-              <TabPanel value="sofa"><SkorSOFA :perawatan-uuid="perawatanUuid" /></TabPanel>
+              <TabPanel v-if="hasPermission('ICU', 'Flowsheet Observasi', 'READ')" value="flowsheet"><FlowsheetICU :key="perawatanUuid" :perawatan-uuid="perawatanUuid" :template="detail.template" @tersimpan="muatKelengkapan" /></TabPanel>
+              <TabPanel v-if="hasPermission('ICU', 'Balance Cairan', 'READ')" value="balance"><BalanceCairan :perawatan-uuid="perawatanUuid" /></TabPanel>
+              <TabPanel v-if="hasPermission('ICU', 'Skor SOFA', 'READ')" value="sofa"><SkorSOFA :perawatan-uuid="perawatanUuid" /></TabPanel>
+              <TabPanel v-if="fiturAktif('icu_dokumentasi_klinis') && hasPermission('ICU', 'Dokumentasi Klinis', 'READ')" value="dokumentasi"><DokumentasiIcu :key="perawatanUuid" :perawatan-uuid="perawatanUuid" :template="detail.template" :status="detail.perawatan.status" @tersimpan="muatKelengkapan" /></TabPanel>
             </TabPanels>
           </Tabs>
         </div>
       </template>
     </Card>
 
-    <CustomDialog v-model:visible="dialogMulai" width="620px">
-      <template #header>Mulai Perawatan ICU — Serah Terima Masuk</template>
-      <template #body>
-        <div class="flex flex-col gap-3 pt-4">
-          <div class="text-xs text-grey-400">
-            Ajukan dan setujui perpindahan ke bed ICU terlebih dahulu di Rawat Inap › Perpindahan Bangsal, lalu masukkan UUID perpindahan yang sudah berstatus approve.
-          </div>
-          <CustomTextfield v-model="formMulai.perpindahanUuid" label="UUID Perpindahan" />
-          <CustomTextfield v-model="formMulai.diagnosisRingkas" label="Diagnosis ringkas" :maxLength="500" />
-          <CustomTextArea v-model="formMulai.kriteria" label="Kriteria masuk ICU" />
-          <CustomTextArea v-model="formMulai.kondisi" label="Kondisi terkini" />
-          <CustomTextArea v-model="formMulai.tindakan" label="Tindakan yang sudah dilakukan" />
-          <CustomTextArea v-model="formMulai.terapiBerjalan" label="Obat/terapi yang sedang berjalan" />
-          <CustomTextArea v-model="formMulai.alergiRelevan" label="Alergi relevan" />
-          <CustomTextArea v-model="formMulai.aksesAlat" label="Akses/alat terpasang" />
-          <CustomTextArea v-model="formMulai.tindakLanjut" label="Hal yang perlu dipantau" />
-          <div v-if="galatMulai" class="text-sm text-danger-300">{{ galatMulai }}</div>
-        </div>
+    <DialogMulaiIntensif v-model:visible="dialogMulai" basis="/icu" label="ICU" :data-tambahan="{ layananKode: formMulai.layananKode, templateVersiUuid: formMulai.templateVersiUuid || undefined }" @dimulai="setelahMulai">
+      <template #konfigurasi>
+        <CustomSelect v-model="formMulai.layananKode" label="Layanan ICU" :options="layanan" optionValue="kode" optionLabel="nama" @update:modelValue="formMulai.templateVersiUuid = ''; muatPilihanTemplate()" />
+        <CustomSelect v-model="formMulai.templateVersiUuid" label="Versi template" :options="templates.filter((t) => t.layananKode === formMulai.layananKode).map((t) => ({ ...t, namaPilihan: `${t.nama} (versi ${t.nomorVersi})` }))" optionValue="uuid" optionLabel="namaPilihan" />
+        <CustomButton v-if="templates.length < totalTemplate" label="Muat Versi Lainnya" @click="muatPilihanTemplate(true)" />
       </template>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <CustomButton label="Batal" outlined borderColor="border-opensimrs-300" textColor="text-opensimrs-300" @click="dialogMulai = false" />
-          <CustomButton label="Mulai Perawatan ICU" @click="simpanMulai" />
-        </div>
-      </template>
-    </CustomDialog>
+    </DialogMulaiIntensif>
   </div>
 </template>

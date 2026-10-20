@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
+import { hasPermission } from "@/utils/permissions";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import CustomTextfield from "@/components/Base/CustomTextfield.vue";
 import CustomTextArea from "@/components/Base/CustomTextArea.vue";
@@ -101,7 +102,7 @@ onMounted(muat);
         <CustomTextArea v-model="form.catatan" label="Catatan" class="col-span-3" />
       </div>
       <div class="flex justify-end mt-3">
-        <CustomButton label="Simpan Skor SOFA" icon="PhPlus" @click="simpan" />
+        <CustomButton v-if="hasPermission('ICU', 'Skor SOFA', 'CREATE')" label="Simpan Skor SOFA" icon="PhPlus" @click="simpan" />
       </div>
     </div>
 

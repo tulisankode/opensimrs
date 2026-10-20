@@ -1,6 +1,7 @@
 import express from "express";
 import { query } from "../db.js";
 import { tangani, kirim } from "../umum/respons.js";
+import pacu from "./pacu.js";
 import ruang from "./ruang.js";
 import order from "./order.js";
 import jadwal from "./jadwal.js";
@@ -24,6 +25,7 @@ import rekap from "./rekap.js";
 //   /referensi/dokter|pasien|icd9cm  data pendukung form (tim operasi, pasien dari kunjungan, tindakan ICD-9-CM)
 const rute = express.Router();
 
+rute.use("/pacu", pacu);
 rute.use("/ruang", ruang);
 rute.use("/orders", order);
 rute.use("/", jadwal);

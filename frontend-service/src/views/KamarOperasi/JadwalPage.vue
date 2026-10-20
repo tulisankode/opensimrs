@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import PageToolbar from "@/components/Base/PageToolbar.vue";
 import ToolbarFilterMenu from "@/components/Base/ToolbarFilterMenu.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
@@ -11,11 +12,13 @@ import CustomPaginator from "@/components/Base/CustomPaginator.vue";
 import NoData from "@/components/section/NoData.vue";
 import DialogDetailOperasi from "./Komponen/DialogDetailOperasi.vue";
 import { utilsStore } from "@/stores/utils";
+import { fiturAktif } from "@/stores/modulFaskes";
 import { JK_OK, STATUS_JADWAL_OK, batalJadwalOk, daftarJadwalOk, gayaJadwalOk, izinOk, keTanggalOk, waktuOk } from "@/stores/penunjang/kamarOperasi";
 
 // Jadwal OK: daftar jadwal operasi (semua status), filter tanggal & status; detail membuka dialog pra-operasi,
 // checklist keselamatan bedah, pemakaian BHP, dan laporan operasi/anestesi.
 const storeUtils = utilsStore();
+const router = useRouter();
 const bolehJadwal = (aksi: string) => izinOk("Jadwal OK", aksi);
 
 const data = ref<any[]>([]);
@@ -150,15 +153,27 @@ onMounted(muat);
           </Column>
           <Column header="Aksi" headerClass="bg-opensimrs-50">
             <template #body="{ data: d }">
-              <CustomButton
-                v-if="d.status === 'terjadwal' && bolehJadwal('BATAL')"
-                label="Batalkan"
-                size="small"
-                outlined
-                borderColor="border-danger-300"
-                textColor="text-danger-300"
-                @click.stop="bukaBatal(d)"
-              />
+              <div class="flex gap-2">
+                <CustomButton
+                  v-if="d.status !== 'batal' && fiturAktif('pacu') && izinOk('Episode PACU', 'READ')"
+                  label="PACU"
+                  icon="PhHeartbeat"
+                  size="small"
+                  outlined
+                  borderColor="border-opensimrs-300"
+                  textColor="text-opensimrs-300"
+                  @click.stop="router.push(`/kamar-operasi/pacu?jadwal=${d.uuid}`)"
+                />
+                <CustomButton
+                  v-if="d.status === 'terjadwal' && bolehJadwal('BATAL')"
+                  label="Batalkan"
+                  size="small"
+                  outlined
+                  borderColor="border-danger-300"
+                  textColor="text-danger-300"
+                  @click.stop="bukaBatal(d)"
+                />
+              </div>
             </template>
           </Column>
         </DataTable>

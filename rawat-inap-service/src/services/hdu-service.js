@@ -1,11 +1,11 @@
-import { gagal, uuidSchema, konfigurasiSchema, ubahKonfigurasiSchema, instruksiSchema, serahTerimaSchema, konfirmasiSchema, paginasiSchema } from "./hdu-aturan.js";
+import { gagal, uuidSchema, konfigurasiSchema, ubahKonfigurasiSchema, instruksiSchema, serahTerimaSchema, konfirmasiSchema, paginasiSchema, serahTerimaQuerySchema } from "./hdu-aturan.js";
 
 export default class HduService {
     constructor(repository) { this.repository = repository; }
 
     async jalankan(operasi, req, boleh, icuAktif) {
         const r = this.repository;
-        if (operasi !== "daftar" && Object.keys(req.query ?? {}).length) gagal("Endpoint ini tidak menerima parameter kueri.", 422);
+        if (!["daftar", "serahTerima"].includes(operasi) && Object.keys(req.query ?? {}).length) gagal("Endpoint ini tidak menerima parameter kueri.", 422);
         const uuid = req.params.uuid ? uuidSchema.parse(req.params.uuid) : null;
         if (operasi === "konfigurasi") return r.konfigurasi();
         if (operasi === "tempatTidur") return r.tempatTidur();
@@ -23,11 +23,7 @@ export default class HduService {
             await r.satu((sql, nilai) => r.query(sql, nilai), "hdu_konfigurasi", uuid);
             return r.query(`SELECT * FROM hdu_instruksi_observasi WHERE konfigurasi_uuid = :uuid AND episode_uuid IS NULL AND faskes_uuid = :f AND deleted_at IS NULL ORDER BY berlaku_mulai DESC, versi DESC LIMIT 100`, { uuid });
         }
-        if (operasi === "serahTerima") return r.query(`SELECT st.*, p.status_pindah FROM hdu_serah_terima st
-            JOIN perpindahans p ON p.uuid = st.perpindahan_uuid AND p.faskes_uuid = st.faskes_uuid AND p.deleted_at IS NULL
-            JOIN rawat_inaps ri ON ri.uuid = p.admission_ri_uuid AND ri.faskes_uuid = st.faskes_uuid AND ri.deleted_at IS NULL
-            JOIN patients pt ON pt.uuid = ri.patient_uuid AND pt.faskes_uuid = st.faskes_uuid AND pt.deleted_at IS NULL
-            WHERE st.faskes_uuid = :f AND st.deleted_at IS NULL ORDER BY st.created_at DESC LIMIT 100`);
+        if (operasi === "serahTerima") return r.serahTerima(serahTerimaQuerySchema.parse(req.query ?? {}));
         const kunci = uuidSchema.parse(req.get("Idempotency-Key"));
         const schemas = { buatKonfigurasi: konfigurasiSchema, ubahKonfigurasi: ubahKonfigurasiSchema,
             kebijakanTulis: instruksiSchema, instruksiTulis: instruksiSchema, siapkan: serahTerimaSchema, konfirmasi: konfirmasiSchema };

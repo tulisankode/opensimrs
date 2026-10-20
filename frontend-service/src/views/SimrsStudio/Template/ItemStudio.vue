@@ -14,6 +14,7 @@ import PanelPerubahan from "../Komponen/PanelPerubahan.vue";
 import PanelGerbang from "../Komponen/PanelGerbang.vue";
 import ChecklistUji from "../Komponen/ChecklistUji.vue";
 import PanelLampiran from "../Komponen/PanelLampiran.vue";
+import PanelKesiapan from "../Komponen/PanelKesiapan.vue";
 import { NAMA_JENIS, NAMA_TAHAP, TAHAP, WARNA_RISIKO, formatUsd, formatWaktu, keteranganTunggu, nomorItem, tugasMasihBerjalan } from "../umum";
 
 const route = useRoute();
@@ -178,6 +179,27 @@ const sinkronkan = async () => {
   hasilSinkron.value = null;
   const res = await aksi("sinkron");
   if (res) hasilSinkron.value = { ...res.payload, pesan: res.message };
+};
+
+// Kesiapan Terapkan: tombol Terapkan terkunci selama ada langkah "blokir"; aksi perbaikan dijalankan dari panel.
+const kesiapanSiap = ref(false);
+const formCommit = ref<HTMLTextAreaElement>();
+const dialogBatalGabung = ref(false);
+const aksiKesiapan = (nama: string) => {
+  if (nama === "commit") {
+    formCommit.value?.scrollIntoView({ behavior: "smooth", block: "center" });
+    formCommit.value?.focus();
+    return;
+  }
+  if (nama === "konflik/batal") {
+    dialogBatalGabung.value = true;
+    return;
+  }
+  return aksi(nama);
+};
+const batalGabung = async () => {
+  dialogBatalGabung.value = false;
+  await aksi("konflik/batal");
 };
 
 const pindahkanAplikasi = () =>
@@ -448,13 +470,16 @@ const WARNA_CI: Record<string, string> = { sukses: "bg-success-50 text-success-4
             </div>
             <template v-if="(item.berkas ?? []).length || !item.commitSha">
               <label class="text-XS font-semibold text-grey-500" for="pesan-commit">Pesan commit (Conventional Commits)</label>
-              <textarea id="pesan-commit" v-model="pesanCommit" rows="2" class="rounded-lg border border-grey-200 px-2 py-1.5 font-mono text-XS" placeholder="feat(lab): filter ruangan di daftar order" />
+              <div v-if="!item.commitSha && !(item.berkas ?? []).length" class="text-XS text-grey-400">
+                Bila perubahan sudah di-commit langsung di branch (oleh agen atau programmer), klik Commit perubahan untuk mencatat commit itu.
+              </div>
+              <textarea id="pesan-commit" ref="formCommit" v-model="pesanCommit" rows="2" class="rounded-lg border border-grey-200 px-2 py-1.5 font-mono text-XS" placeholder="feat(lab): filter ruangan di daftar order" />
               <div class="flex justify-end">
                 <CustomButton label="Commit perubahan" icon="PhGitCommit" :disabled="sibuk || !diTahapAktif || !studio.boleh('Coding', 'BUKA PR')" @click="aksi('commit', { pesan: pesanCommit })" />
               </div>
             </template>
             <!-- Rilis lokal (tanpa push/PR) -->
-            <div v-if="data.modeRilis !== 'pr' && item.commitSha" class="flex flex-col gap-1.5 rounded-lg bg-opensimrs-50 p-2.5 text-XS text-grey-500">
+            <div v-if="data.modeRilis !== 'pr'" class="flex flex-col gap-1.5 rounded-lg bg-opensimrs-50 p-2.5 text-XS text-grey-500">
               <div v-if="item.diterapkanPada" class="flex items-center gap-2">
                 <PhCheckCircle :size="16" weight="fill" class="text-success-300" aria-hidden="true" />
                 Diterapkan ke branch lokal <b>{{ item.branchLokal }}</b> ({{ item.shaLokal?.slice(0, 7) }}) · {{ formatWaktu(item.diterapkanPada) }}
@@ -480,8 +505,17 @@ const WARNA_CI: Record<string, string> = { sukses: "bg-success-50 text-success-4
                 </span>
                 <CustomButton v-if="studio.status.superadmin" :label="`Pindahkan aplikasi ke ${data.branchLokal}`" icon="PhArrowsLeftRight" outlined text-color="text-opensimrs-300" border-color="border-opensimrs-300" :disabled="sibuk || !!tugasBerjalan" @click="pindahkanAplikasi" />
               </div>
+              <PanelKesiapan
+                v-if="studio.boleh('Rilis', 'SIAPKAN') || studio.boleh('Coding', 'BUKA PR')"
+                :item-uuid="item.uuid"
+                :muat-ulang="muatUlangPerubahan"
+                :sibuk="sibuk || !!tugasBerjalan"
+                :boleh-agen="studio.boleh('Coding', 'JALANKAN AGEN')"
+                @siap="kesiapanSiap = $event"
+                @aksi="aksiKesiapan"
+              />
               <div class="flex flex-wrap gap-2">
-                <CustomButton v-if="studio.boleh('Rilis', 'SIAPKAN')" :label="item.diterapkanPada ? 'Terapkan ulang (perbaikan terbaru)' : `Terapkan ke ${data.branchLokal}`" icon="PhArrowSquareIn" :outlined="!!item.diterapkanPada" :text-color="item.diterapkanPada ? 'text-opensimrs-300' : ''" :border-color="item.diterapkanPada ? 'border-opensimrs-300' : ''" :disabled="sibuk || !!(item.berkas ?? []).length" @click="aksi('terapkan')" />
+                <CustomButton v-if="studio.boleh('Rilis', 'SIAPKAN')" :label="item.diterapkanPada ? 'Terapkan ulang (perbaikan terbaru)' : `Terapkan ke ${data.branchLokal}`" icon="PhArrowSquareIn" :outlined="!!item.diterapkanPada" :text-color="item.diterapkanPada ? 'text-opensimrs-300' : ''" :border-color="item.diterapkanPada ? 'border-opensimrs-300' : ''" :disabled="sibuk || !kesiapanSiap" :title="kesiapanSiap ? undefined : 'Bereskan dulu langkah bertanda merah di Kesiapan penerapan'" @click="aksi('terapkan')" />
                 <CustomButton v-if="item.diterapkanPada && studio.boleh('Rilis', 'SIAPKAN')" label="Aktifkan di aplikasi" icon="PhToggleRight" outlined text-color="text-opensimrs-300" border-color="border-opensimrs-300" :disabled="sibuk" @click="aksi('aktifkan')" />
                 <CustomButton v-if="item.diterapkanPada && studio.boleh('Rilis', 'DEPLOY')" label="Kirim ke server" icon="PhRocketLaunch" outlined text-color="text-opensimrs-300" border-color="border-opensimrs-300" @click="router.push('/studio/server')" />
                 <CustomButton v-if="item.diterapkanPada && studio.boleh('Rilis', 'SIAPKAN')" label="Batalkan penerapan" icon="PhArrowCounterClockwise" outlined text-color="text-danger-300" border-color="border-danger-300" :disabled="sibuk" @click="dialogBatalTerapkan = true" />
@@ -682,6 +716,16 @@ const WARNA_CI: Record<string, string> = { sukses: "bg-success-50 text-success-4
     </template>
   </Dialog>
 
+  <Dialog v-model:visible="dialogBatalGabung" modal header="Batalkan penggabungan" :style="{ width: '30rem' }">
+    <div class="text-SM text-grey-500">
+      Semua hasil penyelesaian konflik yang belum ditutup (suntingan Anda maupun agen) dibuang, dan branch item kembali seperti sebelum
+      "Mulai selesaikan konflik". Berkas baru yang belum dilacak git tidak dihapus.
+    </div>
+    <template #footer>
+      <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Kembali" outlined @click="dialogBatalGabung = false" />
+      <CustomButton label="Batalkan penggabungan" text-color="text-white" :disabled="sibuk" @click="batalGabung" />
+    </template>
+  </Dialog>
   <Dialog v-model:visible="dialogBatalTerapkan" modal header="Batalkan penerapan lokal" :style="{ width: '30rem' }">
     <div class="flex flex-col gap-2 text-SM text-grey-500">
       <p>Perubahan item dibalik di branch <b>{{ item?.branchLokal }}</b> dengan commit revert. Migrasi database <b>tidak</b> dibalik otomatis.</p>

@@ -12,12 +12,16 @@ Modul ini dipakai untuk melayani pasien yang dirawat di bangsal. Di sini petugas
 ## Tugas sehari-hari
 
 ### Memahami alur penerimaan pasien
-Pasien rawat inap tidak didaftarkan dari menu **Rawat Inap**, dan **Admisi › Rawat Inap** tidak punya tombol **Daftar**. Alurnya sebagai berikut:
+Pasien rawat inap tidak didaftarkan dari menu **Rawat Inap**, melainkan oleh petugas admisi di **Admisi › Rawat Inap**. Ada dua jalur:
+
+**Lewat surat dari dokter (poli atau IGD):**
 1. Dokter di poli (rawat jalan) atau IGD membuat **Surat Permohonan Rawat Inap (SPRI)** di rekam medis pasien (lihat tugas berikut).
 2. Kunjungan rawat inap dibuat otomatis dengan status **WAITING**, lalu tampil di **Admisi › Rawat Inap**.
 3. Petugas admisi membuka pasien itu, memilih ruangan dan bed, lalu menyimpan. Status pasien menjadi **DIRAWAT**.
 
-Pengecualian: bayi yang lahir saat ibunya dirawat didaftarkan petugas admisi lewat tombol **Bayi Baru Lahir** di **Admisi › Rawat Inap** (bila fitur Registrasi Bayi Baru Lahir aktif).
+**Langsung oleh admisi** (misalnya rawat inap terencana tanpa kunjungan poli): petugas admisi klik **Daftar Rawat Inap** di **Admisi › Rawat Inap**, mencari pasien yang sudah terdaftar, lalu memilih dokter, ruangan, bed, dan cara bayar. Status pasien langsung **DIRAWAT**.
+
+Bayi yang lahir saat ibunya dirawat didaftarkan lewat tombol **Bayi Baru Lahir** di **Admisi › Rawat Inap** (bila fitur Registrasi Bayi Baru Lahir aktif).
 
 Ketersediaan bed dapat dilihat di **Admisi › Monitoring Kamar**. Langkah penetapan bed ada di panduan [Pendaftaran Pasien](./pendaftaran.md).
 
@@ -147,7 +151,7 @@ Caranya sama dengan rawat jalan. Lihat [RME Rawat Jalan](./rawat-jalan.md).
 
 ## Catatan untuk peninjau
 - Tidak ditemukan fitur atau menu khusus "visite". Panduan menganjurkan pencatatan per tanggal dan sesi. Mohon dipastikan sesuai praktik di ruangan.
-- Alur penerimaan sudah disamakan dengan panduan Pendaftaran Pasien: pasien masuk dari Surat Permohonan Rawat Inap (SPRI) di rekam medis, lalu bed ditetapkan di **Admisi › Rawat Inap**. Mohon dipastikan apakah jalur ini juga dipakai untuk pasien rawat inap terencana (elektif) tanpa kunjungan poli.
+- Alur penerimaan sudah disamakan dengan panduan Pendaftaran Pasien: pasien masuk dari Surat Permohonan Rawat Inap (SPRI) di rekam medis lalu bed ditetapkan di **Admisi › Rawat Inap**, atau didaftarkan langsung lewat **Daftar Rawat Inap** (rawat inap terencana tanpa kunjungan poli).
 - Dari kode, permintaan pindah langsung mengubah status menjadi **TRANSFER**. Belum dipastikan siapa (ruangan asal atau tujuan) yang seharusnya menyetujui di lapangan.
 - Izin **BATAL TERIMA** ada di daftar izin **Perpindahan Bangsal**, tetapi tombol di layar bertuliskan **Tolak Permintaan**. Mohon pastikan keduanya merujuk ke hal yang sama.
 - Alur **FPO** ditulis dari kode dialog edit dan perlu dikonfirmasi petugas.

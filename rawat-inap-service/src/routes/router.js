@@ -3,7 +3,10 @@ import authorizationMiddleware from "../middlewares/authorization-middleware.js"
 import PerpindahanController from "../controllers/perpindahan-controller.js";
 import ReportController from "../controllers/report-controller.js";
 import icuRouter from "./icu-routes.js";
+import ccuRouter from "./ccu-routes.js";
 import hduRouter from "./hdu-routes.js";
+import picuRouter from "./picu-routes.js";
+import nicuRouter from "./nicu-routes.js";
 
 const router = express.Router();
 
@@ -27,6 +30,9 @@ router.get("/report/perpindahan", ReportController.getPerpindahanPasien);
 
 //* ICU / Intensif
 router.use('/icu', icuRouter);
+router.use('/ccu', ccuRouter);
 router.use('/hdu', hduRouter);
+router.use('/picu', picuRouter);
+router.use('/nicu', nicuRouter);
 
 export default router;

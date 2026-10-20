@@ -828,10 +828,10 @@ const apiRawatInapGet = async (url: string, data: object) => {
     errorApiHandler(error);
   }
 };
-const apiRawatInapPost = async (url: string, data: object) => {
+const apiRawatInapPost = async (url: string, data: object, config: { headers?: Record<string, string> } = {}) => {
   url = cekHost(import.meta.env.VITE_BASE_RAWAT_INAP, url);
   try {
-    let response = await baseInstanceRawatInap.post(url, data);
+    let response = await baseInstanceRawatInap.post(url, data, config);
     return response.data;
   } catch (error) {
     errorApiHandler(error);

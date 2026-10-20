@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "node --test test/picu.test.cjs",
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "build-backup": "run-p \"build-only {@}\" --",

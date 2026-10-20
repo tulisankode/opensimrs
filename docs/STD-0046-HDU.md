@@ -69,8 +69,10 @@ Awalan layanan adalah `/api/v3/ranap/hdu`. Respons berhasil menggunakan `{messag
 | GET | `/episode` | Daftar dengan `halaman`, `batas` (maksimal 100), `status`, `konfigurasi_uuid` |
 | GET | `/episode/:uuid` | Episode, konteks interval, riwayat, dan serah terima sesuai izin |
 | GET, POST | `/episode/:uuid/instruksi-observasi` | Riwayat atau versi instruksi khusus episode |
-| GET, POST | `/serah-terima` | Maksimal 100 dokumen terbaru atau penyiapan serah terima |
+| GET, POST | `/serah-terima` | Daftar berhalaman dengan filter arah/status penerimaan atau penyiapan serah terima |
 | POST | `/serah-terima/:uuid/konfirmasi` | Konfirmasi penerimaan beserta perpindahan dan episode |
+
+Pembacaan `/serah-terima` menerima `halaman` (mulai 1), `batas` (1–100; bawaan 25), `arah` (`masuk`/`keluar`), serta `status_penerimaan` (`menunggu`/`dikonfirmasi`). Respons berupa `{items,paginasi:{halaman,batas,jumlah}}`. Status penerimaan berasal dari ada/tidaknya petugas penerima, terpisah dari status perpindahan sumber. Daftar dan jumlah memakai filter fasilitas, penghapusan lunak, dan referensi sumber yang sama. Urutan waktu pencatatan menurun lalu UUID menurun menjaga urutan catatan yang memiliki waktu sama. Antarmuka menyediakan filter dan navigasi sehingga dokumen setelah catatan ke-100 tetap dapat dibaca. Setelah konfirmasi mengurangi jumlah halaman, daftar kembali ke halaman terakhir yang tersedia. Respons lama tidak menimpa permintaan yang lebih baru.
 
 Semua penulisan memerlukan header `Idempotency-Key` berupa UUID. Kunci dibatasi fasilitas dan pelaku; operasi, sidik masukan, dan hasil disimpan dalam transaksi yang sama. Pengiriman ulang dengan kunci dan masukan identik mengembalikan hasil sebelumnya. Kunci yang sama dengan operasi atau masukan berbeda ditolak. Store mempertahankan kunci saat respons gagal dan menggunakan kunci baru setelah keberhasilan.
 
@@ -97,17 +99,17 @@ Perpindahan langsung antarunit HDU dan penerimaan dari ICU yang masih memiliki e
 - `database/migrations/20261020120000-hdu_struktur.cjs`: indeks unik tempat tidur aktif pada sumber `rawat_inaps`; konfigurasi, episode, riwayat instruksi/kebijakan, serah terima, dan idempotensi HDU. DDL menggunakan `IF NOT EXISTS`. Referensi internal HDU diperkuat dengan FK komposit fasilitas. Referensi tabel lama divalidasi layanan mengikuti pola ICU yang ada.
 - `database/migrations/20261020120100-hdu_katalog.cjs`: memanggil `sinkronKatalog` dalam transaksi.
 
-Keduanya memakai awalan Studio dan lebih baru daripada migrasi terakhir saat pemeriksaan (`20261019230000`). Migrasi tidak dijalankan. Indeks unik sumber akan menolak penerapan jika ada penempatan aktif ganda; manusia perlu meninjau konflik tersebut. Tidak ada perbaikan data otomatis. Pembalikan migrasi struktur tidak menghapus riwayat klinis.
+Migrasi lanjutan `database/migrations/20261020190200-hdu_indeks_serah_terima.cjs` menambahkan indeks parsial daftar serah terima per fasilitas, waktu pencatatan, dan UUID melalui `CREATE INDEX IF NOT EXISTS`. Migrasi lama tidak diubah. Seluruh migrasi item memakai awalan Studio `2026102012`; migrasi terakhir di luar item pada pemeriksaan lanjutan adalah `20261020080020-izin_remunerasi.cjs`. Migrasi tidak dijalankan. Indeks unik sumber akan menolak penerapan jika ada penempatan aktif ganda; manusia perlu meninjau konflik tersebut. Tidak ada perbaikan data otomatis. Pembalikan migrasi struktur tidak menghapus riwayat klinis.
 
 ## Integrasi dan pekerjaan tersisa
 
 Halaman perawatan menyediakan referensi admisi dan tautan menuju daftar pasien rawat inap. Asesmen, tindakan, terapi, pemberian obat, resep, penunjang, dan tagihan tetap melalui detail pasien rawat inap beserta izin modul pemiliknya. Tautan langsung dengan konteks kunjungan tervalidasi dan penampilan status integrasi dari modul pemilik belum tersedia pada layar HDU. Tidak ada pembuatan order atau biaya otomatis dan tidak ada status transaksi semu.
 
-Sebelum aktivasi: selesaikan sumber observasi, satuan dan validasi klinis, waktu pengukuran, konteks instruksi historis, koreksi beralasan dengan audit, tren, serta uji integrasinya. Tinjau pula format serah terima, kewenangan klinis, zona waktu fasilitas, paginasi daftar serah terima, alur antarunit HDU/ICU, serta tautan integrasi klinis. Jangan mengubah `tersedia` menjadi `true` sebelum seluruh kebutuhan rilis terselesaikan.
+Sebelum aktivasi: selesaikan sumber observasi, satuan dan validasi klinis, waktu pengukuran, konteks instruksi historis, koreksi beralasan dengan audit, tren, serta uji integrasinya. Perluasan sumber rekam medis memerlukan keputusan lanjutan menurut desain teknis bagian 2.3. Tinjau pula format serah terima, kewenangan klinis, zona waktu fasilitas, alur antarunit HDU/ICU, serta tautan integrasi klinis. Jangan mengubah `tersedia` menjadi `true` sebelum seluruh kebutuhan rilis terselesaikan.
 
 ## Verifikasi tanpa database
 
-- `npm --prefix rawat-inap-service test -- --test-isolation=none`: pengujian aturan, izin, pengiriman ulang, penempatan, penerimaan/eskalasi, riwayat instruksi, penerusan kegagalan transaksi, dan pemeriksaan statis migrasi. Opsi isolasi dipakai karena lingkungan membatasi pembuatan proses pengujian Node; tidak ada koneksi database dalam pengujian.
+- `npm --prefix rawat-inap-service test -- --test-isolation=none`: 20 pengujian lulus, mencakup aturan, izin, pengiriman ulang, penempatan, penerimaan/eskalasi, riwayat instruksi, paginasi serah terima, penerusan kegagalan transaksi, dan pemeriksaan statis migrasi. Perintah tanpa opsi isolasi gagal dengan `spawn EPERM`; opsi isolasi dipakai karena lingkungan membatasi pembuatan proses pengujian Node. Tidak ada koneksi database dalam pengujian.
 - `npm --prefix auth-service test -- --runInBand --runTestsByPath tests/hdu-katalog.test.js`: pemeriksaan definisi izin HDU. Pengujian auth menyeluruh tidak dijalankan karena pengujian lama memuat koneksi serta sinkronisasi database.
 - `node --check` untuk seluruh JS/CJS yang berubah; kompilasi SFC Vue untuk halaman HDU.
 - `npm run docs:katalog`, `node scripts/dokumen-katalog.mjs --cek`, dan `git diff --check`.
@@ -121,6 +123,7 @@ Sebelum aktivasi: selesaikan sumber observasi, satuan dan validasi klinis, waktu
 4. Uji serah terima pengirim/penerima berbeda, versi kedaluwarsa, pengiriman ulang setelah respons hilang, penolakan perpindahan, dan gangguan di tiap langkah transaksi. Penempatan asal harus tetap benar jika transaksi gagal.
 5. Uji eskalasi dengan ICU nonaktif, petugas tanpa izin ICU, tujuan tidak tersedia, lalu penerimaan sah yang menghubungkan kedua episode dan serah terima.
 6. Uji prioritas interval episode/unit, waktu efektif, riwayat, dan tampilan tanpa interval; lanjutkan uji observasi serta koreksi setelah sumbernya ditetapkan.
-7. Tinjau UI, zona waktu fasilitas, konteks integrasi, status gagal farmasi/penunjang/tagihan, serta target p95 dua detik untuk 100 episode dan 20 pengguna.
+7. Buat lebih dari 100 serah terima fiktif, termasuk waktu pencatatan yang sama; uji halaman kelima, kombinasi filter arah/status, dan konfirmasi dokumen terakhir pada halaman terakhir. Simulasikan respons lambat/gagal agar daftar tidak menampilkan hasil permintaan lama.
+8. Tinjau UI, zona waktu fasilitas, konteks integrasi, status gagal farmasi/penunjang/tagihan, serta target p95 dua detik untuk 100 episode dan 20 pengguna.
 
 Seluruh data pengujian harus fiktif: email `@contoh.id`, HP `080000000000`, NIK berawalan `9999`.

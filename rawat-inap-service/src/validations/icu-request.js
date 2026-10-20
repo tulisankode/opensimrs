@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { definisiTemplate, aturanKelengkapan, nilaiDinamis } from "../services/icu-template-service.js";
 
 const serahTerima = z.object({
     kriteria: z.string().max(2000).optional(),
@@ -12,6 +13,8 @@ const serahTerima = z.object({
 
 export default class IcuRequest {
     static MULAI_PERAWATAN = z.object({
+        layanan_kode: z.enum(["umum", "burn", "neuro"]).default("umum"),
+        template_versi_uuid: z.string().uuid().optional(),
         diagnosis_ringkas: z.string().max(500).optional(),
         serah_terima: serahTerima,
     });
@@ -23,6 +26,7 @@ export default class IcuRequest {
     });
 
     static OBSERVASI = z.object({
+        parameter_tambahan: nilaiDinamis.default([]),
         waktu_pengukuran: z.number().int().positive(),
         tekanan_sistolik: z.number().int().min(0).max(400).nullish(),
         tekanan_diastolik: z.number().int().min(0).max(300).nullish(),
@@ -43,11 +47,12 @@ export default class IcuRequest {
         obat_drip: z
             .array(z.object({ nama: z.string().max(200), laju: z.string().max(50).optional(), satuan: z.string().max(20).optional() }))
             .optional(),
-        catatan: z.string().max(1000).optional(),
+        catatan: z.string().max(1000).nullish(),
     });
 
     static KOREKSI_OBSERVASI = z.object({
-        nilai_baru: z.record(z.any()),
+        nilai_baru: IcuRequest.OBSERVASI.omit({ waktu_pengukuran: true }).partial().strict(),
+        revisi: z.number().int().positive(),
         alasan: z.string().min(3).max(500),
     });
 
@@ -72,4 +77,23 @@ export default class IcuRequest {
         urine_output_ml_hari: z.number().nonnegative().nullish(),
         catatan: z.string().max(1000).optional(),
     });
+    static KUERI = z.object({
+        dari: z.coerce.number().int().positive().optional(), sampai: z.coerce.number().int().positive().optional(),
+        layanan_kode: z.enum(["umum", "burn", "neuro", "belum_diklasifikasikan"]).optional(), ruangan_uuid: z.string().uuid().optional(),
+        status: z.enum(["draf", "ditetapkan", "diarsipkan"]).optional(),
+        halaman: z.coerce.number().int().min(1).default(1), batas: z.coerce.number().int().min(1).max(100).default(50),
+        kode_dokumen: z.string().max(64).optional(),
+    }).refine((v) => !v.dari || !v.sampai || v.sampai > v.dari, "Akhir periode harus setelah awal periode");
+    static AKTIVASI = z.object({ aktif: z.boolean(), revisi: z.number().int().nonnegative(), alasan: z.string().trim().min(3).max(500) }).strict();
+    static BED = z.object({ layanan_kode: z.enum(["umum", "burn", "neuro"]), berlaku_mulai: z.number().int().positive(),
+        revisi: z.number().int().nonnegative(), alasan: z.string().trim().min(3).max(500) }).strict();
+    static AKSES = IcuRequest.AKTIVASI.extend({ role_uuid: z.string().uuid(), ruangan_uuid: z.string().uuid() });
+    static TEMPLATE = z.object({ layanan_kode: z.enum(["umum", "burn", "neuro"]), kode_template: z.string().regex(/^[a-z][a-z0-9_]{0,63}$/),
+        nama: z.string().trim().min(1).max(200), definisi: definisiTemplate, aturan_kelengkapan: aturanKelengkapan }).strict();
+    static DRAF = IcuRequest.TEMPLATE.omit({ layanan_kode: true, kode_template: true });
+    static UBAH_DRAF = IcuRequest.DRAF.extend({ revisi: z.number().int().positive() });
+    static PENETAPAN = z.object({ revisi: z.number().int().positive(), alasan: z.string().trim().min(3).max(500) }).strict();
+    static DOKUMENTASI = z.object({ kode_dokumen: z.string().regex(/^[a-z][a-z0-9_]{0,63}$/), waktu_pencatatan: z.number().int().positive(), nilai: nilaiDinamis }).strict();
+    static KOREKSI_DOKUMENTASI = z.object({ revisi: z.number().int().positive(), alasan: z.string().trim().min(3).max(500), nilai_baru: nilaiDinamis }).strict();
+
 }

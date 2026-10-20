@@ -24,6 +24,7 @@ const sidebarBodyList = computed<SidebarBody[]>(() => [
       { name: "Aturan & Pengetahuan", type: linkType.LINK, url: "/studio/aturan", icon: "PhScroll" },
       ...(studio.boleh("Rilis", "DEPLOY") ? [{ name: "Server & Deploy", type: linkType.LINK, url: "/studio/server", icon: "PhHardDrives" }] : []),
       ...(studio.status.superadmin ? [{ name: "Pengaturan & Agen", type: linkType.LINK, url: "/studio/pengaturan", icon: "PhGearSix" }] : []),
+      ...(studio.status.superadmin ? [{ name: "Helpdesk AI", type: linkType.LINK, url: "/studio/helpdesk-ai", icon: "PhHeadset" }] : []),
       ...(studio.boleh("Audit", "READ") ? [{ name: "Audit & Metrik", type: linkType.LINK, url: "/studio/audit", icon: "PhListMagnifyingGlass" }] : []),
     ],
   },

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
+import { hasPermission } from "@/utils/permissions";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import CustomTextfield from "@/components/Base/CustomTextfield.vue";
 import CustomTextArea from "@/components/Base/CustomTextArea.vue";
@@ -7,14 +8,14 @@ import CustomDatePicker from "@/components/Base/CustomDatePicker.vue";
 import CustomSelect from "@/components/Base/CustomSelect.vue";
 import NoData from "@/components/section/NoData.vue";
 import { utilsStore } from "@/stores/utils";
-import { useIcuStore } from "@/stores/rawatInap/icu";
+import { apiIntensif } from "@/stores/rawatInap/icu";
 
 // Balance cairan: entri intake/output terpisah (KF-8), dihitung otomatis per periode (KF-9), ditandai belum lengkap
 // bila periode belum berakhir atau belum ada entri (KF-10). Definisi jam-kosong final menunggu ketetapan pemilik
 // klinis — lihat catatan di rawat-inap-service/src/repositories/icu-repository.js.
-const props = defineProps<{ perawatanUuid: string }>();
+const props = withDefaults(defineProps<{ perawatanUuid: string; basis?: string }>(), { basis: "/icu" });
 const storeUtils = utilsStore();
-const icuStore = useIcuStore();
+const icuStore = apiIntensif(props.basis);
 
 const kosongForm = () => ({
   waktuPencatatan: new Date(),
@@ -84,7 +85,7 @@ onMounted(muat);
       </div>
       <div v-if="galat" class="mt-2 text-sm text-danger-300">{{ galat }}</div>
       <div class="flex justify-end mt-3">
-        <CustomButton label="Simpan Entri" icon="PhPlus" @click="simpan" />
+        <CustomButton v-if="hasPermission('ICU', 'Balance Cairan', 'CREATE')" label="Simpan Entri" icon="PhPlus" @click="simpan" />
       </div>
     </div>
 

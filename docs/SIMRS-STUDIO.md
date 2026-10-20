@@ -150,6 +150,26 @@ Banyak item bisa dikerjakan bersamaan. Pengaman berikut mencegah bentrok yang du
    - daftar sisipan: `auth-service/src/helpers/permission-list.js`, `auth-service/src/controllers/permission-controller.js` (`SEMUA_MODUL`), `frontend-service/src/components/section/Header.vue` (menu, `MODUL_PENUNJANG_CADANGAN`, daftar *Segera*), `frontend-service/src/router/index.ts`, `frontend-service/src/utils/permissions.ts`, `penunjang-service/src/rute.js`, `penunjang-service/src/umum/izin.js`, `penunjang-service/src/config.js`.
 
    Setelah konflik selesai, Studio menjalankan `node scripts/cek-integritas.mjs` lalu membuat commit merge. Bila ada konflik lain atau cek integritas gagal, penggabungan dibatalkan (`git merge --abort`) dan branch item tidak berubah. Daftar berkas yang tersisa tampil di diskusi item. **Terapkan** menjalankan sinkronisasi ini otomatis bila pra-cek menemukan konflik. Sinkronisasi membutuhkan working tree item yang bersih, jadi commit dulu perubahan item.
+5. **Kesiapan penerapan.** Di tab Rilis (mode lokal), panel **Kesiapan penerapan** memeriksa item sebelum Terapkan tanpa mengubah apa pun. Tombol Terapkan baru aktif bila tidak ada langkah bertanda merah. Klik **Periksa ulang** setelah membereskan sesuatu di luar Studio.
+
+   | Langkah | Bila merah/biru | Yang dilakukan |
+   |---|---|---|
+   | Berkas belum di-commit di branch item | Ada berkas yang diubah atau dibuat tetapi belum di-commit, misalnya sisa agen | **Pindai perubahan** (bila berkas belum dikenal Studio) lalu **Commit perubahan**. Berkas yang tidak dipakai hapus saja dari folder item |
+   | Commit belum tercatat | Agen atau programmer meng-commit langsung di branch | Tidak perlu tindakan: dicatat otomatis saat Commit/Terapkan, atau klik **Pindai perubahan** |
+   | Migrasi | Migrasi item tertinggal dari branch lokal | Diurutkan otomatis saat Terapkan. Merah hanya bila migrasinya sudah pernah dijalankan (lihat poin 2) |
+   | Konflik berpola dikenal | Katalog, daftar izin/menu/rute, CHANGELOG, dokumen katalog | Diselesaikan otomatis saat Terapkan |
+   | Konflik kode | Item lain yang sudah diterapkan mengubah berkas yang sama, misalnya refactor | Lihat **Menyelesaikan konflik kode** di bawah |
+   | Berkas di branch lokal belum di-commit | Repo aplikasi (`npm run dev`) punya perubahan belum di-commit pada berkas yang juga diubah item, sehingga git menolak menimpanya | Commit atau `git stash` berkas itu di repo utama, lalu **Periksa ulang** |
+
+   **Menyelesaikan konflik kode:**
+   1. Klik **Mulai selesaikan konflik**. Studio menggabungkan branch lokal ke branch item di folder item. Pola yang dikenal diselesaikan otomatis, sedangkan berkas lain diberi penanda `<<<<<<<` / `=======` / `>>>>>>>`. Branch lokal belum tersentuh.
+   2. Selesaikan penanda konflik dengan salah satu cara:
+      - buka folder item (tombol **salin** di panel) di VS Code; bagian atas adalah versi item, bagian bawah versi branch lokal. Pertahankan maksud keduanya dan ikuti struktur terbaru dari branch lokal;
+      - atau klik **Minta agen menyelesaikan**. Agen hanya menyunting berkas berpenanda dan tidak menjalankan perintah git.
+   3. Klik **Tutup penggabungan**. Studio menolak bila masih ada penanda, lalu mengecek sintaks JavaScript, membuat ulang dokumen katalog, menjalankan cek integritas, dan membuat commit merge.
+   4. Klik **Terapkan** lagi.
+
+   **Batalkan penggabungan** membuang hasil langkah 2 dan mengembalikan branch item seperti semula. Galat Terapkan juga dicatat di diskusi item sehingga bisa dibaca ulang.
 
 ### Kirim ke server RS tanpa GitHub (Server & Deploy)
 
@@ -246,6 +266,24 @@ Kuota langganan (Claude Code, Codex) dan rate limit API bisa habis di tengah pek
 
 > **Catatan pemakaian yang wajar.** Rantai cadangan ditujukan untuk jalur berbayar resmi (konektor API yang dibayar per pemakaian) atau penyedia yang berbeda. Rantai ini **bukan** untuk memutar beberapa akun langganan pribadi dari penyedia yang sama. Studio hanya beralih antar konektor yang dikonfigurasi admin, satu akun per konektor, sesuai ketentuan masing-masing penyedia.
 
+## 5a. Helpdesk AI (OpenClaw lokal)
+
+Menu **Helpdesk AI** (superadmin) mengatur OpenClaw **di mesin tempat studio-service berjalan** untuk tombol **Bantuan** OpenSIMRS, tanpa terminal. Agen helpdesk berbeda dari agen Studio: agen helpdesk tidak menulis kode, hanya menjawab pertanyaan cara pakai dari panduan pengguna.
+
+| Kartu | Fungsi |
+|---|---|
+| Status | Versi OpenClaw, gateway berjalan, endpoint HTTP (`/v1/chat/completions`) aktif, Ollama, dan pengaturan Helpdesk AI OpenSIMRS. Tombol **Jalankan (ulang) gateway** menjalankan `openclaw gateway --force` sebagai proses latar studio-service |
+| Agen & model | Membuat atau mengubah agen (bawaan `helpdesk-opensimrs`), memilih model Ollama lokal atau penyedia API beserta kunci API, mode berpikir, dan batas isi prompt. Setiap simpan juga menyalakan endpoint HTTP dan memasang batasan alat (exec, tulis berkas, peramban, web, subagen ditolak) |
+| Panduan agen | Menyalin panduan pengguna, katalog modul, `AGENTS.md`, dan persona helpdesk (`SOUL.md`, `IDENTITY.md`, `USER.md`) dari commit terakhir ke workspace agen. Persona asisten pribadi bawaan OpenClaw dan `BOOTSTRAP.md` diganti/dihapus |
+| Token gateway | Membuat token acak, memasangnya di OpenClaw, dan memperbarui URL, agen, serta token di Setting › Konfigurasi Integrasi › Helpdesk AI. Jalankan ulang gateway setelahnya |
+| Uji tanya | Bertanya ke agen lewat gateway (sesi baru tiap uji) dan menampilkan lama jawaban |
+
+Keamanan:
+- Kunci API dan token tidak pernah lewat argumen perintah, log, atau respons. Studio menulisnya sebagai patch ke folder `…\openclaw-helpdesk\.masuk` berizin terbatas, menerapkannya dengan `openclaw config patch --file` (divalidasi `--dry-run` dulu), lalu menghapusnya. Kunci tersimpan di konfigurasi OpenClaw, bukan database OpenSIMRS.
+- Pakai kunci API khusus helpdesk, terpisah dari konektor agen Studio.
+- Kanal pesan (WhatsApp, Telegram, dan lainnya) sengaja tidak diatur. Helpdesk hanya lewat tombol Bantuan, yang memiliki login, penyaring data pasien, dan batas per jam.
+- Gateway produksi di VM terpisah tetap diatur mengikuti [deploy/helpdesk/README.md](../deploy/helpdesk/README.md).
+
 ## 6. Ekstensi tanpa kode
 
 Ekstensi dibuat di **SIMRS Studio › Ekstensi** (fitur Ekstensi harus aktif). Ada tiga jenis:
@@ -287,6 +325,8 @@ Pengamannya:
 | "Working tree sedang dipakai item STD-…" | Mode workspace hanya punya satu working tree. Selama agen coding item itu bekerja, aksi yang memindahkan branch repo utama ditolak: jalankan coding, Siapkan branch, Buka branch item, Kembali ke branch asal, dan Terapkan. Tunggu tugasnya selesai, atau pakai mode worktree agar item dikerjakan paralel |
 | Cek otomatis gagal di **Integritas lintas berkas** | Jalankan `node scripts/cek-integritas.mjs` di worktree item. Pesannya menyebut perbaikan untuk tiap kasus: rute modul cukup awalan (`/icu`) karena sub-rute milik fitur; tambahkan entri menu di `templistMenu` Header.vue; hapus modul dari `NAMA_SEGERA`; ganti stempel migrasi kembar; ganti `import … from "@/main"` dengan `"@/utils/aplikasi"`. Minta agen merevisi dengan pesan itu |
 | Layar putih "Cannot access 'router' before initialization" | Ada berkas yang mengimpor `@/main` (import melingkar). Cek integritas menandainya. Sementara itu, tekan Ctrl+Shift+R |
+| Terapkan gagal / tombol Terapkan terkunci | Buka panel **Kesiapan penerapan** di tab Rilis. Setiap langkah merah memuat penyebab dan tombol perbaikannya (poin 5 di §3) |
+| "Commit perubahan" menjawab "Tidak ada perubahan untuk di-commit" padahal belum ada commit tercatat | Sudah diperbaiki: Commit kini mencatat commit yang dibuat langsung di branch. Pada versi lama, klik **Pindai perubahan** |
 | Modul diterapkan tetapi masih "Segera" | Migrasi katalog belum jalan atau gagal. Klik **Aktifkan di aplikasi** untuk menjalankan ulang migrasi. Bila gagal, baca penyebabnya di diskusi item (mis. rute ganda di katalog) |
 | "Branch … masih terbuka di repo utama" (mode worktree) | Satu branch hanya boleh terbuka di satu folder. Biasanya branch itu sisa mode workspace. Pindahkan repo utama ke branch lain lewat **Pindahkan aplikasi ke …**, atau **Buka branch item** pada item yang kodenya masih ada di repo utama, lalu ulangi |
 | Tugas **Menunggu kuota — lanjut otomatis HH.MM WIB** | Kuota semua konektor dalam rantai habis. Tunggu (dilanjutkan otomatis), tambahkan konektor API di **Rantai cadangan konektor**, naikkan **Henti di kuota (%)**, atau klik **Batalkan**. Pastikan migrasi `20261018020000-studio_tugas_tahan_kuota` sudah dijalankan |
