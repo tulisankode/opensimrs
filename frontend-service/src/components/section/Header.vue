@@ -540,6 +540,11 @@ const panelLainnya = computed(() => kelompokkanBidang(itemLainnya.value.filter(c
 const studioLainnya = computed(() => menuLainnya.value.find((m) => m.url === URL_STUDIO && cocokCari(m)));
 // Jumlah kolom dari isi tanpa filter agar lebar panel tidak berubah saat mengetik di kotak cari.
 const jumlahKolomLainnya = computed(() => Math.max(1, Math.min(4, kelompokkanBidang(itemLainnya.value).length)));
+const kolomPanelLainnya = computed(() => {
+  const kolom = Array.from({ length: jumlahKolomLainnya.value }, () => [] as KelompokBidang[]);
+  panelLainnya.value.forEach((bidang, index) => kolom[index % kolom.length].push(bidang));
+  return kolom;
+});
 const KELAS_KOLOM = ["", "", "sm:grid-cols-2", "sm:grid-cols-2 lg:grid-cols-3", "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"];
 const KELAS_LEBAR = ["", "w-[min(90vw,260px)]", "w-[min(90vw,500px)]", "w-[min(90vw,740px)]", "w-[min(90vw,980px)]"];
 const saatLainnyaTerbuka = () => {
@@ -815,7 +820,7 @@ const isSuperAdmin = getUserRole() === "super admin";
       </Popover>
       <!-- Panel "Lainnya": kolom per bidang, subjudul instalasi, kotak cari; SIMRS Studio terpisah di bawah. -->
       <Popover ref="popupLainnya" @show="saatLainnyaTerbuka">
-        <div class="flex max-w-full flex-col gap-3" :class="KELAS_LEBAR[jumlahKolomLainnya]">
+        <div class="flex max-h-[calc(100vh-96px)] max-w-full flex-col gap-3 overflow-hidden" :class="KELAS_LEBAR[jumlahKolomLainnya]">
           <div class="relative">
             <PhMagnifyingGlass
               :size="14"
@@ -833,37 +838,39 @@ const isSuperAdmin = getUserRole() === "super admin";
             />
           </div>
           <div
-            class="grid max-h-[65vh] grid-cols-1 gap-x-5 gap-y-4 overflow-y-auto"
+            class="grid min-h-0 flex-1 grid-cols-1 gap-x-5 overflow-y-auto overscroll-contain pr-1"
             :class="KELAS_KOLOM[jumlahKolomLainnya]"
             role="menu"
             aria-label="Modul lainnya"
           >
-            <section v-for="b in panelLainnya" :key="b.bidang" class="flex min-w-0 flex-col gap-0.5" :aria-label="b.bidang">
-              <div class="mb-1 border-b border-grey-100 px-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-opensimrs-300">
-                {{ b.bidang }}
-              </div>
-              <template v-for="ins in b.instalasi" :key="ins.nama">
-                <div v-if="ins.nama" class="px-2 pt-1.5 text-[10px] font-semibold text-grey-300">{{ ins.nama }}</div>
-                <button
-                  v-for="item in ins.menu"
-                  :key="item.url"
-                  v-tooltip.right="namaRingkas(item.title) !== item.title ? item.title : undefined"
-                  type="button"
-                  role="menuitem"
-                  class="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
-                  :class="{ 'bg-opensimrs-50 font-semibold text-opensimrs-300': itemLainnyaAktif(item) }"
-                  :aria-label="item.title"
-                  @click="bukaLainnya(item.url)"
-                >
-                  <component :is="item.icon" weight="fill" class="shrink-0 text-opensimrs-300" aria-hidden="true" />
-                  <span class="grow truncate">{{ namaRingkas(item.title) }}</span>
-                  <span
-                    v-if="item.segera"
-                    class="rounded-full bg-danger-300 px-1.5 py-[1px] text-[9px] font-bold uppercase leading-3 text-white"
-                  >Soon</span>
-                </button>
-              </template>
-            </section>
+            <div v-for="(kolom, index) in kolomPanelLainnya" :key="index" class="flex min-w-0 flex-col gap-4">
+              <section v-for="b in kolom" :key="b.bidang" class="flex min-w-0 flex-col gap-0.5" :aria-label="b.bidang">
+                <div class="mb-1 border-b border-grey-100 px-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-opensimrs-300">
+                  {{ b.bidang }}
+                </div>
+                <template v-for="ins in b.instalasi" :key="ins.nama">
+                  <div v-if="ins.nama" class="px-2 pt-1.5 text-[10px] font-semibold text-grey-300">{{ ins.nama }}</div>
+                  <button
+                    v-for="item in ins.menu"
+                    :key="item.url"
+                    v-tooltip.right="namaRingkas(item.title) !== item.title ? item.title : undefined"
+                    type="button"
+                    role="menuitem"
+                    class="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
+                    :class="{ 'bg-opensimrs-50 font-semibold text-opensimrs-300': itemLainnyaAktif(item) }"
+                    :aria-label="item.title"
+                    @click="bukaLainnya(item.url)"
+                  >
+                    <component :is="item.icon" weight="fill" class="shrink-0 text-opensimrs-300" aria-hidden="true" />
+                    <span class="grow truncate">{{ namaRingkas(item.title) }}</span>
+                    <span
+                      v-if="item.segera"
+                      class="rounded-full bg-danger-300 px-1.5 py-[1px] text-[9px] font-bold uppercase leading-3 text-white"
+                    >Soon</span>
+                  </button>
+                </template>
+              </section>
+            </div>
             <p v-if="!panelLainnya.length && !studioLainnya" class="col-span-full py-4 text-center text-SM text-grey-400">
               Tidak ada menu yang cocok dengan "{{ cariLainnya }}".
             </p>
