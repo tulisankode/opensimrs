@@ -155,11 +155,15 @@ const ubahJenisPoli = async (lokasiUuid: string, jenis: string) => {
   }
 };
 
+// Ruang perawatan intensif (ICU, NICU, PICU, CCU, HDU, …) satu bagian tersendiri, bukan tersebar di kelompoknya.
+const KELOMPOK_INTENSIF = "Ruang Perawatan Intensif";
+const kelompokModul = (m: ModulKatalog) => (m.instalasi === "Instalasi Perawatan Intensif" ? KELOMPOK_INTENSIF : m.kelompok);
 const kelompok = computed(() => {
   const peta = new Map<string, ModulKatalog[]>();
   for (const m of konfigurasi.value?.katalog ?? []) {
-    if (!peta.has(m.kelompok)) peta.set(m.kelompok, []);
-    peta.get(m.kelompok)!.push(m);
+    const k = kelompokModul(m);
+    if (!peta.has(k)) peta.set(k, []);
+    peta.get(k)!.push(m);
   }
   return [...peta.entries()];
 });
