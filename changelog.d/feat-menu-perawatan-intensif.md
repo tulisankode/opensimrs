@@ -1,0 +1,2 @@
+### Diubah
+- **Menu & Manajemen Modul: ruang perawatan intensif dikelompokkan.** Modul berinstalasi "Instalasi Perawatan Intensif" di katalog (ICU, NICU, PICU, CCU, HDU, …) beserta **PACU / Recovery Room** (fitur Kamar Operasi) tampil dalam satu dropdown **Perawatan Intensif** di menu atas bila lebih dari satu aktif, dan dalam bagian **Ruang Perawatan Intensif** tersendiri di Setting › Manajemen Modul. Modul intensif baru otomatis masuk tanpa mengubah kode menu.
