@@ -8,6 +8,7 @@ import {ZodError} from "zod";
 import zodErrorParser from "../helpers/zod-error-parser.js";
 
 const errorMiddleware = (error, request, response, nextFunction) => {
+  if (error.hdu) return response.status(error.status).json({ message: error.message, payload: null });
   console.error("Error Middleware", error);
   if (error instanceof NotfoundException) {
     return response.status(error.code).json(errorResponse(error.message));

@@ -1206,9 +1206,21 @@ export const profilePermission = {
   ],
 };
 
+// Definisi terpisah agar izin Dashboard bawaan tidak otomatis memberi ringkasan lintas unit.
+export const dashboardVirtualOfficePermission = {
+  module: "Dashboard",
+  subModules: [{ name: "Virtual Office", allows: ["READ", "PENDAFTARAN", "RAWAT JALAN", "IGD", "RAWAT INAP", "LABORATORIUM", "RADIOLOGI", "FARMASI", "KASIR"] }],
+};
+
 export const dashboardPermission = {
   module: "Dashboard",
   subModules: [],
+};
+
+// Command Center (STD-0037): objek terpisah agar izin Dashboard bawaan tidak memberi dasbor operasional & peringatan.
+export const dashboardCommandCenterPermission = {
+  module: "Dashboard",
+  subModules: [{ name: "Command Center", allows: ["READ", "ATUR AMBANG", "TINJAU PERINGATAN", "ESKALASI PERINGATAN"] }],
 };
 
 /**
@@ -1236,6 +1248,8 @@ export function mapPermission(permissionList) {
     inventory: inventoryPermission,
     datamaster: datamasterPermission,
     dashboard: dashboardPermission,
+    "dashboard virtual office": dashboardVirtualOfficePermission,
+    "dashboard command center": dashboardCommandCenterPermission,
     setting: settingPermission,
     profile: profilePermission,
     laporan: laporanPermission,

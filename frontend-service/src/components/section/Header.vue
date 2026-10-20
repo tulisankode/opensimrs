@@ -15,10 +15,11 @@ import { PhMegaphone, PhX } from '@phosphor-icons/vue';
 import { useAntrianCallStore } from "@/stores/antrian/antrianCall";
 import AnnouncementIcon from "../icons/AnnouncementIcon.vue";
 import { useRJStore } from "@/stores/rawatJalan/laporanrajal";
-import { useModulFaskesStore, modulSegera } from "@/stores/modulFaskes";
+import { useModulFaskesStore, modulSegera, fiturAktif } from "@/stores/modulFaskes";
 import { studioAktif, EVENT_STUDIO, mungkinPunyaAkses, useSimrsStudioStore } from "@/stores/simrsStudio";
 import { adaEkstensi, muatEkstensi, EVENT_EKSTENSI } from "@/stores/ekstensi";
 import { usePermissionStore } from "@/stores/datamaster/permission";
+import { hasPermission } from "@/utils/permissions";
 import { logoFaskes } from "@/utils/tema";
 import Popover from "primevue/popover";
 import TombolBantuan from "./TombolBantuan.vue";
@@ -55,6 +56,11 @@ const templistMenu = ref<ListMenu[]>([
     icon: "PhChartLine",
     iconWeight: "bold",
     url: "/dashboard",
+  },
+  {
+    title: "Command Center",
+    icon: "PhMonitor",
+    url: "/command-center",
   },
   {
     title: "Antrian",
@@ -179,6 +185,11 @@ const templistMenu = ref<ListMenu[]>([
     title: "HR / SDM",
     icon: "PhUsersThree",
     url: "/sdm",
+  },
+  {
+    title: "Akuntansi & Remunerasi",
+    icon: "PhCalculator",
+    url: "/akuntansi",
   },
   {
     title: "Training",
@@ -327,6 +338,10 @@ onBeforeMount(async () => {
 // Menu atas = modul pada permission user ∩ modul aktif faskes (Setting › Manajemen Modul).
 const susunMenu = () => {
   const menu: ListMenu[] = [templistMenu.value[0]];
+  // Command Center, Dashboard Eksekutif & Virtual Office tidak di menu atas: dikumpulkan di grup "Dashboard Pimpinan"
+  // pada panel Lainnya (lihat menuPimpinan).
+  menuPimpinan.value = MENU_PIMPINAN.filter((m) => fiturAktif(m.fitur) && hasPermission("Dashboard", m.izin, "READ"))
+    .map(({ title, icon, url }) => ({ title, icon, url }));
   getStoredPermissions().forEach((module) => {
     if (!canShowModuleInProduction(module.module)) return;
     if (!modulStore.menuAktif(module.module)) return;
@@ -341,16 +356,15 @@ const susunMenu = () => {
   // Urutan menu mengikuti templistMenu (alur klinis dulu, administrasi belakangan), bukan urutan permission.
   menu.sort((a, b) => templistMenu.value.indexOf(a) - templistMenu.value.indexOf(b));
   // Modul penunjang dikelompokkan dalam satu menu dropdown "Penunjang" (semua segmen).
-  const anakPenunjang = menu.filter(masukPenunjang).sort(bandingOrganisasi);
-  if (anakPenunjang.length) {
-    const posisi = menu.indexOf(anakPenunjang[0]);
-    const grup: ListMenu = { title: "Penunjang", icon: "PhFirstAidKit", url: "", anak: anakPenunjang };
-    const sisa = menu.filter((m) => !anakPenunjang.includes(m));
-    sisa.splice(posisi, 0, grup);
-    listMenu.value = sisa;
-  } else {
-    listMenu.value = menu;
+  let tersusun = gabungGrup(menu, menu.filter(masukPenunjang).sort(bandingOrganisasi), { title: "Penunjang", icon: "PhFirstAidKit" });
+  // Ruang perawatan intensif (ICU, NICU, PICU, CCU, HDU, … + PACU dari Kamar Operasi) dalam satu dropdown bila >1.
+  const anakIntensif = tersusun.filter(masukIntensif).sort(bandingOrganisasi);
+  const kamarOperasi = tersusun.find((m) => m.url === "/kamar-operasi");
+  if (kamarOperasi && fiturAktif("pacu")) anakIntensif.push({ title: "PACU / Recovery Room", icon: kamarOperasi.icon, url: "/kamar-operasi/pacu" });
+  if (anakIntensif.length > 1) {
+    tersusun = gabungGrup(tersusun, anakIntensif, { title: "Perawatan Intensif", icon: "PhHeartbeat", datar: true });
   }
+  listMenu.value = tersusun;
   // SIMRS Studio: hanya bila Mode Pengembang diaktifkan superadmin (Setting › System).
   // Ekstensi tanpa kode yang terpasang untuk pengguna ini (laporan/cetak/formulir dari SIMRS Studio).
   if (adaEkstensi()) listMenu.value = [...listMenu.value, { title: "Ekstensi", icon: "PhPuzzlePiece", url: "/ekstensi" }];
@@ -375,6 +389,14 @@ const URUTAN_BIDANG = [
   "Sistem",
 ];
 const BIDANG_LAIN = "Lainnya";
+// Dasbor untuk pimpinan & manajemen: satu grup di panel Lainnya (bidang Manajemen & Mutu).
+const INSTALASI_PIMPINAN = "Dashboard Pimpinan";
+const MENU_PIMPINAN = [
+  { title: "Command Center", icon: "PhMonitor", url: "/command-center", fitur: "command_center", izin: "Command Center" },
+  { title: "Dashboard Eksekutif", icon: "PhPresentationChart", url: "/dashboard/eksekutif", fitur: "dashboard_eksekutif", izin: "Eksekutif" },
+  { title: "Virtual Office", icon: "PhBuildings", url: "/dashboard/virtual-office", fitur: "dashboard_virtual_office", izin: "Virtual Office" },
+];
+const menuPimpinan = ref<ListMenu[]>([]);
 const BIDANG_MENU_NONMODUL: Record<string, { bidang: string; instalasi: string }> = {
   Datamaster: { bidang: "Sistem", instalasi: "Data Master" },
   Training: { bidang: "Sistem", instalasi: "Pelatihan" },
@@ -402,6 +424,11 @@ const modulMenu = (m: ListMenu) => {
 const URUTAN_AKHIR = 9999;
 const posisiOrganisasi = (m: ListMenu) => {
   const katalog = modulStore.konfigurasi?.katalog ?? [];
+  const pimpinan = MENU_PIMPINAN.findIndex((x) => x.url === m.url);
+  if (pimpinan >= 0) {
+    const urutanInstalasi = katalog.findIndex((x) => x.bidang === "Manajemen & Mutu");
+    return { bidang: "Manajemen & Mutu", instalasi: INSTALASI_PIMPINAN, urutanInstalasi: urutanInstalasi < 0 ? 0 : urutanInstalasi, urutan: pimpinan - MENU_PIMPINAN.length };
+  }
   const modul = modulMenu(m);
   if (modul?.bidang) {
     // Instalasi diurutkan menurut modul pertamanya di katalog (urutan katalog = alur layanan).
@@ -419,6 +446,25 @@ const bandingOrganisasi = (a: ListMenu, b: ListMenu) => {
   const pa = posisiOrganisasi(a);
   const pb = posisiOrganisasi(b);
   return indeksBidang(pa.bidang) - indeksBidang(pb.bidang) || pa.urutanInstalasi - pb.urutanInstalasi || pa.urutan - pb.urutan;
+};
+// Ruang perawatan intensif = modul berinstalasi "Instalasi Perawatan Intensif" di katalog (ICU, NICU, PICU, CCU, HDU,
+// dst.); modul intensif baru otomatis masuk grup tanpa mengubah kode menu.
+const INSTALASI_INTENSIF = "Instalasi Perawatan Intensif";
+const MODUL_INTENSIF_CADANGAN = ["ICU", "NICU", "PICU", "CCU", "HDU"];
+const masukIntensif = (m: ListMenu) => {
+  if (m.anak) return false;
+  const modul = modulMenu(m);
+  if (!modul?.bidang) return MODUL_INTENSIF_CADANGAN.includes(m.title);
+  return modul.instalasi === INSTALASI_INTENSIF;
+};
+// Ganti anggota grup dengan satu menu dropdown di posisi anggota pertamanya.
+const gabungGrup = (daftar: ListMenu[], anak: ListMenu[], grup: Omit<ListMenu, "url" | "anak">): ListMenu[] => {
+  if (!anak.length) return daftar;
+  const anggota = anak.filter((a) => daftar.includes(a));
+  const posisi = anggota.length ? daftar.indexOf(anggota[0]) : daftar.length;
+  const sisa = daftar.filter((m) => !anak.includes(m));
+  sisa.splice(Math.min(posisi, sisa.length), 0, { ...grup, url: "", anak });
+  return sisa;
 };
 const masukPenunjang = (m: ListMenu) => {
   const modul = modulMenu(m);
@@ -445,12 +491,13 @@ const menuAktif = (m: ListMenu) =>
   m.anak ? m.anak.some((a) => checkActiveTab(a.url)) : checkActiveTab(m.url) || route.path === m.url;
 const popupGrup = ref();
 const grupTerbuka = ref<ListMenu[]>([]);
+const grupDatar = ref(false);
 // Isi dropdown grup tersusun per bidang (subjudul) → instalasi. Instalasi dengan >1 menu (mis. Laboratorium: PK,
 // PA, Mikrobiologi) menjadi submenu yang bisa dibuka-tutup; instalasi bermenu tunggal tampil sebagai item biasa.
 const JUDUL_DI_SUBMENU: Record<string, string> = { Laboratorium: "Patologi Klinik" };
 const instalasiTerbuka = ref<string[]>([]);
 const grupTersusun = computed(() =>
-  kelompokkanBidang(grupTerbuka.value).map((b) => ({
+  (grupDatar.value ? [] : kelompokkanBidang(grupTerbuka.value)).map((b) => ({
     bidang: b.bidang,
     // Tanpa data instalasi (katalog lama di cache) setiap menu berdiri sendiri, bukan satu submenu tanpa nama.
     instalasi: b.instalasi.flatMap((i) =>
@@ -468,6 +515,7 @@ const toggleInstalasi = (nama: string) => {
 const klikMenu = (m: ListMenu, e: Event) => {
   if (!m.anak) return goToPage(m.url);
   grupTerbuka.value = m.anak;
+  grupDatar.value = !!m.datar;
   // Submenu yang memuat halaman aktif langsung terbuka.
   instalasiTerbuka.value = kelompokkanBidang(m.anak)
     .flatMap((b) => b.instalasi)
@@ -502,7 +550,7 @@ const hitungMenuTampil = () => {
 };
 const menuTampil = computed(() => listMenu.value.slice(0, jumlahTampil.value));
 const menuLainnya = computed(() => listMenu.value.slice(jumlahTampil.value));
-const lainnyaAktif = computed(() => menuLainnya.value.some(menuAktif));
+const lainnyaAktif = computed(() => menuLainnya.value.some(menuAktif) || menuPimpinan.value.some(menuAktif));
 const bukaLainnya = (url: string) => {
   popupLainnya.value?.hide();
   goToPage(url);
@@ -514,6 +562,7 @@ const inputCariLainnya = ref<HTMLInputElement>();
 const URL_STUDIO = "/studio";
 const itemLainnya = computed(() => [
   ...menuLainnya.value.flatMap((m) => m.anak ?? [m]).filter((m) => m.url !== URL_STUDIO),
+  ...menuPimpinan.value,
   ...menuSegera.value,
 ]);
 const cocokCari = (m: ListMenu) => {
@@ -524,6 +573,11 @@ const panelLainnya = computed(() => kelompokkanBidang(itemLainnya.value.filter(c
 const studioLainnya = computed(() => menuLainnya.value.find((m) => m.url === URL_STUDIO && cocokCari(m)));
 // Jumlah kolom dari isi tanpa filter agar lebar panel tidak berubah saat mengetik di kotak cari.
 const jumlahKolomLainnya = computed(() => Math.max(1, Math.min(4, kelompokkanBidang(itemLainnya.value).length)));
+const kolomPanelLainnya = computed(() => {
+  const kolom = Array.from({ length: jumlahKolomLainnya.value }, () => [] as KelompokBidang[]);
+  panelLainnya.value.forEach((bidang, index) => kolom[index % kolom.length].push(bidang));
+  return kolom;
+});
 const KELAS_KOLOM = ["", "", "sm:grid-cols-2", "sm:grid-cols-2 lg:grid-cols-3", "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"];
 const KELAS_LEBAR = ["", "w-[min(90vw,260px)]", "w-[min(90vw,500px)]", "w-[min(90vw,740px)]", "w-[min(90vw,980px)]"];
 const saatLainnyaTerbuka = () => {
@@ -564,11 +618,12 @@ const bukaSegera = (url: string) => {
   goToPage(url);
 };
 
+// Nama & ikon khusus menu "Segera" per kode modul (kosong: semua modul katalog Segera memakai nama katalog & ikon umum).
 const NAMA_SEGERA: Record<string, string> = {
-  akuntansi: "Akuntansi",
+  // <kode modul>: "Nama menu",
 };
 const IKON_SEGERA: Record<string, string> = {
-  akuntansi: "PhCalculator",
+  // <kode modul>: "PhIkon",
 };
 
 onMounted(async () => {
@@ -723,7 +778,7 @@ const isSuperAdmin = getUserRole() === "super admin";
           <PhCaretDown v-if="menu.anak" :size="12" aria-hidden="true" />
         </div>
         <button
-          v-if="menuLainnya.length"
+          v-if="menuLainnya.length || menuPimpinan.length"
           type="button"
           class="flex h-8 shrink-0 items-center gap-1.5 rounded-xl bg-white px-3"
           :class="lainnyaAktif ? 'text-opensimrs-300 font-semibold' : 'bg-opacity-30'"
@@ -738,6 +793,21 @@ const isSuperAdmin = getUserRole() === "super admin";
       <!-- Dropdown grup menu (mis. Penunjang). -->
       <Popover ref="popupGrup">
         <div class="flex min-w-[220px] flex-col gap-1" role="menu">
+          <!-- Grup datar (mis. Perawatan Intensif): semua menu dalam satu daftar. -->
+          <template v-if="grupDatar">
+            <button
+              v-for="m in grupTerbuka"
+              :key="m.url"
+              type="button"
+              role="menuitem"
+              class="flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
+              :class="{ 'bg-opensimrs-50 font-semibold text-opensimrs-300': checkActiveTab(m.url) }"
+              @click="bukaGrup(m.url)"
+            >
+              <component :is="m.icon" weight="fill" class="shrink-0 text-opensimrs-300" aria-hidden="true" />
+              <span class="grow">{{ namaRingkas(m.title) }}</span>
+            </button>
+          </template>
           <template v-for="(b, bi) in grupTersusun" :key="b.bidang">
             <div
               v-if="grupTersusun.length > 1"
@@ -798,7 +868,7 @@ const isSuperAdmin = getUserRole() === "super admin";
       </Popover>
       <!-- Panel "Lainnya": kolom per bidang, subjudul instalasi, kotak cari; SIMRS Studio terpisah di bawah. -->
       <Popover ref="popupLainnya" @show="saatLainnyaTerbuka">
-        <div class="flex max-w-full flex-col gap-3" :class="KELAS_LEBAR[jumlahKolomLainnya]">
+        <div class="flex max-h-[calc(100vh-96px)] max-w-full flex-col gap-3 overflow-hidden" :class="KELAS_LEBAR[jumlahKolomLainnya]">
           <div class="relative">
             <PhMagnifyingGlass
               :size="14"
@@ -816,37 +886,39 @@ const isSuperAdmin = getUserRole() === "super admin";
             />
           </div>
           <div
-            class="grid max-h-[65vh] grid-cols-1 gap-x-5 gap-y-4 overflow-y-auto"
+            class="grid min-h-0 flex-1 grid-cols-1 gap-x-5 overflow-y-auto overscroll-contain pr-1"
             :class="KELAS_KOLOM[jumlahKolomLainnya]"
             role="menu"
             aria-label="Modul lainnya"
           >
-            <section v-for="b in panelLainnya" :key="b.bidang" class="flex min-w-0 flex-col gap-0.5" :aria-label="b.bidang">
-              <div class="mb-1 border-b border-grey-100 px-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-opensimrs-300">
-                {{ b.bidang }}
-              </div>
-              <template v-for="ins in b.instalasi" :key="ins.nama">
-                <div v-if="ins.nama" class="px-2 pt-1.5 text-[10px] font-semibold text-grey-300">{{ ins.nama }}</div>
-                <button
-                  v-for="item in ins.menu"
-                  :key="item.url"
-                  v-tooltip.right="namaRingkas(item.title) !== item.title ? item.title : undefined"
-                  type="button"
-                  role="menuitem"
-                  class="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
-                  :class="{ 'bg-opensimrs-50 font-semibold text-opensimrs-300': itemLainnyaAktif(item) }"
-                  :aria-label="item.title"
-                  @click="bukaLainnya(item.url)"
-                >
-                  <component :is="item.icon" weight="fill" class="shrink-0 text-opensimrs-300" aria-hidden="true" />
-                  <span class="grow truncate">{{ namaRingkas(item.title) }}</span>
-                  <span
-                    v-if="item.segera"
-                    class="rounded-full bg-danger-300 px-1.5 py-[1px] text-[9px] font-bold uppercase leading-3 text-white"
-                  >Soon</span>
-                </button>
-              </template>
-            </section>
+            <div v-for="(kolom, index) in kolomPanelLainnya" :key="index" class="flex min-w-0 flex-col gap-4">
+              <section v-for="b in kolom" :key="b.bidang" class="flex min-w-0 flex-col gap-0.5" :aria-label="b.bidang">
+                <div class="mb-1 border-b border-grey-100 px-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-opensimrs-300">
+                  {{ b.bidang }}
+                </div>
+                <template v-for="ins in b.instalasi" :key="ins.nama">
+                  <div v-if="ins.nama" class="px-2 pt-1.5 text-[10px] font-semibold text-grey-300">{{ ins.nama }}</div>
+                  <button
+                    v-for="item in ins.menu"
+                    :key="item.url"
+                    v-tooltip.right="namaRingkas(item.title) !== item.title ? item.title : undefined"
+                    type="button"
+                    role="menuitem"
+                    class="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-SM text-grey-500 hover:bg-opensimrs-50"
+                    :class="{ 'bg-opensimrs-50 font-semibold text-opensimrs-300': itemLainnyaAktif(item) }"
+                    :aria-label="item.title"
+                    @click="bukaLainnya(item.url)"
+                  >
+                    <component :is="item.icon" weight="fill" class="shrink-0 text-opensimrs-300" aria-hidden="true" />
+                    <span class="grow truncate">{{ namaRingkas(item.title) }}</span>
+                    <span
+                      v-if="item.segera"
+                      class="rounded-full bg-danger-300 px-1.5 py-[1px] text-[9px] font-bold uppercase leading-3 text-white"
+                    >Soon</span>
+                  </button>
+                </template>
+              </section>
+            </div>
             <p v-if="!panelLainnya.length && !studioLainnya" class="col-span-full py-4 text-center text-SM text-grey-400">
               Tidak ada menu yang cocok dengan "{{ cariLainnya }}".
             </p>

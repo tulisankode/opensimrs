@@ -1,0 +1,12 @@
+### Ditambahkan
+- **Virtual Office: tampilan Kantor piksel 2D tampak atas** (bawaan; tampilan isometrik kini bernama Denah, pilihan diingat per peramban):
+  - denah RS dari tata letak server dengan ruang berperabot per jenis (loket, poli, IGD, bangsal, lab, radiologi, farmasi, kasir), koridor, ruang tunggu, dan dekorasi; semua sprite digambar prosedural di Canvas 2D tanpa aset luar, zoom bulat 1×/2×/3×;
+  - petugas berlabel peran bidang kerja (mis. "Dokter Poli Anak", bukan nama pegawai) dengan gelembung status santai/melayani/sibuk; pasien generik tanpa identitas sejumlah angka nyata menunggu/dilayani (+n di luar slot) yang berjalan di koridor untuk setiap perpindahan nyata;
+  - panel samping berisi ringkasan, daftar unit berstatus (klik = fokus kamera + rincian), dan **Log Aktivitas** dari selisih snapshot (maksimal 50 entri di memori);
+  - konfigurasi Virtual Office versi 4: `jenis_ruang`, `petugas`/`petugas_ruang`, dan `satuan` per unit.
+- **Virtual Office: peta Denah 2.5D lebih hidup** tanpa data karangan:
+  - pasien berjalan di koridor untuk setiap perpindahan nyata (selisih antar-snapshot per jalur, mis. Rawat Jalan → Laboratorium/Farmasi, IGD → Rawat Inap; tagihan baru di Kasir masuk lewat pintu), jumlah sebanding selisih dan dibatasi 60 avatar;
+  - antrean bergoyang pelan, pasien dilayani beranimasi ringan, ruang Padat berdenyut, angka berubah dengan count-up dan kilatan singkat;
+  - jam waktu nyata dan hitung mundur "pembaruan berikutnya"; garis jalur hanya beranimasi bila ada arus baru; keterangan "Belum ada aktivitas hari ini di faskes ini" saat semua angka 0;
+  - menghormati `prefers-reduced-motion`; animasi memakai `requestAnimationFrame` dan berhenti saat tab tersembunyi.
+- Virtual Office: jalur baru **Pendaftaran → IGD** (pasien IGD terdaftar hari ini).

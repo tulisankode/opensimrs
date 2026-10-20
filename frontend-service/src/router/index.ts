@@ -242,6 +242,10 @@ import LaporanPagePkm from "@/views/ProgramPuskesmas/LaporanPage.vue";
 import DatamasterJenisVaksinPage from "@/views/ProgramPuskesmas/DatamasterJenisVaksinPage.vue";
 import DatamasterFormatLaporanPage from "@/views/ProgramPuskesmas/DatamasterFormatLaporanPage.vue";
 
+import HduView from "@/views/Hdu/HduView.vue";
+import DaftarHduPage from "@/views/Hdu/DaftarHduPage.vue";
+import KonfigurasiHduPage from "@/views/Hdu/KonfigurasiHduPage.vue";
+import PerawatanHduPage from "@/views/Hdu/PerawatanHduPage.vue";
 import IcuView from "@/views/Icu/IcuView.vue";
 import DashboardIcuPage from "@/views/Icu/DashboardIcuPage.vue";
 import PerawatanIcuPage from "@/views/Icu/PerawatanIcuPage.vue";
@@ -333,6 +337,21 @@ import LaporanSarprasPage from "@/views/Sarpras/LaporanPage.vue";
 import SdmView from "@/views/Sdm/SdmView.vue";
 import KepegawaianSdmPage from "@/views/Sdm/KepegawaianPage.vue";
 import KredensialSdmPage from "@/views/Sdm/KredensialPage.vue";
+// NOTE Akuntansi & Remunerasi — jurnal otomatis, buku besar, laporan keuangan (STD-0031, penunjang-service)
+import AkuntansiView from "@/views/Akuntansi/AkuntansiView.vue";
+import CoaAkuntansiPage from "@/views/Akuntansi/CoaPage.vue";
+import PemetaanAkuntansiPage from "@/views/Akuntansi/PemetaanPage.vue";
+import JurnalAkuntansiPage from "@/views/Akuntansi/JurnalPage.vue";
+import PersetujuanAkuntansiPage from "@/views/Akuntansi/PersetujuanPage.vue";
+import BukuBesarAkuntansiPage from "@/views/Akuntansi/BukuBesarPage.vue";
+import NeracaSaldoAkuntansiPage from "@/views/Akuntansi/NeracaSaldoPage.vue";
+import PeriodeAkuntansiPage from "@/views/Akuntansi/PeriodePage.vue";
+import LaporanAkuntansiPage from "@/views/Akuntansi/LaporanPage.vue";
+// Remunerasi — jasa pelayanan (STD-0032, fitur katalog akuntansi_remunerasi)
+import PeriodeRemunerasiPage from "@/views/Akuntansi/Remunerasi/PeriodePage.vue";
+import RekapRemunerasiPage from "@/views/Akuntansi/Remunerasi/RekapPage.vue";
+import SlipRemunerasiPage from "@/views/Akuntansi/Remunerasi/SlipPage.vue";
+import KonfigurasiRemunerasiPage from "@/views/Akuntansi/Remunerasi/KonfigurasiPage.vue";
 
 // NOTE Unit Hemodialisa — jadwal, sesi HD, dializer, bridging HDIS (STD-0033, penunjang-service)
 import HemodialisaView from "@/views/Hemodialisa/HemodialisaView.vue";
@@ -459,6 +478,18 @@ const router = createRouter({
       name: "dashboard",
       meta: { layout: SidebarLayout, requiresAuth: true },
       component: DashboardView,
+    },
+    {
+      path: "/dashboard/virtual-office",
+      name: "dashboard-virtual-office",
+      meta: { layout: SidebarLayout, requiresAuth: true },
+      component: () => import("@/views/Dashboard/VirtualOfficeView.vue"),
+    },
+    {
+      path: "/command-center",
+      name: "command-center",
+      meta: { layout: SidebarLayout, requiresAuth: true },
+      component: () => import("@/views/Dashboard/CommandCenterView.vue"),
     },
     // Dashboard Eksekutif pimpinan (STD-0034): izin Dashboard › Eksekutif (permissions.ts) + fitur dashboard_eksekutif.
     {
@@ -1907,6 +1938,22 @@ const router = createRouter({
       ["/sdm/kepegawaian", "sdm-kepegawaian", KepegawaianSdmPage],
       ["/sdm/kredensial", "sdm-kredensial", KredensialSdmPage],
     ]),
+    { path: "/akuntansi", name: "akuntansi", redirect: "/akuntansi/jurnal" },
+    ...halamanModul(AkuntansiView, [
+      ["/akuntansi/coa", "akuntansi-coa", CoaAkuntansiPage],
+      ["/akuntansi/pemetaan", "akuntansi-pemetaan", PemetaanAkuntansiPage],
+      ["/akuntansi/jurnal", "akuntansi-jurnal", JurnalAkuntansiPage],
+      ["/akuntansi/persetujuan", "akuntansi-persetujuan", PersetujuanAkuntansiPage],
+      ["/akuntansi/buku-besar", "akuntansi-buku-besar", BukuBesarAkuntansiPage],
+      ["/akuntansi/neraca-saldo", "akuntansi-neraca-saldo", NeracaSaldoAkuntansiPage],
+      ["/akuntansi/periode", "akuntansi-periode", PeriodeAkuntansiPage],
+      ["/akuntansi/laporan", "akuntansi-laporan", LaporanAkuntansiPage],
+      ["/akuntansi/remunerasi/periode", "akuntansi-remunerasi-periode", PeriodeRemunerasiPage],
+      ["/akuntansi/remunerasi/rekap", "akuntansi-remunerasi-rekap", RekapRemunerasiPage],
+      ["/akuntansi/remunerasi/slip", "akuntansi-remunerasi-slip", SlipRemunerasiPage],
+      ["/akuntansi/remunerasi/konfigurasi", "akuntansi-remunerasi-konfigurasi", KonfigurasiRemunerasiPage],
+    ]),
+    { path: "/akuntansi/remunerasi", name: "akuntansi-remunerasi", redirect: "/akuntansi/remunerasi/periode" },
     // !SECTION
 
     // SECTION Program Puskesmas (program-puskesmas-service)
@@ -1923,6 +1970,13 @@ const router = createRouter({
       ["/program-puskesmas/datamaster/format-laporan", "program-puskesmas-datamaster-format-laporan", DatamasterFormatLaporanPage],
     ]),
     // !SECTION
+
+    { path: "/rawat-inap/hdu", name: "hdu", redirect: "/rawat-inap/hdu/daftar" },
+    ...halamanModul(HduView, [
+      ["/rawat-inap/hdu/daftar", "hdu-daftar", DaftarHduPage],
+      ["/rawat-inap/hdu/konfigurasi", "hdu-konfigurasi", KonfigurasiHduPage],
+      ["/rawat-inap/hdu/:uuid", "hdu-perawatan", PerawatanHduPage],
+    ]),
 
     // SECTION ICU / Intensif
     { path: "/icu", name: "icu", redirect: "/icu/dashboard" },
