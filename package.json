@@ -47,6 +47,7 @@
     "db:demo:seed": "node database/demo/seed-demo.cjs",
     "db:demo:transaksi": "node database/demo/seed-transaksi.cjs",
     "db:demo:ramai": "node database/demo/seed-ramai.cjs",
+    "db:demo:modul": "node database/demo/seed-modul.cjs",
     "db:demo:master-penunjang": "node database/demo/isi-master-penunjang.cjs",
     "docs:katalog": "node scripts/dokumen-katalog.mjs"
   },

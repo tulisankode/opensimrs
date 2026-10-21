@@ -33,6 +33,22 @@ import { FaskesModel } from "@opensimrs/model-sdk/datamaster";
 import { HttpException, HttpStatus } from "../errors/http-exception.js";
 import { GlobalValidation } from "../validations/global-validation.js";
 
+// Jarak belum tersedia karena tidak ada sumber perhitungan jarak faskes dengan pasien.
+export const petakanFaskesUntukPasien = (faskes) => {
+  if (!faskes) return [];
+  const profil = faskes.faskes_profile ?? null;
+  return [
+    {
+      uuid: faskes.uuid,
+      name: faskes.name,
+      distance: null,
+      address: profil?.address?.fullAddress ?? null,
+      phone: profil?.phone ?? null,
+      image: profil?.logo ?? null,
+    },
+  ];
+};
+
 export default class FaskesService {
   static async createFaskes(data) {
     ZodValidator.validate(FaskesValidation.CREATE, data);
@@ -164,6 +180,14 @@ export default class FaskesService {
       payload: faskesList.faskesList,
       properties: faskesList.paginationInfo,
     };
+  }
+
+  static async getActiveForPatient(faskesUuid) {
+    if (!faskesUuid) {
+      throw new HttpException({ message: "Konteks faskes tidak tersedia", payload: null }, HttpStatus.UNAUTHORIZED);
+    }
+    const faskes = await FaskesRepository.findActiveProfileForPatient(faskesUuid);
+    return generateSuccessResponse("Berhasil menampilkan faskes aktif", petakanFaskesUntukPasien(faskes));
   }
 
   static async getDetailForPatient(request) {

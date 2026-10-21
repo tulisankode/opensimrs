@@ -13,11 +13,16 @@ const teks = (x) => String(x ?? "").trim().toLowerCase();
 const daftar = (x) => (Array.isArray(x) ? x : []);
 const namaAksi = (a) => (typeof a === "string" ? a : a?.name);
 
-const izinPengguna = async (username) => {
-  if (!username) return [];
-  const ada = tembolok.get(username);
+// Username tidak dijamin unik lintas faskes, jadi pembacaan dan tembolok WAJIB diikat ke faskes_uuid token —
+// tanpa ini pengguna faskes lain dengan username yang sama dapat membaca/memengaruhi izin faskes aktif (STD-0055).
+const izinPengguna = async (faskesUuid, username) => {
+  if (!username || !faskesUuid) return [];
+  const kunci = `${faskesUuid}:${username}`;
+  const ada = tembolok.get(kunci);
   if (ada && Date.now() - ada.pada < SIMPAN_MS) return ada.izin;
-  const baris = await satu(`SELECT permissions FROM users WHERE username = $1 AND deleted_at IS NULL LIMIT 1`, [username]);
+  const baris = await satu(`SELECT permissions FROM users WHERE username = $1 AND faskes_uuid = $2 AND deleted_at IS NULL LIMIT 1`, [
+    username, faskesUuid,
+  ]);
   let izin = baris?.permissions ?? [];
   if (typeof izin === "string") {
     try {
@@ -27,7 +32,7 @@ const izinPengguna = async (username) => {
     }
   }
   izin = daftar(izin);
-  tembolok.set(username, { pada: Date.now(), izin });
+  tembolok.set(kunci, { pada: Date.now(), izin });
   return izin;
 };
 
@@ -42,7 +47,7 @@ export const cocokIzin = (izin, modul, submodul, aksi) => {
 
 // true bila pengguna login memiliki salah satu aksi pada modul/submodul.
 export const punyaIzin = async (req, modul, submodul, aksi) => {
-  const izin = await izinPengguna(req.author?.username);
+  const izin = await izinPengguna(req.author?.faskesUuid, req.author?.username);
   if (!izin.length && teks(req.author?.role) === "super admin") return true;
   return cocokIzin(izin, modul, submodul, aksi);
 };

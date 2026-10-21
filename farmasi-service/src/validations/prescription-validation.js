@@ -25,7 +25,7 @@ export default class PrescriptionValidation {
   static CREATE_PRESCRIPTION_ITEM = z.object({
     prescription_uuid: z.string().min(1, required),
     item_medis_uuid: z.string().min(1, required),
-    medication_qty: z.number(),
+    medication_qty: z.number().positive("jumlah obat harus lebih dari 0"),
     medication_dose_qty: z.number(),
     medication_dose_satuan_uuid: z.string().min(1, required),
     medication_period: z.string().min(1, required),
@@ -37,7 +37,7 @@ export default class PrescriptionValidation {
 
   static CREATE_PRESCRIPTION_ITEM_RACIKAN = z.object({
     item_medis_uuid: z.string().min(1, required),
-    medication_qty: z.number(),
+    medication_qty: z.number().positive("jumlah harus lebih dari 0"),
   });
 
   static DELETE_PRESCRIPTION_ITEM = z.object({
@@ -71,8 +71,26 @@ export default class PrescriptionValidation {
     alasan_batal: z.string().min(1, required),
   });
 
+  // items/racikan_items: jenis stok pilihan apoteker. Harus dideklarasikan — zod membuang kunci yang
+  // tidak dikenal, sehingga sebelumnya pilihan ini selalu hilang saat verifikasi.
   static UPDATE_VERIFIKASI = z.object({
     uuid: z.string().min(1, required),
+    items: z
+      .array(
+        z.object({
+          item_uuid: z.string().min(1, required),
+          jenis_stok_uuid: z.string().min(1, required),
+        })
+      )
+      .optional(),
+    racikan_items: z
+      .array(
+        z.object({
+          racikan_uuid: z.string().min(1, required),
+          jenis_stok_uuid: z.string().min(1, required),
+        })
+      )
+      .optional(),
   });
 
   static UPDATE_SIAP_DISERAHKAN = z.object({
@@ -117,22 +135,37 @@ export default class PrescriptionValidation {
     rekam_medis_uuid: z.string().min(1, required),
   });
 
-  static SUBSTITUTE_PRESCRIPTION_ITEM = z.object({
-    prescription_item_uuid: z.string().min(1, "Item resep harus dipilih"),
-    item_medis_uuid: z.string().min(1, "Obat pengganti harus dipilih"),
-    jenis_stok_uuid: z.string().min(1, "Jenis stok harus dipilih"),
-    medication_qty: z.number().min(1, "Jumlah obat (qty) tidak boleh kosong"), 
-    medication_dose_qty: z.number().optional().default(1),
-    medication_dose_satuan_uuid: z.string().optional().nullable(), 
-    medication_period: z.string().default("Hari"),
+  // Kategori alasan substitusi obat (kode disimpan; label ditampilkan di layar Resep Dokter)
+  static KATEGORI_ALASAN_SUBSTITUSI = [
+    "stok_kosong",
+    "tidak_ada_di_formularium",
+    "permintaan_pasien",
+    "penjamin",
+    "lainnya",
+  ];
 
-    aturan_pakai_uuid: z.string().optional().nullable(),
-    cara_pakai_uuid: z.string().optional().nullable(),
-
-    route: z.string().optional().nullable(),
-    is_chronic: z.boolean().default(false),
-    alasan_subtitusi: z.string().min(1, "Alasan substitusi wajib diisi"),
-    penanggungjawab_subtitusi: z.string().optional(), 
-    catatan: z.string().optional(),
-  });
+  // Substitusi obat: obat, jenis stok, jumlah, dan alasan wajib; dosis/aturan/cara pakai opsional
+  // (tanpa isian tetap mengikuti resep dokter). Kolom harga/stok/faskes tidak diterima dari klien.
+  static SUBSTITUTE_PRESCRIPTION_ITEM = z
+    .object({
+      prescription_item_uuid: z.string().min(1, "Item resep harus dipilih"),
+      item_medis_uuid: z.string().min(1, "Obat pengganti harus dipilih"),
+      jenis_stok_uuid: z.string().min(1, "Jenis stok harus dipilih"),
+      medication_qty: z.number().positive("Jumlah obat harus lebih dari 0"),
+      medication_dose_qty: z.number().positive().optional(),
+      medication_dose_satuan_uuid: z.string().min(1).optional(),
+      aturan_pakai_uuid: z.string().min(1).optional(),
+      cara_pakai_uuid: z.string().min(1).optional(),
+      kategori_alasan: z.enum(PrescriptionValidation.KATEGORI_ALASAN_SUBSTITUSI, {
+        errorMap: () => ({ message: "Kategori alasan substitusi tidak dikenal" }),
+      }),
+      alasan: z.string().trim().min(1, "Alasan substitusi wajib diisi").max(1000),
+      persetujuan_dokter: z.boolean().default(false),
+      dokter_penyetuju: z.string().trim().max(255).optional().nullable(),
+      catatan: z.string().trim().max(1000).optional().nullable(),
+    })
+    .refine((d) => !d.persetujuan_dokter || !!d.dokter_penyetuju, {
+      message: "Nama dokter yang menyetujui wajib diisi",
+      path: ["dokter_penyetuju"],
+    });
 }

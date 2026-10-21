@@ -86,7 +86,10 @@ export const modulUntukPath = (path: string, katalog: ModulKatalog[] = bacaCache
   return cocok?.modul ?? null;
 };
 
-const fiturUntukPath = (path: string, katalogFitur: FiturKatalog[] = []) =>
+// Daftar modul katalog (tersimpan) untuk pemilih modul, mis. Permintaan Baru SIMRS Studio.
+export const daftarModulKatalog = () => bacaCache()?.katalog ?? [];
+
+export const fiturUntukPath = (path: string, katalogFitur: FiturKatalog[] = bacaCache()?.katalogFitur ?? []) =>
   katalogFitur.find((f) => (f.rute ?? []).some((r) => path === r || path.startsWith(r + "/"))) ?? null;
 
 // Dipakai guard router & sidebar (sinkron): false bila path milik modul/fitur yang tidak aktif.

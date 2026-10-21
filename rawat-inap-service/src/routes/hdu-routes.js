@@ -32,6 +32,7 @@ daftar("get", "/episode", "HDU Episode", "READ", "daftar");
 daftar("get", "/episode/:uuid", "HDU Episode", "READ", "detail");
 daftar("get", "/episode/:uuid/instruksi-observasi", "HDU Episode", "READ", "riwayat");
 daftar("post", "/episode/:uuid/instruksi-observasi", "HDU Instruksi Observasi", "KELOLA", "instruksiTulis");
+daftar("post", "/episode/:uuid/selesai", "HDU Serah Terima", "CREATE", "selesai");
 daftar("get", "/serah-terima", "HDU Serah Terima", "READ", "serahTerima");
 daftar("post", "/serah-terima", "HDU Serah Terima", "CREATE", "siapkan");
 daftar("post", "/serah-terima/:uuid/konfirmasi", "HDU Serah Terima", "KONFIRMASI", "konfirmasi");

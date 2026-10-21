@@ -29,7 +29,8 @@ export default class KonfigurasiHargaController {
   static async getHargaItemByUuid(req, res, nextFunction) {
     try {
       const result = await KonfigurasiHargaService.getHargaItemByUuid(
-        req.params.uuid
+        req.params.uuid,
+        req.author.faskesUuid
       );
       res
         .status(200)

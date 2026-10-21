@@ -67,8 +67,9 @@ export const downloadExportExcelKunjunganRanap = async (filter?: any) => {
       ruangan: "Ruangan",
       kelas: "Kelas",
       noBed: "No. Bed",
-      statusKeluarPasien: "Status Keluar Pasien",
-      kondisiKeluar: "Kondisi Keluar",
+      // Isi kolom: kondisi pulang (Stabil/Perbaikan) lalu status pulang (Pulang/Dirujuk/Meninggal).
+      statusKeluarPasien: "Kondisi Keluar",
+      kondisiKeluar: "Status Keluar Pasien",
     });
 
     for (let i = 0; i < reportData.length; i++) {
@@ -82,7 +83,7 @@ export const downloadExportExcelKunjunganRanap = async (filter?: any) => {
         const practitioner = row.practitioner ?? {};
         const pegawai = practitioner.pegawai ?? {};
 
-        const umur = `${birthDetail.ageYear ?? 0} Tahun ${birthDetail.ageMonth ?? 0} Bulan ${birthDetail.ageDay ?? 0} Hari`;
+        const umur = patient.birthDetail == null ? "-" : `${birthDetail.ageYear ?? 0} Tahun ${birthDetail.ageMonth ?? 0} Bulan ${birthDetail.ageDay ?? 0} Hari`;
 
         const mapKondisiPasien = (code: string) => {
           switch (code) {
@@ -97,6 +98,7 @@ export const downloadExportExcelKunjunganRanap = async (filter?: any) => {
             switch (status) {
                 case 'home': return 'Pulang atas persetujuan dokter';
                 case 'aadvice': return 'Pulang atas permintaan sendiri';
+                case 'other-hfc':
                 case 'other-hcf': return 'Dirujuk';
                 case 'exp-lt48h': return 'Meninggal < 48 jam';
                 case 'exp-gt48h': return 'Meninggal > 48 jam';
@@ -111,7 +113,7 @@ export const downloadExportExcelKunjunganRanap = async (filter?: any) => {
           noreg: row.noReg ?? "-",
           noRm: patient.noRm ?? "-",
           namaPasien: patient.name ?? "-",
-          jenisKelamin: patient.gender === "Male" ? "L" : patient.gender === "Female" ? "P" : "-",
+          jenisKelamin: ["Male", "Laki-laki"].includes(patient.gender) ? "L" : ["Female", "Perempuan"].includes(patient.gender) ? "P" : "-",
           tglLahir: birthDetail.birthDate?.split("T")[0] ?? "-",
           umur: umur,
           alamat: address.fullAddress ?? "-",
@@ -218,7 +220,8 @@ export const downloadExportExcelBatalRawatRanap = async (filter?: any) => {
       try {
         const patient = row.patient ?? {};
         const monitoringRoom = row.monitoringRoom ?? {};
-        const room = monitoringRoom.room ?? {};
+        // Pembatalan SPRI belum punya bed: ruangan diambil dari ruangan SPRI.
+        const room = monitoringRoom.room ?? row.ruangan ?? {};
         const practitioner = row.practitioner ?? {};
         const pegawai = practitioner.pegawai ?? {};
         

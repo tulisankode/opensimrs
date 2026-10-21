@@ -24,8 +24,8 @@ export default class KonfigurasiHargaService {
     return data;
   }
 
-  static async getHargaItemByUuid(uuid) {
-    const hargaItem = await KonfigurasiHargaRepository.getHargaItemByUuid(uuid);
+  static async getHargaItemByUuid(uuid, faskesUuid) {
+    const hargaItem = await KonfigurasiHargaRepository.getHargaItemByUuid(uuid, faskesUuid);
     if (hargaItem === null) {
       throw new BadRequestException("data tidak ditemukan");
     }

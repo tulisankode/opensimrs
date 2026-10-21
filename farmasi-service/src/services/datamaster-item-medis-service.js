@@ -99,6 +99,7 @@ export default class DatamasterItemMedisService {
               {
                 jenis_stok_uuid: jenisStock.jenis_stok_uuid,
                 uuid: jenisStock.uuid,
+                faskes_uuid: req.faskes_uuid,
               },
               tr
             );
@@ -110,6 +111,7 @@ export default class DatamasterItemMedisService {
             await DataMasterItemMedisRepository.deleteJenisStok(
               {
                 uuid: jenisStock.uuid,
+                faskes_uuid: req.faskes_uuid,
               },
               tr
             );
@@ -199,13 +201,14 @@ export default class DatamasterItemMedisService {
 
     return await DataMasterItemMedisRepository.getAllWithoutPagination(
       req,
-      configInfo.metode_hpp === "avg"
+      // Halaman Konfigurasi Harga menyimpan "average"; nilai lama "avg" tetap didukung.
+      ["avg", "average"].includes(configInfo?.metode_hpp)
     );
   }
 
   static async getAvailableJenisStok(params, faskesUuid) {
     const configInfo = await KonfigurasiHargaRepository.get(faskesUuid);
-    const isAvg = configInfo?.metode_hpp === "avg";
+    const isAvg = ["avg", "average"].includes(configInfo?.metode_hpp);
 
     const daftar = await DataMasterItemMedisRepository.getAvailableJenisStok(params);
     if (!daftar.length) {

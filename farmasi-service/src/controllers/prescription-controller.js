@@ -22,7 +22,8 @@ export default class PrescriptionController {
        const prescription_item_uuid = req.params.prescription_item_uuid;
        const result = await PrescriptionService.editSisaObat(
          data,
-         prescription_item_uuid
+         prescription_item_uuid,
+         req.author.faskesUuid
        );
        res
          .status(200)
@@ -47,6 +48,7 @@ export default class PrescriptionController {
   static async deleteObat(req, res, nextFunction) {
     try {
       req.body.prescription_item_uuid = req.params.prescription_item_uuid;
+      req.body.faskes_uuid = req.author.faskesUuid;
       await PrescriptionService.deleteObat(req.body);
       res.status(200).json(successResponse("Data berhasil dihapus"));
     } catch (error) {
@@ -56,7 +58,10 @@ export default class PrescriptionController {
 
   static async getByUuid(req, res, nextFunction) {
     try {
-      const result = await PrescriptionService.getByUuid(req.params.uuid);
+      const result = await PrescriptionService.getByUuid(
+        req.params.uuid,
+        req.author.faskesUuid
+      );
       res
         .status(200)
         .json(successResponse("Data berhasil ditampilkan", result));
@@ -66,14 +71,43 @@ export default class PrescriptionController {
   }
 
   static async substituteItem(req, res, nextFunction) {
-    try{
-      const data = req.body;
-      const author = req.author;
-      const result = await PrescriptionService.substituteItem(data, author);
+    try {
+      const result = await PrescriptionService.substituteItem(
+        req.body,
+        req.author
+      );
       res
         .status(200)
-        .json(successResponse("Data berhasil disubstitusi", result));
-    }catch(error){
+        .json(successResponse("Obat berhasil disubstitusi", result));
+    } catch (error) {
+      nextFunction(error);
+    }
+  }
+
+  static async getOpsiSubstitusi(req, res, nextFunction) {
+    try {
+      const result = await PrescriptionService.getOpsiSubstitusi(
+        req.params.uuid,
+        req.author.faskesUuid
+      );
+      res
+        .status(200)
+        .json(successResponse("Data berhasil ditampilkan", result));
+    } catch (error) {
+      nextFunction(error);
+    }
+  }
+
+  static async getRiwayatSubstitusi(req, res, nextFunction) {
+    try {
+      const result = await PrescriptionService.getRiwayatSubstitusi(
+        req.params.uuid,
+        req.author.faskesUuid
+      );
+      res
+        .status(200)
+        .json(successResponse("Data berhasil ditampilkan", result));
+    } catch (error) {
       nextFunction(error);
     }
   }
@@ -81,6 +115,7 @@ export default class PrescriptionController {
   static async updatePrescription(req, res, nextFunction) {
     try {
       req.body.uuid = req.params.uuid;
+      req.body.faskes_uuid = req.author.faskesUuid;
       await PrescriptionService.updatePrescription(req.body);
       res.status(200).json(successResponse("data berhasil diupdate"));
     } catch (error) {
@@ -122,6 +157,7 @@ export default class PrescriptionController {
 
   static async getOrderBySomeUuid(req, res, nextFunction) {
     try {
+      req.body.faskes_uuid = req.author.faskesUuid;
       const result = await PrescriptionService.getOrderBySomeUuid(req.body);
       res
         .status(200)
@@ -133,6 +169,7 @@ export default class PrescriptionController {
 
   static async updateTelaah(req, res, nextFunction) {
     try {
+      req.body.faskes_uuid = req.author.faskesUuid;
       await PrescriptionService.updateTelaah(req.body);
       res.status(200).json(successResponse("data berhasil diupdate"));
     } catch (error) {
@@ -143,6 +180,8 @@ export default class PrescriptionController {
   static async batalOrder(req, res, nextFunction) {
     try {
       req.body.petugas_pembatalan = req.author.username;
+      req.body.faskes_uuid = req.author.faskesUuid;
+      req.body.token = req.get("Authorization");
       await PrescriptionService.batalOrder(req.body);
       res.status(200).json(successResponse("data berhasil dibatalkan"));
     } catch (error) {
@@ -166,6 +205,7 @@ export default class PrescriptionController {
   static async updateSiapDiserahkan(req, res, nextFunction) {
     try {
       req.body.petugas_penyiapan_obat = req.author.username;
+      req.body.faskes_uuid = req.author.faskesUuid;
       await PrescriptionService.updateSiapDiserahkan(req.body);
       res.status(200).json(successResponse("data berhasil diupdate"));
     } catch (error) {
@@ -176,6 +216,7 @@ export default class PrescriptionController {
   static async updateDiserahkan(req, res, nextFunction) {
     try {
       req.body.petugas_pemberi = req.author.username;
+      req.body.faskes_uuid = req.author.faskesUuid;
       await PrescriptionService.updateDiserahkan(req.body);
       res.status(200).json(successResponse("data berhasil diupdate"));
     } catch (error) {
@@ -185,6 +226,7 @@ export default class PrescriptionController {
 
   static async batalSiapDiserahkan(req, res, nextFunction) {
     try {
+      req.body.faskes_uuid = req.author.faskesUuid;
       await PrescriptionService.batalSiapDiserahkan(req.body);
       res.status(200).json(successResponse("data berhasil dibatalkan"));
     } catch (error) {
@@ -194,6 +236,7 @@ export default class PrescriptionController {
 
   static async updateLokasiStok(req, res, nextFunction) {
     try {
+      req.body.faskes_uuid = req.author.faskesUuid;
       await PrescriptionService.updateLokasiStok(req.body);
       res.status(200).json(successResponse("data berhasil diupdate"));
     } catch (error) {
@@ -216,6 +259,7 @@ export default class PrescriptionController {
   static async updateJenisStokItem(req, res, nextFunction) {
     try {
       req.body.uuid = req.params.uuid;
+      req.body.faskes_uuid = req.author.faskesUuid;
       await PrescriptionService.updateJenisItem(req.body);
       res.status(200).json(successResponse("data berhasil diupdate"));
     } catch (error) {
@@ -225,7 +269,10 @@ export default class PrescriptionController {
 
   static async getForFpo(req, res, nextFunction) {
     try {
-      const result = await PrescriptionService.getForFpo(req.query);
+      const result = await PrescriptionService.getForFpo({
+        ...req.query,
+        faskes_uuid: req.author.faskesUuid,
+      });
       res
         .status(200)
         .json(successResponse("Data berhasil ditampilkan", result));
@@ -236,7 +283,10 @@ export default class PrescriptionController {
 
   static async getEticketData(req, res, nextFunction) {
     try {
-      const result = await PrescriptionService.getEticketData(req.params.uuid);
+      const result = await PrescriptionService.getEticketData(
+        req.params.uuid,
+        req.author.faskesUuid
+      );
       res
         .status(200)
         .json(successResponse("Data berhasil ditampilkan", result));
@@ -248,7 +298,8 @@ export default class PrescriptionController {
   static async getPrintPrescription(req, res, nextFunction) {
     try {
       const result = await PrescriptionService.getPrintPrescription(
-        req.params.uuid
+        req.params.uuid,
+        req.author.faskesUuid
       );
       res
         .status(200)
@@ -261,7 +312,8 @@ export default class PrescriptionController {
   static async getForInvoicePrint(req, res, nextFunction) {
     try {
       const result = await PrescriptionService.getForInvoicePrint(
-        req.params.uuid
+        req.params.uuid,
+        req.author.faskesUuid
       );
       res
         .status(200)

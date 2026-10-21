@@ -54,8 +54,10 @@ const fetchMedicalItem = async () => {
     if (!itemMedisUuid) return;
 
     try {
+      // stok & harga dari lokasi stok tujuan order (stok dipotong dari lokasi ini saat verifikasi)
       const response = await MedicalItemStore.getAvailableStockApi(
-        itemMedisUuid
+        itemMedisUuid,
+        props.payloadDetail?.lokasiStokUuid ?? ""
       );
 
       if (props.payloadDetail?.uuid !== currentOrderUuid) {
@@ -179,17 +181,10 @@ const fetchAssesmentMedis = async (rekamMedisUuid: string) => {
 // Verify
 const activedVerif = ref(false);
 const verify = async () => {
-  props.payloadDetail.alkesItems.forEach((item: any) => {
-    if (item.listAlkes && item.listAlkes.length > 0) {
-      item.listAlkes.forEach((alkes: any) => {
-        if (alkes.stokAlkes == "" || !alkes.stokAlkes) {
-          activedVerif.value = true;
-        } else {
-          activedVerif.value = false;
-        }
-      });
-    }
-  });
+  // semua item wajib memilih jenis stok (dulu hanya item terakhir yang menentukan)
+  activedVerif.value = props.payloadDetail.alkesItems.some((item: any) =>
+    (item.listAlkes ?? []).some((alkes: any) => !alkes.stokAlkes)
+  );
   if (!activedVerif.value) {
     UseUtilsStore.setLoading(true);
     try {
@@ -200,11 +195,12 @@ const verify = async () => {
           jenis_stok_uuid: item.listAlkes[0].stokAlkes.detailStok.uuid,
         })),
       });
+      // pindah ke tab Sedang Disiapkan hanya bila verifikasi berhasil (mis. stok kurang → tetap di sini)
+      if (response) emit("nextPage1", props.payloadDetail.uuid);
     } catch (error) {
       console.error("Failed to process the data:", error);
     } finally {
       UseUtilsStore.setLoading(false);
-      emit("nextPage1", props.payloadDetail.uuid);
     }
   }
 };

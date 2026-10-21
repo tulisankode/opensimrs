@@ -107,6 +107,15 @@ export function createEResepPdf(resep: any, salinan = false) {
         ...komposisi,
         { text: `S. ${signa}`, margin: [20, 1, 0, 0] },
         item.prescriptionNotes ? { text: `Catatan: ${item.prescriptionNotes}`, italics: true, margin: [20, 0, 0, 0] } : {},
+        // substitusi apoteker: obat asal resep dokter, alasan, dan persetujuan dokter
+        ...(item.substitusi ?? []).map((s: any) => ({
+          text: `Substitusi dari ${s.namaObatAsal ?? "-"} (${s.kategoriAlasanLabel ?? ""}: ${s.alasan ?? "-"}; ${s.petugas ?? "-"}${
+            s.persetujuanDokter ? `; disetujui ${s.dokterPenyetuju ?? "dokter"}` : ""
+          })`,
+          italics: true,
+          fontSize: 8,
+          margin: [20, 0, 0, 0],
+        })),
       ],
       margin: [0, i === 0 ? 0 : 6, 0, 0],
     };

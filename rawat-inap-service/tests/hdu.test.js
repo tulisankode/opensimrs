@@ -1,12 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { konfigurasiSchema, serahTerimaSchema, instruksiSchema, paginasiSchema, periksaVersi, periksaWaktu, pilihInstruksi } from "../src/services/hdu-aturan.js";
+import { konfigurasiSchema, serahTerimaSchema, selesaiSchema, instruksiSchema, paginasiSchema, periksaVersi, periksaWaktu, pilihInstruksi } from "../src/services/hdu-aturan.js";
 import { punyaIzinHdu } from "../src/services/hdu-izin.js";
 import HduRepository from "../src/repositories/hdu-repository.js";
 import HduPerpindahanAdapter from "../src/services/hdu-perpindahan-adapter.js";
 import HduService from "../src/services/hdu-service.js";
 import migrasiHdu from "../../database/migrations/20261020120000-hdu_struktur.cjs";
 import migrasiIndeks from "../../database/migrations/20261020190200-hdu_indeks_serah_terima.cjs";
+import migrasiJenisKeluar from "../../database/migrations/20261021100000-intensif_jenis_keluar.cjs";
 
 const id = "019a0000-0000-7000-8000-000000000001";
 const author = { faskesUuid: "faskes-fiktif", user_uuid: "penerima-fiktif" };
@@ -125,11 +126,18 @@ test("tempat tidur terisi, tidak operasional, penempatan ganda, atau perpindahan
 
 test("keberhasilan perpindahan memperbarui semua sumber melalui transaksi pemanggil", async () => {
     const ditulis = [];
-    const adapter = new HduPerpindahanAdapter(async (sql, data) => { if (sql.startsWith("UPDATE")) ditulis.push({ sql, data }); return []; });
-    await adapter.pindahkan(perpindahanFiktif(), 100);
-    assert.equal(ditulis.length, 4);
-    for (const { sql } of ditulis) { assert.match(sql, /faskes_uuid = :f/); assert.match(sql, /deleted_at IS NULL/); }
+    const adapter = new HduPerpindahanAdapter(async (sql, data) => { if (/^(UPDATE|INSERT)/.test(sql)) ditulis.push({ sql, data }); return []; });
+    const data = perpindahanFiktif();
+    await adapter.pindahkan(data, 100);
+    assert.equal(ditulis.length, 6);
+    for (const { sql } of ditulis.filter((d) => d.sql.startsWith("UPDATE"))) { assert.match(sql, /faskes_uuid = :f/); assert.match(sql, /deleted_at IS NULL/); }
+    assert.equal(ditulis[1].data.ruangan, data.tujuan.room_uuid);
     assert.equal(ditulis[3].data.uuid, "asal-fiktif");
+    // Riwayat ruangan bed asal ditutup pada waktu pindah dan bed tujuan dicatat dalam transaksi yang sama.
+    assert.match(ditulis[4].sql, /UPDATE riwayat_ruangan SET updated_at = :waktu/);
+    assert.deepEqual([ditulis[4].data.bed, ditulis[4].data.waktu], ["asal-fiktif", 100]);
+    assert.match(ditulis[5].sql, /INSERT INTO riwayat_ruangan .*:f/);
+    assert.deepEqual([ditulis[5].data.ri, ditulis[5].data.bed, ditulis[5].data.waktu], [data.ri.uuid, data.tujuan.uuid, 100]);
 });
 
 test("serah terima sendiri, versi lama, dan eskalasi tanpa izin ICU tidak mengubah episode", async () => {
@@ -178,10 +186,11 @@ test("penerimaan HDU membuka episode hanya sesudah perpindahan berhasil", async 
         return [];
     };
     await repo.konfirmasi(q, id, { versi: 1, waktu_kejadian: 20 }, false);
-    assert.equal(ditulis.length, 6);
+    assert.equal(ditulis.length, 8);
     assert.match(ditulis[0], /^UPDATE perpindahans/);
-    assert.match(ditulis[4], /^INSERT INTO hdu_episode/);
-    assert.match(ditulis[5], /^UPDATE hdu_serah_terima/);
+    assert.match(ditulis[5], /^INSERT INTO riwayat_ruangan/);
+    assert.match(ditulis[6], /^INSERT INTO hdu_episode/);
+    assert.match(ditulis[7], /^UPDATE hdu_serah_terima/);
     ditulis.length = 0;
     d.tujuan.patient_uuid = "pasien-lain";
     await assert.rejects(() => repo.konfirmasi(q, id, { versi: 1, waktu_kejadian: 20 }, false), (e) => e.status === 409);
@@ -205,11 +214,11 @@ test("eskalasi ICU menautkan episode dan kedua serah terima sebelum menutup HDU"
         return [];
     };
     await repo.konfirmasi(q, id, { versi: 1, waktu_kejadian: 20 }, true);
-    assert.equal(ditulis.length, 8);
-    assert.match(ditulis[4], /^INSERT INTO icu_perawatans/);
-    assert.match(ditulis[5], /^INSERT INTO icu_serah_terimas/);
-    assert.match(ditulis[6], /^UPDATE hdu_episode/);
-    assert.match(ditulis[7], /^UPDATE hdu_serah_terima/);
+    assert.equal(ditulis.length, 10);
+    assert.match(ditulis[6], /^INSERT INTO icu_perawatans/);
+    assert.match(ditulis[7], /^INSERT INTO icu_serah_terimas/);
+    assert.match(ditulis[8], /^UPDATE hdu_episode/);
+    assert.match(ditulis[9], /^UPDATE hdu_serah_terima/);
 });
 
 test("perubahan interval menambah riwayat dan tidak menimpa instruksi lama", async () => {
@@ -305,4 +314,73 @@ test("indeks daftar serah terima bersifat idempoten dan tidak mengubah data klin
     assert.match(ddl, /faskes_uuid, created_at DESC, uuid DESC/);
     assert.match(ddl, /WHERE deleted_at IS NULL/);
     assert.doesNotMatch(ddl, /DROP|DELETE|UPDATE|INSERT/);
+});
+
+test("penutupan episode tanpa perpindahan hanya untuk pulang atau meninggal", () => {
+    const valid = { jenis_keluar: "meninggal", waktu_kejadian: 100, catatan: "Catatan fiktif", versi: 1 };
+    assert.equal(selesaiSchema.safeParse(valid).success, true);
+    for (const ubah of [{ jenis_keluar: "pindah" }, { catatan: " " }, { perpindahan_uuid: id }, { faskes_uuid: id }]) {
+        assert.equal(selesaiSchema.safeParse({ ...valid, ...ubah }).success, false);
+    }
+});
+
+test("episode HDU pasien meninggal ditutup tanpa perpindahan; pulang menunggu pemulangan admisi", async () => {
+    const sekarang = Math.floor(Date.now() / 1000);
+    const episode = { uuid: id, status: "aktif", versi: 1, rawat_inap_uuid: "admisi-fiktif", waktu_masuk: sekarang - 1000 };
+    const ri = { uuid: "admisi-fiktif", status_ri: 3, discharge_date: null };
+    const repo = new HduRepository({}, author);
+    repo.satu = async (q, tabel) => tabel === "rawat_inaps" ? ri : episode;
+    let ditulis = [];
+    let menunggu = [];
+    const q = async (sql, nilai) => {
+        if (/^s*UPDATE/.test(sql)) { ditulis.push({ sql, nilai }); return []; }
+        if (sql.includes("FROM hdu_serah_terima")) return menunggu;
+        return [];
+    };
+    const data = { jenis_keluar: "meninggal", waktu_kejadian: sekarang - 10, catatan: "Catatan fiktif", versi: 1 };
+    await repo.selesai(q, id, data);
+    assert.equal(ditulis.length, 1);
+    assert.match(ditulis[0].sql, /^UPDATE hdu_episode SET status = 'selesai'/);
+    assert.match(ditulis[0].sql, /status = 'aktif' AND deleted_at IS NULL/);
+    assert.equal(ditulis[0].nilai.jenis, "meninggal");
+    assert.doesNotMatch(ditulis[0].sql, /perpindahan_keluar_uuid/);
+
+    ditulis = [];
+    await assert.rejects(() => repo.selesai(q, id, { ...data, jenis_keluar: "pulang" }), (e) => e.status === 409);
+    await assert.rejects(() => repo.selesai(q, id, { ...data, versi: 2 }), (e) => e.status === 409);
+    await assert.rejects(() => repo.selesai(q, id, { ...data, waktu_kejadian: sekarang - 5000 }), (e) => e.status === 422);
+    menunggu = [{ uuid: "serah-terima-fiktif" }];
+    await assert.rejects(() => repo.selesai(q, id, data), (e) => e.status === 409);
+    menunggu = [];
+    episode.status = "selesai";
+    await assert.rejects(() => repo.selesai(q, id, data), (e) => e.status === 409);
+    assert.equal(ditulis.length, 0);
+
+    episode.status = "aktif"; ri.status_ri = 4; ri.discharge_date = sekarang;
+    await repo.selesai(q, id, { ...data, jenis_keluar: "pulang" });
+    assert.equal(ditulis[0].nilai.jenis, "pulang");
+});
+
+test("layanan meneruskan penutupan episode dengan kunci pengiriman dan skema penutupan", async () => {
+    const panggilan = [];
+    const repo = { tulis: async (operasi, data, kunci, jalankan) => { panggilan.push({ operasi, data, kunci }); return jalankan("q"); },
+        selesai: async (q, uuid, data) => ({ uuid, jenis_keluar: data.jenis_keluar }) };
+    const service = new HduService(repo);
+    const req = { params: { uuid: id }, query: {}, get: () => id, body: { jenis_keluar: "meninggal", waktu_kejadian: 100, catatan: "Catatan fiktif", versi: 1 } };
+    assert.deepEqual(await service.jalankan("selesai", req, () => false, false), { uuid: id, jenis_keluar: "meninggal" });
+    assert.equal(panggilan[0].operasi, `selesai/${id}`);
+    await assert.rejects(() => service.jalankan("selesai", { ...req, body: { ...req.body, jenis_keluar: "pindah" } }, () => true, false));
+});
+
+test("migrasi jenis keluar intensif idempoten dan tidak menghapus data", async () => {
+    let ddl = "";
+    await migrasiJenisKeluar.up({ sequelize: {
+        transaction: async (jalankan) => jalankan("transaksi-fiktif"),
+        query: async (sql, opsi) => { ddl += sql; assert.equal(opsi.transaction, "transaksi-fiktif"); },
+    } });
+    assert.match(ddl, /ALTER TABLE icu_perawatans ADD COLUMN IF NOT EXISTS jenis_keluar/);
+    assert.match(ddl, /ALTER TABLE hdu_episode ADD COLUMN IF NOT EXISTS jenis_keluar/);
+    assert.match(ddl, /ALTER TABLE icu_serah_terimas ALTER COLUMN perpindahan_uuid DROP NOT NULL/);
+    for (const ubah of ddl.match(/UPDATE[^;]+;/g)) assert.match(ubah, /jenis_keluar IS NULL/);
+    assert.doesNotMatch(ddl, /DROP TABLE|DELETE FROM|DROP COLUMN/);
 });

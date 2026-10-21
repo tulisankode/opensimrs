@@ -30,11 +30,12 @@ const ReadyToBeHandedOver = async () => {
     const response = await RoomPharmacyStoreStore.verify2Api({
       uuid: props.payloadDetail2.uuid,
     });
+    // pindah tab hanya bila berhasil (galat sudah ditampilkan apiHandler)
+    if (response) emit("nextPage2", props.payloadDetail2.uuid);
   } catch (error) {
     console.error("Failed to process the data:", error);
   } finally {
     UseUtilsStore.setLoading(false);
-    emit("nextPage2", props.payloadDetail2.uuid);
   }
 };
 

@@ -5,7 +5,7 @@
   "main": "app.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test test/*.test.js",
     "dev": "nodemon ./src/app.js",
     "start": "node ./src/app.js",
     "db": "node ./node_modules/@opensimrs/model-sdk/syncronize.js"

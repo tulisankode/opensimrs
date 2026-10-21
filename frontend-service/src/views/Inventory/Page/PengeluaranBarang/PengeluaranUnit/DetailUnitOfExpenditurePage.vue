@@ -187,7 +187,7 @@ onMounted(async () => {
               <!-- Tgl. Permintaan -->
               <div>
                 <p class="text-xs font-bold underline underline-offset-2">Tgl. Permintaan</p>
-                <p>{{ DetailPayload.tanggalPengeluaran ? epochToDate(DetailPayload.tanggalPengeluaran, "date") : '-' }}
+                <p>{{ DetailPayload.tanggalPengeluaran ? epochToDate(DetailPayload.tanggalPengeluaran > 1e11 ? DetailPayload.tanggalPengeluaran / 1000 : DetailPayload.tanggalPengeluaran, "date") : '-' }}
                 </p>
               </div>
               <!-- Kategori Item -->

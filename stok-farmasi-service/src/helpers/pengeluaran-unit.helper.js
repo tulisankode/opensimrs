@@ -6,7 +6,12 @@ export default class PengeluaranUnitHelper {
     return {
       uuid: rawUnit.uuid,
       no_pengeluaran: rawUnit.no_pengeluaran,
-      tanggal_pengeluaran: moment(parseInt(rawUnit.tanggal_pengeluaran)).format(
+      // Data lama tersimpan dalam milidetik, data baru dalam epoch detik.
+      tanggal_pengeluaran: moment(
+        Number(rawUnit.tanggal_pengeluaran) < 1e11
+          ? Number(rawUnit.tanggal_pengeluaran) * 1000
+          : Number(rawUnit.tanggal_pengeluaran)
+      ).format(
         "YYYY-MM-DD HH:mm"
       ),
       jenis_pengeluaran: rawUnit.jenis_pengeluaran,

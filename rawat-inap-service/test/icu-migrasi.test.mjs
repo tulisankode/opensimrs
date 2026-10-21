@@ -5,9 +5,10 @@ import { readdir } from "node:fs/promises";
 const require = createRequire(import.meta.url);
 test("Migrasi reservasi unik, lebih baru, dan pembentukan SQL berulang tanpa database", async () => {
     const daftar = await readdir(new URL("../../database/migrations/", import.meta.url));
-    const baru = daftar.filter((n) => n.startsWith("2026102014"));
-    assert.deepEqual(baru.sort(), ["20261020200100-icu_layanan_khusus.cjs", "20261020200200-sinkron_katalog_icu_layanan_khusus.cjs"]);
-    assert.ok(daftar.filter((n) => !baru.includes(n)).every((n) => n < baru[0]));
+    // Kedua migrasi ICU ada & berurutan (tabel dulu, lalu sinkron katalog). Tidak lagi mensyaratkan keduanya migrasi
+    // terbaru: syarat itu pasti gagal begitu ada migrasi lain yang lebih baru.
+    const baru = daftar.filter((n) => /^20261020200[12]00-/.test(n)).sort();
+    assert.deepEqual(baru, ["20261020200100-icu_layanan_khusus.cjs", "20261020200200-sinkron_katalog_icu_layanan_khusus.cjs"]);
     const migrasi = require("../../database/migrations/20261020200100-icu_layanan_khusus.cjs");
     const sql = [];
     const transaksi = {};

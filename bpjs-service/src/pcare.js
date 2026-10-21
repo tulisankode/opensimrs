@@ -61,12 +61,13 @@ export const simpanKonfigurasi = async (faskesUuid, data) => {
   if (!baris) throw new DataBelumLengkap("Data integrasi faskes belum ada; buka Setting › Konfigurasi Integrasi sekali dulu");
   const teks = (v) => (v == null ? null : String(v).trim());
   const rahasia = (baru, lama) => (teks(baru) ? enkripsi(teks(baru)) : lama);
-  await query(
+  const disimpan = await satu(
     `UPDATE integrations SET
        pcare_aktif = $2, pcare_cons_id = $3, pcare_secret_key = $4, pcare_user_key = $5,
        pcare_username = $6, pcare_password = $7, pcare_kd_aplikasi = $8, pcare_kd_provider = $9,
        updated_at = $10
-     WHERE id = $1`,
+     WHERE id = $1 AND faskes_uuid = $11 AND deleted_at IS NULL
+     RETURNING id`,
     [
       baris.id,
       !!data.aktif,
@@ -78,8 +79,10 @@ export const simpanKonfigurasi = async (faskesUuid, data) => {
       teks(data.kdAplikasi) || "095",
       teks(data.kdProvider) || null,
       sekarang(),
+      faskesUuid,
     ]
   );
+  if (!disimpan) throw new DataBelumLengkap("Data integrasi faskes ini tidak ditemukan atau sudah dihapus");
   return konfigurasiTersamar(faskesUuid);
 };
 
@@ -132,7 +135,7 @@ export const daftarPemetaan = async (faskesUuid) => {
     ),
     query(
       `SELECT pr.uuid, pg.name, pg.first_title, pg.last_title, pr.code_bpjs FROM practitioner pr
-       JOIN pegawai pg ON pg.uuid = pr.pegawai_uuid
+       JOIN pegawai pg ON pg.uuid = pr.pegawai_uuid AND pg.deleted_at IS NULL
        WHERE pr.faskes_uuid = $1 AND pr.deleted_at IS NULL AND pr.is_doctor = true ORDER BY pg.name`,
       [faskesUuid]
     ),
@@ -167,7 +170,9 @@ export const dataKlinis = async (rekamMedisUuid) => {
   for (const s of sesi) for (const d of s.diagnosis_dokter ?? []) {
     if (!d.deleted_at && d.diagnosis_uuid && !uuidDiagnosis.includes(d.diagnosis_uuid)) uuidDiagnosis.push(d.diagnosis_uuid);
   }
-  const master = uuidDiagnosis.length ? await query(`SELECT uuid, code FROM diagnosis WHERE uuid = ANY($1::text[])`, [uuidDiagnosis]) : [];
+  const master = uuidDiagnosis.length
+    ? await query(`SELECT uuid, code FROM diagnosis WHERE uuid = ANY($1::text[]) AND deleted_at IS NULL`, [uuidDiagnosis])
+    : [];
   const terakhir = (field) => [...sesi].reverse().find((s) => s[field] && !s[field].deleted_at)?.[field] ?? null;
   return {
     diagnosis: uuidDiagnosis.map((u) => master.find((m) => m.uuid === u)).filter((m) => m?.code).map((m) => ({ kode: m.code })),
@@ -213,7 +218,9 @@ export const sinkronKunjungan = async (faskesUuid, rawatJalanUuid) => {
     const k = await kredensialSiap(faskesUuid);
     const noKartu = String(kunjungan.no_kartu ?? "").replace(/\D/g, "");
     if (noKartu.length !== 13) throw new DataBelumLengkap(`Nomor kartu BPJS pasien tidak valid (${kunjungan.no_kartu || "kosong"})`);
-    const poli = await satu(`SELECT name, kd_poli_bpjs FROM lokasi WHERE uuid = $1`, [kunjungan.lokasi_uuid]);
+    const poli = await satu(`SELECT name, kd_poli_bpjs FROM lokasi WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [
+      kunjungan.lokasi_uuid, faskesUuid,
+    ]);
     if (!poli?.kd_poli_bpjs) throw new DataBelumLengkap(`Poli ${poli?.name ?? "-"} belum dipetakan ke kode poli BPJS`);
     const klinis = await dataKlinis(kunjungan.rekam_medis_uuid);
     const tanggalDaftar = kunjungan.tanggal_checkin || kunjungan.tanggal_daftar;
@@ -235,8 +242,9 @@ export const sinkronKunjungan = async (faskesUuid, rawatJalanUuid) => {
     // 2) Kunjungan — setelah pemeriksaan selesai (discharge)
     if (hasil.kunjungan !== "terkirim" && Number(kunjungan.status_rj) === STATUS_RJ_SELESAI) {
       const dokter = await satu(
-        `SELECT pr.code_bpjs, pg.name FROM practitioner pr JOIN pegawai pg ON pg.uuid = pr.pegawai_uuid WHERE pr.uuid = $1`,
-        [kunjungan.practitioner_uuid]
+        `SELECT pr.code_bpjs, pg.name FROM practitioner pr JOIN pegawai pg ON pg.uuid = pr.pegawai_uuid AND pg.deleted_at IS NULL
+         WHERE pr.uuid = $1 AND pr.faskes_uuid = $2 AND pr.deleted_at IS NULL`,
+        [kunjungan.practitioner_uuid, faskesUuid]
       );
       if (!dokter?.code_bpjs) throw new DataBelumLengkap(`Dokter ${dokter?.name ?? "-"} belum memiliki kode dokter BPJS`);
       if (!klinis.diagnosis.length) throw new DataBelumLengkap("Diagnosis ICD-10 belum diisi di rekam medis");
@@ -340,11 +348,14 @@ export const kandidatKunjunganMcu = (faskesUuid, patientUuid) => {
 const ambilKirimMcu = (faskesUuid, pesertaUuid) =>
   satu(`SELECT * FROM mcu_pcare_kirim WHERE faskes_uuid = $1 AND peserta_uuid = $2 AND deleted_at IS NULL`, [faskesUuid, pesertaUuid]);
 
-const simpanKirimMcu = async (uuid, perubahan) => {
+const simpanKirimMcu = async (faskesUuid, uuid, perubahan) => {
   const data = { ...perubahan, updated_at: sekarang() };
   const kolom = Object.keys(data);
   const nilai = kolom.map((c) => (data[c] !== null && typeof data[c] === "object" ? JSON.stringify(data[c]) : data[c]));
-  await query(`UPDATE mcu_pcare_kirim SET ${kolom.map((c, i) => `${c} = $${i + 1}`).join(", ")} WHERE uuid = $${kolom.length + 1}`, [...nilai, uuid]);
+  await query(
+    `UPDATE mcu_pcare_kirim SET ${kolom.map((c, i) => `${c} = $${i + 1}`).join(", ")} WHERE uuid = $${kolom.length + 1} AND faskes_uuid = $${kolom.length + 2}`,
+    [...nilai, uuid, faskesUuid]
+  );
 };
 
 // Satu laporan MCU PCare per peserta (faskes_uuid + peserta_uuid unik, KF-6/KT-12). `operasi`: tambah | ubah | hapus.
@@ -352,17 +363,17 @@ const simpanKirimMcu = async (uuid, perubahan) => {
 // Klaim atomik baris kirim → 'mengirim' hanya dari status yang diizinkan (cegah kirim ganda/bersamaan ke PCare).
 // Baris 'mengirim' yang tersangkut > 5 menit (mis. proses mati di tengah kirim) boleh diklaim ulang.
 const BATAS_TERSANGKUT_DETIK = 5 * 60;
-const klaimKirimMcu = async (uuid, statusBoleh, perubahan = {}) => {
+const klaimKirimMcu = async (faskesUuid, uuid, statusBoleh, perubahan = {}) => {
   const t = sekarang();
   const data = { ...perubahan, status: "mengirim", mode: config.mode, updated_at: t };
   const kolom = Object.keys(data);
   const nilai = kolom.map((c) => data[c]);
   const baris = await satu(
     `UPDATE mcu_pcare_kirim SET ${kolom.map((c, i) => `${c} = $${i + 1}`).join(", ")}
-      WHERE uuid = $${kolom.length + 1} AND deleted_at IS NULL
-        AND (status = ANY($${kolom.length + 2}) OR (status = 'mengirim' AND updated_at < $${kolom.length + 3}))
+      WHERE uuid = $${kolom.length + 1} AND faskes_uuid = $${kolom.length + 2} AND deleted_at IS NULL
+        AND (status = ANY($${kolom.length + 3}) OR (status = 'mengirim' AND updated_at < $${kolom.length + 4}))
       RETURNING uuid`,
-    [...nilai, uuid, statusBoleh, t - BATAS_TERSANGKUT_DETIK],
+    [...nilai, uuid, faskesUuid, statusBoleh, t - BATAS_TERSANGKUT_DETIK],
   );
   if (!baris) throw new DataBelumLengkap("Laporan MCU PCare peserta ini sedang diproses atau statusnya sudah berubah — muat ulang lalu coba lagi");
 };
@@ -401,21 +412,21 @@ export const operasiMcu = async (faskesUuid, { pesertaUuid, rawatJalanUuid, oper
       if (!masuk) throw new DataBelumLengkap("Laporan MCU PCare peserta ini sedang diproses — muat ulang lalu coba lagi");
       kirim = baru;
     } else {
-      await klaimKirimMcu(kirim.uuid, ["belum", "gagal", "tidak_pasti"], { rawat_jalan_uuid: rawatJalanUuid, no_kunjungan: noKunjungan });
+      await klaimKirimMcu(faskesUuid, kirim.uuid, ["belum", "gagal", "tidak_pasti"], { rawat_jalan_uuid: rawatJalanUuid, no_kunjungan: noKunjungan });
     }
   } else {
     if (!kirim) throw new DataBelumLengkap("Laporan MCU PCare peserta ini belum pernah dikirim");
     if (kirim.status !== "terkirim") throw new DataBelumLengkap(`Laporan berstatus ${kirim.status}, tindakan ${operasi} hanya untuk laporan yang sudah terkirim`);
     if (!String(alasan ?? "").trim()) throw new DataBelumLengkap("Alasan wajib diisi");
     noKunjungan = kirim.no_kunjungan;
-    await klaimKirimMcu(kirim.uuid, ["terkirim"]);
+    await klaimKirimMcu(faskesUuid, kirim.uuid, ["terkirim"]);
   }
 
   // Pemetaan field MCU PCare masih draf (belum dikonfirmasi spesifikasi resmi) — kirim nyata (bukan mock) ditolak
   // sampai config.mcuPcareDikonfirmasi diaktifkan eksplisit (KF-3/KF-4: jangan kirim bila pemetaan belum dipastikan).
   if (config.mode !== "mock" && !config.mcuPcareDikonfirmasi) {
     const pesanTolak = "Pemetaan field MCU PCare belum dikonfirmasi dari spesifikasi resmi — pengiriman nyata belum diaktifkan (mode mock tetap tersedia untuk uji coba)";
-    await simpanKirimMcu(kirim.uuid, { status: "gagal", pesan: pesanTolak, operasi_terakhir: operasi, percobaan: (kirim.percobaan ?? 0) + 1, percobaan_pada: sekarang() });
+    await simpanKirimMcu(faskesUuid, kirim.uuid, { status: "gagal", pesan: pesanTolak, operasi_terakhir: operasi, percobaan: (kirim.percobaan ?? 0) + 1, percobaan_pada: sekarang() });
     return { peserta_uuid: pesertaUuid, status: "gagal", mode: config.mode, no_kunjungan: noKunjungan, no_referensi_pcare: kirim.no_referensi_pcare ?? null, pesan: pesanTolak, operasi_terakhir: operasi };
   }
 
@@ -448,7 +459,7 @@ export const operasiMcu = async (faskesUuid, { pesertaUuid, rawatJalanUuid, oper
     pesan = error.message;
   }
 
-  await simpanKirimMcu(kirim.uuid, {
+  await simpanKirimMcu(faskesUuid, kirim.uuid, {
     status: statusBaru,
     pesan,
     no_referensi_pcare: referensi,

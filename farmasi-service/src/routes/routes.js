@@ -420,10 +420,22 @@ routes.get(
   farmasiPermission("Resep Dokter", "READ"),
   PrescriptionController.getByUuid
 );
+// Substitusi obat (status 1–2). Aksi SUBSTITUSI ditambahkan migrasi 20261021120100-izin_farmasi_substitusi
+// (sebelumnya menumpang "SIMPAN DAN UBAH MENJADI RACIK").
 routes.put(
   `${baseUrl}/prescriptions/substitution`,
-  farmasiPermission("Resep Dokter", "SIMPAN DAN UBAH MENJADI RACIK"),
+  farmasiPermission("Resep Dokter", "SUBSTITUSI"),
   PrescriptionController.substituteItem
+);
+routes.get(
+  `${baseUrl}/prescriptions/obat/:uuid/opsi-substitusi`,
+  farmasiPermission("Resep Dokter", "SUBSTITUSI"),
+  PrescriptionController.getOpsiSubstitusi
+);
+routes.get(
+  `${baseUrl}/prescriptions/:uuid/substitusi`,
+  farmasiPermission("Resep Dokter", "READ"),
+  PrescriptionController.getRiwayatSubstitusi
 );
 routes.put(
   `${baseUrl}/prescriptions/:uuid`,
@@ -509,6 +521,12 @@ routes.put(
   `${baseUrl}/penjualan-obat/:uuid/cancel`,
   farmasiPermission("Penjualan Obat", "BATAL PEMBELIAN"),
   PenjualanObatController.batalOtc
+);
+// Pembayaran langsung di apotek memakai izin yang sama dengan membuat penjualan (belum ada aksi izin terpisah).
+routes.put(
+  `${baseUrl}/penjualan-obat/:uuid/bayar`,
+  farmasiPermission("Penjualan Obat", "CREATE BELI OBAT"),
+  PenjualanObatController.bayarOtc
 );
 routes.get(
   `${baseUrl}/penjualan-obat`,

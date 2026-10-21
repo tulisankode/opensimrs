@@ -23,6 +23,8 @@ import * as alur from "./alur.js";
 import * as ekstensi from "./ekstensi.js";
 import * as deploy from "./deploy.js";
 import * as openclaw from "./openclaw.js";
+import { auditCepat } from "./audit.js";
+import { normalkanPath } from "./konteks.js";
 
 // /api/v3/studio/...
 // Lapis aktivasi (rancangan §4): L1 .env STUDIO_PENGEMBANG=aktif → L3 Mode Pengembang (Setting › System, superadmin)
@@ -111,7 +113,7 @@ rute.get("/item", tangani(async (req, res) => {
   const tahap = req.query.tahap;
   const rows = await query(
     `SELECT i.uuid, i.nomor, i.judul, i.jenis, i.tahap, i.risiko, i.prioritas, i.branch, i.commit_sha, i.pr_url, i.pr_status, i.ci_status,
-            i.tag_rilis, i.modul_terdampak, i.dibuat_oleh, i.created_at, i.updated_at, jsonb_array_length(i.berkas) AS jumlah_berkas,
+            i.tag_rilis, i.modul_terdampak, i.konteks_asal->'modul'->>'kode' AS modul_asal, i.dibuat_oleh, i.created_at, i.updated_at, jsonb_array_length(i.berkas) AS jumlah_berkas,
             tt.status AS status_tugas, tt.lanjut_pada AS lanjut_pada_tugas, tt.menunggu_slot AS menunggu_slot_tugas,
             (SELECT COALESCE(SUM(biaya_usd), 0) FROM studio_tugas t WHERE t.item_uuid = i.uuid) AS biaya_usd
        FROM studio_item i
@@ -125,9 +127,36 @@ rute.get("/item", tangani(async (req, res) => {
 
 rute.post("/item", tangani(async (req, res) => {
   await pastikan(req, "Permintaan", "CREATE");
-  const { judul, jenis, prioritas, masalah, siapa, harapan, contoh, modul_terdampak } = req.body ?? {};
-  const item = await alur.buatItem({ judul, jenis, prioritas, permintaan: { masalah, siapa, harapan, contoh }, modul_terdampak }, req.author);
+  const { judul, jenis, prioritas, masalah, siapa, harapan, contoh, modul_terdampak, konteks_asal } = req.body ?? {};
+  // Konteks halaman hanya dari Asisten Pengembang (superadmin); peran lain tidak bisa menyisipkannya.
+  const konteks = konteks_asal && isSuperadmin(req) ? konteks_asal : null;
+  const item = await alur.buatItem({ judul, jenis, prioritas, permintaan: { masalah, siapa, harapan, contoh }, modul_terdampak, konteks_asal: konteks }, req.author);
   kirim(res, item, "Permintaan dikirim; AI sedang merangkum");
+}));
+
+// Audit cepat halaman dari Asisten Pengembang (opsional, superadmin): pemeriksaan statis tanpa AI atas berkas halaman
+// dan backend yang melayani endpoint-nya — fungsional, query, relasi, logika, keamanan. Hanya membaca repo.
+rute.post("/asisten/audit-cepat", tangani(async (req, res) => {
+  wajibSuperadmin(req);
+  const { path: halaman, komponen, berkas_komponen: berkasKomponen, endpoint } = req.body ?? {};
+  if (!Array.isArray(komponen) || !komponen.length) throw permintaanSalah("Komponen halaman tidak terbaca; buka ulang halaman lalu coba lagi");
+  const hasil = auditCepat({
+    komponen: komponen.map(String),
+    berkasKomponen: Array.isArray(berkasKomponen) ? berkasKomponen : [],
+    endpoint: Array.isArray(endpoint) ? endpoint : [],
+  });
+  // Temuan yang sudah dibawa permintaan aktif (dari halaman mana pun — komponen/backend yang sama sering dipakai
+  // beberapa halaman, mis. SEP RJ/RI/IGD) ditandai agar tidak dibuat permintaan ganda.
+  const aktif = await query(
+    `SELECT uuid, nomor, konteks_asal->'audit' AS audit FROM studio_item
+      WHERE deleted_at IS NULL AND tahap NOT IN ('selesai', 'dibatalkan') AND jsonb_typeof(konteks_asal->'audit') = 'array'`,
+  );
+  const kunci = (t) => (t.bukti?.[0]?.berkas ? `${t.aspek}|${t.judul}|${t.bukti[0].berkas}` : null);
+  const terlapor = new Map();
+  for (const i of aktif) for (const t of i.audit ?? []) if (kunci(t)) terlapor.set(kunci(t), [...(terlapor.get(kunci(t)) ?? []), { uuid: i.uuid, nomor: i.nomor }]);
+  for (const t of hasil.temuan) t.dilaporkan = terlapor.get(kunci(t)) ?? [];
+  await audit(req.author.username, "Audit cepat halaman", null, { halaman: normalkanPath(halaman), temuan: hasil.temuan.length });
+  kirim(res, hasil);
 }));
 
 const item = (req) => alur.ambilItem(req.params.uuid);

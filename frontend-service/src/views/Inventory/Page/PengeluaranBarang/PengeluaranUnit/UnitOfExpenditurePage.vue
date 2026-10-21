@@ -158,7 +158,7 @@ onMounted(() => {
               <div class="">Tanggal</div>
             </template>
             <template #body="slotProps">
-              <div class="">{{ epochToDate(slotProps.data.tanggalPengeluaran, "date") }}</div>
+              <div class="">{{ epochToDate(slotProps.data.tanggalPengeluaran > 1e11 ? slotProps.data.tanggalPengeluaran / 1000 : slotProps.data.tanggalPengeluaran, "date") }}</div>
             </template>
           </Column>
           <!-- No. Pengeluaran -->

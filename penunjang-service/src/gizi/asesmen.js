@@ -1,5 +1,5 @@
 import express from "express";
-import { query, sisipkan, ubah } from "../db.js";
+import { query, satu, sisipkan, ubah } from "../db.js";
 import { tangani, kirim, wajib, tidakDitemukan } from "../umum/respons.js";
 import { izinGizi } from "../umum/izin.js";
 import { teks } from "./bersama.js";
@@ -42,12 +42,13 @@ rute.get(
   }),
 );
 
+// Riwayat asesmen satu episode; episode yang sudah pulang tetap dapat dibaca (menulis hanya untuk episode aktif).
 rute.get(
   "/rawat-inap/:admission_ri_uuid/asesmen",
   izinGizi("Asesmen Gizi", "READ"),
   tangani(async (req, res) => {
     const f = req.author.faskesUuid;
-    await episodeAktif(f, req.params.admission_ri_uuid);
+    await episodeAktif(f, req.params.admission_ri_uuid, { termasukPulang: true });
     const rows = await query(
       `SELECT * FROM gizi_asesmen WHERE faskes_uuid = $1 AND admission_ri_uuid = $2 AND deleted_at IS NULL ORDER BY created_at DESC`,
       [f, req.params.admission_ri_uuid],
@@ -84,6 +85,12 @@ rute.put(
   izinGizi("Asesmen Gizi", "UPDATE"),
   tangani(async (req, res) => {
     const f = req.author.faskesUuid;
+    const lama = await satu(`SELECT admission_ri_uuid FROM gizi_asesmen WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`, [
+      req.params.uuid,
+      f,
+    ]);
+    if (!lama) throw tidakDitemukan("Asesmen gizi");
+    await episodeAktif(f, lama.admission_ri_uuid); // episode sudah pulang: hanya baca
     const perubahan = {
       asesmen: teks(req.body.asesmen),
       diagnosis_gizi: teks(req.body.diagnosis_gizi),

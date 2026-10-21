@@ -7,6 +7,8 @@ import { rentangOpsional, tglLokal } from "./bersama.js";
 const rute = express.Router();
 
 // Jumlah pasien rawat inap aktif saat ini per jenis diet (dari order diet yang berlaku), opsional difilter ruangan.
+// Sengaja potret "saat ini" (sensus diet untuk dapur/distribusi), bukan rekap rentang tanggal: tidak menerima
+// tanggal_mulai/tanggal_selesai, dan filter ruangan memakai lokasi pasien terkini.
 rute.get(
   "/jumlah-diet",
   izinGizi("Laporan Gizi", "READ"),
@@ -31,7 +33,8 @@ rute.get(
 );
 
 // Cakupan skrining gizi: persentase pasien rawat inap baru (tanggal_dirawat dalam rentang) yang sudah diskrining
-// dalam batas 1x24 jam sejak masuk.
+// dalam batas 1x24 jam sejak masuk. Semua episode rawat inap dihitung apa pun asal masuknya (kolom encounter berisi
+// asal: IGD/RJ/RI — mayoritas pasien rawat inap masuk dari IGD/RJ); hanya episode batal (status_ri 0) dikecualikan.
 rute.get(
   "/cakupan-skrining",
   izinGizi("Laporan Gizi", "READ"),
@@ -39,7 +42,7 @@ rute.get(
     const f = req.author.faskesUuid;
     const rentang = rentangOpsional(req.query);
     const p = [f];
-    let w = `ri.faskes_uuid = $1 AND ri.deleted_at IS NULL AND ri.encounter = 'RI' AND ri.status_ri <> 0`;
+    let w = `ri.faskes_uuid = $1 AND ri.deleted_at IS NULL AND ri.status_ri <> 0`;
     if (rentang) {
       p.push(rentang.mulai, rentang.selesai);
       w += ` AND ${tglLokal("ri.tanggal_dirawat")} BETWEEN $${p.length - 1} AND $${p.length}`;

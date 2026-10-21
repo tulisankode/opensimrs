@@ -68,6 +68,7 @@ export default class DatamasterItemMedisController {
     try {
       const { uuid } = req.params;
       req.body.uuid = uuid;
+      req.body.faskes_uuid = req.author.faskesUuid;
       await DatamasterItemMedisService.delete(req.body);
       res.status(200).json(successResponse("Data berhasil dihapus"));
     } catch (error) {

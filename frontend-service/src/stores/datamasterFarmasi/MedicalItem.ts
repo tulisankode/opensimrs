@@ -67,13 +67,17 @@ export const useMedicalItemStore = defineStore({
         payload
       );
     },
+    // lokasi_stok_uuid opsional: bila diisi, total stok dihitung hanya di lokasi tsb (dipakai Penjualan Obat)
     async getAvailableJenisStokApi(
       item_medis: string,
-      // lokasi_stok_uuid: string,
-      payload = {}
+      payload = {},
+      lokasi_stok_uuid: string = ""
     ) {
+      const lokasi = lokasi_stok_uuid
+        ? `?lokasi_stok_uuid=${lokasi_stok_uuid}`
+        : "";
       return apiFarmasiGet(
-        `/farmasi/datamaster/item-medis/available-jenis-stock/${item_medis}`,
+        `/farmasi/datamaster/item-medis/available-jenis-stock/${item_medis}${lokasi}`,
         payload
       );
     },

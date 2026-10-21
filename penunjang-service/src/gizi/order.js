@@ -8,11 +8,13 @@ import { episodeAktif, ambilAlergi, daftarAktif } from "./rawat_inap.js";
 const rute = express.Router();
 
 // Pasien rawat inap aktif (cari nama/no. RM, opsional per ruangan) — untuk memilih pasien pada form Order Diet.
+// termasuk_pulang=1: ikut episode yang sudah pulang, untuk membuka riwayat gizi (baca saja).
 rute.get(
   "/rawat-inap/aktif",
   izinGizi("Order Diet", "READ"),
   tangani(async (req, res) => {
-    kirim(res, await daftarAktif(req.author.faskesUuid, { ruanganUuid: req.query.ruangan_uuid, cari: req.query.cari }));
+    const termasukPulang = ["1", "true"].includes(String(req.query.termasuk_pulang ?? ""));
+    kirim(res, await daftarAktif(req.author.faskesUuid, { ruanganUuid: req.query.ruangan_uuid, cari: req.query.cari, termasukPulang }));
   }),
 );
 
@@ -28,12 +30,13 @@ const orderAktif = (faskesUuid, admissionRiUuid) =>
   ]);
 
 // Order diet yang berlaku + alergi tercatat (RME) + riwayat order episode. Dipakai form Order Diet & Distribusi.
+// Episode yang sudah pulang tetap dapat dibaca (riwayat); menulis order baru hanya untuk episode aktif (POST).
 rute.get(
   "/rawat-inap/:admission_ri_uuid/order-diet",
   izinGizi("Order Diet", "READ"),
   tangani(async (req, res) => {
     const f = req.author.faskesUuid;
-    const episode = await episodeAktif(f, req.params.admission_ri_uuid);
+    const episode = await episodeAktif(f, req.params.admission_ri_uuid, { termasukPulang: true });
     const [order_aktif, riwayat, alergi] = await Promise.all([
       orderAktif(f, episode.uuid),
       query(`SELECT ${PILIH_ORDER} FROM ${DARI_ORDER} WHERE o.faskes_uuid = $1 AND o.admission_ri_uuid = $2 AND o.deleted_at IS NULL
@@ -101,6 +104,7 @@ rute.put(
     ]);
     if (!lama) throw tidakDitemukan("Order diet");
     if (lama.status !== "aktif") throw permintaanSalah("Order diet ini sudah tidak aktif");
+    await episodeAktif(f, lama.admission_ri_uuid); // episode sudah pulang: hanya baca
     const perubahan = {
       diet_uuid: req.body.diet_uuid,
       bentuk_makanan_uuid: req.body.bentuk_makanan_uuid,

@@ -19,7 +19,7 @@ import { useModulFaskesStore, modulSegera, fiturAktif } from "@/stores/modulFask
 import { studioAktif, EVENT_STUDIO, mungkinPunyaAkses, useSimrsStudioStore } from "@/stores/simrsStudio";
 import { adaEkstensi, muatEkstensi, EVENT_EKSTENSI } from "@/stores/ekstensi";
 import { usePermissionStore } from "@/stores/datamaster/permission";
-import { hasPermission } from "@/utils/permissions";
+import { hasModulePermission, hasPermission } from "@/utils/permissions";
 import { logoFaskes } from "@/utils/tema";
 import Popover from "primevue/popover";
 import TombolBantuan from "./TombolBantuan.vue";
@@ -348,7 +348,7 @@ onBeforeMount(async () => {
 
 // Menu atas = modul pada permission user ∩ modul aktif faskes (Setting › Manajemen Modul).
 const susunMenu = () => {
-  const menu: ListMenu[] = [templistMenu.value[0]];
+  const menu: ListMenu[] = hasModulePermission("Dashboard") && modulStore.menuAktif("Dashboard") ? [templistMenu.value[0]] : [];
   // Command Center, Dashboard Eksekutif & Virtual Office tidak di menu atas: dikumpulkan di grup "Dashboard Pimpinan"
   // pada panel Lainnya (lihat menuPimpinan).
   menuPimpinan.value = MENU_PIMPINAN.filter((m) => fiturAktif(m.fitur) && hasPermission("Dashboard", m.izin, "READ"))

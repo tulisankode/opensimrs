@@ -3,9 +3,22 @@ import { LayarAntrianRepository } from "../repositories/layar-antrian.repository
 import { PoliklinikRepository } from "../repositories/poliklinik.repository.js";
 import { LayarAntrianSchema } from "../validations/layar-antrian.validation.js";
 import ZodValidator from "../validations/zod.validation.js";
-import { FormatterService } from "./formatter.service.js";
 import { LayarAntrianPoliRepository } from "../repositories/layar-antrian-poli.repository.js";
 import { TransactionService } from "./transaction.service.js";
+
+// Atribut model layar_antrian bernama snake_case (nama_layar, tipe_layar, …). Payload jangan diubah ke camelCase:
+// Sequelize mengabaikan atribut yang tidak dikenal, sehingga tipe/nama/flash text dulu tidak pernah tersimpan saat edit.
+const keModel = (v) => ({
+  nama_layar: v.nama_layar,
+  tipe_layar: v.tipe_layar,
+  judul: v.judul,
+  is_admisi: v.is_admisi,
+  is_poli: v.is_poli,
+  is_farmasi: v.is_farmasi,
+  flash_text: v.flash_text,
+  media: v.media ?? null,
+  aktif: v.aktif,
+});
 
 export class LayarAntrianService {
   static async findAll({ faskesUuid, filterBy: filterQuery }) {
@@ -57,7 +70,7 @@ export class LayarAntrianService {
         layarAntrian
       );
 
-      const expectedPayload = FormatterService.toCamelCase(validated);
+      const expectedPayload = keModel(validated);
 
       
       const existingPolikliniks =
@@ -129,9 +142,9 @@ export class LayarAntrianService {
       delete draftAfterUpdate.lokasi;
       delete draftAfterUpdate.status;
 
-      ZodValidator.validate(LayarAntrianSchema.CREATE, draftAfterUpdate);
+      const tervalidasi = ZodValidator.validate(LayarAntrianSchema.CREATE, draftAfterUpdate);
 
-      const expectedPayload = FormatterService.toCamelCase(draftAfterUpdate);
+      const expectedPayload = keModel(tervalidasi);
       await LayarAntrianRepository.update({
         faskesUuid,
         uuid: layar_antrian_uuid,

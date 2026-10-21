@@ -2,6 +2,7 @@
 // Ekstensi tanpa kode (rancangan §7.8): laporan (SELECT tervalidasi), template cetak, formulir tambahan.
 // Dirakit agen AI atau disunting manual → pratinjau → pasang. Paket bertanda tangan diekspor untuk instalasi produksi.
 import { computed, onMounted, ref } from "vue";
+import * as XLSX from "xlsx-js-style";
 import PageToolbar from "@/components/Base/PageToolbar.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import { apiEkstensi } from "@/utils/apiHandler";
@@ -86,6 +87,24 @@ const pratinjau = async () => {
   sibuk.value = true;
   hasil.value = (await apiEkstensi("studio", "post", `/ekstensi/${dipilih.value.uuid}/pratinjau`, { parameter: nilai }, true))?.payload ?? null;
   sibuk.value = false;
+};
+// Ekspor hasil pratinjau (maks. 50 baris) ke Excel untuk dicek sebelum dipasang; laporan lengkap diekspor dari menu Ekstensi.
+const kolomPratinjau = computed(() => dipilih.value?.definisi?.kolom ?? Object.keys(hasil.value?.data?.[0] ?? {}).map((f) => ({ field: f, label: f })));
+const eksporExcel = () => {
+  if (!hasil.value?.data) return;
+  const faskes = JSON.parse(localStorage.getItem("faskes_profile") ?? "{}");
+  const aoa = [
+    [String(dipilih.value?.nama ?? "Ekstensi").toUpperCase()],
+    [faskes?.name ?? ""],
+    [(dipilih.value?.definisi?.parameter ?? []).map((p: any) => `${p.label ?? p.nama}: ${parameter.value[p.nama] || "-"}`).join(" · ")],
+    [`Pratinjau ${hasil.value.data.length} dari ${hasil.value.total} baris`],
+    [],
+    ["No", ...kolomPratinjau.value.map((k: any) => k.label ?? k.field)],
+    ...hasil.value.data.map((r: any, i: number) => [i + 1, ...kolomPratinjau.value.map((k: any) => r[k.field] ?? "")]),
+  ];
+  const buku = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(buku, XLSX.utils.aoa_to_sheet(aoa), "Pratinjau");
+  XLSX.writeFile(buku, `${dipilih.value?.nama ?? "ekstensi"} - pratinjau.xlsx`);
 };
 
 const aksi = async (nama: string, metode: "post" | "delete" = "post") => {
@@ -185,6 +204,7 @@ const JENIS: Record<string, string> = { laporan: "Laporan", cetak: "Template cet
                 <input v-else v-model="parameter[p.nama]" :type="p.tipe === 'tanggal' ? 'date' : p.tipe === 'angka' ? 'number' : 'text'" class="rounded border border-grey-200 px-2 py-1" />
               </label>
               <CustomButton text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Pratinjau (50 baris)" icon="PhPlay" outlined :disabled="sibuk" @click="pratinjau" />
+              <CustomButton v-if="hasil?.data?.length" text-color="text-opensimrs-300" border-color="border-opensimrs-300" label="Ekspor Excel" icon="PhFileXls" outlined :disabled="sibuk" @click="eksporExcel" />
             </div>
             <div v-if="hasil" class="overflow-auto rounded-lg border border-grey-200">
               <div class="border-b border-grey-200 px-3 py-1 text-[11px] text-grey-400">{{ hasil.total }} baris (faskes Anda saat ini)</div>

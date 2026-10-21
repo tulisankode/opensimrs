@@ -1,10 +1,12 @@
-import { ItemMedisJenisStokModel } from "@opensimrs/model-sdk/farmasi";
+import { ItemMedisJenisStokModel, ItemMedisModel } from "@opensimrs/model-sdk/farmasi";
 import {
   RiwayatMutasiModel,
   StockMedisModel,
 } from "@opensimrs/model-sdk/inventory";
 import { Op } from "sequelize";
+import sequelizeInstance from "@opensimrs/model-sdk/instance";
 import ResponseError from "../errors/ResponseError.js";
+import NotFoundError from "../errors/NotFoundError.js";
 
 export default class StockMedisRepository {
   static async reduceQuantity(req, t) {
@@ -21,13 +23,20 @@ export default class StockMedisRepository {
     } else {
       order.push(["created_at", "DESC"]);
     }
+    order.push(["id", "ASC"]);
+
+    // Batch yang boleh dipotong: milik faskes & lokasi ini, belum dihapus, dan belum kedaluwarsa
+    // (kecuali retur barang kedaluwarsa).
+    const whereStok = {
+      sisa_stok: { [Op.gt]: 0 },
+      lokasi_stok_uuid: req.lokasi_stok_uuid,
+      deleted_at: null,
+    };
+    if (req.faskes_uuid) whereStok.faskes_uuid = req.faskes_uuid;
+    if (!req.termasuk_kedaluwarsa) whereStok.exp_date = { [Op.gt]: today };
 
     const sisaStockRaw = await StockMedisModel.findAll({
-      where: {
-        sisa_stok: { [Op.gt]: 0 },
-        exp_date: { [Op.gt]: today },
-        lokasi_stok_uuid: req.lokasi_stok_uuid,
-      },
+      where: whereStok,
       attributes: ["sisa_stok"],
       include: [
         {
@@ -51,18 +60,14 @@ export default class StockMedisRepository {
 
     if (totalStock < req.quantity) {
       throw new ResponseError(
-        `${req.name} not enough or empty (total stock : ${totalStock})`,
+        `Stok ${req.name} tidak cukup (tersedia: ${totalStock}, diminta: ${req.quantity})`,
         400
       );
     }
 
     while (remainingQuantity > 0) {
       stock = await StockMedisModel.findOne({
-        where: {
-          sisa_stok: { [Op.gt]: 0 },
-          exp_date: { [Op.gt]: today },
-          lokasi_stok_uuid: req.lokasi_stok_uuid,
-        },
+        where: whereStok,
         include: [
           {
             model: ItemMedisJenisStokModel,
@@ -176,6 +181,7 @@ export default class StockMedisRepository {
   static async findOrCreateAndIncreaseStock(
     {
       itemMedisJenisStokUuid,
+      sourceStockUuid,
       exp_date,
       harga_satuan,
       konversi_uuid,
@@ -189,9 +195,19 @@ export default class StockMedisRepository {
     let stockBatch = await StockMedisModel.findOne({
       where: {
         item_medis_jenis_stok_uuid: itemMedisJenisStokUuid,
-        exp_date: exp_date,
+        // Bandingkan ED langsung dengan kolom batch asal di SQL: objek Date hasil baca kolom DATE
+        // bergeser zona waktu sehingga kesamaan tanggal gagal dan batch baru terus dibuat.
+        exp_date: sourceStockUuid
+          ? {
+              [Op.eq]: sequelizeInstance.literal(
+                `(SELECT sm.exp_date FROM stock_medis sm WHERE sm.uuid = ${sequelizeInstance.escape(sourceStockUuid)})`
+              ),
+            }
+          : exp_date,
         harga_satuan: harga_satuan,
         lokasi_stok_uuid: lokasi_stok_tujuan_uuid,
+        faskes_uuid: faskes_uuid,
+        deleted_at: null,
       },
       transaction,
       lock: transaction.LOCK.UPDATE,

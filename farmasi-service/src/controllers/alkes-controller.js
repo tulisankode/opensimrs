@@ -30,7 +30,7 @@ export default class AlkesController {
 
   static async deleteAlkesItem(req, res, nextFunction) {
     try {
-      await AlkesService.deleteAlkes(req.params);
+      await AlkesService.deleteAlkes({ ...req.params, faskes_uuid: req.author.faskesUuid });
       res.status(200).json(successResponse("Data berhasil dihapus"));
     } catch (error) {
       nextFunction(error);
@@ -41,6 +41,7 @@ export default class AlkesController {
     try {
       req.query.uuid = req.params.uuid;
       req.query.user_uuid = req.user_uuid ?? null;
+      req.query.faskes_uuid = req.author.faskesUuid;
       const result = await AlkesService.getByUuid(req.query);
       res
         .status(200)
@@ -53,6 +54,7 @@ export default class AlkesController {
   static async updateAlkes(req, res, nextFunction) {
     try {
       req.body.uuid = req.params.uuid;
+      req.body.faskes_uuid = req.author.faskesUuid;
       await AlkesService.updateAlkes(req.body);
       res.status(200).json(successResponse("data berhasil diupdate"));
     } catch (error) {
@@ -73,6 +75,7 @@ export default class AlkesController {
 
   static async getOrderByRekamMedis(req, res, nextFunction) {
     try {
+      req.query.faskes_uuid = req.author.faskesUuid;
       const result = await AlkesService.getOrderBySomeUuid(req.query);
       res
         .status(200)
@@ -86,6 +89,8 @@ export default class AlkesController {
     try {
       req.body.petugas_pembatalan = req.author.username;
       req.body.uuid = req.params.uuid;
+      req.body.faskes_uuid = req.author.faskesUuid;
+      req.body.token = req.headers.authorization;
       await AlkesService.batalOrder(req.body);
       res.status(200).json(successResponse("data berhasil dibatalkan"));
     } catch (error) {
@@ -110,6 +115,7 @@ export default class AlkesController {
   static async updateSiapDiserahkan(req, res, nextFunction) {
     try {
       req.body.petugas_penyiapan_obat = req.author.username;
+      req.body.faskes_uuid = req.author.faskesUuid;
       await AlkesService.updateSiapDiserahkan(req.body);
       res.status(200).json(successResponse("data berhasil diupdate"));
     } catch (error) {
@@ -120,6 +126,7 @@ export default class AlkesController {
   static async updateDiserahkan(req, res, nextFunction) {
     try {
       req.body.petugas_pemberi = req.author.username;
+      req.body.faskes_uuid = req.author.faskesUuid;
       await AlkesService.updateDiserahkan(req.body);
       res.status(200).json(successResponse("data berhasil diupdate"));
     } catch (error) {
@@ -129,6 +136,7 @@ export default class AlkesController {
 
   static async batalSiapDiserahkan(req, res, nextFunction) {
     try {
+      req.body.faskes_uuid = req.author.faskesUuid;
       await AlkesService.batalSiapDiserahkan(req.body);
       res.status(200).json(successResponse("data berhasil dibatalkan"));
     } catch (error) {
@@ -138,6 +146,7 @@ export default class AlkesController {
 
   static async updateLokasiStok(req, res, nextFunction) {
     try {
+      req.body.faskes_uuid = req.author.faskesUuid;
       await AlkesService.updateLokasiStok(req.body);
       res.status(200).json(successResponse("data berhasil diupdate"));
     } catch (error) {
@@ -160,6 +169,7 @@ export default class AlkesController {
   static async updateJenisStokItem(req, res, nextFunction) {
     try {
       req.body.uuid = req.params.uuid;
+      req.body.faskes_uuid = req.author.faskesUuid;
       await AlkesService.updateJenisItem(req.body);
       res.status(200).json(successResponse("data berhasil diupdate"));
     } catch (error) {

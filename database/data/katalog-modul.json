@@ -784,7 +784,7 @@
       "modul": "rawat_inap",
       "nama": "HDU (High Dependency Unit)",
       "deskripsi": "Episode HDU, konfigurasi ruangan, instruksi observasi, dan serah terima tertaut perpindahan rawat inap.",
-      "tersedia": false,
+      "tersedia": true,
       "wajib": false,
       "rute": [
         "/rawat-inap/hdu"

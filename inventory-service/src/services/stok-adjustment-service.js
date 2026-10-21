@@ -59,7 +59,8 @@ export default class StokAdjustmentService {
             await RiwayatMutasiService.create({
                 faskes_uuid: validatedData.faskes_uuid,
                 sumber_mutasi: "inventory",
-                with_check_stock: true,
+                // stok_awal sudah diketahui dari batch ini; cek ulang per tanggal ED justru bisa menjumlah batch lain.
+                with_check_stock: false,
                 petugas: validatedData.petugas_sa,
                 code: Utils.generate4Code("SAD"),
                 keterangan: {
@@ -71,7 +72,8 @@ export default class StokAdjustmentService {
                     item_uuid: stock.item_medis_jenis_stok.item_medis_uuid,
                     exp_date: old_exp_date_as_date,
                     stok_awal: stock.sisa_stok,
-                    stok_mutasi: validatedData.sisa_stok,
+                    // Catat selisihnya (bukan nilai stok baru) agar kartu stok menghitung sisa dengan benar.
+                    stok_mutasi: Math.abs(stock.sisa_stok - validatedData.sisa_stok),
                     jenis_stok_uuid: stock.item_medis_jenis_stok.jenis_stok_uuid,
                     lokasi_stok_uuid: stock.lokasi_stok_uuid,
                     type: stock.sisa_stok > validatedData.sisa_stok ? "defisit" : "surplus"

@@ -22,16 +22,19 @@ import {
 } from "@/stores/penunjang/gizi";
 
 // Cari pasien rawat inap aktif → tampilkan order diet berlaku + alergi tercatat RME + riwayat → tulis order baru.
+// "Termasuk pasien pulang" membuka riwayat gizi episode yang sudah pulang (baca saja; tidak bisa order/batal).
 const storeUtils = utilsStore();
 const boleh = (aksi: string) => izinGizi("Order Diet", aksi);
+const STATUS_PULANG = 4;
 
 const cari = ref("");
+const termasukPulang = ref(false);
 const data = ref<any[]>([]);
 const muatPasien = async () => {
   if (!cari.value.trim()) return (data.value = []);
   storeUtils.setLoading(true);
   try {
-    const res = await pasienAktifGizi({ cari: cari.value });
+    const res = await pasienAktifGizi({ cari: cari.value, termasuk_pulang: termasukPulang.value ? 1 : undefined });
     data.value = res?.payload ?? [];
   } finally {
     storeUtils.setLoading(false);
@@ -47,6 +50,7 @@ const muatMaster = async () => {
 };
 
 const pasienDipilih = ref<any>(null);
+const sudahPulang = computed(() => Number(pasienDipilih.value?.statusRi) === STATUS_PULANG);
 const orderAktif = ref<any>(null);
 const riwayat = ref<any[]>([]);
 const alergi = ref<any>(null);
@@ -119,6 +123,7 @@ onMounted(muatMaster);
         <PageToolbar>
           <h1 class="toolbar-heading text-opensimrs-300">Cari Pasien Rawat Inap</h1>
           <CustomTextfield v-model="cari" label="Cari pasien" prependIcon="PhMagnifyingGlass" placeholder="Nama / No. RM" :maxLength="100" @keydown.enter="muatPasien" />
+          <label class="flex items-center gap-2 text-sm"><Checkbox v-model="termasukPulang" binary @update:modelValue="muatPasien" />Termasuk pasien pulang</label>
           <CustomButton icon="PhMagnifyingGlass" label="Cari" @click="muatPasien" />
         </PageToolbar>
       </template>
@@ -130,6 +135,9 @@ onMounted(muatMaster);
           <Column header="Ruangan / Kamar" headerClass="bg-opensimrs-50">
             <template #body="{ data: d }">{{ d.namaBangsal ?? "-" }} / {{ d.namaKamar ?? "-" }}</template>
           </Column>
+          <Column v-if="termasukPulang" header="Status" headerClass="bg-opensimrs-50">
+            <template #body="{ data: d }">{{ Number(d.statusRi) === STATUS_PULANG ? `Pulang ${waktuGizi(d.tanggalPulang)}` : "Dirawat" }}</template>
+          </Column>
         </DataTable>
       </template>
     </Card>
@@ -138,7 +146,8 @@ onMounted(muatMaster);
       <template #header>
         <PageToolbar>
           <h1 class="toolbar-heading text-opensimrs-300">{{ pasienDipilih.namaPasien }} — {{ pasienDipilih.namaBangsal }}</h1>
-          <CustomButton v-if="boleh('CREATE')" icon="PhPlus" label="Order Diet Baru" @click="buka" />
+          <span v-if="sudahPulang" class="text-sm text-grey-400">Sudah pulang — riwayat (baca saja)</span>
+          <CustomButton v-if="boleh('CREATE') && !sudahPulang" icon="PhPlus" label="Order Diet Baru" @click="buka" />
         </PageToolbar>
       </template>
       <template #content>
@@ -157,7 +166,7 @@ onMounted(muatMaster);
               </div>
               <div class="flex items-center gap-2">
                 <span class="px-1.5 rounded" :class="[gayaOrderDiet(orderAktif.status).bg, gayaOrderDiet(orderAktif.status).text]">{{ gayaOrderDiet(orderAktif.status).label }}</span>
-                <CustomButton v-if="boleh('UPDATE')" label="Batalkan" size="small" outlined borderColor="border-danger-300" textColor="text-danger-300" @click="dialogBatal = true" />
+                <CustomButton v-if="boleh('UPDATE') && !sudahPulang" label="Batalkan" size="small" outlined borderColor="border-danger-300" textColor="text-danger-300" @click="dialogBatal = true" />
               </div>
             </div>
           </div>

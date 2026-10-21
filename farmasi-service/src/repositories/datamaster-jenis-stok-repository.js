@@ -41,8 +41,10 @@ export default class DataMasterJenisStokRepository {
         status: req.status,
       },
       {
+        // Isolasi faskes: jenis stok faskes lain tidak boleh diubah/dihapus.
         where: {
           uuid: req.uuid,
+          faskes_uuid: req.faskes_uuid,
         },
       }
     );
@@ -62,6 +64,7 @@ export default class DataMasterJenisStokRepository {
       {
         where: {
           uuid: req.uuid,
+          faskes_uuid: req.faskes_uuid,
           deleted_at: null,
         },
       }

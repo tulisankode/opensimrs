@@ -1,0 +1,9 @@
+### Ditambahkan
+
+- Farmasi: obat dan alkes kini harus dibayar di kasir sebelum diserahkan (Resep Dokter `POST /prescriptions/status-diserahkan`, Farmasi Ruangan `PUT /alkes/diserahkan`). Bila belum dibayar, penyerahan ditolak dengan pesan "Obat/Alkes belum dapat diserahkan: tagihan pasien belum dibayar di kasir (sisa Rp …)". Status lunas dihitung seperti kasir: total pembayaran ≥ grand total tagihan, termasuk tagihan gabungan. Item yang masuk setelah pembayaran membuat tagihan kembali menunggu pembayaran. Tagihan yang sudah ditutup kasir sebagai piutang dianggap selesai. Pengecualian: kunjungan rawat inap, pasien penjamin (BPJS/asuransi, metode bayar kunjungan bukan tunai), BHP Kamar Operasi/Hemodialisa, dan order tanpa item tagihan (data lama). Lihat `farmasi-service/src/services/tagihan-farmasi-service.js`.
+- Farmasi › Resep Dokter dan Farmasi Ruangan (tampilan): kartu di kolom Penyerahan menampilkan lencana status pembayaran ("Menunggu pembayaran", "Lunas", "Penjamin", "Rawat inap", dan lainnya). Di detail, tombol Serahkan nonaktif dan diberi keterangan sisa tagihan bila belum dibayar. Data berasal dari kolom baru `status_pembayaran` di daftar dan detail tahap siap diserahkan.
+
+### Diubah
+
+- Retur Obat & Material: koreksi tagihan retur (baris negatif di tagihan kunjungan) kini bernilai HPP item yang diretur, sama dengan `retur.total` dan tampilan retur. Sebelumnya koreksi memakai harga jual (HPP + margin). Laporan Pendapatan Resep dan Rekap per Apotik tetap mengurangkan `retur.total` (HPP) dari `total_harga` resep (harga jual), sehingga nilai bersih sama dengan yang dibayar pasien di kasir.
+- Farmasi Ruangan (tampilan): kartu Penyerahan Alkes menampilkan metode bayar yang sebenarnya; sebelumnya selalu berlabel "BPJS". Resep rawat inap di daftar Resep Dokter kini berlabel "RAWAT INAP"; sebelumnya "RAWAT JALAN".

@@ -1,6 +1,7 @@
 import express from "express";
 import { query } from "../db.js";
 import { tangani, kirim } from "../umum/respons.js";
+import { izinOk } from "../umum/izin.js";
 import pacu from "./pacu.js";
 import ruang from "./ruang.js";
 import order from "./order.js";
@@ -22,7 +23,8 @@ import rekap from "./rekap.js";
 //   /jadwal/:uuid/laporan-anestesi   laporan anestesi & skor Aldrete
 //   /jadwal/:uuid/pemakaian          pemakaian BHP/obat depo OK
 //   /laporan/rekap          rekap operasi per periode, operator, kelas operasi & persentase pembatalan
-//   /referensi/dokter|pasien|icd9cm  data pendukung form (tim operasi, pasien dari kunjungan, tindakan ICD-9-CM)
+//   /referensi/dokter|icd9cm|icd10|item-medis|lokasi-stok  data pendukung form (tim operasi, tindakan/diagnosis,
+//                           item medis & lokasi stok depo OK untuk pemakaian BHP — dipilih, bukan diketik UUID)
 const rute = express.Router();
 
 rute.use("/pacu", pacu);
@@ -85,6 +87,41 @@ rute.get(
       ),
     );
   }),
+);
+
+// Item medis aktif faskes untuk pemakaian BHP/obat depo OK (KF-1/KF-4). ?cari= kode atau nama, maks. 30.
+rute.get(
+  "/referensi/item-medis",
+  izinOk("Pemakaian BHP", "READ"),
+  tangani(async (req, res) => {
+    const cari = String(req.query.cari ?? "").trim().slice(0, 100);
+    kirim(
+      res,
+      await query(
+        `SELECT uuid, code, name FROM item_medis
+          WHERE faskes_uuid = $1 AND deleted_at IS NULL AND status AND (code ILIKE $2 OR name ILIKE $3)
+          ORDER BY (code ILIKE $2) DESC, name LIMIT 30`,
+        [req.author.faskesUuid, `${cari}%`, `%${cari}%`],
+      ),
+    );
+  }),
+);
+
+// Mengikuti validasi pemakaian: lokasi aktif berjenis depo, tanpa menebak identitas depo dari namanya.
+rute.get(
+  "/referensi/lokasi-stok",
+  izinOk("Pemakaian BHP", "READ"),
+  tangani(async (req, res) =>
+    kirim(
+      res,
+      await query(
+        `SELECT uuid, code, name FROM lokasi_stok
+          WHERE faskes_uuid = $1 AND deleted_at IS NULL AND status AND jenis_lokasi = 'depo'
+          ORDER BY name`,
+        [req.author.faskesUuid],
+      ),
+    ),
+  ),
 );
 
 export default rute;

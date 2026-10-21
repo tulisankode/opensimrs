@@ -104,7 +104,8 @@ const fetchDrugSales = async () => {
       selectedPayType.value,
       dateToEpoch(setTimeForDate(startDateFilter.value, 0, 0, 0)),
       dateToEpoch(setTimeForDate(endDateFilter.value, 23, 59, 59)),
-      selectedTest.join(""),
+      // nilai dipisah koma agar backend bisa memfilter beberapa lokasi sekaligus
+      selectedTest.join(","),
       searchQuery.value,
       DrugSalesProperties.value.page,
       DrugSalesProperties.value.page_size
@@ -297,8 +298,8 @@ onMounted(() => {
               </div>
             </template>
           </Column>
-          <!-- Nama Petugas -->
-          <Column header="Nama Petugas" headerClass="bg-opensimrs-50">
+          <!-- Dokter yang meresepkan -->
+          <Column header="Dokter Peresep" headerClass="bg-opensimrs-50">
             <template #body="slotProps">
               <div class="text-SM">{{ slotProps.data.dokterPemberiResep }}</div>
             </template>

@@ -13,6 +13,9 @@ import { usePegawaiStore } from "@/stores/datamaster/pegawai";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import CustomAccordion from "@/components/Base/CustomAccordion.vue";
 import FormObat from "./FormObat.vue";
+import DialogSubstitusi from "./DialogSubstitusi.vue";
+import { fiturAktif } from "@/stores/modulFaskes";
+import { getStoredPermissions, hasPermission } from "@/utils/permissions";
 import CustomSelect from "@/components/Base/CustomSelect.vue";
 import CustomChip from "@/components/Base/CustomChip.vue";
 import CustomDialog from "@/components/Base/CustomDialog.vue";
@@ -136,6 +139,34 @@ const openDialog = (method: string, title: string, data: any = null) => {
   dialogConfig.value = { method, title, data };
   isTambahDataDialogVisible.value = true;
 };
+
+// Substitusi obat non-racikan (Resep Masuk/Sudah Ditelaah): fitur katalog farmasi_substitusi + izin SUBSTITUSI
+// (akun tanpa daftar izin = super admin, diputuskan backend)
+const bolehSubstitusi = computed(
+  () =>
+    fiturAktif("farmasi_substitusi") &&
+    (!getStoredPermissions().length || hasPermission("Farmasi", "Resep Dokter", "SUBSTITUSI"))
+);
+const substitusiDialog = ref(false);
+const obatSubstitusi = ref<any>(null);
+const bukaSubstitusi = (obat: any) => {
+  obatSubstitusi.value = obat;
+  substitusiDialog.value = true;
+};
+// muat ulang detail & pilihan jenis stok obat pengganti
+const setelahSubstitusi = async () => {
+  await fetchDetailPrescription();
+  fetchObatNonRacikan();
+};
+const ringkasSubstitusi = (obat: any) =>
+  (obat?.substitusi ?? [])
+    .map(
+      (s: any) =>
+        `${s.namaObatAsal} → ${s.namaObatPengganti} (${s.kategoriAlasanLabel}: ${s.alasan}; ${s.petugas}${
+          s.persetujuanDokter ? `, disetujui ${s.dokterPenyetuju}` : ""
+        })`
+    )
+    .join("\n");
 
 // define ref datatable items obat dan racikan
 const itemsObat = ref([
@@ -272,6 +303,27 @@ const filterAvailableStock = (list: unknown) => {
   return out;
 };
 
+// Pilihan jenis stok tersedia per item medis (kunci: uuid item medis) di lokasi stok resep
+const stokPerItem = ref<Record<string, any[]>>({});
+const opsiStok = (itemMedisUuid?: string) =>
+  (itemMedisUuid && stokPerItem.value[itemMedisUuid]) || [];
+const muatStokPerItem = async (uuids: string[], lokasiStokUuid: string) => {
+  const unik = [...new Set(uuids)];
+  const responses = await Promise.all(
+    unik.map((uuid) =>
+      MedicalItemStore.getAvailableStockApi(uuid, lokasiStokUuid).catch((error) => {
+        console.error(`Failed to fetch data for UUID: ${uuid}`, error);
+      })
+    )
+  );
+  const hasil = { ...stokPerItem.value };
+  unik.forEach((uuid, i) => {
+    const list = (responses[i] as any)?.payload;
+    hasil[uuid] = filterAvailableStock(Array.isArray(list) ? list : []);
+  });
+  stokPerItem.value = hasil;
+};
+
 // Fetch Obat Racikan
 const fetchObatRacikan = async () => {
   try {
@@ -298,29 +350,13 @@ const fetchObatRacikan = async () => {
 
     if (!racikanUuids.length) {
       stockObatRacikanPayload.value = [];
-      console.log(
-        "stockObatRacikanPayload.value empty",
-        stockObatRacikanPayload.value
-      );
       return;
     }
 
-    const responses = await Promise.all(
-      racikanUuids.map((uuid: string) =>
-        MedicalItemStore.getAvailableStockApi(uuid, lokasiStokUuid).catch(
-          (error) => {
-            console.error(`Failed to fetch data for UUID: ${uuid}`, error);
-          }
-        )
-      )
-    );
-
-    console.log("responses fetchObatRacikan", responses);
-    const list = responses.flatMap((response: any) =>
-      Array.isArray(response?.payload) ? response.payload : []
-    );
-    stockObatRacikanPayload.value = filterAvailableStock(list);
-    console.log("stockObatRacikanPayload.value", stockObatRacikanPayload.value);
+    // stok disimpan per komponen: sebelumnya stok semua komponen digabung dan dipangkas per jenis stok,
+    // sehingga komponen kedua menampilkan sisa & harga komponen pertama
+    await muatStokPerItem(racikanUuids, lokasiStokUuid);
+    stockObatRacikanPayload.value = racikanUuids.flatMap((uuid) => opsiStok(uuid));
   } catch (error) {
     console.error("Failed to fetch all data", error);
     stockObatRacikanPayload.value = [];
@@ -337,33 +373,20 @@ const fetchObatNonRacikan = async () => {
       ? (payload.value as any).obat
       : [];
 
-    const nonCompound = obatList.find((o: any) => !o?.isCompound);
-    const uuidNonRacikan =
-      nonCompound?.itemMedisUuid ?? nonCompound?.itemMedis?.uuid ?? null;
+    // semua obat non-racikan (sebelumnya hanya obat pertama, sehingga pilihan stok obat lain
+    // berisi stok & harga obat pertama)
+    const uuidNonRacikan: string[] = obatList
+      .filter((o: any) => !o?.isCompound)
+      .map((o: any) => o?.itemMedisUuid ?? o?.itemMedis?.uuid ?? null)
+      .filter((uuid: string | null) => !!uuid && uuid !== "-");
 
-    if (!uuidNonRacikan || uuidNonRacikan === "-") {
+    if (!uuidNonRacikan.length) {
       stockObatNonRacikanPayload.value = [];
-      console.log(
-        "stockObatNonRacikanPayload.value empty",
-        stockObatNonRacikanPayload.value
-      );
       return;
     }
 
-    const response = await MedicalItemStore.getAvailableStockApi(
-      uuidNonRacikan,
-      lokasiStokUuid
-    );
-
-    if (response && response.payload) {
-      stockObatNonRacikanPayload.value = filterAvailableStock(response.payload);
-      console.log(
-        "stockObatNonRacikanPayload.value",
-        stockObatNonRacikanPayload.value
-      );
-    } else {
-      stockObatNonRacikanPayload.value = [];
-    }
+    await muatStokPerItem(uuidNonRacikan, lokasiStokUuid);
+    stockObatNonRacikanPayload.value = uuidNonRacikan.flatMap((uuid) => opsiStok(uuid));
   } catch (error) {
     console.error("Failed to fetch data", error);
     stockObatNonRacikanPayload.value = [];
@@ -520,21 +543,25 @@ const updateObatRacikan = async (
       value
     );
 
-    // find data stok obat
-    const selectedStock = stockObatRacikanPayload.value.find(
-      (stock: any) => stock.uuid === uuidStock
+    if (!response) return;
+
+    // find data stok obat: opsi bernilai detailStok.uuid (jenis stok) dan dicari di stok komponen itu sendiri
+    const komponenList =
+      fields.value[indexObat].value.racikanItems ?? fields.value[indexObat].value.racikan ?? [];
+    const selectedStock = opsiStok(komponenList[indexRacikan]?.itemMedisUuid).find(
+      (stock: any) => (stock.detailStok?.uuid ?? stock.uuid) === uuidStock
     );
+    if (!selectedStock) return;
 
     if (fields.value[indexObat].value.isCompound) {
-      const selectedRacikan =
-        fields.value[indexObat].value.racikan[indexRacikan];
+      const selectedRacikan = komponenList[indexRacikan];
       selectedRacikan.hargaSatuan = selectedStock.harga;
       selectedRacikan.sisaStok = selectedStock.totalStok;
       selectedRacikan.subTotal =
-        selectedStock.harga * selectedRacikan.medicationQty;
+        selectedStock.harga * (selectedRacikan.medicationQty ?? selectedRacikan.qtyRacikan ?? 0);
 
       // Hitung grandTotal
-      const racikanItems = fields.value[indexObat].value.racikan;
+      const racikanItems = komponenList;
       const grandTotal = racikanItems.reduce((total: number, item: any) => {
         return total + (item.subTotal || 0);
       }, 0);
@@ -579,10 +606,13 @@ const updateObatNonRacikan = async (
       value
     );
 
-    // find data stok obat
-    const selectedStock = stockObatNonRacikanPayload.value.find(
-      (stock: any) => stock.uuid === uuidStock
+    if (!response) return;
+
+    // find data stok obat: opsi bernilai detailStok.uuid (jenis stok) dan dicari di stok obat itu sendiri
+    const selectedStock = opsiStok(fields.value[indexObat].value.itemMedisUuid).find(
+      (stock: any) => (stock.detailStok?.uuid ?? stock.uuid) === uuidStock
     );
+    if (!selectedStock) return;
 
     if (fields.value[indexObat].value.isCompound) {
       const selectedRacikan =
@@ -630,16 +660,34 @@ const updateObatNonRacikan = async (
 // };
 const detailPrescriptionPayload = ref([]);
 
+// Isi layar dari data resep (status, obat, jenis stok terpilih)
+const terapkanPayload = (newPayload: any) => {
+  payload.value = newPayload;
+  if (payload.value?.lokasiStokUuid) {
+    awalLokasi.value = newPayload.lokasiStokUuid;
+  }
+  setValues({
+    obat:
+      payload.value.obatItems?.map((item: any) => ({
+        ...item,
+        isTakeaway: payload.value?.isTakeaway,
+        orderStatus: payload.value?.orderStatus,
+        totalHarga: payload.value?.totalHarga,
+      })) || [],
+  });
+};
+
 const fetchDetailPrescription = async () => {
   try {
     const response = await DoctorPrescriptionStore.detailApi(
       payload.value.uuid
     );
     detailPrescriptionPayload.value = response?.payload || {};
-    console.log("payload.value fetchDetailPrescription", payload.value);
+    // status terbaru diterapkan ke layar; sebelumnya hanya disimpan di variabel terpisah sehingga
+    // setelah telaah/verifikasi tombol tetap pada langkah lama sampai detail ditutup & dibuka ulang
+    if (response?.payload) terapkanPayload(response.payload);
   } catch (error) {
     console.error("Failed to fetch data:", error);
-    payload.value = {};
   }
 
   totalTagihan.value = 0;
@@ -729,7 +777,8 @@ const verifikasiPetugas = async (uuid: string) => {
         noHpPenerima: noHpPenerima.value,
         petugasEdukasi: selectedPegawai.value,
       });
-      emit("close");
+      // tutup hanya bila berhasil; sebelumnya panel tertutup walau penyerahan ditolak (isian penerima hilang)
+      if (response) emit("close");
     }
     fetchDetailPrescription();
   } catch (error) {
@@ -743,12 +792,17 @@ const batalOrder = async (uuid: string) => {
       uuid: uuid,
       alasanBatal: alasanBatal.value,
     });
+    // resep batal tidak lagi tampil di daftar: tutup detail agar daftar dimuat ulang
+    if (response) {
+      batalDialog.value = false;
+      alasanBatal.value = "";
+      emit("close");
+      return;
+    }
   } catch (error) {
     console.error("Failed to process the data:", error);
   }
   fetchDetailPrescription();
-  batalDialog.value = false;
-  alasanBatal.value = "";
 };
 
 const batalPenyerahan = async (uuid: string) => {
@@ -790,22 +844,7 @@ if (userData.value) {
 
 watch(
   () => props.payloadDetail,
-  (newPayload: any) => {
-    console.log("props.payloadDetail:", newPayload);
-    payload.value = newPayload;
-    if (payload.value?.lokasiStokUuid) {
-      awalLokasi.value = newPayload.lokasiStokUuid;
-    }
-    setValues({
-      obat:
-        payload.value.obatItems?.map((item: any) => ({
-          ...item,
-          isTakeaway: payload.value?.isTakeaway,
-          orderStatus: payload.value?.orderStatus,
-          totalHarga: payload.value?.totalHarga,
-        })) || [],
-    });
-  },
+  (newPayload: any) => terapkanPayload(newPayload),
   { immediate: true }
 );
 
@@ -1004,6 +1043,18 @@ onMounted(() => {
                         {{ obat.value.totalObat }}
                         {{ obat.value.satuanDosis }}
                       </p>
+                      <!-- obat hasil substitusi apoteker: tampilkan obat asal resep dokter & alasannya -->
+                      <CustomChip
+                        v-if="obat.value.substitusiDari"
+                        v-tooltip.top="ringkasSubstitusi(obat.value)"
+                        :label="`Substitusi dari ${obat.value.substitusiDari}`"
+                        borderColor="border-sunFlower-300"
+                        bgColor="bg-sunFlower-50"
+                        :showCheckedIcon="false"
+                        textColor="text-sunFlower-300"
+                        customClass="h-5"
+                        class="my-auto ml-[10px]"
+                      />
                     </div>
                     <div class="flex justify-end">
                       <CustomChip
@@ -1053,6 +1104,18 @@ onMounted(() => {
                         />
                       </CustomButton>
                       <CustomButton
+                        v-if="
+                          !obat.value.isCompound &&
+                          bolehSubstitusi &&
+                          [1, 2].includes(payload.orderStatus)
+                        "
+                        v-tooltip.top="'Ganti dengan obat lain yang tersedia di depo'"
+                        label="Substitusi"
+                        icon="PhArrowsCounterClockwise"
+                        class="h-6 text-xs px-2 mr-[10px]"
+                        @click="bukaSubstitusi(obat.value)"
+                      />
+                      <CustomButton
                         v-show="payload.orderStatus === 1"
                         label=""
                         background-color="bg-[#3D84E5] rounded-lg"
@@ -1094,7 +1157,7 @@ onMounted(() => {
                             place-holder="Pilih Stok"
                             optionValue="detailStok.uuid"
                             optionLabel="detailStok.name"
-                            :options="stockObatRacikanPayload"
+                            :options="opsiStok(slotProps.data.itemMedisUuid)"
                             :invalid="(errors as any)[`obat[${idx}].racikan[${slotProps.index}].jenisStokUuid`] ? true : false"
                             :invalidMessage="(errors as any)[`obat[${idx}].racikan[${slotProps.index}].jenisStokUuid`]"
                             @update:model-value="
@@ -1114,7 +1177,7 @@ onMounted(() => {
                             place-holder="Pilih Stok"
                             optionValue="detailStok.uuid"
                             optionLabel="detailStok.name"
-                            :options="stockObatNonRacikanPayload"
+                            :options="opsiStok(obat.value.itemMedisUuid)"
                             :invalid="(errors as any)[`obat[${idx}].jenisStokUuid`] ? true : false"
                             :invalidMessage="(errors as any)[`obat[${idx}].jenisStokUuid`]"
                             @update:model-value="
@@ -1144,7 +1207,7 @@ onMounted(() => {
                         <div class="w-full text-center">Sisa Stok</div>
                       </template>
                       <template #body="slotProps">
-                        {{ obat.value.qtySisa ?? "-" }}
+                        {{ obat.value.sisaStok ?? "-" }}
                       </template>
                     </Column>
                     <!-- Aturan & Cara Pakai -->
@@ -1241,7 +1304,7 @@ onMounted(() => {
                             place-holder="Pilih Stok"
                             optionValue="detailStok.uuid"
                             optionLabel="detailStok.name"
-                            :options="stockObatRacikanPayload"
+                            :options="opsiStok(slotProps.data.itemMedisUuid)"
                             :invalid="(errors as any)[`obat[${idx}].racikan[${slotProps.index}].jenisStokUuid`] ? true : false"
                             :invalidMessage="(errors as any)[`obat[${idx}].racikan[${slotProps.index}].jenisStokUuid`]"
                             @update:model-value="
@@ -1261,7 +1324,7 @@ onMounted(() => {
                             place-holder="Pilih Stok"
                             optionValue="detailStok.uuid"
                             optionLabel="detailStok.name"
-                            :options="stockObatNonRacikanPayload"
+                            :options="opsiStok(obat.value.itemMedisUuid)"
                             :invalid="(errors as any)[`obat[${idx}].jenisStokUuid`] ? true : false"
                             :invalidMessage="(errors as any)[`obat[${idx}].jenisStokUuid`]"
                             @update:model-value="
@@ -1292,7 +1355,7 @@ onMounted(() => {
                         <div class="w-full text-center">Sisa Stok</div>
                       </template>
                       <template #body="slotProps">
-                        {{ obat.value.qtySisa ?? "-" }}
+                        {{ slotProps.data.sisaStok ?? "-" }}
                       </template>
                     </Column>
                     <!-- Aturan & Cara Pakai -->
@@ -1796,10 +1859,34 @@ onMounted(() => {
                     ? 'Serahkan Obat'
                     : ''
                 "
-                :disabled="payload.orderStatus === 1"
+                :disabled="
+                  payload.orderStatus === 1 ||
+                  (payload.orderStatus === 4 &&
+                    payload.statusPembayaran?.bolehDiserahkan === false)
+                "
                 class="ml-[20px]"
                 @click="verifikasiPetugas(payload.uuid)"
               />
+              <!-- obat dibayar dulu di kasir, kecuali rawat inap & penjamin -->
+              <p
+                v-if="payload.orderStatus === 4 && payload.statusPembayaran"
+                class="text-xs text-right mt-1"
+                :class="
+                  payload.statusPembayaran.bolehDiserahkan
+                    ? 'text-grass-300'
+                    : 'text-warning-300'
+                "
+              >
+                {{
+                  payload.statusPembayaran.bolehDiserahkan
+                    ? `Pembayaran: ${payload.statusPembayaran.label}`
+                    : `Menunggu pembayaran di kasir${
+                        payload.statusPembayaran.sisa
+                          ? ` (sisa ${formatRupiah(payload.statusPembayaran.sisa)})`
+                          : ""
+                      }`
+                }}
+              </p>
             </div>
           </div>
         </div>
@@ -1814,6 +1901,14 @@ onMounted(() => {
     :pasien="pasienResep"
     :ringkasan="ringkasanKlinis"
     @data-updated="fetchDetailPrescription"
+  />
+
+  <DialogSubstitusi
+    v-model:visible="substitusiDialog"
+    :obat="obatSubstitusi"
+    :lokasiStokNama="(payload as any).lokasiStokNama ?? ''"
+    :dokterOrder="(payload as any).dokterOrder ?? ''"
+    @saved="setelahSubstitusi"
   />
 
   <!-- Batal Notification -->

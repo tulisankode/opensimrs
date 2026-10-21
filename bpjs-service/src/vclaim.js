@@ -81,11 +81,12 @@ export const simpanKonfigurasi = async (faskesUuid, data) => {
   // rahasia kosong = tidak diubah (ambil nilai terenkripsi lama, atau enkripsi nilai kolom lama)
   const rahasia = (baru, lamaTerenkripsi, lamaPolos) =>
     teks(baru) ? enkripsi(teks(baru)) : lamaTerenkripsi || (lamaPolos ? enkripsi(lamaPolos.trim()) : null);
-  await query(
+  const disimpan = await satu(
     `UPDATE integrations SET
        vclaim_aktif = $2, vclaim_cons_id = $3, vclaim_secret_key = $4, vclaim_user_key = $5, vclaim_kd_ppk = $6,
        secret_key = NULL, user_key = NULL, updated_at = $7
-     WHERE id = $1`,
+     WHERE id = $1 AND faskes_uuid = $8 AND deleted_at IS NULL
+     RETURNING id`,
     [
       baris.id,
       !!data.aktif,
@@ -94,8 +95,10 @@ export const simpanKonfigurasi = async (faskesUuid, data) => {
       rahasia(data.userKey, baris.vclaim_user_key, baris.user_key),
       teks(data.kdPpk) || null,
       sekarang(),
+      faskesUuid,
     ]
   );
+  if (!disimpan) throw new DataBelumLengkap("Data integrasi faskes ini tidak ditemukan atau sudah dihapus");
   return konfigurasiTersamar(faskesUuid);
 };
 
@@ -175,9 +178,9 @@ export const cariPasien = async (faskesUuid, noKartu) => {
       `SELECT 'rawat_jalan' AS sumber, rj.uuid, rj.no_reg, rj.no_pelayanan, rj.tanggal_daftar, rj.status_rj AS status,
               l.name AS lokasi, l.kd_poli_vclaim, pr.code_bpjs AS kd_dpjp, pg.name AS dokter
        FROM rawat_jalans rj
-       LEFT JOIN lokasi l ON l.uuid = rj.lokasi_uuid
-       LEFT JOIN practitioner pr ON pr.uuid = rj.practitioner_uuid
-       LEFT JOIN pegawai pg ON pg.uuid = pr.pegawai_uuid
+       LEFT JOIN lokasi l ON l.uuid = rj.lokasi_uuid AND l.deleted_at IS NULL
+       LEFT JOIN practitioner pr ON pr.uuid = rj.practitioner_uuid AND pr.deleted_at IS NULL
+       LEFT JOIN pegawai pg ON pg.uuid = pr.pegawai_uuid AND pg.deleted_at IS NULL
        WHERE rj.faskes_uuid = $1 AND rj.patient_uuid = $2 AND rj.deleted_at IS NULL AND rj.status_rj <> 0
          AND rj.tanggal_daftar >= $3
        ORDER BY rj.tanggal_daftar DESC LIMIT 10`,
@@ -322,6 +325,9 @@ const buatSurat = async ({ faskesUuid, pengguna, jenis, data, buatPermintaan, ja
   }
 };
 
+// Sengaja TIDAK menyaring deleted_at di SQL: semua pemanggil (ubahSurat, hapusSurat, rekonsiliasiSurat) memang perlu
+// membaca surat yang sudah dihapus untuk memberi pesan yang tepat (409 "sudah dihapus") atau idempotensi penghapusan,
+// lalu memeriksa baris.deleted_at sendiri — surat terhapus tidak pernah dikembalikan sebagai surat aktif dari sini.
 const ambilSuratAktif = async (faskesUuid, jenis, uuid) => {
   const baris = await satu(`${PILIH_SURAT} WHERE faskes_uuid = $1 AND uuid = $2 AND jenis = $3`, [faskesUuid, pastikanUuid(uuid), jenis]);
   if (!baris) throw new GalatBpjs("Surat tidak ditemukan", 404);
@@ -517,6 +523,8 @@ const daftarSurat = async (faskesUuid, jenis, q) => {
   return { data: baris.map(petaSurat), pagination: { page: f.page, limit: f.limit, total: total?.total ?? 0 } };
 };
 
+// Sengaja TIDAK menyaring deleted_at: daftarSurat mengizinkan filter status=dihapus, jadi detail surat yang sudah
+// dihapus harus tetap bisa dibuka (statusPemantauan menandainya "dihapus"); surat ini tidak dipakai untuk operasi aktif.
 const detailSurat = async (faskesUuid, jenis, uuid) => {
   const baris = await satu(
     `SELECT s.*, to_char(s.tgl_rencana, 'YYYY-MM-DD') AS tgl_rencana_teks, p.name AS nama_pasien

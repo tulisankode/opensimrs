@@ -10,6 +10,10 @@ const berlakuMulai = ref("");
 const alasan = ref("");
 const pesan = ref("");
 const sibuk = ref(false);
+// Penutupan episode tanpa perpindahan bed (pulang langsung/meninggal); pindah ruangan tetap lewat serah terima keluar.
+const jenisKeluar = ref("meninggal");
+const waktuKeluar = ref("");
+const catatanKeluar = ref("");
 async function muat() { try { detail.value = await store.baca(`/episode/${route.params.uuid}`); } catch (error) { detail.value = null; pesan.value = pesanHdu(error); } }
 async function simpan() {
   sibuk.value = true;
@@ -17,6 +21,16 @@ async function simpan() {
     await store.tulis(`/episode/${route.params.uuid}/instruksi-observasi`, { intervalDetik: intervalDetik.value,
       berlakuMulai: Math.floor(new Date(berlakuMulai.value).getTime() / 1000), alasan: alasan.value, versi: detail.value.episode.versi });
     pesan.value = "Instruksi observasi dicatat."; await muat();
+  } catch (error) { pesan.value = pesanHdu(error); await muat(); }
+  finally { sibuk.value = false; }
+}
+async function selesaikan() {
+  if (!window.confirm(`Tutup episode HDU dengan jenis keluar ${jenisKeluar.value}? Tindakan ini tidak dapat dibatalkan.`)) return;
+  sibuk.value = true;
+  try {
+    await store.tulis(`/episode/${route.params.uuid}/selesai`, { jenisKeluar: jenisKeluar.value,
+      waktuKejadian: Math.floor(new Date(waktuKeluar.value).getTime() / 1000), catatan: catatanKeluar.value, versi: detail.value.episode.versi });
+    pesan.value = "Episode HDU ditutup."; await muat();
   } catch (error) { pesan.value = pesanHdu(error); await muat(); }
   finally { sibuk.value = false; }
 }
@@ -30,7 +44,8 @@ watch(() => route.params.uuid, muat);
     <button class="border rounded p-2" @click="muat">Muat ulang episode</button>
     <template v-if="detail">
       <h2 class="font-semibold">Episode {{ detail.episode.uuid }} · {{ detail.episode.status }}</h2>
-      <p>Masuk: {{ waktuHdu(detail.episode.waktuMasuk) }} · Keluar: {{ waktuHdu(detail.episode.waktuKeluar) }}</p>
+      <p>Masuk: {{ waktuHdu(detail.episode.waktuMasuk) }} · Keluar: {{ waktuHdu(detail.episode.waktuKeluar) }}<template v-if="detail.episode.jenisKeluar"> · Jenis keluar: {{ detail.episode.jenisKeluar }}</template></p>
+      <p v-if="detail.episode.catatanKeluar">Catatan keluar: {{ detail.episode.catatanKeluar }}</p>
       <p v-if="detail.instruksiBerlaku">Interval {{ detail.instruksiBerlaku.intervalDetik }} detik · Sumber {{ detail.instruksiBerlaku.sumber }} · Versi {{ detail.instruksiBerlaku.versi }}</p>
       <p v-else>Interval observasi belum ditetapkan.</p>
       <form v-if="detail.episode.status === 'aktif' && bolehHdu('Instruksi Observasi', 'KELOLA')" class="grid gap-3" @submit.prevent="simpan">
@@ -39,6 +54,14 @@ watch(() => route.params.uuid, muat);
         <label>Berlaku mulai <input v-model="berlakuMulai" type="datetime-local" required class="border rounded p-2" /></label>
         <label>Alasan <textarea v-model="alasan" required maxlength="2000" class="border rounded p-2 w-full" /></label>
         <button :disabled="sibuk" class="border rounded p-2">Catat instruksi baru</button>
+      </form>
+      <form v-if="detail.episode.status === 'aktif' && bolehHdu('Serah Terima', 'CREATE')" class="grid gap-3" @submit.prevent="selesaikan">
+        <h3>Selesaikan episode tanpa perpindahan</h3>
+        <p>Untuk pasien yang meninggal di HDU atau pulang langsung dari HDU. Pulang memerlukan pemulangan admisi di Rawat Inap terlebih dahulu; pindah ruangan tetap melalui serah terima keluar.</p>
+        <label>Jenis keluar <select v-model="jenisKeluar" class="border rounded p-2"><option value="meninggal">Meninggal</option><option value="pulang">Pulang langsung</option></select></label>
+        <label>Waktu keluar <input v-model="waktuKeluar" type="datetime-local" required class="border rounded p-2" /></label>
+        <label>Catatan keluar <textarea v-model="catatanKeluar" required maxlength="2000" class="border rounded p-2 w-full" /></label>
+        <button :disabled="sibuk" class="border rounded p-2">Selesaikan episode</button>
       </form>
       <h3 class="font-semibold">Riwayat instruksi dan kebijakan</h3>
       <ul><li v-for="item in detail.instruksi" :key="item.uuid">{{ item.episodeUuid ? 'Episode' : 'Unit' }} · {{ item.intervalDetik }} detik · Berlaku {{ waktuHdu(item.berlakuMulai) }} · Dicatat {{ waktuHdu(item.createdAt) }} · {{ item.pencatat }} · {{ item.alasan }}</li></ul>

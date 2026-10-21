@@ -5,11 +5,16 @@ import { useRouter } from "vue-router";
 import PageToolbar from "@/components/Base/PageToolbar.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
 import { apiStudioPost } from "@/utils/apiHandler";
+import { daftarModulKatalog } from "@/stores/modulFaskes";
 
 const router = useRouter();
 const mengirim = ref(false);
 
-const form = ref({ jenis: "fitur", prioritas: "P2", judul: "", masalah: "", siapa: "", harapan: "", contoh: "" });
+const form = ref({ jenis: "fitur", prioritas: "P2", judul: "", masalah: "", siapa: "", harapan: "", contoh: "", modulTerdampak: [] as string[] });
+// Modul katalog yang disentuh permintaan: ikut ke konteks agen (entri katalog, rute, fitur) di setiap tahap.
+const OPSI_MODUL = daftarModulKatalog()
+  .map((m) => ({ nama: m.nama, label: `${m.nama} (${m.kode})` }))
+  .sort((a, b) => a.nama.localeCompare(b.nama, "id"));
 const JENIS = [
   { kode: "fitur", nama: "Fitur", ikon: "PhSparkle", ket: "Kemampuan baru pada modul yang ada" },
   { kode: "modul", nama: "Modul baru", ikon: "PhSquaresFour", ket: "Menu/modul baru di aplikasi" },
@@ -71,6 +76,23 @@ const kirim = async () => {
               <option value="P3">P3 — bisa menunggu</option>
             </select>
           </div>
+        </div>
+
+        <div v-if="OPSI_MODUL.length" class="flex flex-col gap-1">
+          <label class="text-SM font-semibold text-grey-500" for="p-modul">Modul terkait (opsional)</label>
+          <MultiSelect
+            v-model="form.modulTerdampak"
+            input-id="p-modul"
+            :options="OPSI_MODUL"
+            option-label="label"
+            option-value="nama"
+            filter
+            display="chip"
+            :max-selected-labels="4"
+            placeholder="Pilih modul yang disentuh permintaan ini"
+            class="w-full"
+          />
+          <div class="text-[10px] text-grey-400">Agen membaca entri katalog modul ini (rute, menu, fitur) agar perubahan tepat sasaran.</div>
         </div>
 
         <div v-for="(p, idx) in PERTANYAAN" :key="p.kunci" class="flex flex-col gap-1">

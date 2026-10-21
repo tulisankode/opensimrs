@@ -69,7 +69,7 @@ const fetchPermintaanBarang = async () => {
       PermintaanBarangProperties.value.page_size,
       statusParam,
       searchQuery.value,
-      selectedTujuanName.value
+      stockLocSel.selectedUuid ?? ""
     );
 
     // Normalisasi payload & total untuk kasus sukses + pasang label status

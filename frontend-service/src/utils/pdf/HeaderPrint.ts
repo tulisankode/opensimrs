@@ -146,7 +146,7 @@ export function defaultHeader(
                     },
                     { text: ":" },
                     {
-                      text: `${patientData?.patient?.gender == "Male"
+                      text: `${["Male", "Laki-laki"].includes(patientData?.patient?.gender)
                           ? "Laki-laki"
                           : "Perempuan"
                         }`,

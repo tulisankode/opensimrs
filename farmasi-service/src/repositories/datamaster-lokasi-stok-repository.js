@@ -2,6 +2,8 @@ import Pagination from "../helpers/pagination.js";
 import { Op } from "sequelize";
 import { toEpochDate } from "../helpers/date-helper.js";
 import { LokasiStokModel } from "@opensimrs/model-sdk/farmasi";
+import { StockMedisModel } from "@opensimrs/model-sdk/inventory";
+import BadRequestException from "../errors/bad-request-exception.js";
 import NotfoundException from "../errors/notfound-exception.js";
 
 export default class DataMasterLokasiStokRepository {
@@ -84,8 +86,10 @@ export default class DataMasterLokasiStokRepository {
         default_tujuan_order_permintaan: req.default_tujuan_order_permintaan,
       },
       {
+        // Isolasi faskes: lokasi faskes lain tidak boleh diubah walau UUID-nya diketahui.
         where: {
           uuid: req.uuid,
+          faskes_uuid: req.faskes_uuid,
         },
       }
     );
@@ -98,6 +102,20 @@ export default class DataMasterLokasiStokRepository {
   }
 
   static async delete(req) {
+    // Lokasi yang masih menyimpan stok tidak boleh dihapus: batch-nya akan "hilang" dari semua daftar
+    // stok padahal fisiknya masih ada. Kosongkan dulu lewat retur/pengeluaran unit.
+    const sisa = await StockMedisModel.sum("sisa_stok", {
+      where: {
+        lokasi_stok_uuid: req.uuid,
+        faskes_uuid: req.faskes_uuid,
+        deleted_at: null,
+      },
+    });
+    if (Number(sisa || 0) > 0) {
+      throw new BadRequestException(
+        `Lokasi stok masih memiliki sisa stok ${sisa}; pindahkan/kosongkan stok sebelum menghapus lokasi.`
+      );
+    }
     const [affectedRow] = await LokasiStokModel.update(
       {
         deleted_at: toEpochDate(new Date()),
@@ -105,6 +123,7 @@ export default class DataMasterLokasiStokRepository {
       {
         where: {
           uuid: req.uuid,
+          faskes_uuid: req.faskes_uuid,
           deleted_at: null,
         },
       }

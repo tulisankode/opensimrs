@@ -21,7 +21,15 @@ const emit = defineEmits<{ selesai: [] }>();
 const storeUtils = utilsStore();
 const icuStore = apiIntensif(props.basis);
 
+// Jenis keluar: pindah ruangan (wajib perpindahan approve), pulang (setelah pemulangan di Rawat Inap), atau meninggal
+// (tanpa perpindahan). Kondisi keluar pulang/meninggal ditentukan oleh jenisnya.
+const pilihanJenisKeluar = [
+  { label: "Pindah ruangan", value: "pindah" },
+  { label: "Pulang langsung", value: "pulang" },
+  { label: "Meninggal", value: "meninggal" },
+];
 const kosongKeluar = () => ({
+  jenisKeluar: "pindah" as "pindah" | "pulang" | "meninggal",
   perpindahanKeluarUuid: "",
   kondisiKeluar: "hidup" as "hidup" | "meninggal",
   kriteria: "",
@@ -52,13 +60,14 @@ const bukaDialogKeluar = async () => {
 
 const simpanKeluar = async () => {
   galat.value = "";
-  if (!formKeluar.value.perpindahanKeluarUuid?.trim()) return (galat.value = "Pilih perpindahan keluar yang sudah disetujui (approve) di Rawat Inap");
+  const pindah = formKeluar.value.jenisKeluar === "pindah";
+  if (pindah && !formKeluar.value.perpindahanKeluarUuid?.trim()) return (galat.value = "Pilih perpindahan keluar yang sudah disetujui (approve) di Rawat Inap");
   storeUtils.setLoading(true);
   try {
     const f = formKeluar.value;
     const res = await icuStore.keluarPerawatan(props.perawatanUuid, {
-      perpindahanKeluarUuid: f.perpindahanKeluarUuid.trim(),
-      kondisiKeluar: f.kondisiKeluar,
+      jenisKeluar: f.jenisKeluar,
+      ...(pindah ? { perpindahanKeluarUuid: f.perpindahanKeluarUuid.trim(), kondisiKeluar: f.kondisiKeluar } : {}),
       ringkasan: {
         kriteria: f.kriteria || undefined,
         kondisi: f.kondisi || undefined,
@@ -106,10 +115,25 @@ const simpanKeluar = async () => {
       <template #header>Keluar {{ label }} — Ringkasan Perawatan Intensif</template>
       <template #body>
         <div class="flex flex-col gap-3 pt-4">
-          <div class="text-xs text-grey-400">
+          <CustomSelect
+            v-model="formKeluar.jenisKeluar"
+            label="Jenis Keluar"
+            :options="pilihanJenisKeluar"
+            optionValue="value"
+            optionLabel="label"
+            :showFilter="false"
+            :clearable="false"
+          />
+          <div v-if="formKeluar.jenisKeluar === 'pindah'" class="text-xs text-grey-400">
             Ajukan dan setujui perpindahan keluar terlebih dahulu di Rawat Inap › Perpindahan Bangsal; perpindahan yang sudah berstatus approve dari bed ini tampil di bawah.
           </div>
-          <div class="grid grid-cols-2 gap-3">
+          <div v-else-if="formKeluar.jenisKeluar === 'pulang'" class="text-xs text-grey-400">
+            Selesaikan pemulangan pasien di Rawat Inap terlebih dahulu; episode {{ label }} ditutup tanpa perpindahan bed.
+          </div>
+          <div v-else class="text-xs text-grey-400">
+            Episode {{ label }} ditutup dengan kondisi keluar meninggal tanpa perpindahan bed. Lanjutkan pemulangan pasien di Rawat Inap.
+          </div>
+          <div v-if="formKeluar.jenisKeluar === 'pindah'" class="grid grid-cols-2 gap-3">
             <CustomSelect
               v-model="formKeluar.perpindahanKeluarUuid"
               label="Perpindahan keluar (tujuan)"

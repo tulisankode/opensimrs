@@ -9,6 +9,7 @@ import KonfigurasiHargaRepository from "../repositories/konfigurasi-harga-reposi
 import { ItemMedisModel } from "@opensimrs/model-sdk/farmasi";
 import StockMedisRepository from "../repositories/stock-medis-repository.js";
 import sequelizeInstance from "@opensimrs/model-sdk/instance";
+import { pastikanLokasiStok } from "../helpers/lokasi-stok.helper.js";
 
 export default class ReturUnitService {
   static async createReturUnit(data, author, token) {
@@ -26,6 +27,8 @@ export default class ReturUnitService {
         lokasi_stok_tujuan_uuid,
         jenis_stok_uuid,
       } = validatedData;
+
+      const namaLokasi = await pastikanLokasiStok(faskesUuid, validatedData);
 
       const configInfo = await KonfigurasiHargaRepository.get(faskesUuid);
       const metode_pemotongan_stok =
@@ -66,9 +69,13 @@ export default class ReturUnitService {
       );
 
       for (const item of itemsToCreate) {
-        const itemDetail = await ItemMedisModel.findByPk(item.item_uuid, {
+        const itemDetail = await ItemMedisModel.findOne({
+          where: { uuid: item.item_uuid, faskes_uuid: faskesUuid },
           transaction,
         });
+        if (!itemDetail) {
+          throw new NotFoundError(`Item ${item.item_uuid} tidak ditemukan pada faskes Anda.`);
+        }
         const nama_item = itemDetail ? itemDetail.name : "Unknown Item";
 
         const catatanStokBerkurang = await StockMedisRepository.reduceQuantity(
@@ -76,7 +83,13 @@ export default class ReturUnitService {
             item_medis_uuid: item.item_uuid,
             jenis_stok_uuid: jenis_stok_uuid,
             quantity: item.qty,
-            metode_pemotongan_stok: metode_pemotongan_stok,
+            // Retur karena kedaluwarsa justru memindahkan batch yang sudah lewat ED; dahulukan ED terdekat.
+            metode_pemotongan_stok:
+              validatedData.alasan_retur === "kadaluarsa"
+                ? "FEFO"
+                : metode_pemotongan_stok,
+            termasuk_kedaluwarsa: validatedData.alasan_retur === "kadaluarsa",
+            faskes_uuid: faskesUuid,
             lokasi_stok_uuid: lokasi_stok_awal_uuid,
             name: nama_item,
           },
@@ -101,6 +114,7 @@ export default class ReturUnitService {
               {
                 itemMedisJenisStokUuid:
                   sourceStockBatch.item_medis_jenis_stok_uuid,
+                sourceStockUuid: sourceStockBatch.uuid,
                 exp_date: sourceStockBatch.exp_date,
                 harga_satuan: sourceStockBatch.harga_satuan,
                 konversi_uuid: sourceStockBatch.konversi_uuid,
@@ -122,7 +136,7 @@ export default class ReturUnitService {
               lokasi_stok_uuid: lokasi_stok_awal_uuid,
               jenis_stok_uuid: jenis_stok_uuid,
               keterangan: {
-                description: `Retur unit ke ${lokasi_stok_tujuan_uuid} (Item: ${nama_item})`,
+                description: `Retur unit ke ${namaLokasi.get(lokasi_stok_tujuan_uuid) || lokasi_stok_tujuan_uuid} (Item: ${nama_item})`,
               },
               petugas: petugas,
               stok_awal: catatan.stock_before,
@@ -143,7 +157,7 @@ export default class ReturUnitService {
               lokasi_stok_uuid: lokasi_stok_tujuan_uuid,
               jenis_stok_uuid: jenis_stok_uuid,
               keterangan: {
-                description: `Retur unit dari ${lokasi_stok_awal_uuid} (Item: ${nama_item})`,
+                description: `Retur unit dari ${namaLokasi.get(lokasi_stok_awal_uuid) || lokasi_stok_awal_uuid} (Item: ${nama_item})`,
               },
               petugas: petugas,
               stok_awal: destinationStockBatch.sisa_stok - catatan.quantity,

@@ -40,7 +40,8 @@ const hduPermission = (submodule, action = "READ") => async (req, res, next) => 
         });
         let permissions = [];
         try { permissions = typeof user?.permissions === "string" ? JSON.parse(user.permissions) : user?.permissions ?? []; } catch { /* Izin tidak valid ditolak. */ }
-        const boleh = (module, sub, aksi, feature) => !!user && (isSuperadmin(author) || (Array.isArray(permissions) && punyaIzinHdu(permissions, module, sub, aksi, feature)));
+        // Superadmin boleh di faskes mana pun (setelah ganti faskes, akunnya tidak punya baris users di faskes itu).
+        const boleh = (module, sub, aksi, feature) => isSuperadmin(author) || (!!user && Array.isArray(permissions) && punyaIzinHdu(permissions, module, sub, aksi, feature));
         if (!boleh("Rawat Inap", submodule, action)) return res.status(403).json({ message: "Izin tindakan HDU tidak tersedia.", payload: null });
         res.locals.hduBoleh = boleh;
         next();

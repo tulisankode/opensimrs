@@ -11,6 +11,7 @@ import PreviewLayout1List1Panggilan from "@/views/Antrian/Konfigurasi/Konfiguras
 import opensimrsLogo from "@/assets/images/opensimrs-logo.png";
 import opensimrsText from "@/assets/images/opensimrs.png";
 import { urlPublikAntrian } from "@/utils/apiHandler";
+import { panggilanPoliTerkini, urutPanggilanTerbaru } from "@/utils/panggilanLayar";
 import {
   siapkanSuara,
   suaraDiizinkan,
@@ -70,9 +71,10 @@ const propsLayar = computed(() => ({
   isFarmasi: !!layar.value?.is_farmasi,
   activeOrder: urutanAktif.value,
   media: layar.value?.media ?? "",
-  admisiCallsActive: admisi.value.filter(statusDipanggil),
+  // Panggilan terbaru di depan (nomor lama yang belum diproses tidak menutupi panggilan baru).
+  admisiCallsActive: urutPanggilanTerbaru(admisi.value.filter(statusDipanggil)),
   admisiCallsWaiting: admisi.value.filter(statusMenunggu),
-  poliCallsActive: poli.value.filter(statusDipanggil),
+  poliCallsActive: panggilanPoliTerkini(poli.value.filter(statusDipanggil)),
   poliCallsWaiting: poli.value.filter(statusMenunggu),
 }));
 

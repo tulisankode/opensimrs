@@ -101,8 +101,18 @@ export default class PermintaanUnitService {
 
     static async tolakPermintaan(req) { 
         const validatedInput = await ZodValidator.validate(PermintaanUnitValidation.TOLAK_PERMINTAAN, req);
+        // Hanya permintaan milik faskes ini yang belum dikirim yang boleh dibatalkan; setelah dikirim
+        // stok sudah berpindah sehingga pembatalan akan membuat status tidak sesuai mutasi stok.
+        const permintaan = await PermintaanUnitRepository.getDetail({
+            uuid: validatedInput.uuid,
+            faskes_uuid: req.faskes_uuid,
+        });
+        if (["dikirim", "cancel"].includes(permintaan.status)) {
+            throw new BadRequestException(`Permintaan dengan status ${permintaan.status} tidak dapat dibatalkan.`);
+        }
         const dataToUpdate = {
             uuid: validatedInput.uuid,             
+            faskes_uuid: req.faskes_uuid,
             status: "cancel",                         
             alasan_batal_tolak: validatedInput.alasan_batal, 
             petugas_batal_tolak: validatedInput.petugas_batal_tolak,
@@ -274,7 +284,7 @@ export default class PermintaanUnitService {
                     item_medis_uuid: item.item_uuid,
                     jenis_stok_uuid: permintaan.jenis_stok_uuid, 
                     quantity_needed: realQuantityNeeded, 
-                    metode_pemotongan_stok: konfigurasiHarga.metode_pemotongan_stok || "FEFO",
+                    metode_pemotongan_stok: konfigurasiHarga?.metode_pemotongan_stok || "FEFO",
                     lokasi_stok_uuid: permintaan.lokasi_stok_awal_uuid,
                     faskes_uuid: validatedReq.faskes_uuid
                  }, transaction);
@@ -290,6 +300,7 @@ export default class PermintaanUnitService {
 
             await PermintaanUnitRepository.update({
                 uuid: validatedReq.uuid,
+                faskes_uuid: validatedReq.faskes_uuid,
                 status: finalStatus,
                 petugas_verifikasi: dataPetugas.username,
                 petugas_verifikasi_uuid: dataPetugas.uuid,
@@ -384,6 +395,7 @@ export default class PermintaanUnitService {
 
             await PermintaanUnitRepository.update({
                 uuid: validatedInput.uuid,
+                faskes_uuid: validatedInput.faskes_uuid,
                 status: "dikirim",
                 petugas_kirim: dataPetugas.username,
                 petugas_kirim_uuid: dataPetugas.uuid,

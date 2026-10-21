@@ -42,7 +42,7 @@ export const tiruan = globalThis.__icuTiruan = {
 };
 export function bersihkan() {
     tiruan.audit = []; tiruan.kueri = []; tiruan.sesudah = []; tiruan.handler = () => [];
-    tiruan.admisi = { uuid: "admisi-fiktif", monitoringRoomUuid: "bed-fiktif", patientUuid: "pasien-fiktif" };
+    tiruan.admisi = { uuid: "admisi-fiktif", monitoringRoomUuid: "bed-fiktif", patientUuid: "pasien-fiktif", statusRi: 3, dischargeDate: null };
     tiruan.perpindahan = { uuid: "pindah-fiktif", statusPindah: "approve", admissionRiUuid: "admisi-fiktif", destinationMonitoringRoomUuid: "bed-fiktif", originMonitoringRoomUuid: "bed-asal" };
     tiruan.tempatTidur = { uuid: "bed-fiktif", room_uuid: "unit-fiktif", patientUuid: "pasien-fiktif" };
 }

@@ -10,6 +10,7 @@ import CustomChip from "@/components/Base/CustomChip.vue";
 import CustomDialog from "@/components/Base/CustomDialog.vue";
 import CustomInfoRow from "@/components/Base/CustomInfoRow.vue";
 import NoData from "@/components/section/NoData.vue";
+import GeneralConsentContent from "@/components/Base/GeneralConsentContent.vue";
 import PatientIdentityForm from "./Forms/PatientIdentityFormRJ.vue";
 import { utilsStore } from "@/stores/utils";
 import { useAdmisiMasterPasienStore } from "@/stores/admisi/masterPasien";
@@ -1006,12 +1007,12 @@ onMounted(() => {
                 /> -->
                 <CustomChip
                   :showCheckedIcon="false"
-                  :label="data.gender == 'Female' ? 'Perempuan' : 'Laki-laki'"
+                  :label="['Female', 'Perempuan'].includes(data.gender) ? 'Perempuan' : 'Laki-laki'"
                   :bgColor="
-                    data.gender == 'Female' ? 'bg-female-75' : 'bg-male-75'
+                    ['Female', 'Perempuan'].includes(data.gender) ? 'bg-female-75' : 'bg-male-75'
                   "
                   :textColor="
-                    data.gender == 'Female'
+                    ['Female', 'Perempuan'].includes(data.gender)
                       ? 'text-female-300'
                       : 'text-male-300'
                   "
@@ -1567,7 +1568,7 @@ onMounted(() => {
               <CustomInfoRow
                 label="Jenis kelamin"
                 :value="
-                  openedPatientData.gender == 'Male' ? 'laki-laki' : 'Perempuan'
+                  ['Male', 'Laki-laki'].includes(openedPatientData.gender) ? 'laki-laki' : 'Perempuan'
                 "
               />
               <CustomInfoRow
@@ -1783,11 +1784,11 @@ onMounted(() => {
             v-if="generalConsentDialogInputType == 'add'"
             class="h-[400px] border-[1px] border-grey-200 border-dashed rounded-[10px] mt-5 flex overflow-auto"
           >
-            <div
+            <GeneralConsentContent
               v-if="selectedDataGeneralConsent"
-              v-html="selectedDataGeneralConsent.isiSurat"
+              :isiSurat="selectedDataGeneralConsent.isiSurat"
               class="w-full px-10"
-            ></div>
+            />
             <div v-else class="m-auto font-semibold text-normal">
               Default General Consent Rawat Jalan Pilihan Awal
             </div>

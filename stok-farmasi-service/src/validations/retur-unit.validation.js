@@ -3,7 +3,10 @@ import { z } from "zod";
 const itemSchema = z.object({
   item_uuid: z.string().uuid({ message: "Item UUID tidak valid" }),
   kategori_item: z.enum(["medis", "non-medis"]),
-  qty: z.number().positive({ message: "Kuantitas harus lebih dari 0" }),
+  qty: z
+    .number()
+    .int({ message: "Kuantitas harus bilangan bulat" })
+    .positive({ message: "Kuantitas harus lebih dari 0" }),
   exp_date: z.string().nonempty({ message: "Tanggal kedaluwarsa wajib diisi" }),
   harga_satuan: z
     .number()

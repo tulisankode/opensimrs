@@ -1,5 +1,5 @@
 import config from "./config.js";
-import { query, satu, sekarang } from "./db.js";
+import { satu, sekarang } from "./db.js";
 import { enkripsi, dekripsi, samarkan } from "./rahasia.js";
 
 // Konfigurasi WS Antrean BPJS (Mobile JKN) per faskes — satu baris per faskes di `integrations`, pola sama dengan
@@ -60,11 +60,14 @@ export const simpanKonfigurasi = async (faskesUuid, data) => {
   const teks = (v) => (v == null ? null : String(v).trim());
   const rahasia = (baru, lama) => (teks(baru) ? enkripsi(teks(baru)) : lama);
   const mode = data.mode === "nyata" ? "nyata" : "mock";
-  await query(
+  // Kondisi WHERE mengikat perubahan pada baris konfigurasi faskes ini saja (bukan hanya `id`), supaya pembaruan
+  // tidak pernah menyentuh baris faskes lain meski `id` tertebak/berubah di antara pembacaan dan penulisan.
+  const diperbarui = await satu(
     `UPDATE integrations SET
        antrean_bpjs_aktif = $2, antrean_bpjs_mode = $3, antrean_bpjs_base_url = $4, antrean_bpjs_cons_id = $5,
        antrean_bpjs_secret_key = $6, antrean_bpjs_user_key = $7, updated_at = $8
-     WHERE id = $1`,
+     WHERE id = $1 AND faskes_uuid = $9 AND deleted_at IS NULL
+     RETURNING id`,
     [
       baris.id,
       !!data.aktif,
@@ -74,8 +77,10 @@ export const simpanKonfigurasi = async (faskesUuid, data) => {
       rahasia(data.secretKey, baris.antrean_bpjs_secret_key),
       rahasia(data.userKey, baris.antrean_bpjs_user_key),
       sekarang(),
+      faskesUuid,
     ]
   );
+  if (!diperbarui) throw new DataBelumLengkap("Konfigurasi integrasi tidak ditemukan untuk faskes ini");
   return konfigurasiTersamar(faskesUuid);
 };
 

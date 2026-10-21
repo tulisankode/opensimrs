@@ -124,7 +124,7 @@ onMounted(() => {
       <div
         class="flex overflow-hidden flex-col justify-center w-full rounded-3xl"
       >
-        <div class="bg-white bg-opacity-30 w-full h-[640px] space-y-14">
+        <div class="bg-white bg-opacity-30 w-full min-h-[640px] space-y-8 pb-8">
           <!-- Header -->
           <div class="grid grid-cols-3 gap-4 pt-10">
             <div
@@ -222,13 +222,14 @@ onMounted(() => {
                 </div>
               </div>
 
-              <div class="flex flex-col items-center h-[220px] justify-center">
+              <!-- Poli banyak (mis. RS 13 poli): daftar mulai dari atas & bisa digulir, tidak meluap menimpa data pasien. -->
+              <div class="flex flex-col items-center max-h-[330px] overflow-y-auto pr-2">
                 <div>
                   <div class="grid grid-cols-4 gap-x-6 gap-y-6 w-full">
                     <div
                       v-for="item in jadwalPoliPayload"
                       :key="item.uuid || item.id"
-                      class="w-[220px] h-[120px]"
+                      class="w-[220px] h-[136px]"
                     >
                       <CardAktivitas
                         :cardAktivitas="item.name"

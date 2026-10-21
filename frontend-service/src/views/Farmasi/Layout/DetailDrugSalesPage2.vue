@@ -82,15 +82,41 @@ const fetchDrugSalesDetail = async () => {
 const confirmDelete = async () => {
   UseUtilsStore.setLoading(true);
   try {
-    await DrugSalesStore.deleteApi(DrugSalesDetailPayload.value.uuid, {
-      alasan_batal: alasanBatal.value,
-    });
+    const response = await DrugSalesStore.deleteApi(
+      DrugSalesDetailPayload.value.uuid,
+      { alasan_batal: alasanBatal.value }
+    );
+    if (response) {
+      batalDialog.value = false;
+      emit("back");
+    }
   } catch (error) {
     console.error("Failed to delete data", error);
   } finally {
     UseUtilsStore.setLoading(false);
-    batalDialog.value = false;
-    emit("back");
+  }
+};
+
+// Batal & terima pembayaran hanya untuk penjualan yang belum dibayar.
+const belumLunas = computed(
+  () => DrugSalesDetailPayload.value?.status === "belum_lunas"
+);
+const bayarDialog = ref(false);
+
+const confirmBayar = async () => {
+  UseUtilsStore.setLoading(true);
+  try {
+    const response = await DrugSalesStore.bayarApi(
+      DrugSalesDetailPayload.value.uuid
+    );
+    if (response) {
+      bayarDialog.value = false;
+      emit("back");
+    }
+  } catch (error) {
+    console.error("Failed to pay data", error);
+  } finally {
+    UseUtilsStore.setLoading(false);
   }
 };
 
@@ -336,15 +362,26 @@ onMounted(() => {
                   <p>{{ formatPrice(DrugSalesDetailPayload.totalHarga) }}</p>
                 </div>
               </div>
-              <div class="mt-[5px]">
+              <div v-if="belumLunas" class="flex gap-[10px] mt-[5px]">
                 <CustomButton
                   @click="batalDialog = true"
                   label="Batal Penjualan"
-                  class="w-full"
                   backgroundColor="bg-danger-300"
                   borderColor="border-danger-300"
                   textColor="text-white"
                 />
+                <CustomButton
+                  @click="bayarDialog = true"
+                  label="Terima Pembayaran"
+                  icon="PhMoney"
+                />
+              </div>
+              <div v-else class="mt-[5px] font-semibold">
+                {{
+                  DrugSalesDetailPayload.status === "lunas"
+                    ? "Lunas"
+                    : `Dibatalkan: ${DrugSalesDetailPayload.alasanBatal ?? "-"}`
+                }}
               </div>
             </div>
           </template>
@@ -365,6 +402,33 @@ onMounted(() => {
         </CustomAccordion>
       </template>
     </Card>
+
+    <!-- Dialog Terima Pembayaran -->
+    <CustomDialog v-model:visible="bayarDialog" width="500px">
+      <template #header>Terima Pembayaran</template>
+      <template #body>
+        <p class="mt-[20px]">
+          Terima pembayaran tunai sebesar
+          <span class="font-bold">{{
+            formatPrice(DrugSalesDetailPayload.totalHarga)
+          }}</span>
+          untuk transaksi {{ DrugSalesDetailPayload.noTransaksi }}?
+        </p>
+      </template>
+      <template #footer>
+        <div class="flex justify-end">
+          <CustomButton
+            @click="bayarDialog = false"
+            label="Tidak"
+            outlined
+            class="mr-[10px]"
+            borderColor="border-grey-200"
+            textColor="text-grey-300"
+          />
+          <CustomButton @click="confirmBayar" label="Ya, Lunas" />
+        </div>
+      </template>
+    </CustomDialog>
 
     <!-- Dialog Cancel -->
     <CustomDialog

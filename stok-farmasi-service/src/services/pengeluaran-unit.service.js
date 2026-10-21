@@ -6,6 +6,7 @@ import { generateNoPengeluaranUnit } from "../helpers/generator.helper.js";
 import PengeluaranUnitHelper from "../helpers/pengeluaran-unit.helper.js";
 import InventoryService from "./inventory.service.js";
 import ResponseError from "../errors/ResponseError.js";
+import { pastikanLokasiStok } from "../helpers/lokasi-stok.helper.js";
 
 export default class PengeluaranUnitService {
   static async createPengeluaranUnit(data, author, token) {
@@ -15,10 +16,20 @@ export default class PengeluaranUnitService {
         data
       );
       const { items: itemsFromRequest } = validatedData;
-      // const jenis_stok_uuid = validatedData.jenis_stok_uuid;
+      await pastikanLokasiStok(author.faskesUuid, {
+        lokasi_stok_awal_uuid: validatedData.lokasi_stok_awal_uuid,
+        lokasi_stok_tujuan_uuid:
+          validatedData.jenis_pengeluaran === "pengeluaran tanpa permintaan"
+            ? validatedData.lokasi_stok_tujuan_uuid
+            : undefined,
+        jenis_stok_uuid: validatedData.jenis_stok_uuid,
+      });
       const stockUuids = itemsFromRequest.map((item) => item.stock_uuid);
       const stockDetailsFromDb =
-        await PengeluaranUnitRepository.findStokDetailsByUuids(stockUuids);
+        await PengeluaranUnitRepository.findStokDetailsByUuids(
+          stockUuids,
+          author.faskesUuid
+        );
 
       const stockMap = new Map(
         stockDetailsFromDb.map((stock) => [stock.uuid, stock])
@@ -32,6 +43,12 @@ export default class PengeluaranUnitService {
             400
           );
         }
+        if (stockDetail.lokasi_stok_uuid !== validatedData.lokasi_stok_awal_uuid) {
+          throw new ResponseError(
+            `Stok ${item.stock_uuid} bukan milik lokasi stok asal.`,
+            400
+          );
+        }
         if (stockDetail.sisa_stok < item.qty) {
           throw new ResponseError(
             `Sisa stok tidak mencukupi (Sisa: ${stockDetail.sisa_stok}, Diminta: ${item.qty})`,
@@ -40,6 +57,9 @@ export default class PengeluaranUnitService {
         }
         return {
           ...item,
+          // Jumlah dipotong langsung dari sisa_stok batch (satuan penggunaan), jadi catat konversi
+          // milik batch tersebut, bukan satuan pilihan form.
+          konversi_uuid: stockDetail.konversi_uuid || item.konversi_uuid,
           faskes_uuid: author.faskesUuid,
           item_medis_uuid: stockDetail.item_medis_jenis_stok.item_medis_uuid,
         };
@@ -49,7 +69,8 @@ export default class PengeluaranUnitService {
         ...validatedData,
         uuid: uuidv7(),
         no_pengeluaran: generateNoPengeluaranUnit(),
-        tanggal_pengeluaran: Date.now(),
+        // Epoch detik, sama dengan form pengeluaran di modul Inventory (dateToEpoch).
+        tanggal_pengeluaran: Math.floor(Date.now() / 1000),
         total_item: finalItems.length,
         total_harga: finalItems.reduce(
           (sum, item) => sum + (item.harga_satuan || 0) * item.qty,
@@ -109,7 +130,7 @@ export default class PengeluaranUnitService {
         faskesUuid
       );
       if (!result) {
-        throw new Error("Pengeluaran unit tidak ditemukan");
+        throw new ResponseError("Pengeluaran unit tidak ditemukan", 404);
       }
 
       return { data: PengeluaranUnitHelper.mapPengeluaranUnit(result) };

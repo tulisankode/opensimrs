@@ -58,9 +58,12 @@ export default class PelayananValidation {
         discharge_date :z.number().min(1, required),
     })
 
+    // ref (opsional): referensi sumber (mis. "resep:<uuid>"); item lama dengan ref sama diganti.
+    // Daftar item kosong hanya boleh bersama ref, yaitu untuk menarik tagihan order yang dibatalkan.
     static CREATE_BILLING_LAYANAN = z.object({
         session_uuid: z.string().min(1, required),
         type: z.string().min(1, required),
-        items: z.array(z.any()).min(1, required),
-    });
+        ref: z.string().min(1).optional(),
+        items: z.array(z.any()),
+    }).refine((d) => d.items.length > 0 || !!d.ref, { message: required, path: ["items"] });
 }

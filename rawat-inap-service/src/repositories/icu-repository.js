@@ -166,7 +166,7 @@ export default class IcuRepository {
 
     // Perpindahan Rawat Inap berstatus approve yang siap ditautkan ke episode intensif (pengganti mengetik UUID):
     // arah "masuk" = pasien masih di bed tujuan & belum punya episode intensif aktif; arah "keluar" = perpindahan
-    // dari bed episode ini setelah pasien masuk unit.
+    // dari bed episode ini setelah pasien masuk unit. Arah "masuk" hanya untuk admisi yang masih dirawat (belum pulang).
     static async GetPerpindahanSiap(arah, perawatanUuid, unit = "icu") {
         const { faskesUuid } = Context.get(CTX_AUTHOR);
         const kolom = `p.uuid, p.waktu_pindah, p.keterangan, ri.uuid AS rawat_inap_uuid, ri.no_rm, ri.name AS nama_pasien,
@@ -197,6 +197,7 @@ export default class IcuRepository {
              CROSS JOIN LATERAL (SELECT bt.room_uuid AS ruangan_uuid) tujuan
              WHERE p.faskes_uuid = :faskesUuid AND p.deleted_at IS NULL AND p.status_pindah = 'approve' AND ${cakupan.sql}
                AND ri.monitoring_room_uuid = p.destination_monitoring_room_uuid
+               AND ri.status_ri IN (1, 2, 3) AND ri.discharge_date IS NULL
                AND NOT EXISTS (SELECT 1 FROM icu_perawatans x WHERE x.faskes_uuid = :faskesUuid AND x.perpindahan_masuk_uuid = p.uuid AND x.deleted_at IS NULL)
                AND NOT EXISTS (SELECT 1 FROM icu_perawatans x WHERE x.faskes_uuid = :faskesUuid AND x.rawat_inap_uuid = ri.uuid AND x.status = 'aktif' AND x.deleted_at IS NULL)
              ORDER BY p.waktu_pindah DESC NULLS LAST LIMIT 50`,
@@ -217,6 +218,7 @@ export default class IcuRepository {
 
             const rawatInap = await RawatInapModel.findOne({ where: { uuid: perpindahan.admissionRiUuid, faskesUuid, deletedAt: null }, transaction, lock: transaction.LOCK.UPDATE });
             if (!rawatInap) throw new NotfoundException("Admisi rawat inap tidak ditemukan!");
+            if (![1, 2, 3].includes(Number(rawatInap.statusRi)) || rawatInap.dischargeDate) throw new BadRequestException("Admisi rawat inap sudah tidak aktif (pasien sudah pulang).");
             if (rawatInap.monitoringRoomUuid !== perpindahan.destinationMonitoringRoomUuid) {
                 throw new BadRequestException("Bed rawat inap saat ini tidak sama dengan bed tujuan perpindahan.");
             }
@@ -295,7 +297,9 @@ export default class IcuRepository {
         });
     }
 
-    // ── Keluar unit intensif (tertaut ke ri_perpindahan keluar yang sudah approve) ─
+    // ── Keluar unit intensif ─────────────────────────────────────────────────
+    // jenis_keluar "pindah": tertaut ke ri_perpindahan keluar yang sudah approve. "meninggal": episode ditutup tanpa
+    // perpindahan (pasien tidak dipindah). "pulang": tanpa perpindahan, hanya setelah pemulangan admisi selesai.
     static async KeluarPerawatan(perawatanUuid, data, unit = "icu") {
         const { faskesUuid, username } = Context.get(CTX_AUTHOR);
         return sequelizeInstance.transaction(async (transaction) => {
@@ -305,13 +309,23 @@ export default class IcuRepository {
             if (!perawatan) throw new NotfoundException("Perawatan ICU tidak ditemukan!");
             if (perawatan.status !== "aktif") throw galatIcu(409, "Perawatan ICU ini sudah selesai.");
 
-            const perpindahan = await PerpindahanModel.findOne({ where: { uuid: data.perpindahan_keluar_uuid, faskesUuid, deletedAt: null }, transaction, lock: transaction.LOCK.UPDATE });
-            if (!perpindahan) throw new NotfoundException("Perpindahan keluar tidak ditemukan!");
-            if (perpindahan.statusPindah !== "approve") throw new BadRequestException("Perpindahan keluar belum disetujui (approve) di Rawat Inap.");
-            if (perpindahan.admissionRiUuid !== perawatan.rawat_inap_uuid) throw new BadRequestException("Admisi perpindahan keluar tidak sama dengan episode ICU");
-            if (perpindahan.originMonitoringRoomUuid !== perawatan.room_monitoring_uuid) {
-                throw new BadRequestException("Bed asal perpindahan tidak sama dengan bed perawatan ICU ini.");
+            const jenisKeluar = data.jenis_keluar ?? "pindah";
+            if (jenisKeluar === "pindah") {
+                const perpindahan = await PerpindahanModel.findOne({ where: { uuid: data.perpindahan_keluar_uuid, faskesUuid, deletedAt: null }, transaction, lock: transaction.LOCK.UPDATE });
+                if (!perpindahan) throw new NotfoundException("Perpindahan keluar tidak ditemukan!");
+                if (perpindahan.statusPindah !== "approve") throw new BadRequestException("Perpindahan keluar belum disetujui (approve) di Rawat Inap.");
+                if (perpindahan.admissionRiUuid !== perawatan.rawat_inap_uuid) throw new BadRequestException("Admisi perpindahan keluar tidak sama dengan episode ICU");
+                if (perpindahan.originMonitoringRoomUuid !== perawatan.room_monitoring_uuid) {
+                    throw new BadRequestException("Bed asal perpindahan tidak sama dengan bed perawatan ICU ini.");
+                }
+            } else if (jenisKeluar === "pulang") {
+                const rawatInap = await RawatInapModel.findOne({ where: { uuid: perawatan.rawat_inap_uuid, faskesUuid, deletedAt: null }, transaction, lock: transaction.LOCK.UPDATE });
+                if (!rawatInap) throw new NotfoundException("Admisi rawat inap tidak ditemukan!");
+                if (Number(rawatInap.statusRi) !== 4 || !rawatInap.dischargeDate) {
+                    throw new BadRequestException("Selesaikan pemulangan pasien di Rawat Inap terlebih dahulu sebelum menutup perawatan dengan jenis pulang.");
+                }
             }
+            const perpindahanKeluar = jenisKeluar === "pindah" ? data.perpindahan_keluar_uuid : null;
 
             const sekarang = moment().unix();
             const r = data.ringkasan ?? {};
@@ -324,7 +338,7 @@ export default class IcuRepository {
                          :terapiBerjalan, :alergiRelevan, :aksesAlat, :tindakLanjut, :username, :sekarang, :username, :sekarang)`,
                 {
                     replacements: {
-                        uuid: uuidv7(), faskesUuid, perawatanUuid, perpindahanUuid: data.perpindahan_keluar_uuid,
+                        uuid: uuidv7(), faskesUuid, perawatanUuid, perpindahanUuid: perpindahanKeluar,
                         kriteria: r.kriteria ?? null, kondisi: r.kondisi ?? null, tindakan: r.tindakan ?? null,
                         terapiBerjalan: r.terapi_berjalan ?? null, alergiRelevan: r.alergi_relevan ?? null,
                         aksesAlat: r.akses_alat ?? null, tindakLanjut: r.tindak_lanjut ?? null, username, sekarang,
@@ -335,10 +349,10 @@ export default class IcuRepository {
             // Pembaruan bersyarat status = 'aktif': dua permintaan keluar bersamaan tidak menutup episode dua kali.
             const [hasil] = await sequelizeInstance.query(
                 `UPDATE icu_perawatans SET status = 'selesai', waktu_keluar = :sekarang, perpindahan_keluar_uuid = :perpindahanUuid,
-                        kondisi_keluar = :kondisiKeluar, updated_at = :sekarang
+                        kondisi_keluar = :kondisiKeluar, jenis_keluar = :jenisKeluar, updated_at = :sekarang
                  WHERE uuid = :perawatanUuid AND faskes_uuid=:faskesUuid AND unit=:unit AND deleted_at IS NULL AND status = 'aktif' RETURNING *`,
                 {
-                    replacements: { sekarang, perpindahanUuid: data.perpindahan_keluar_uuid, kondisiKeluar: data.kondisi_keluar, perawatanUuid, faskesUuid, unit },
+                    replacements: { sekarang, perpindahanUuid: perpindahanKeluar, kondisiKeluar: data.kondisi_keluar, jenisKeluar, perawatanUuid, faskesUuid, unit },
                     type: QueryTypes.SELECT, transaction,
                 },
             );

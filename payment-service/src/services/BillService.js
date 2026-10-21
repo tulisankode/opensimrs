@@ -19,7 +19,7 @@ export default class BillService {
     }
 
     // 1. Ambil Config PPN & Admin (Via Gateway)
-    const financeConfig = await SettingGateway.getFaskesFinanceConfig();
+    const financeConfig = await SettingGateway.getFaskesFinanceConfig(data.faskes_uuid);
     const PPN_PERCENTAGE = financeConfig.ppn_percent;
     const ADMIN_FEE_FIXED = financeConfig.admin_fee;
 

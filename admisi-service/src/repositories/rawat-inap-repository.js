@@ -70,7 +70,7 @@ export default class RawatInapRepository {
         const transform = {
             practitioner: (row) => ({
                 uuid: undefined, // delete practitioner uuid
-                ...row.practitioner.pegawai.get(),
+                ...row.practitioner?.pegawai?.get(),
             }),
             lama_dirawat: (row) => {
                 if (!row.tanggal_dirawat) return null;
@@ -189,7 +189,8 @@ export default class RawatInapRepository {
     static async registPatient(data) {
         const rawatInap = await sequelizeInstance.transaction(async (transaction) => {
             const user = Context.get(CTX_AUTHOR);
-            const patient = await PatientRepository.getOnePatientBy("uuid", data.patientData.patientUuid);
+            // patient_data hanya dikonversi dangkal (convertSnakeToCamel) — frontend mengirim patient_uuid (snake_case).
+            const patient = await PatientRepository.getOnePatientBy("uuid", data.patientData.patientUuid ?? data.patientData.patient_uuid);
             if (!patient) throw new NotfoundException("Pasien tidak ditemukan");
 
             const activeAdmission = await RawatInapModel.findOne({

@@ -13,7 +13,8 @@ import { auditIcu } from "../helpers/icu-audit-helper.js";
 
 export default class IcuDokumentasiRepository {
     static async episode(uuid, t) {
-        const p = await IcuRepository.GetPerawatanByUuid(uuid, Context.get(CTX_AUTHOR).faskesUuid, t);
+        // Parameter ke-3 adalah unit: dulu transaksi terkirim sebagai unit sehingga episode tidak ditemukan dalam transaksi.
+        const p = await IcuRepository.GetPerawatanByUuid(uuid, Context.get(CTX_AUTHOR).faskesUuid, "icu", t);
         if (!p) throw galatIcu(404, "Perawatan ICU tidak ditemukan");
         return p;
     }
@@ -84,7 +85,8 @@ export default class IcuDokumentasiRepository {
         const p = await this.episode(uuid);
         const unit = filterUnitIcu();
         const r = { ri: p.rawat_inap_uuid, ...unit.replacements, batas: kueri.batas, offset: (kueri.halaman - 1) * kueri.batas };
-        const kondisi = `faskes_uuid=:f AND rawat_inap_uuid=:ri AND deleted_at IS NULL AND ${unit.sql}`;
+        // Hanya episode unit ICU: admisi yang sama dapat memiliki episode CCU (icu_perawatans.unit='ccu').
+        const kondisi = `faskes_uuid=:f AND unit='icu' AND rawat_inap_uuid=:ri AND deleted_at IS NULL AND ${unit.sql}`;
         const [jumlah] = await pilihIcu(`SELECT COUNT(*) AS total FROM icu_perawatans WHERE ${kondisi}`, r);
         const data = await pilihIcu(`SELECT uuid,rawat_inap_uuid,layanan_kode,ruangan_uuid,perawatan_sebelumnya_uuid,perpindahan_masuk_uuid,perpindahan_keluar_uuid,waktu_masuk,waktu_keluar
             FROM icu_perawatans WHERE ${kondisi} ORDER BY waktu_masuk,uuid LIMIT :batas OFFSET :offset`, r);
@@ -95,7 +97,7 @@ export default class IcuDokumentasiRepository {
     static async laporan(kueri) {
         const unit = filterUnitIcu();
         const r = { ...unit.replacements, dari: kueri.dari, sampai: kueri.sampai, kode: kueri.layanan_kode ?? null, unit: kueri.ruangan_uuid ?? null };
-        const episode = await pilihIcu(`SELECT uuid,layanan_kode FROM icu_perawatans WHERE faskes_uuid=:f AND deleted_at IS NULL AND ${unit.sql}
+        const episode = await pilihIcu(`SELECT uuid,layanan_kode FROM icu_perawatans WHERE faskes_uuid=:f AND unit='icu' AND deleted_at IS NULL AND ${unit.sql}
             AND waktu_masuk< :sampai AND (waktu_keluar IS NULL OR waktu_keluar>=:dari)
             AND (:kode IS NULL OR COALESCE(layanan_kode,'belum_diklasifikasikan')=:kode) AND (:unit IS NULL OR ruangan_uuid=:unit) ORDER BY waktu_masuk,uuid`, r);
         const ringkasan = { lengkap: 0, belum_lengkap: 0, belum_dikonfigurasi: 0 };

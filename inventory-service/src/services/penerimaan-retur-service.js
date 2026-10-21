@@ -71,7 +71,7 @@ export default class PenerimaanReturService {
         const validated = await ZodValidator.validate(PenerimaanReturValidation.GET_DETAIL, request);
 
         // Ambil detail utama dari repository internal
-        const response = await PenerimaanReturRepository.getDetail(validated);
+        const response = await PenerimaanReturRepository.getDetail({ ...validated, faskes_uuid: request.faskes_uuid });
         if (!response) throw new BadRequestException("Data tidak ditemukan");
 
         // Normalisasi hasil (handle instance ORM yang punya toJSON)

@@ -2,6 +2,19 @@ import { inventoryAPI, logger } from "../configurations/index.js";
 import ResponseError from "../errors/ResponseError.js";
 
 export default class InventoryService {
+  // Rute pengiriman/pengeluaran unit di inventory-service dipasang di bawah /inventory/pengeluaran.
+  // Teruskan status & pesan galat dari inventory (mis. stok tidak cukup) agar petugas tahu penyebabnya.
+  static _galat(error, pesanDefault) {
+    const status = error?.response?.status;
+    const data = error?.response?.data;
+    const pesan =
+      data?.errors?.[0]?.message || data?.message || pesanDefault;
+    if (status && status >= 400 && status < 500) {
+      return new ResponseError(`${pesanDefault} ${pesan}`.trim(), status);
+    }
+    return new ResponseError(pesanDefault, 502);
+  }
+
   static async catatPengeluaranUnit(dataMutasi, token) {
     const payload = {
       jenis_pengeluaran: dataMutasi.jenis_pengeluaran,
@@ -39,22 +52,19 @@ export default class InventoryService {
     }
 
     try {
-      await inventoryAPI.post("/inventory/pengeluaran-unit", payload, {
+      await inventoryAPI.post("/inventory/pengeluaran/pengeluaran-unit", payload, {
         headers: { Authorization: token },
       });
     } catch (error) {
-      throw new ResponseError(
-        `Gagal mencatat pengeluaran di layanan inventory.`,
-        500
-      );
+      throw InventoryService._galat(error, `Gagal mencatat pengeluaran di layanan inventory.`);
     }
   }
 
   static async verifikasiPengiriman(permintaanUuid, body, token) {
-    console.log("body", body);
+
     try {
       const response = await inventoryAPI.put(
-        `/inventory/pengiriman-unit/verifikasi/${permintaanUuid}`,
+        `/inventory/pengeluaran/pengiriman-unit/verifikasi/${permintaanUuid}`,
         body,
         {
           headers: { Authorization: token },
@@ -62,17 +72,14 @@ export default class InventoryService {
       );
       return response.data.payload;
     } catch (error) {
-      throw new ResponseError(
-        `Gagal verifikasi pengiriman di layanan inventory.`,
-        500
-      );
+      throw InventoryService._galat(error, `Gagal verifikasi pengiriman di layanan inventory.`);
     }
   }
 
   static async kirimPengiriman(permintaanUuid, body, token) {
     try {
       const response = await inventoryAPI.put(
-        `/inventory/pengiriman-unit/kirim/${permintaanUuid}`,
+        `/inventory/pengeluaran/pengiriman-unit/kirim/${permintaanUuid}`,
         body,
         {
           headers: { Authorization: token },
@@ -80,26 +87,20 @@ export default class InventoryService {
       );
       return response.data.payload;
     } catch (error) {
-      throw new ResponseError(
-        `Gagal kirim pengiriman di layanan inventory.`,
-        500
-      );
+      throw InventoryService._galat(error, `Gagal kirim pengiriman di layanan inventory.`);
     }
   }
 
   static async batalPengiriman(permintaanUuid, body, token) {
     try {
       const response = await inventoryAPI.put(
-        `/inventory/pengiriman-unit/batal/${permintaanUuid}`,
+        `/inventory/pengeluaran/pengiriman-unit/batal/${permintaanUuid}`,
         body,
         { headers: { Authorization: token } }
       );
       return response.data.payload || { message: "Pembatalan berhasil" };
     } catch (error) {
-      throw new ResponseError(
-        `Gagal membatalkan pengiriman di layanan inventory.`,
-        500
-      );
+      throw InventoryService._galat(error, `Gagal membatalkan pengiriman di layanan inventory.`);
     }
   }
 }

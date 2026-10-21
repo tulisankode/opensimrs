@@ -62,6 +62,7 @@ export default class PenerimaanReturRepository {
         return await ReturUnitModel.findOne({
             where: {
                 uuid: request.uuid,
+                faskes_uuid: request.faskes_uuid,
             },
             attributes: {
                 exclude: ["created_at", "updated_at", "deleted_at"]

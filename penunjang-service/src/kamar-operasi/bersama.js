@@ -82,6 +82,14 @@ export const tahapValid = (t) => {
   return v;
 };
 
+// Persetujuan tindakan & persetujuan anestesi wajib dua dokumen inform consent berbeda (KF-8): satu consent yang
+// sama tidak boleh dipakai untuk keduanya. Nilai kosong diabaikan (kelengkapan yang menandai belum diisi).
+export const PESAN_CONSENT_SAMA = "Persetujuan tindakan dan persetujuan anestesi harus dokumen inform consent yang berbeda";
+export const consentSama = (tindakanUuid, anestesiUuid) => !!tindakanUuid && !!anestesiUuid && tindakanUuid === anestesiUuid;
+export const consentBerbedaValid = (tindakanUuid, anestesiUuid) => {
+  if (consentSama(tindakanUuid, anestesiUuid)) throw permintaanSalah(PESAN_CONSENT_SAMA);
+};
+
 // Kelas operasi tertinggi di antara rencana tindakan order (dipakai menentukan tarif jasa tim saat finalisasi).
 export const kelasTertinggi = (tindakan) => {
   let hasil = null;

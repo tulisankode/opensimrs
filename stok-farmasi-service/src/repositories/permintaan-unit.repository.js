@@ -71,6 +71,8 @@ export default class PermintaanUnitRepository {
                           [Op.col]: "PermintaanUnitModel.lokasi_stok_awal_uuid",
                         },
                         sisa_stok: { [Op.gt]: 0 },
+                        // Samakan dengan alokasi verifikasi: batch kedaluwarsa tidak bisa dikirim.
+                        exp_date: { [Op.gte]: new Date(new Date().setHours(0, 0, 0, 0)) },
                         deleted_at: null,
                       },
                       required: false,
@@ -99,6 +101,15 @@ export default class PermintaanUnitRepository {
     const whereClause = { faskes_uuid: faskesUuid };
     if (query.no_permintaan) {
       whereClause.no_permintaan = { [Op.iLike]: `%${query.no_permintaan}%` };
+    }
+
+    // Saring per lokasi dengan UUID (lebih tepat daripada pencocokan nama): daftar Permintaan Unit
+    // memakai lokasi tujuan (depo peminta), Verifikasi & Pengiriman memakai lokasi asal (pemasok).
+    if (query.lokasi_stok_tujuan_uuid) {
+      whereClause.lokasi_stok_tujuan_uuid = query.lokasi_stok_tujuan_uuid;
+    }
+    if (query.lokasi_stok_awal_uuid) {
+      whereClause.lokasi_stok_awal_uuid = query.lokasi_stok_awal_uuid;
     }
 
     if (query.status) {
@@ -148,8 +159,8 @@ export default class PermintaanUnitRepository {
       distinct: true,
     });
 
-    const isSearching =
-      query.no_permintaan || query.status || query.nama_lokasi_tujuan;
+    // Tab status yang kosong adalah keadaan normal; 404 hanya untuk pencarian teks.
+    const isSearching = query.no_permintaan || query.nama_lokasi_tujuan;
     if (isSearching && result.count === 0) {
       throw new ResponseError(`Data permintaan unit tidak ditemukan.`, 404);
     }

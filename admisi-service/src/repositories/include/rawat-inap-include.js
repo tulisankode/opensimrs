@@ -15,7 +15,7 @@ export const rawatInapInclude = [
         {
             model: AddressModel,
             as: "address",
-            required: true,
+            required: false,
             where: {
                 deletedAt: { [Op.is]: null },
             },
@@ -27,7 +27,7 @@ export const rawatInapInclude = [
     {
         model: BirthDetailModel,
         as: "birth_detail",
-        required: true,
+        required: false,
         where: { deletedAt: { [Op.is]: null } },
         attributes: ["age_year", "age_month", "age_day"],
     },

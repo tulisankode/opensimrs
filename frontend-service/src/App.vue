@@ -3,6 +3,7 @@ import { RouterLink, RouterView, useRoute } from "vue-router";
 import { utilsStore } from "@/stores/utils";
 import Footer from "./components/section/Footer.vue";
 import Loading from "./components/section/Loading.vue";
+import AsistenPengembang from "./components/section/AsistenPengembang.vue";
 
 const route = useRoute();
 
@@ -25,6 +26,7 @@ const storeUtils = utilsStore();
     <!-- Conditionally show Footer based on the route path -->
     <Footer v-if="!route.path.startsWith('/antrian/apm/aktif') && !route.path.startsWith('/layar/')" />
     <Loading v-if="storeUtils.isLoading" />
+    <AsistenPengembang />
   </body>
 </template>
 

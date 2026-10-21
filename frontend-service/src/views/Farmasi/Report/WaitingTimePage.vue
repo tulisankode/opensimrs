@@ -165,8 +165,9 @@ const print = async () => {
       typeOfService.value,
       dateToEpoch(startDateFilter.value),
       dateToEpoch(endDateFilter.value),
-      waitingTimeProperties.value.page,
-      waitingTimeProperties.value.page_size
+      // Cetak Excel: seluruh baris tersaring, bukan hanya halaman aktif
+      1,
+      Math.max(waitingTimeProperties.value.total, 1)
     );
     
     const faskes = response.payload.faskes;

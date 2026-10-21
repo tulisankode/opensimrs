@@ -376,14 +376,15 @@ onMounted(() => {
               <span class="font-semibold">{{
                 slotProps.data.patient.name
               }}</span>
-              <span class="text-grey-300">
+              <span v-if="slotProps.data.birthDetail" class="text-grey-300">
                 ({{ slotProps.data.birthDetail.ageYear }}Th
                 {{ slotProps.data.birthDetail.ageMonth }}Bln
                 {{ slotProps.data.birthDetail.ageDay }}Hr)
               </span>
+              <span v-else class="text-grey-300">(-)</span>
             </div>
             <div class="text-XS">
-              {{ slotProps.data.patient.address.fullAddress }}
+              {{ slotProps.data.patient.address?.fullAddress ?? "-" }}
             </div>
             <div class="flex flex-wrap">
               <!-- <PhUserCirclePlus
@@ -395,17 +396,17 @@ onMounted(() => {
               <CustomChip
                 :showCheckedIcon="false"
                 :label="
-                  slotProps.data.patient.gender == 'Female'
+                  ['Female', 'Perempuan'].includes(slotProps.data.patient.gender)
                     ? 'Perempuan'
                     : 'Laki-laki'
                 "
                 :bgColor="
-                  slotProps.data.patient.gender == 'Female'
+                  ['Female', 'Perempuan'].includes(slotProps.data.patient.gender)
                     ? 'bg-female-75'
                     : 'bg-male-75'
                 "
                 :textColor="
-                  slotProps.data.patient.gender == 'Female'
+                  ['Female', 'Perempuan'].includes(slotProps.data.patient.gender)
                     ? 'text-female-300'
                     : 'text-male-300'
                 "

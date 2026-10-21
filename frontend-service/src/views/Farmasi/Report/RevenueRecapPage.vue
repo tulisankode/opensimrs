@@ -133,12 +133,12 @@ const resetData = () => {
   fetchRevenueRecap();
 };
 
-// Cetak Excel
+// Cetak Excel: seluruh baris tersaring, bukan hanya halaman aktif
 const print = async () => {
   try {
     const response = await revenueRecapStore.getApi(
-      revenueRecapProperties.value.page,
-      revenueRecapProperties.value.page_size,
+      1,
+      Math.max(revenueRecapProperties.value.total, 1),
       dateToEpoch(startDateFilter.value),
       dateToEpoch(endDateFilter.value),
       metodePembayaran.value,
@@ -200,15 +200,17 @@ const print = async () => {
     XLSX.utils.sheet_add_aoa(worksheet, [userName], { origin: "A3" });
     XLSX.utils.sheet_add_aoa(worksheet, [title], { origin: "A4" });
     XLSX.utils.sheet_add_aoa(worksheet, [periode], { origin: "A5" });
-    XLSX.utils.sheet_add_aoa(worksheet, [total], { origin: "A8" });
-    XLSX.utils.sheet_add_aoa(worksheet, [[totalValue]], { origin: "E8" });
+    // Baris Total tepat di bawah data (sebelumnya tetap di baris 8 sehingga menimpa data ke-2)
+    const barisTotal = data.length + 1;
+    XLSX.utils.sheet_add_aoa(worksheet, [total], { origin: `A${barisTotal}` });
+    XLSX.utils.sheet_add_aoa(worksheet, [[totalValue]], { origin: `E${barisTotal}` });
     worksheet["!merges"] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }, // Merge Title
       { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } }, // Merge Address
       { s: { r: 2, c: 0 }, e: { r: 2, c: 4 } }, // Merge User
       { s: { r: 3, c: 0 }, e: { r: 3, c: 4 } }, // Merge Title
       { s: { r: 4, c: 0 }, e: { r: 4, c: 4 } }, // Merge Period
-      { s: { r: 7, c: 0 }, e: { r: 7, c: 3 } }, // Merge Total
+      { s: { r: barisTotal - 1, c: 0 }, e: { r: barisTotal - 1, c: 3 } }, // Merge Total
     ];
 
     // Style Title
@@ -229,11 +231,11 @@ const print = async () => {
       alignment: { horizontal: "center", vertical: "center" },
       font: { bold: true, sz: 14 },
     };
-    worksheet["A8"].s = {
+    worksheet[`A${barisTotal}`].s = {
       alignment: { horizontal: "center", vertical: "center" },
       font: { bold: true, sz: 10 },
     };
-    worksheet["E8"] = { v: formatPrice(totalValue), 
+    worksheet[`E${barisTotal}`] = { v: formatPrice(totalValue), 
       s: { 
         alignment: { horizontal: "center", vertical: "center" }, 
         font: { bold: true, sz: 10 } 

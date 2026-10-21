@@ -41,7 +41,10 @@ export default class RiwayatTarifService {
             FarmasiExternalRepository.getKonfigurasiHarga(headers)
         ]);
 
-        const conversions = conversionsRaw || [];
+        // Daftar konversi dari farmasi berisi semua item faskes; tampilkan milik item ini saja.
+        const conversions = (conversionsRaw || []).filter(
+            (c) => !c.item_medis_uuid || c.item_medis_uuid === itemJenisStok.item_medis_uuid
+        );
 
         const ppnPersenConfig = configHarga?.ppn ? Number(configHarga.ppn) : 0; 
         const marginPersenConfig = configHarga?.margin ? Number(configHarga.margin) : 0;

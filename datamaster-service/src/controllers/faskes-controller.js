@@ -1,6 +1,7 @@
 import FaskesService from "../services/faskes-service.js";
 import deleteFile from "../helpers/delete-file.js";
 import { validateExcel } from "../helpers/helper.js";
+import { HttpException, HttpStatus } from "../errors/http-exception.js";
 
 export default class FaskesController {
   static async createFaskes(req, res, nextFunction) {
@@ -125,29 +126,14 @@ export default class FaskesController {
 
   static async getAllForPatient(request, response, nextFunction) {
     try {
-      const result = {
-        message: "Berhasil menampilkan semua faskes",
-        payload: [
-          {
-            uuid: "048ba575-618d-5a13-9c9a-d483917e41c0",
-            name: "RSUD Dr. Soetomo",
-            distance: 1.2,
-            address:
-              "Jl. Mayjen Prof. Dr. Moestopo No.6-8, Airlangga, Kec. Gubeng, Kota SBY, Jawa Timur 60286",
-            phone: "031 5501077",
-          },
-          {
-            uuid: "048ba575-618d-5a13-9c9a-d483917e41c0",
-            name: "RSUD dokter mahen",
-            distance: 1.2,
-            address:
-              "Jl. Mayjen Prof. Dr. Moestopo No.6-8, Airlangga, Kec. Gubeng, Kota SBY, Jawa Timur 60286",
-            phone: "082 13225 2488",
-            image:
-              "https://upload.wikimedia.org/wikipedia/id/a/a9/Rsudrsoetomo1.jpg",
-          },
-        ],
-      };
+      const faskesUuid = request.author?.faskesUuid;
+      if (!faskesUuid) {
+        throw new HttpException(
+          { message: "Konteks faskes tidak tersedia", payload: null },
+          HttpStatus.UNAUTHORIZED
+        );
+      }
+      const result = await FaskesService.getActiveForPatient(faskesUuid);
       response.status(200).json(result);
     } catch (error) {
       nextFunction(error);

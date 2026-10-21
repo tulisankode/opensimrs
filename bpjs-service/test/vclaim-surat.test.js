@@ -104,6 +104,14 @@ test("keputusan idempotensi untuk baris yang sudah ada", () => {
   assert.deepEqual(s.keputusanIdempotensi({ status_operasi: "terkonfirmasi", no_surat: "RK1", sidik: null }, sidik), { kembalikan: true });
 });
 
+test("keputusan idempotensi: surat yang sudah dihapus tidak pernah dikembalikan sebagai surat aktif (STD-0055)", () => {
+  const sidik = "a".repeat(64);
+  const dihapus = s.keputusanIdempotensi({ status_operasi: "terkonfirmasi", no_surat: "RK1", sidik, deleted_at: 1 }, sidik);
+  assert.equal(dihapus.tolak, 409);
+  assert.match(dihapus.pesan, /telah dihapus/);
+  assert.ok(!dihapus.kembalikan);
+});
+
 test("ubah/hapus hanya untuk surat terkonfirmasi yang belum dipakai (409)", () => {
   assert.throws(() => s.periksaBolehUbah({ status_operasi: "terkonfirmasi", no_surat: "RK1", status_pakai: "dipakai", sep_no_sep: "SEP1" }), galat(409, /SEP SEP1/));
   assert.throws(() => s.periksaBolehUbah({ status_operasi: "tidak_pasti", no_surat: "RK1", status_pakai: "belum_dipakai" }), galat(409, /terkonfirmasi/));

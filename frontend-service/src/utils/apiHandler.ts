@@ -25,6 +25,7 @@ import {
 import { app } from "@/utils/aplikasi";
 import { useAuthStore } from "@/stores/auth";
 import axios from "axios";
+import { catatGalatApi } from "@/utils/galatHalaman";
 
 const cekHost = (baseUrl: unknown, nextUrl: string) => {
   // Deploy dengan domain API terpisah (mis. staging api.example.com): pakai alamat API apa adanya
@@ -87,6 +88,7 @@ const normalizeRawatJalanBaseUrl = (baseUrl: unknown) =>
     : baseUrl;
 
 const errorApiHandler = (error: any) => {
+  catatGalatApi(error); // Asisten Pengembang (hanya superadmin + Mode Pengembang)
   let tempSummary = ``;
   let tempDetail = ``;
   const authStore = useAuthStore();

@@ -43,6 +43,7 @@ export default class PengeluaranUnitController {
   static async getDetail(req, res, nextFunction) {
     try {
       req.query.uuid = req.params.uuid;
+      req.query.faskes_uuid = req.author.faskesUuid;
       const data = await PengeluaranUnitService.getDetail(req.query, req.headers);
       res.status(200).json(successResponse("Data berhasil ditampilkan", data));
     } catch (error) {

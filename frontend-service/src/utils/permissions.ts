@@ -344,6 +344,8 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/sarpras/laporan", permission: read("Sarana dan Prasarana (IPSRS)", "Laporan Sarpras") },
   { path: "/sarpras", mode: "prefix", permission: read("Sarana dan Prasarana (IPSRS)", null, null, null) },
 
+  // Dashboard: izin dasar modul, tanpa submodul tertentu (STD-0049 — tidak terdaftar sebelumnya di registry ini)
+  { path: "/dashboard", permission: read("Dashboard") },
   // Dashboard Eksekutif — laporan-service (STD-0034)
   { path: "/dashboard/virtual-office", permission: read("Dashboard", "Virtual Office") },
   { path: "/dashboard/eksekutif", permission: read("Dashboard", "Eksekutif") },

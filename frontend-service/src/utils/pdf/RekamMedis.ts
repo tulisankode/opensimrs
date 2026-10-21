@@ -940,7 +940,8 @@ export async function createResumeMedis({
     switch (kode) {
       case "home": return "Pulang atas persetujuan dokter";
       case "aadvice": return "Pulang atas permintaan sendiri";
-      case "other-hcf": return "Dirujuk";
+      case "other-hcf":
+      case "other-hfc": return "Dirujuk";
       case "exp-lt48h": return "Meninggal < 48 jam";
       case "exp-gt48h": return "Meninggal > 48 jam";
       case "oth": return "Lain-lain";

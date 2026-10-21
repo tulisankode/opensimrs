@@ -6,6 +6,8 @@ import BadRequestException from "../errors/bad-request-exception.js";
 import RiwayatValidation from "../validations/riwayat-validation.js";
 import ReturRepository from "../repositories/retur-repository.js";
 import { setRangeDate } from "../helpers/date-helper.js";
+import RiwayatRepository from "../repositories/riwayat-repository.js";
+import NotfoundException from "../errors/notfound-exception.js";
 
 export default class RiwayatService {
   static async getAll(req) {
@@ -68,6 +70,11 @@ export default class RiwayatService {
   static async getDetail(req) {
     ZodValidator.validate(RiwayatValidation.GET_DETAIL, req);
 
+    // Sebelumnya detail dicari hanya dengan uuid (faskes lain bisa terbaca) dan uuid salah menghasilkan galat 500.
+    if (!(await RiwayatRepository.milikFaskes(req.item_type, req.uuid, req.faskes_uuid))) {
+      throw new NotfoundException("Data riwayat tidak ditemukan");
+    }
+
     let result;
 
     if (req.item_type === "obat") {
@@ -76,17 +83,19 @@ export default class RiwayatService {
       if (req.status_type === "retur") {
         const retur = await ReturRepository.getObatOne({
           no_resep: result.no_resep,
+          faskes_uuid: req.faskes_uuid,
         });
 
         result.dataValues.obat = undefined;
         result.dataValues.retur = retur;
       }
     } else if (req.item_type === "alkes") {
-      result = await AlkesRepository.getByUuid(req.uuid);
+      result = await AlkesRepository.getByUuid(req.uuid, req.faskes_uuid);
 
       if (req.status_type === "retur") {
         const retur = await ReturRepository.getAlkesOne({
           no_order_alkes: result.no_order_alkes,
+          faskes_uuid: req.faskes_uuid,
         });
 
         result.dataValues.alkes_items = undefined;
@@ -104,7 +113,7 @@ export default class RiwayatService {
       result.dataValues.alasan_retur = result.dataValues.retur.alasan_retur;
       result.dataValues.retur = this.mapItemRetur(result);
       result.dataValues.grand_total = result.dataValues.retur.reduce(
-        (acc, item) => acc + item.detail[0]?.total_harga,
+        (acc, item) => acc + (item.detail[0]?.total_harga || 0),
         0
       );
     } else {
@@ -180,21 +189,34 @@ export default class RiwayatService {
 
     if (itemType === "obat") {
       data = result.obat.map((obat) => {
+        const jasaResep =
+          Number(obat.biaya_racik || 0) + Number(obat.biaya_embalase || 0);
+        // Racikan: harga = jumlah komponen (harga_satuan x qty tiap bahan) + jasa racik/embalase. Sebelumnya
+        // harga komponen tidak dihitung (hanya jasa), nama kosong, dan satuan tampil "undefined".
+        const hargaObat = obat.is_compound
+          ? (obat.racikan ?? []).reduce(
+              (sum, r) =>
+                sum + Number(r.harga_satuan || 0) * Number(r.medication_qty || 0),
+              0
+            )
+          : Number(obat.harga_satuan || 0) * Number(obat.medication_qty || 0);
+        const satuan = obat.is_compound
+          ? obat.bentuk_racikan?.nama_bentuk_racikan
+          : obat.item_medis?.satuan_penggunaan?.name;
         return {
-          name: obat.item_medis?.name,
-          qty: `${obat.medication_qty} ${obat.item_medis?.satuan_penggunaan?.name}`,
+          name: obat.is_compound
+            ? obat.nama_racikan || "Obat Racikan"
+            : obat.item_medis?.name,
+          qty: `${obat.medication_qty} ${satuan ?? ""}`.trim(),
           is_chronic: obat.is_chronic ?? undefined,
           is_compound: obat.is_compound ?? undefined,
           detail: [
             {
               jenis_stok: obat.jenis_stok?.name,
               aturan_pakai: `${obat.aturan_pakai?.frekuensi} x ${obat.aturan_pakai?.periode} (${obat.aturan_pakai?.periode_unit}) ${obat.cara_pakai?.cara_pakai}`,
-              harga_satuan: obat.harga_satuan,
-              jasa_resep: obat.biaya_racik + obat.biaya_embalase,
-              total_harga:
-                obat.biaya_racik +
-                obat.biaya_embalase +
-                obat.harga_satuan * obat.medication_qty,
+              harga_satuan: obat.is_compound ? null : obat.harga_satuan,
+              jasa_resep: jasaResep,
+              total_harga: hargaObat + jasaResep,
             },
           ],
         };

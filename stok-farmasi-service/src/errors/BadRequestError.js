@@ -4,7 +4,7 @@ import ResponseError from "./ResponseError.js";
 class BadRequestError extends ResponseError {
  
   constructor(message) {
-    super(400, message);
+    super(message, 400);
   }
 }
 

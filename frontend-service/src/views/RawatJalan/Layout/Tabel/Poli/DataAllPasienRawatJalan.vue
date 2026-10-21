@@ -243,9 +243,9 @@ watch(
           />
           <CustomChip
             :showCheckedIcon="false"
-            :label="slotProps.data.patient?.gender == 'Female' ? 'Perempuan' : 'Laki-Laki'"
-            :bgColor="slotProps.data.patient?.gender == 'Female' ? 'bg-female-75' : 'bg-male-75'"
-            :textColor="slotProps.data.patient?.gender == 'Female' ? 'text-female-300' : 'text-male-300'"
+            :label="['Female', 'Perempuan'].includes(slotProps.data.patient?.gender) ? 'Perempuan' : 'Laki-Laki'"
+            :bgColor="['Female', 'Perempuan'].includes(slotProps.data.patient?.gender) ? 'bg-female-75' : 'bg-male-75'"
+            :textColor="['Female', 'Perempuan'].includes(slotProps.data.patient?.gender) ? 'text-female-300' : 'text-male-300'"
             customClass="h-5 pr-[6px] border-none mr-[5px]"
           />
           <CustomChip

@@ -6,6 +6,7 @@ const itemSchema = z.object({
     .uuid({ message: "item_uuid harus berupa UUID yang valid." }),
   qty_permintaan: z
     .number({ required_error: "qty_permintaan harus diisi." })
+    .int({ message: "qty_permintaan harus bilangan bulat." })
     .positive({ message: "qty_permintaan harus lebih besar dari 0." }),
   konversi_uuid: z
     .string({ required_error: "konversi_uuid harus diisi." })

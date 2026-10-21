@@ -7,6 +7,7 @@ import PermintaanUnitHelper from "../helpers/permintaan-unit.helper.js";
 import sequelizeInstance from "@opensimrs/model-sdk/instance";
 import InventoryService from "./inventory.service.js";
 import ResponseError from "../errors/ResponseError.js";
+import { pastikanLokasiStok } from "../helpers/lokasi-stok.helper.js";
 
 export default class PermintaanUnitService {
   static async getAllPermintaanUnit(query, faskesUuid) {
@@ -68,6 +69,7 @@ export default class PermintaanUnitService {
       );
 
       const faskesUuid = req.author.faskesUuid;
+      await pastikanLokasiStok(faskesUuid, validatedData);
 
       const itemsToCreate = validatedData.items.map((item) => ({
         ...item,
@@ -124,8 +126,6 @@ export default class PermintaanUnitService {
           faskesUuid
         );
 
-      console.log("Original Permintaan:", originalPermintaan);
-
       if (!originalPermintaan) {
         throw new ResponseError(`Permintaan unit tidak ditemukan.`, 404);
       }
@@ -174,8 +174,20 @@ export default class PermintaanUnitService {
           }
         }
 
+        // Item dengan jumlah kirim 0 berarti tidak dikirim sekarang; inventory memindahkannya ke
+        // permintaan sisa (request_sebagian). Mengirim quantity 0 justru ditolak inventory.
+        const itemDikirim = validatedData.items.filter(
+          (i) => i.qty_pengiriman > 0
+        );
+        if (itemDikirim.length === 0) {
+          throw new ResponseError(
+            "Minimal satu item harus memiliki jumlah kirim lebih dari 0.",
+            400
+          );
+        }
+
         const itemsPayload = {
-          item: validatedData.items.map((i) => ({
+          item: itemDikirim.map((i) => ({
             uuid: i.uuid,
             quantity: i.qty_pengiriman,
           })),

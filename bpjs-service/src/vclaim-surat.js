@@ -141,11 +141,17 @@ export const sidikPermintaan = (jenis, k) =>
 
 /**
  * Keputusan saat baris dengan (faskes, jenis, idempotency_key) yang sama sudah ada (INSERT ... ON CONFLICT tidak menyisipkan).
+ * Baris boleh berasal dari surat yang sudah dihapus (deleted_at terisi) karena kunci idempotensi tetap unik walau
+ * surat dihapus — baris tersebut HARUS ditolak di sini, bukan dikembalikan sebagai surat aktif (KF-2).
+ * - dihapus → 409, kunci idempotensi ini sudah dipakai surat yang terhapus;
  * - gagal (BPJS menolak pasti, belum ada surat) → klaim ulang dengan isi baru;
  * - isi berbeda → 409; terkonfirmasi → kembalikan surat yang sama tanpa memanggil VClaim;
  * - tidak_pasti → 409 (rekonsiliasi dulu); diajukan → 409 sedang diproses.
  */
 export const keputusanIdempotensi = (baris, sidik) => {
+  if (baris.deleted_at) {
+    return { tolak: 409, pesan: "Kunci idempotensi ini sudah dipakai untuk surat yang telah dihapus; buat surat baru dengan kunci baru" };
+  }
   if (baris.status_operasi === "gagal" && !baris.no_surat) return { klaimUlang: true };
   if (baris.sidik && baris.sidik !== sidik) {
     return { tolak: 409, pesan: "Kunci idempotensi ini sudah dipakai untuk permintaan dengan isi berbeda; buat surat baru dengan kunci baru" };

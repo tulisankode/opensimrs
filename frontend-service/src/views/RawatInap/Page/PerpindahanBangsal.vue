@@ -112,7 +112,7 @@ const fetchRIPerpindahanBangsal = async (filter: FilterAdmisi) => {
           ageDay: patient.birthDetail?.ageDay || 0,
           address: patient.address?.fullAddress || '-',
           newPatient: patient.newPatient || false,
-          gender: patient.gender === 'Female' ? 'P' : 'L',
+          gender: ['Female', 'Perempuan'].includes(patient.gender) ? 'P' : 'L',
           phone: patient.phone || '-',
 
           doctor: doctorName,

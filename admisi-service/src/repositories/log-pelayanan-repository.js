@@ -133,9 +133,11 @@ export default class LogPelayananRepository {
       
       const filter = kunjunganReportFilter({ faskesUuid, args, options: {} });
 
+      // subQuery dimatikan karena filter memakai kolom alamat yang kini LEFT JOIN (pasien tanpa alamat tetap tampil).
       const options = {
         include: kunjunganReportInclude(args),
         attributes: ["tgl_registrasi", "noreg", "no_pelayanan", "jenis_kunjungan", "patient_uuid", "discharge_date"],
+        subQuery: false,
       };
 
       const transform = {
@@ -147,7 +149,7 @@ export default class LogPelayananRepository {
         lokasi: (row) => undefined,
       };
 
-      return await Pagination.init(LogPelayananModel, args, filter, options, transform);
+      return await Pagination.init(LogPelayananModel, args, filter, options, transform, true);
     } catch (error) {
       console.log("Error on LogPelayananRepository");
       throw error;

@@ -15,6 +15,7 @@ export default class PermintaanUnitController {
   static async getDetail(req, res, nextFunction) {
     try {
       req.query.uuid = req.params.uuid;
+      req.query.faskes_uuid = req.author.faskesUuid;
       const data = await PermintaanUnitService.getDetail(req.query, req.headers);
       res.status(200).json(successResponse("Data berhasil ditampilkan", data));
     } catch (error) {
@@ -27,7 +28,8 @@ export default class PermintaanUnitController {
       const options = {
         uuid: req.params.uuid,
         alasan_batal: req.body.alasan_batal,
-        petugas_batal_tolak: req.author.username
+        petugas_batal_tolak: req.author.username,
+        faskes_uuid: req.author.faskesUuid,
       };
       const result = await PermintaanUnitService.tolakPermintaan(options);
       res.status(200).json(successResponse("Data berhasil dibatalkan", result));

@@ -1,4 +1,4 @@
-import { gagal, uuidSchema, konfigurasiSchema, ubahKonfigurasiSchema, instruksiSchema, serahTerimaSchema, konfirmasiSchema, paginasiSchema, serahTerimaQuerySchema } from "./hdu-aturan.js";
+import { gagal, uuidSchema, konfigurasiSchema, ubahKonfigurasiSchema, instruksiSchema, serahTerimaSchema, konfirmasiSchema, selesaiSchema, paginasiSchema, serahTerimaQuerySchema } from "./hdu-aturan.js";
 
 export default class HduService {
     constructor(repository) { this.repository = repository; }
@@ -26,7 +26,7 @@ export default class HduService {
         if (operasi === "serahTerima") return r.serahTerima(serahTerimaQuerySchema.parse(req.query ?? {}));
         const kunci = uuidSchema.parse(req.get("Idempotency-Key"));
         const schemas = { buatKonfigurasi: konfigurasiSchema, ubahKonfigurasi: ubahKonfigurasiSchema,
-            kebijakanTulis: instruksiSchema, instruksiTulis: instruksiSchema, siapkan: serahTerimaSchema, konfirmasi: konfirmasiSchema };
+            kebijakanTulis: instruksiSchema, instruksiTulis: instruksiSchema, siapkan: serahTerimaSchema, konfirmasi: konfirmasiSchema, selesai: selesaiSchema };
         const data = schemas[operasi].parse(req.body);
         if (["siapkan", "konfirmasi"].includes(operasi) && !boleh("Rawat Inap", "Perpindahan Bangsal", "SETUJU DAN TERIMA")) gagal("Izin penerimaan perpindahan Rawat Inap diperlukan.", 403);
         const bolehIcu = boleh("ICU", "Serah Terima", "KELOLA") && icuAktif;
@@ -34,6 +34,7 @@ export default class HduService {
             if (operasi === "buatKonfigurasi" || operasi === "ubahKonfigurasi") return r.simpanKonfigurasi(q, data, uuid);
             if (operasi === "kebijakanTulis" || operasi === "instruksiTulis") return r.instruksi(q, uuid, data, operasi === "kebijakanTulis" ? "unit" : "episode");
             if (operasi === "siapkan") return r.siapkanSerahTerima(q, data);
+            if (operasi === "selesai") return r.selesai(q, uuid, data);
             return r.konfirmasi(q, uuid, data, bolehIcu);
         });
     }

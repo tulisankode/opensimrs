@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  consentBerbedaValid,
+  consentSama,
   epoch,
   jenisOperasiValid,
   kelasOperasiValid,
@@ -77,4 +79,15 @@ test("ramah: pelanggaran unique constraint (23505) menjadi Galat 409 dengan pesa
   assert.throws(() => ramah({ code: "23505" }, "Kode ruang OK sudah dipakai"), (e) => e instanceof Galat && e.status === 409 && e.message === "Kode ruang OK sudah dipakai");
   const lain = new Error("koneksi database terputus");
   assert.throws(() => ramah(lain, "pesan tidak dipakai"), (e) => e === lain);
+});
+
+test("consentSama/consentBerbedaValid: consent tindakan & anestesi harus dokumen berbeda; kosong diabaikan", () => {
+  assert.equal(consentSama("c-1", "c-2"), false);
+  assert.equal(consentSama("c-1", "c-1"), true);
+  assert.equal(consentSama(null, null), false);
+  assert.equal(consentSama("c-1", null), false);
+  assert.equal(consentSama("", ""), false);
+  assert.doesNotThrow(() => consentBerbedaValid("c-1", "c-2"));
+  assert.doesNotThrow(() => consentBerbedaValid(undefined, "c-2"));
+  assert.throws(() => consentBerbedaValid("c-1", "c-1"), (e) => e instanceof Galat && e.status === 400);
 });

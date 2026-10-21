@@ -322,7 +322,9 @@ const deleteObat = async (index: number, data: any) => {
     try {
       storeUtils.setLoading(true);
       const result = await doctorPrescriptionStore.deleteObatApi(data.uuid);
-      if (result && result.data.sucess) {
+      // apiFarmasiDelete mengembalikan respons axios (undefined bila gagal); kunci `sucess` tidak pernah ada
+      // sehingga daftar obat tidak pernah dimuat ulang setelah hapus
+      if (result) {
         const resultRefetch = await doctorPrescriptionStore.detailApi(
           props.obatOrder.uuid
         );

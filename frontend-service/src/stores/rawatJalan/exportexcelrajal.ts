@@ -92,6 +92,7 @@ export const downloadExportExcelKunjunganRajal = async (
               switch (status) {
                   case 'home': return 'Pulang atas persetujuan dokter';
                   case 'aadvice': return 'Pulang atas permintaan sendiri';
+                  case 'other-hfc':
                   case 'other-hcf': return 'Dirujuk';
                   case 'exp-lt48h': return 'Meninggal < 48 jam';
                   case 'exp-gt48h': return 'Meninggal > 48 jam';
@@ -106,7 +107,7 @@ export const downloadExportExcelKunjunganRajal = async (
             noreg: row.noReg ?? "-",
             noRm: patient.noRm ?? "-",
             namaPasien: patient.name ?? "-",
-            jenisKelamin: patient.gender === "Male" ? "L" : patient.gender === "Female" ? "P" : "-",
+            jenisKelamin: ["Male", "Laki-laki"].includes(patient.gender) ? "L" : ["Female", "Perempuan"].includes(patient.gender) ? "P" : "-",
             tglLahir: birthDetail.birthDate?.split("T")[0] ?? "-",
             umur: umur,
             alamat: address.fullAddress ?? "-",

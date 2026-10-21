@@ -27,7 +27,7 @@ const props = defineProps({
     </div>
     <div class="flex">
       <CustomChip
-        v-if="props.bedData.patient.gender == 'Male'"
+        v-if="['Male', 'Laki-laki'].includes(props.bedData.patient.gender)"
         :showCheckedIcon="false"
         label="Laki-laki"
         bgColor="bg-male-75"

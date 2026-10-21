@@ -293,6 +293,16 @@ npm run db:demo:ramai -- --hidup --interval 10           # terus memajukan statu
 npm run db:demo:ramai -- --bersihkan                     # hapus semua baris yang dibuat skrip ini
 ```
 
+Untuk mengisi data transaksi **modul-modul lain** (ICU, Kamar Operasi, Hemodialisa, Gizi, dan seterusnya) sehingga laporan setiap modul dan Ekstensi SIMRS Studio punya data, `db:demo:modul` mengisi riwayat 60 hari langsung ke PostgreSQL. Setiap faskes demo hanya diisi modul yang aktif di faskes itu. Skrip ini tidak memerlukan layanan backend, idempoten (modul yang sudah terisi dilewati), dan ditolak di production. Seeder per modul ada di `database/demo/modul/`.
+
+```bash
+npm run db:demo:modul                                    # semua modul, semua faskes demo (sesuai modul aktif)
+npm run db:demo:modul -- --daftar                        # lihat modul seeder & faskes yang akan diisi
+npm run db:demo:modul -- --tahap 1 --faskes RSA          # tahap tertentu untuk satu faskes
+npm run db:demo:modul -- --modul icu,gizi --ulang        # isi ulang modul tertentu
+npm run db:demo:modul -- --bersihkan                     # hapus data yang dibuat skrip ini (bisa dibatasi --faskes/--modul)
+```
+
 ---
 
 ## 5. Konfigurasi `.env` secara rinci

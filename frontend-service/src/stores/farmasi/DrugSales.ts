@@ -32,6 +32,10 @@ export const useDrugSalesStore = defineStore({
     async deleteApi(uuid: string, payload = {}) {
       return apiFarmasiPut(`/farmasi/penjualan-obat/${uuid}/cancel`, payload);
     },
+    // Catat pembayaran penjualan bebas di apotek (belum_lunas -> lunas)
+    async bayarApi(uuid: string, payload = {}) {
+      return apiFarmasiPut(`/farmasi/penjualan-obat/${uuid}/bayar`, payload);
+    },
     async getCode(payload = {}) {
       return apiFarmasiGet("/farmasi/penjualan-obat/code", payload);
     },

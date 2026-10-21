@@ -54,6 +54,13 @@ export default class KartuStokMutasiMapper {
 
         const jenisItem = itemDetail?.jenis_item || itemDetail?.kategori_item || "N/A";
 
+        // Arah mutasi ditentukan kolom type; nilai stok_mutasi ada yang ditulis bertanda (pengiriman/pengeluaran
+        // unit, stok opname) dan ada yang selalu positif (pelayanan resep, retur), jadi pakai nilai mutlaknya.
+        const jumlahMutasi = Math.abs(Number(data.stok_mutasi ?? 0));
+        const keluar = data.type === "defisit" || (!data.type && Number(data.stok_mutasi) < 0);
+        const stokMasuk = keluar ? 0 : jumlahMutasi;
+        const stokKeluar = keluar ? jumlahMutasi : 0;
+
         return {
             kode_transaksi: data.code,
             sumber_mutasi: data.sumber_mutasi,
@@ -67,9 +74,9 @@ export default class KartuStokMutasiMapper {
             lokasi_stok_awal: lokasiAwal,
             lokasi_stok_akhir: lokasiAkhir,
             stok_awal: Number(data.stok_awal ?? 0),
-            stok_masuk: Number(data.stok_mutasi) > 0 ? Number(data.stok_mutasi) : 0,
-            stok_keluar: Number(data.stok_mutasi) < 0 ? Math.abs(Number(data.stok_mutasi)) : 0,
-            sisa_stok: (Number(data.stok_awal ?? 0)) + (Number(data.stok_mutasi ?? 0)),
+            stok_masuk: stokMasuk,
+            stok_keluar: stokKeluar,
+            sisa_stok: Number(data.stok_awal ?? 0) + stokMasuk - stokKeluar,
             petugas: data.petugas,
             keterangan: keteranganDesc,
         };
