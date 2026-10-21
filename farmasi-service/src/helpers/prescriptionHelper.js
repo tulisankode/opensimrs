@@ -159,8 +159,21 @@ export default class PrescriptionHelper {
     lainnya: "Lainnya",
   };
 
-  // Tempelkan riwayat substitusi ke resep: tiap item mendapat `substitusi` (urut waktu) dan
-  // `substitusi_dari` (nama obat yang diresepkan dokter = obat asal substitusi pertama).
+  static LABEL_STATUS_SUBSTITUSI = {
+    menunggu: "Menunggu persetujuan dokter",
+    disetujui: "Disetujui dokter",
+    disetujui_lisan: "Konfirmasi lisan/telepon",
+    tanpa_persetujuan: "Tanpa persetujuan (data lama)",
+    ditolak: "Ditolak dokter",
+    dibatalkan: "Dibatalkan apoteker",
+  };
+
+  // Substitusi yang sudah mengganti obat pada item resep.
+  static STATUS_SUBSTITUSI_DITERAPKAN = ["disetujui", "disetujui_lisan", "tanpa_persetujuan"];
+
+  // Tempelkan riwayat substitusi ke resep: tiap item mendapat `substitusi` (urut waktu, semua status),
+  // `substitusi_dari` (nama obat yang diresepkan dokter = obat asal substitusi pertama yang diterapkan), dan
+  // `substitusi_menunggu` (pengajuan yang belum diputuskan dokter, bila ada).
   // kunciItem: "obat_items" (detail resep) atau "obat" (data cetak e-resep).
   static lampirkanSubstitusi(resep, riwayat = [], kunciItem = "obat_items") {
     const perItem = new Map();
@@ -168,6 +181,7 @@ export default class PrescriptionHelper {
       ...r,
       kategori_alasan_label:
         this.LABEL_ALASAN_SUBSTITUSI[r.kategori_alasan] ?? r.kategori_alasan,
+      status_label: this.LABEL_STATUS_SUBSTITUSI[r.status] ?? r.status,
     }));
     for (const r of daftar) {
       if (!perItem.has(r.prescription_item_uuid)) perItem.set(r.prescription_item_uuid, []);
@@ -175,8 +189,12 @@ export default class PrescriptionHelper {
     }
     for (const item of resep[kunciItem] ?? []) {
       const milikItem = perItem.get(item.uuid) ?? [];
+      const diterapkan = milikItem.filter(
+        (r) => !r.status || this.STATUS_SUBSTITUSI_DITERAPKAN.includes(r.status)
+      );
       item.substitusi = milikItem;
-      item.substitusi_dari = milikItem[0]?.nama_obat_asal ?? null;
+      item.substitusi_dari = diterapkan[0]?.nama_obat_asal ?? null;
+      item.substitusi_menunggu = milikItem.find((r) => r.status === "menunggu") ?? null;
     }
     resep.riwayat_substitusi = daftar;
     return resep;

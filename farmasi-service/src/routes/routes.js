@@ -437,6 +437,27 @@ routes.get(
   farmasiPermission("Resep Dokter", "READ"),
   PrescriptionController.getRiwayatSubstitusi
 );
+// Persetujuan dokter atas substitusi (migrasi 20261021130000-farmasi_substitusi_persetujuan)
+routes.get(
+  `${baseUrl}/substitusi-obat/persetujuan`,
+  farmasiPermission("Persetujuan Substitusi", "READ"),
+  PrescriptionController.getDaftarPersetujuanSubstitusi
+);
+routes.put(
+  `${baseUrl}/substitusi-obat/:uuid/setujui`,
+  farmasiPermission("Persetujuan Substitusi", "SETUJUI"),
+  PrescriptionController.setujuiSubstitusi
+);
+routes.put(
+  `${baseUrl}/substitusi-obat/:uuid/tolak`,
+  farmasiPermission("Persetujuan Substitusi", "TOLAK"),
+  PrescriptionController.tolakSubstitusi
+);
+routes.put(
+  `${baseUrl}/substitusi-obat/:uuid/batal`,
+  farmasiPermission("Resep Dokter", "SUBSTITUSI"),
+  PrescriptionController.batalSubstitusi
+);
 routes.put(
   `${baseUrl}/prescriptions/:uuid`,
   farmasiPermission("Resep Dokter", "SIMPAN EDIT"),

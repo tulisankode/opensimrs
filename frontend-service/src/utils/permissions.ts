@@ -181,6 +181,7 @@ export const permissionRouteRegistry: PermissionRouteEntry[] = [
   { path: "/pembayaran/laporan/closing", permission: read("Pembayaran", "Laporan Pembayaran", "Closing Kasir") },
 
   { path: "/farmasi/resep-dokter", permission: read("Farmasi", "Resep Dokter") },
+  { path: "/farmasi/persetujuan-substitusi", permission: read("Farmasi", "Persetujuan Substitusi") },
   { path: "/farmasi/penjualan-obat", permission: read("Farmasi", "Penjualan Obat") },
   { path: "/farmasi/retur-obat-&-material", permission: read("Farmasi", "Retur Obat dan Material") },
   { path: "/farmasi/farmasi-ruangan", permission: read("Farmasi", "Farmasi Ruangan") },

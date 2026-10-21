@@ -78,7 +78,76 @@ export default class PrescriptionController {
       );
       res
         .status(200)
-        .json(successResponse("Obat berhasil disubstitusi", result));
+        .json(
+          successResponse(
+            result.status === "menunggu"
+              ? "Substitusi diajukan, menunggu persetujuan dokter"
+              : "Obat berhasil disubstitusi",
+            result
+          )
+        );
+    } catch (error) {
+      nextFunction(error);
+    }
+  }
+
+  static async getDaftarPersetujuanSubstitusi(req, res, nextFunction) {
+    try {
+      const result = await PrescriptionService.getDaftarPersetujuanSubstitusi(
+        req.query,
+        req.author
+      );
+      res
+        .status(200)
+        .json(successResponse("Data berhasil ditampilkan", result));
+    } catch (error) {
+      nextFunction(error);
+    }
+  }
+
+  static async setujuiSubstitusi(req, res, nextFunction) {
+    try {
+      const result = await PrescriptionService.setujuiSubstitusi(
+        req.params.uuid,
+        req.author
+      );
+      res
+        .status(200)
+        .json(
+          successResponse(
+            result.diverifikasi
+              ? "Substitusi berhasil diverifikasi"
+              : "Substitusi disetujui, obat pada resep sudah diganti",
+            result
+          )
+        );
+    } catch (error) {
+      nextFunction(error);
+    }
+  }
+
+  static async tolakSubstitusi(req, res, nextFunction) {
+    try {
+      const result = await PrescriptionService.tolakSubstitusi(
+        req.params.uuid,
+        req.body,
+        req.author
+      );
+      res.status(200).json(successResponse("Substitusi ditolak", result));
+    } catch (error) {
+      nextFunction(error);
+    }
+  }
+
+  static async batalSubstitusi(req, res, nextFunction) {
+    try {
+      const result = await PrescriptionService.batalSubstitusi(
+        req.params.uuid,
+        req.author
+      );
+      res
+        .status(200)
+        .json(successResponse("Pengajuan substitusi dibatalkan", result));
     } catch (error) {
       nextFunction(error);
     }

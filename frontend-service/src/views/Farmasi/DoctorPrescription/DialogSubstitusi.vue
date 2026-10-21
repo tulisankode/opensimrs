@@ -2,6 +2,8 @@
 // Substitusi obat non-racikan oleh apoteker sebelum verifikasi (Resep Masuk/Sudah Ditelaah).
 // Pilihan obat pengganti hanya obat yang punya stok di lokasi stok (depo) resep; stok & tagihan
 // mengikuti obat pengganti saat verifikasi.
+// Wajib persetujuan dokter: diajukan ke dokter (obat baru diganti setelah disetujui di Farmasi › Persetujuan
+// Substitusi) atau dicatat sebagai konfirmasi lisan/telepon (langsung berlaku, diverifikasi dokter kemudian).
 import { ref, computed, watch } from "vue";
 import { useDoctorPrescriptionStore } from "@/stores/farmasi/DoctorPrescription";
 import CustomDialog from "@/components/Base/CustomDialog.vue";
@@ -10,7 +12,6 @@ import CustomSelect from "@/components/Base/CustomSelect.vue";
 import CustomInputNumber from "@/components/Base/CustomInputNumber.vue";
 import CustomTextArea from "@/components/Base/CustomTextArea.vue";
 import CustomTextfield from "@/components/Base/CustomTextfield.vue";
-import CustomSwitch from "@/components/Base/CustomSwitch.vue";
 
 const props = defineProps({
   visible: {
@@ -50,7 +51,18 @@ const pilihan = ref<string | null>(null);
 const jumlah = ref<number | null>(null);
 const kategoriAlasan = ref<string | null>(null);
 const alasan = ref("");
-const persetujuanDokter = ref(false);
+const MODE = [
+  { kode: "ajukan", label: "Ajukan ke dokter (menunggu persetujuan)" },
+  { kode: "konfirmasi_lisan", label: "Sudah dikonfirmasi dokter (lisan/telepon)" },
+];
+const CARA_KONFIRMASI = [
+  { kode: "telepon", label: "Telepon" },
+  { kode: "lisan", label: "Lisan / tatap muka" },
+  { kode: "langsung", label: "Pesan langsung (chat)" },
+];
+const mode = ref("ajukan");
+const caraKonfirmasi = ref<string | null>(null);
+const lisan = computed(() => mode.value === "konfirmasi_lisan");
 const dokterPenyetuju = ref("");
 const catatan = ref("");
 const galat = ref<Record<string, string>>({});
@@ -85,7 +97,8 @@ watch(
     jumlah.value = Number(props.obat?.totalObat) || null;
     kategoriAlasan.value = null;
     alasan.value = "";
-    persetujuanDokter.value = false;
+    mode.value = "ajukan";
+    caraKonfirmasi.value = null;
     dokterPenyetuju.value = props.dokterOrder ?? "";
     catatan.value = "";
     galat.value = {};
@@ -102,7 +115,8 @@ const periksa = () => {
   else if (terpilih.value && jumlah.value > Number(terpilih.value.sisaStok)) g.jumlah = `Melebihi sisa stok (${terpilih.value.sisaStok})`;
   if (!kategoriAlasan.value) g.kategoriAlasan = "Kategori alasan harus dipilih";
   if (!alasan.value.trim()) g.alasan = "Alasan substitusi wajib diisi";
-  if (persetujuanDokter.value && !dokterPenyetuju.value.trim()) g.dokterPenyetuju = "Nama dokter wajib diisi";
+  if (lisan.value && !dokterPenyetuju.value.trim()) g.dokterPenyetuju = "Nama dokter wajib diisi";
+  if (lisan.value && !caraKonfirmasi.value) g.caraKonfirmasi = "Cara konfirmasi harus dipilih";
   galat.value = g;
   return Object.keys(g).length === 0;
 };
@@ -118,8 +132,9 @@ const simpan = async () => {
       medicationQty: jumlah.value,
       kategoriAlasan: kategoriAlasan.value,
       alasan: alasan.value.trim(),
-      persetujuanDokter: persetujuanDokter.value,
-      dokterPenyetuju: persetujuanDokter.value ? dokterPenyetuju.value.trim() : null,
+      mode: mode.value,
+      dokterPenyetuju: lisan.value ? dokterPenyetuju.value.trim() : null,
+      caraKonfirmasi: lisan.value ? caraKonfirmasi.value : null,
       catatan: catatan.value.trim() || null,
     });
     if (res) {
@@ -191,15 +206,33 @@ const simpan = async () => {
           :invalidMessage="galat.alasan"
           required
         />
-        <div class="grid grid-cols-2 gap-3 items-end">
-          <CustomSwitch
-            v-model="persetujuanDokter"
-            label="Disetujui Dokter"
-            sideLabel="Tidak"
-            sideLabelTrue="Ya"
+        <CustomSelect
+          v-model="mode"
+          label="Persetujuan Dokter"
+          optionLabel="label"
+          optionValue="kode"
+          :options="MODE"
+          :showFilter="false"
+          required
+        />
+        <p v-if="!lisan" class="text-xs italic text-grey-300">
+          Obat pada resep belum diganti sampai dokter menyetujui. Resep tidak dapat diverifikasi selama pengajuan
+          masih menunggu.
+        </p>
+        <div v-else class="grid grid-cols-2 gap-3 items-start">
+          <CustomSelect
+            v-model="caraKonfirmasi"
+            label="Cara Konfirmasi"
+            place-holder="Pilih cara"
+            optionLabel="label"
+            optionValue="kode"
+            :options="CARA_KONFIRMASI"
+            :showFilter="false"
+            :invalid="!!galat.caraKonfirmasi"
+            :invalidMessage="galat.caraKonfirmasi"
+            required
           />
           <CustomTextfield
-            v-if="persetujuanDokter"
             v-model="dokterPenyetuju"
             label="Dokter yang Menyetujui"
             placeholder="Nama dokter"
@@ -226,7 +259,7 @@ const simpan = async () => {
         />
         <CustomButton
           @click="simpan"
-          label="Simpan Substitusi"
+          :label="lisan ? 'Simpan Substitusi' : 'Ajukan ke Dokter'"
           class="ml-[10px]"
           :disabled="menyimpan"
         />

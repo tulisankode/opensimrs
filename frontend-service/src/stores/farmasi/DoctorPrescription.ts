@@ -64,6 +64,21 @@ export const useDoctorPrescriptionStore = defineStore({
     async substitusiObat(payload = {}) {
       return apiFarmasiPut("/farmasi/prescriptions/substitution", payload);
     },
+    // Persetujuan dokter atas substitusi: status "menunggu" | "verifikasi" | "semua"
+    async daftarPersetujuanSubstitusi(status: string, milikSaya: boolean) {
+      return apiFarmasiGet("/farmasi/substitusi-obat/persetujuan", {
+        params: { status, milik_saya: milikSaya },
+      });
+    },
+    async setujuiSubstitusi(uuid: string) {
+      return apiFarmasiPut(`/farmasi/substitusi-obat/${uuid}/setujui`, {});
+    },
+    async tolakSubstitusi(uuid: string, alasanTolak: string) {
+      return apiFarmasiPut(`/farmasi/substitusi-obat/${uuid}/tolak`, { alasanTolak });
+    },
+    async batalSubstitusi(uuid: string) {
+      return apiFarmasiPut(`/farmasi/substitusi-obat/${uuid}/batal`, {});
+    },
     async cetakETiket(uuid: string) {
       return apiFarmasiGet(`/farmasi/cetak/e-ticket/${uuid}`, {});
     },

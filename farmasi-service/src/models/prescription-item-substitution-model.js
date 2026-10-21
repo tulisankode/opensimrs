@@ -81,6 +81,39 @@ PrescriptionItemSubstitutionModel.init(
     catatan: {
       type: DataTypes.TEXT,
     },
+    // status persetujuan dokter: menunggu | disetujui | disetujui_lisan | ditolak | dibatalkan | tanpa_persetujuan (data lama)
+    status: {
+      type: DataTypes.STRING(30),
+      allowNull: false,
+      defaultValue: "menunggu",
+    },
+    // isian yang diterapkan ke item resep saat disetujui
+    perubahan: {
+      type: DataTypes.JSONB,
+    },
+    // konfirmasi lisan/telepon: cara (telepon | lisan | langsung) & waktu konfirmasi dengan dokter
+    cara_konfirmasi: {
+      type: DataTypes.STRING(20),
+    },
+    waktu_konfirmasi: {
+      type: DataTypes.BIGINT,
+    },
+    diputuskan_oleh: {
+      type: DataTypes.STRING(255),
+    },
+    diputuskan_at: {
+      type: DataTypes.BIGINT,
+    },
+    alasan_tolak: {
+      type: DataTypes.TEXT,
+    },
+    // verifikasi dokter atas konfirmasi lisan
+    diverifikasi_oleh: {
+      type: DataTypes.STRING(255),
+    },
+    diverifikasi_at: {
+      type: DataTypes.BIGINT,
+    },
     petugas: {
       type: DataTypes.STRING(255),
       allowNull: false,

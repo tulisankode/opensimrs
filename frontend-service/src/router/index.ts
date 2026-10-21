@@ -40,6 +40,7 @@ import PelunasanPage from "@/views/Pembayaran/layout/PelunasanPage.vue";
 
 // NOTE Farmasi
 import DoctorPrescriptionPage from "@/views/Farmasi/DoctorPrescription/DoctorPrescriptionPage.vue";
+import PersetujuanSubstitusiPage from "@/views/Farmasi/DoctorPrescription/PersetujuanSubstitusiPage.vue";
 import DrugSalesPage from "@/views/Farmasi/DrugSalesPage.vue";
 import DrugReturnsPage from "@/views/Farmasi/DrugReturnsPage.vue";
 import RoomPharmacyPage from "@/views/Farmasi/RoomPharmacy/RoomPharmacyPage.vue";
@@ -1381,7 +1382,26 @@ const router = createRouter({
     {
       path: "/farmasi",
       name: "farmasi",
-      redirect: "/farmasi/resep-dokter",
+      // dokter yang hanya punya izin Persetujuan Substitusi tidak dilempar ke 403 Resep Dokter
+      redirect: () =>
+        ["/farmasi/resep-dokter", "/farmasi/persetujuan-substitusi"].find((p) =>
+          canAccessPermission(resolveRoutePermission(p))
+        ) ?? "/farmasi/resep-dokter",
+    },
+    {
+      path: "/farmasi/persetujuan-substitusi",
+      name: "farmasi-persetujuan-substitusi",
+      meta: {
+        layout: SidebarLayout,
+        page: PersetujuanSubstitusiPage,
+        requiresAuth: true,
+        permission: {
+          module: "Farmasi",
+          submodule: "Persetujuan Substitusi",
+          action: "READ",
+        },
+      },
+      component: PharmacyView,
     },
     {
       path: "/farmasi/resep-dokter",
