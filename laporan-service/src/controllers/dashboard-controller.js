@@ -4,7 +4,6 @@ export default class DashboardController {
   static async getRekapDashboard(request, response, nextFunction) {
     try {
       const { author, query } = request
-      console.log(author)
       const result = await DashboardService.getRekapDashboard(author, query)
       return response.status(200).json({
         message: 'Data berhasil didapat',

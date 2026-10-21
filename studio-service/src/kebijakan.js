@@ -17,7 +17,7 @@ export const ZONA_KUNING = [
   /^satusehat-service\//, /^lab-service\//, /^auth-service\//,
 ];
 
-const POLA_RAHASIA = [
+export const POLA_RAHASIA = [
   { pola: /-----BEGIN [A-Z ]*PRIVATE KEY-----/, nama: "private key" },
   { pola: /\bsk-(ant-)?[A-Za-z0-9_-]{20,}/, nama: "kunci API" },
   { pola: /\bghp_[A-Za-z0-9]{30,}/, nama: "token GitHub" },

@@ -22,10 +22,13 @@ import { StockMedisModel } from "@opensimrs/model-sdk/inventory";
 
 export default class AlkesRepository {
   // get prescription by uuid
-  static async getByUuid(uuid) {
+  // faskesUuid (opsional): hanya order milik faskes token.
+  static async getByUuid(uuid, faskesUuid = null, transaction = undefined) {
     return await OrderAlkesModel.findOne({
+      transaction,
       where: {
         uuid: uuid,
+        ...(faskesUuid ? { faskes_uuid: faskesUuid } : {}),
       },
       attributes: {
         exclude: ["deleted_at", "faskes_uuid"],
@@ -121,23 +124,58 @@ export default class AlkesRepository {
     });
   }
 
+  // Order milik faskes token (dengan kunci baris bila di dalam transaksi) untuk pemeriksaan status sebelum diubah.
+  static async getOrderFaskes(uuid, faskesUuid, transaction) {
+    return await OrderAlkesModel.findOne({
+      where: { uuid: uuid, faskes_uuid: faskesUuid },
+      transaction: transaction,
+      ...(transaction ? { lock: transaction.LOCK.UPDATE } : {}),
+    });
+  }
+
+  static async getItemsOrder(orderAlkesUuid, transaction) {
+    return await OrderAlkesItemModel.findAll({
+      where: { order_alkes_uuid: orderAlkesUuid },
+      include: [{ model: ItemMedisModel, as: "item_medis", required: false, attributes: ["name", "uuid"] }],
+      transaction: transaction,
+    });
+  }
+
+  static async getItemOrder(uuid, transaction) {
+    return await OrderAlkesItemModel.findOne({ where: { uuid: uuid }, transaction: transaction });
+  }
+
+  static async noOrderDipakai(noOrder, faskesUuid) {
+    return (await OrderAlkesModel.count({ where: { no_order_alkes: noOrder, faskes_uuid: faskesUuid }, paranoid: false })) > 0;
+  }
+
+  // Perkiraan jenis stok & HPP saat order dibuat: stok di lokasi stok tujuan (bukan lokasi unit pelayanan),
+  // harga terbaru yang belum dihapus. Harga final ditetapkan ulang saat verifikasi.
   static async getItemConfigForOrder(itemMedisUuid, lokasiStokUuid) {
     return await ItemMedisJenisStokModel.findOne({
       where: {
         item_medis_uuid: itemMedisUuid,
+        deleted_at: { [Op.is]: null },
       },
       include: [
         {
           model: StockMedisModel,
           as: "stocks",
           required: true,
+          attributes: ["uuid"],
           where: {
             lokasi_stok_uuid: lokasiStokUuid,
+            sisa_stok: { [Op.gt]: 0 },
+            deleted_at: { [Op.is]: null },
           },
         },
         {
           model: HargaItemModel,
           as: "detail_harga",
+          required: false,
+          where: { deleted_at: { [Op.is]: null } },
+          separate: true,
+          order: [["created_at", "DESC"]],
           limit: 1,
         },
       ],
@@ -246,12 +284,19 @@ export default class AlkesRepository {
 
   // edit alkes
 
-  static async editAlkes(dataToUpdate, uuid, transaction) {
+  // faskesUuid (opsional): batasi perubahan pada order milik faskes token. uuid boleh dikirim lewat data
+  // (pemanggil lama editAlkes(req): siap diserahkan/batal/diserahkan) — dulu WHERE uuid jadi undefined & gagal.
+  static async editAlkes(dataToUpdate, uuid = dataToUpdate?.uuid, transaction, faskesUuid = null) {
+    if (typeof uuid !== "string" || !uuid) throw new InternalServerException("UUID order alkes tidak valid");
+    if (!faskesUuid && dataToUpdate?.faskes_uuid) faskesUuid = dataToUpdate.faskes_uuid;
+    dataToUpdate = { ...dataToUpdate };
     delete dataToUpdate.uuid;
+    delete dataToUpdate.faskes_uuid;
 
     const [affectedRows] = await OrderAlkesModel.update(dataToUpdate, {
       where: {
         uuid: uuid,
+        ...(faskesUuid ? { faskes_uuid: faskesUuid } : {}),
       },
       transaction: transaction,
     });
@@ -267,7 +312,8 @@ export default class AlkesRepository {
       transaction: transaction,
     });
 
-    if (affectedRows[0] === 0) {
+    // update() mengembalikan [jumlah baris]; dulu dicek affectedRows[0] (selalu undefined) sehingga tidak pernah gagal
+    if (affectedRows === 0) {
       throw new InternalServerException(
         `Tidak ada data item alkes yang diubah (UUID: ${uuid})`
       );
@@ -286,6 +332,7 @@ export default class AlkesRepository {
   static async getOrderBySomeUuid(req) {
     return await OrderAlkesModel.findAll({
       where: {
+        ...(req.faskes_uuid ? { faskes_uuid: req.faskes_uuid } : {}),
         rekam_medis_uuid: req.rekam_medis_uuid,
         rekam_medis_date: req.rekam_medis_date,
       },

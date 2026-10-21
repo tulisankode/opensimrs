@@ -2,7 +2,10 @@ import { z } from "zod";
 
 const itemSchema = z.object({
   stock_uuid: z.string().uuid({ message: "Stock UUID tidak valid" }),
-  qty: z.number().positive({ message: "Kuantitas harus lebih dari 0" }),
+  qty: z
+    .number()
+    .int({ message: "Kuantitas harus bilangan bulat" })
+    .positive({ message: "Kuantitas harus lebih dari 0" }),
   harga_satuan: z
     .number()
     .nonnegative({ message: "Harga satuan tidak boleh negatif" }),

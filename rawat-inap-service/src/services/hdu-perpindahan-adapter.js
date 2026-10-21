@@ -1,3 +1,4 @@
+import { uuidv7 } from "uuidv7";
 import { gagal } from "./hdu-aturan.js";
 
 // Semua penempatan tetap menggunakan perpindahans, rawat_inaps, dan room_monitorings.
@@ -29,9 +30,15 @@ export default class HduPerpindahanAdapter {
         const benturan = await this.query(`SELECT uuid FROM rawat_inaps WHERE monitoring_room_uuid = :bed AND uuid <> :ri AND faskes_uuid = :f AND deleted_at IS NULL AND status_ri IN (1, 2, 3) AND discharge_date IS NULL`, { bed: tujuan.uuid, ri: ri.uuid });
         if (benturan.length) gagal("Tempat tidur tujuan masih memiliki penempatan aktif.");
         await this.query(`UPDATE perpindahans SET status_pindah = 'approve', waktu_pindah = :waktu, updated_at = :sekarang WHERE uuid = :uuid AND faskes_uuid = :f AND deleted_at IS NULL`, { uuid: p.uuid, waktu });
-        await this.query(`UPDATE rawat_inaps SET status_ri = 3, monitoring_room_uuid = :bed, updated_at = :sekarang WHERE uuid = :uuid AND faskes_uuid = :f AND deleted_at IS NULL`, { uuid: ri.uuid, bed: tujuan.uuid });
+        await this.query(`UPDATE rawat_inaps SET status_ri = 3, monitoring_room_uuid = :bed, lokasi_uuid = :ruangan, updated_at = :sekarang WHERE uuid = :uuid AND faskes_uuid = :f AND deleted_at IS NULL`, { uuid: ri.uuid, bed: tujuan.uuid, ruangan: tujuan.room_uuid });
         await this.query(`UPDATE room_monitorings SET patient_uuid = :pasien, status_operasional = 'Penuh', updated_at = :sekarang WHERE uuid = :uuid AND faskes_uuid = :f AND deleted_at IS NULL`, { uuid: tujuan.uuid, pasien: ri.patient_uuid });
         await this.query(`UPDATE room_monitorings SET patient_uuid = NULL, status_operasional = 'Tersedia', updated_at = :sekarang WHERE uuid = :uuid AND faskes_uuid = :f AND deleted_at IS NULL`, { uuid: asal.uuid });
+        // Riwayat ruangan: riwayat bed asal terakhir ditutup (updated_at = waktu pindah) lalu bed tujuan dicatat.
+        await this.query(`UPDATE riwayat_ruangan SET updated_at = :waktu WHERE uuid = (SELECT uuid FROM riwayat_ruangan WHERE admission_uuid = :ri AND monitoring_ruangan_uuid = :bed
+            AND faskes_uuid = :f AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1) AND faskes_uuid = :f AND deleted_at IS NULL`, { ri: ri.uuid, bed: asal.uuid, waktu });
+        await this.query(`INSERT INTO riwayat_ruangan (uuid, faskes_uuid, admission_uuid, monitoring_ruangan_uuid, status, created_at, updated_at) VALUES (:uuid, :f, :ri, :bed, true, :waktu, :waktu)`, {
+            uuid: uuidv7(), ri: ri.uuid, bed: tujuan.uuid, waktu,
+        });
         return { ...p, status_pindah: "approve", waktu_pindah: waktu };
     }
 }

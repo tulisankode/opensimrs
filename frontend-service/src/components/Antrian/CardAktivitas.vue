@@ -43,8 +43,9 @@ const props = defineProps({
       </div>
     </template>
     <template #content>
-      <div class="flex justify-center items-center h-full">
-        <div class="font-extrabold text-[22px] text-opensimrs-300">
+      <div class="flex justify-center items-center h-full px-2">
+        <!-- Nama panjang (Poli Penyakit Dalam, Poli Kulit & Kelamin) dua baris rata tengah, tidak terpotong. -->
+        <div class="font-extrabold text-[20px] leading-tight text-center text-opensimrs-300 line-clamp-2">
           {{ cardAktivitas }}
         </div>
       </div>

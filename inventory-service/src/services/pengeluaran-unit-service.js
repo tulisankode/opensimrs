@@ -65,7 +65,7 @@ export default class PengeluaranUnitService {
         const validatedData = await PengeluaranUnitValidation.GET_DETAIL.parseAsync(req);
         
         // 1. Ambil Data Lokal (Transaksi & Stok)
-        const data = await PengeluaranUnitRepository.getDetail(validatedData.uuid);
+        const data = await PengeluaranUnitRepository.getDetail(validatedData.uuid, req.faskes_uuid);
         if (!data) throw new BadRequestException("Data not found");
 
         // 2. Kumpulkan UUID untuk Request ke API External

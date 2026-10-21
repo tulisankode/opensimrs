@@ -202,7 +202,8 @@ const getItemByUuid = (uuid: string) =>
 const applyItemToRow = (row: any, item: any | undefined) => {
   row.namaItem = item?.itemName ?? "";
   row.expDate = item?.expDate ? new Date(item.expDate) : undefined;
-  row.selectedSatuanUuid = item?.jenisStokUuid ?? "";
+  // Satuan retur = satuan penggunaan stok (sebelumnya terisi UUID jenis stok).
+  row.selectedSatuanUuid = item?.satuanUuid ?? "";
   row.satuanName = item?.satuan ?? "";
   row.stokPermintaan = item?.jumlahTersedia ?? 0;
   row.hargaSatuan = item?.hargaSatuan ?? 0;

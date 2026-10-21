@@ -29,10 +29,11 @@ export default class PengeluaranUnitRepository {
         return await Pagination.init(PengeluaranUnitModel, req, options);
     }
 
-    static async getDetail(uuid) {
+    static async getDetail(uuid, faskes_uuid) {
         return await PengeluaranUnitModel.findOne({
             where: {
-                uuid: uuid
+                uuid: uuid,
+                faskes_uuid: faskes_uuid,
             },
             include: [
                 {

@@ -58,6 +58,8 @@ interface Prescription {
   isCompound?: boolean;
   patient: string;
   lokasiStokNama: string | null;
+  // status pembayaran kasir pada tahap Penyerahan Obat (farmasi-service tagihan-farmasi-service.js)
+  statusPembayaran?: { kode: string; label: string; bolehDiserahkan: boolean; sisa?: number };
 }
 
 interface ApiResponse {
@@ -410,7 +412,7 @@ const handleReset = () => {
                           prescription.jenisPelayanan === 'igd'
                             ? 'IGD'
                             : prescription.jenisPelayanan === 'ri'
-                            ? 'RAWAT JALAN'
+                            ? 'RAWAT INAP'
                             : prescription.jenisPelayanan === 'rj'
                             ? 'RAWAT JALAN'
                             : ''
@@ -546,7 +548,7 @@ const handleReset = () => {
                           prescription.jenisPelayanan === 'igd'
                             ? 'IGD'
                             : prescription.jenisPelayanan === 'ri'
-                            ? 'RAWAT JALAN'
+                            ? 'RAWAT INAP'
                             : prescription.jenisPelayanan === 'rj'
                             ? 'RAWAT JALAN'
                             : ''
@@ -681,7 +683,7 @@ const handleReset = () => {
                           prescription.jenisPelayanan === 'igd'
                             ? 'IGD'
                             : prescription.jenisPelayanan === 'ri'
-                            ? 'RAWAT JALAN'
+                            ? 'RAWAT INAP'
                             : prescription.jenisPelayanan === 'rj'
                             ? 'RAWAT JALAN'
                             : ''
@@ -720,6 +722,16 @@ const handleReset = () => {
                         bgColor="bg-grass-50"
                         :showCheckedIcon="false"
                         textColor="text-grass-300"
+                        customClass="h-5"
+                        class="mr-[5px]"
+                      />
+                      <CustomChip
+                        v-if="prescription.statusPembayaran"
+                        :label="prescription.statusPembayaran.label.toUpperCase()"
+                        :borderColor="prescription.statusPembayaran.bolehDiserahkan ? 'border-grass-300' : 'border-warning-300'"
+                        :bgColor="prescription.statusPembayaran.bolehDiserahkan ? 'bg-grass-50' : 'bg-warning-50'"
+                        :showCheckedIcon="false"
+                        :textColor="prescription.statusPembayaran.bolehDiserahkan ? 'text-grass-300' : 'text-warning-300'"
                         customClass="h-5"
                         class="mr-[5px]"
                       />

@@ -36,6 +36,7 @@ export default class ConversionRepository {
         const [affectedRow] =  await ConversionModel.update(req, {
             where: {
                 uuid: req.uuid,
+                faskes_uuid: req.faskes_uuid,
             },
             transaction
         });
@@ -53,6 +54,7 @@ export default class ConversionRepository {
         },{
             where: {
                 uuid: req.uuid,
+                faskes_uuid: req.faskes_uuid,
             },
             transaction
         });

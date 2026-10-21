@@ -185,7 +185,7 @@ const cariPasienLama = async (faskesUuid, { noRm, identity, no_identity: noIdent
             jsonb_build_object('prov', a.prov, 'city', a.city, 'district', a.district, 'rt', a.rt, 'rw', a.rw,
               'full_address', a.full_address, 'country', a.country, 'village', a.village, 'postal_code', a.postal_code) AS address
      FROM patients p
-     LEFT JOIN birth_details bd ON bd.uuid = p.birth_detail_uuid
+     LEFT JOIN birth_details bd ON bd.uuid = p.birth_detail_uuid AND bd.deleted_at IS NULL
      LEFT JOIN addresses a ON a.patient_uuid = p.uuid
      WHERE p.faskes_uuid = $1 AND p.deleted_at IS NULL AND p.no_rm NOT LIKE 'XX%'
        AND (${noRm ? "p.no_rm = $2" : "p.identity = $2 AND p.no_identity = $3"})
@@ -237,7 +237,15 @@ export const batalAntrean = async (faskesUuid, { kodebooking, keterangan }) => {
     },
   });
 
-  await query(`UPDATE bpjs_antrean_booking SET status_lokal = 'batal', updated_at = $2 WHERE uuid = $1`, [booking.uuid, sekarang()]);
+  // Kunci (uuid) saja bukan bukti kewenangan (KF-5): kondisi pembaruan tetap mengikat faskes dan status aktif,
+  // sama seperti pembacaan bookingTersimpan di atas, agar baris faskes lain tidak pernah ikut berubah.
+  const dibatalkan = await satu(
+    `UPDATE bpjs_antrean_booking SET status_lokal = 'batal', updated_at = $2
+     WHERE uuid = $1 AND faskes_uuid = $3 AND deleted_at IS NULL
+     RETURNING uuid`,
+    [booking.uuid, sekarang(), faskesUuid]
+  );
+  if (!dibatalkan) throw new GalatBpjs("Kode booking tidak ditemukan", 404);
   await catatTask(faskesUuid, booking, 99);
   await logKirim(faskesUuid, booking.uuid, "batal", null, { keterangan });
   return { kodebooking, status: "batal" };
@@ -326,7 +334,20 @@ export const prosesKirim = async (faskesUuid, kirimUuid) => {
   const kred = await kredensialSiap(faskesUuid);
   const baris = await satu(`SELECT * FROM bpjs_antrean_kirim WHERE uuid = $1 AND faskes_uuid = $2`, [kirimUuid, faskesUuid]);
   if (!baris) throw new GalatBpjs("Data pengiriman tidak ditemukan", 404);
-  const booking = await satu(`SELECT * FROM bpjs_antrean_booking WHERE uuid = $1`, [baris.booking_uuid]);
+  // Kunci (booking_uuid) saja bukan bukti kewenangan (KF-5): pembacaan booking tetap mengikat faskes yang sedang
+  // diproses dan status aktif, supaya booking faskes lain atau yang sudah dihapus tidak pernah ikut dikirim.
+  const booking = await satu(
+    `SELECT * FROM bpjs_antrean_booking WHERE uuid = $1 AND faskes_uuid = $2 AND deleted_at IS NULL`,
+    [baris.booking_uuid, faskesUuid]
+  );
+  if (!booking) {
+    const pesan = "Booking tidak ditemukan atau sudah dihapus";
+    await query(
+      `UPDATE bpjs_antrean_kirim SET status = 'gagal', percobaan = percobaan + 1, pesan = $2, updated_at = $3 WHERE uuid = $1`,
+      [kirimUuid, pesan, sekarang()]
+    );
+    return { status: "gagal", pesan };
+  }
 
   try {
     const respons = await kirimWsAntrean(kred, baris.jenis, `ws/${baris.jenis}`, { kodebooking: booking?.kode_booking, ...baris.payload });

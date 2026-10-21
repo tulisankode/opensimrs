@@ -18,12 +18,12 @@ export default class DatamasterJenisStokService {
 
     static update(req) {
         let validData = ZodValidator.validate(DatamasterValidation.UPDATE_SATUAN, req);
-        return DataMasterJenisStokRepository.update(validData);
+        return DataMasterJenisStokRepository.update({ ...validData, faskes_uuid: req.faskes_uuid });
     }
 
     static delete(req) {
         let validData = ZodValidator.validate(DatamasterValidation.DELETE_SATUAN, req);
-        return DataMasterJenisStokRepository.delete(validData);
+        return DataMasterJenisStokRepository.delete({ ...validData, faskes_uuid: req.faskes_uuid });
     }
 
     static import(req){

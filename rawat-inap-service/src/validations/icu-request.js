@@ -19,11 +19,24 @@ export default class IcuRequest {
         serah_terima: serahTerima,
     });
 
+    // jenis_keluar "pindah" (bawaan) wajib tertaut ke perpindahan keluar yang sudah approve; "meninggal" dan "pulang"
+    // menutup episode tanpa perpindahan bed sehingga perpindahan tidak boleh dikirim. Kondisi keluar mengikuti jenisnya.
     static KELUAR_PERAWATAN = z.object({
-        perpindahan_keluar_uuid: z.string().uuid(),
-        kondisi_keluar: z.enum(["hidup", "meninggal"]),
-        ringkasan: serahTerima,
-    });
+        jenis_keluar: z.enum(["pindah", "pulang", "meninggal"]).default("pindah"),
+        perpindahan_keluar_uuid: z.string().uuid().optional(),
+        kondisi_keluar: z.enum(["hidup", "meninggal"]).optional(),
+        ringkasan: serahTerima.default({}),
+    }).superRefine((v, ctx) => {
+        const galat = (path, message) => ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
+        if (v.jenis_keluar === "pindah") {
+            if (!v.perpindahan_keluar_uuid) galat("perpindahan_keluar_uuid", "Perpindahan keluar wajib untuk keluar karena pindah ruangan");
+            if (!v.kondisi_keluar) galat("kondisi_keluar", "Kondisi keluar wajib diisi");
+            return;
+        }
+        if (v.perpindahan_keluar_uuid) galat("perpindahan_keluar_uuid", "Keluar pulang/meninggal tidak memakai perpindahan keluar");
+        const kondisi = v.jenis_keluar === "meninggal" ? "meninggal" : "hidup";
+        if (v.kondisi_keluar && v.kondisi_keluar !== kondisi) galat("kondisi_keluar", "Kondisi keluar tidak sesuai jenis keluar");
+    }).transform((v) => ({ ...v, kondisi_keluar: v.jenis_keluar === "pindah" ? v.kondisi_keluar : v.jenis_keluar === "meninggal" ? "meninggal" : "hidup" }));
 
     static OBSERVASI = z.object({
         parameter_tambahan: nilaiDinamis.default([]),

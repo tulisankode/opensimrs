@@ -82,7 +82,7 @@ const expandedRows = ref<any[]>([]);
             style="width: 100px"
           >
             <template #body="{ data }">
-              {{ data.patient.gender == "Male" ? "L" : "P" }}
+              {{ ['Male', 'Laki-laki'].includes(data.patient.gender) ? 'L' : ['Female', 'Perempuan'].includes(data.patient.gender) ? 'P' : '-' }}
             </template>
           </Column>
           <Column
@@ -134,7 +134,7 @@ const expandedRows = ref<any[]>([]);
             <template #body="{ data }">
               <span v-if="data.status_pulang === 'home'">Pulang atas persetujuan dokter</span>
               <span v-else-if="data.status_pulang === 'aadvice'">Pulang atas permintaan sendiri</span>
-              <span v-else-if="data.status_pulang === 'other-hcf'">Dirujuk</span>
+              <span v-else-if="['other-hfc', 'other-hcf'].includes(data.status_pulang)">Dirujuk</span>
               <span v-else-if="data.status_pulang === 'exp-lt48h'">Meninggal &lt; 48 jam</span>
               <span v-else-if="data.status_pulang === 'exp-gt48h'">Meninggal &gt; 48 jam</span>
               <span v-else-if="data.status_pulang === 'oth'">Lain-lain</span>

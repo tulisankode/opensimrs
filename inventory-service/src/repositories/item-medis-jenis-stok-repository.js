@@ -88,6 +88,7 @@ export default class ItemMedisJenisStokRepository {
     return await ItemMedisJenisStokModel.findOne({
       where: {
         uuid: req.uuid,
+        faskes_uuid: req.faskes_uuid,
       },
       attributes: ["uuid"],
       include: [

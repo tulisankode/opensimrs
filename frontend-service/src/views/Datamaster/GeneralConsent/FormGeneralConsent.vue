@@ -12,6 +12,7 @@ import CustomAccordion from "@/components/Base/CustomAccordion.vue";
 import CustomCkEditor from "@/components/Base/CustomCkEditor.vue";
 import CustomDialog from "@/components/Base/CustomDialog.vue";
 import CustomButton from "@/components/Base/CustomButton.vue";
+import GeneralConsentContent from "@/components/Base/GeneralConsentContent.vue";
 
 const props = defineProps({
   isDialogVisible: {
@@ -220,7 +221,7 @@ watch(
         <CustomInfoRow label="Kode General Consent" :value="code" />
         <CustomInfoRow label="Nama General Consent" :value="name" />
         <hr class="col-span-12 border-grey-200" />
-        <div class="text-normal" v-html="payload.isiSurat"></div>
+        <GeneralConsentContent class="text-normal" :isiSurat="payload.isiSurat" />
         <hr class="col-span-12 border-grey-200" />
         <CustomInfoRow label="Status">
           <template #value>

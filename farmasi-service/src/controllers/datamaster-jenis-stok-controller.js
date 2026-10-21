@@ -36,6 +36,7 @@ export default class DatamasterJenisStokController {
     try {
       const { uuid } = req.params;
       req.body.uuid = uuid;
+      req.body.faskes_uuid = req.author.faskesUuid;
       await DatamasterJenisStokService.update(req.body);
       res.status(200).json(successResponse("data berhasil diupdate"));
     } catch (error) {
@@ -47,6 +48,7 @@ export default class DatamasterJenisStokController {
     try {
       const { uuid } = req.params;
       req.body.uuid = uuid;
+      req.body.faskes_uuid = req.author.faskesUuid;
       await DatamasterJenisStokService.delete(req.body);
       res.status(200).json(successResponse("Data berhasil dihapus"));
     } catch (error) {

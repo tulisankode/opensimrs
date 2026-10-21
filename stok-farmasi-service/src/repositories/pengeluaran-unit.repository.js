@@ -112,10 +112,12 @@ export default class PengeluaranUnitRepository {
     });
   }
 
-  static async findStokDetailsByUuids(stockUuids) {
+  static async findStokDetailsByUuids(stockUuids, faskesUuid) {
     return await StockMedisModel.findAll({
       where: {
         uuid: { [Op.in]: stockUuids },
+        faskes_uuid: faskesUuid,
+        deleted_at: null,
       },
       include: [
         {

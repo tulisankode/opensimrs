@@ -284,6 +284,26 @@ Keamanan:
 - Kanal pesan (WhatsApp, Telegram, dan lainnya) sengaja tidak diatur. Helpdesk hanya lewat tombol Bantuan, yang memiliki login, penyaring data pasien, dan batas per jam.
 - Gateway produksi di VM terpisah tetap diatur mengikuti [deploy/helpdesk/README.md](../deploy/helpdesk/README.md).
 
+## 5b. Asisten Pengembang di setiap halaman
+
+Saat Mode Pengembang aktif, superadmin melihat tombol bulat samar (ikon labu) di **kanan bawah** setiap halaman aplikasi, termasuk APM dan layar antrean, kecuali halaman SIMRS Studio dan login. Perangkat kiosk dan TV sebaiknya login dengan akun non-superadmin agar tombol ini tidak terlihat pasien. Pintasan: `Ctrl+Shift+.`. Titik merah berarti ada galat yang tertangkap di halaman itu; titik kuning berarti ada item Studio aktif untuk modul halaman itu.
+
+| Tab | Isi |
+|---|---|
+| Konteks | Modul dan fitur katalog pemilik halaman, izin halaman, komponen Vue, galat API/console yang tertangkap di halaman ini, serta item Studio aktif dan riwayat untuk modulnya |
+| Audit (opsional) | **Jalankan audit** memeriksa kode halaman dan backend yang melayaninya tanpa AI, dalam lima aspek: fungsional, query, relasi, logika, dan keamanan. Setiap temuan punya tingkat dan bukti `berkas:baris`; temuan terpilih bisa dijadikan permintaan |
+| Product | Formulir terarah: kebutuhan pengguna, siapa yang terdampak, hasil yang diharapkan, contoh kasus |
+| Engineer | Formulir terarah: perubahan teknis, perilaku yang diharapkan, berkas/endpoint terkait, dampak ke modul lain |
+| QA | Laporan masalah dan langkah mengulang, ditambah **Cek konsistensi tampilan** (PageToolbar, Card, DataTable, isian dan tombol standar, isian UUID) |
+
+Setelah **Pratinjau** › **Kirim ke SIMRS Studio**, item baru dibuat dengan `modul_terdampak` = modul halaman, dan `konteks_asal` berisi path halaman, modul/fitur, izin, komponen, galat, serta hasil cek tampilan. Agen membaca konteks itu ditambah entri katalog modul (rute, menu, fitur) di setiap tahap. Formulir **Permintaan Baru** juga punya pemilih **Modul terkait** untuk tujuan yang sama.
+
+Batasan:
+- Galat hanya dikumpulkan di peramban superadmin saat Mode Pengembang aktif. Yang dicatat hanya metode, path tanpa query, status, dan pesan, tanpa body permintaan/respons. Konteks yang memuat data pribadi (NIK, nomor HP, email asli) ditolak backend.
+- Tombol tetap tampil di atas dialog layar penuh, misalnya Rekam Medis yang dibuka dari Rawat Jalan › Poli. Selama dialog terbuka, komponen dialog itulah yang menjadi konteks, audit, dan cek tampilan. Teks header dialog tidak dibaca karena bisa memuat data pasien. Nama komponen dialog hanya terbaca di mode pengembangan (`npm run dev`).
+- Audit cepat bersifat heuristik. Tanda *perlu dicek* berarti verifikasi dulu di kode. Audit tidak wajib dan tidak memakai kuota konektor.
+- F1 belum memakai AI. Asisten percakapan (F3) akan memakai rantai konektor dan kuota yang sama dengan agen pengembangan. Rancangan lengkap: [rancangan/STUDIO-ASISTEN-KONTEKS.md](./rancangan/STUDIO-ASISTEN-KONTEKS.md).
+
 ## 6. Ekstensi tanpa kode
 
 Ekstensi dibuat di **SIMRS Studio › Ekstensi** (fitur Ekstensi harus aktif). Ada tiga jenis:

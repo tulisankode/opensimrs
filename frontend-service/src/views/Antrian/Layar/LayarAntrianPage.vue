@@ -19,6 +19,7 @@ import type { MenuItem } from "primevue/menuitem";
 import NoData from "@/components/section/NoData.vue";
 import { utilsStore } from "@/stores/utils";
 import { useConfigLayarAntrianStore } from "@/stores/antrian/configLayarAntrian";
+import { panggilanPoliTerkini, urutPanggilanTerbaru } from "@/utils/panggilanLayar";
 import CustomPaginator from "@/components/Base/CustomPaginator.vue";
 import CustomDialog from "@/components/Base/CustomDialog.vue";
 import PreviewLayout3x3 from "@/views/Antrian/Konfigurasi/KonfigurasiLayar/PreviewLayar/Layout3x3Panggilan.vue";
@@ -90,8 +91,9 @@ const fetchLayarPoli = async (diam = false) => {
   try {
     const res = await configLayarAntrianStore.getApiLayarPoli();
     if (res && Array.isArray(res.payload)) {
-      poliCallsActive.value = res.payload.filter(
-        (item: any) => item.statusPanggilan === 1
+      // Panggilan terakhir per poli-dokter, terbaru di depan.
+      poliCallsActive.value = panggilanPoliTerkini(
+        res.payload.filter((item: any) => item.statusPanggilan === 1)
       );
       poliCallsWaiting.value = res.payload.filter(
         (item: any) => item.statusPanggilan === 0
@@ -124,7 +126,7 @@ const fetchAntrianCall = async (diam = false) => {
       configLayarAntrianStore.getAntrianCall(0),
     ]);
     admisiCallsActive.value = Array.isArray(resActive.payload)
-      ? resActive.payload
+      ? urutPanggilanTerbaru(resActive.payload)
       : [];
     admisiCallsWaiting.value = Array.isArray(resWaiting.payload)
       ? resWaiting.payload

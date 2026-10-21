@@ -1,6 +1,6 @@
 import { InsuranceAdmissionModel, PerpindahanModel, RawatInapModel } from "@opensimrs/model-sdk/pelayanan";
 import Pagination from "../helpers/pagination.js";
-import { kunjunganReportInclude, perpindahanReportInclude } from "./include/report-include.js";
+import { cancelReportInclude, kunjunganReportInclude, perpindahanReportInclude } from "./include/report-include.js";
 import { cancelReportFilter, commonFilterReport } from "./filters/common-filter.js";
 import { Context } from "../middlewares/context.js";
 import { CTX_AUTHOR } from "../constants/context-constant.js";
@@ -48,7 +48,7 @@ export default class ReportRepository {
                 const filter = cancelReportFilter({ faskesUuid, args, options: {} });
 
                 const options = {
-                    include: kunjunganReportInclude,
+                    include: cancelReportInclude,
                     attributes: ["tanggal_daftar", "no_reg", "no_pelayanan", "petugas", "alasan_batal", "deletedAt"],
                 };
 

@@ -10,11 +10,11 @@ export const usePermintaanBarangStore = defineStore({
       page_size = 10,
       status = "",
       no_permintaan = "",
-      nama_lokasi_tujuan = "",
+      lokasi_stok_tujuan_uuid = "",
       payload = {}
     ) {
       return apiStokGet(
-        `/stok/permintaan-unit?page=${page}&page_size=${page_size}&status=${status}&no_permintaan=${no_permintaan}&nama_lokasi_tujuan=${nama_lokasi_tujuan}`,
+        `/stok/permintaan-unit?page=${page}&page_size=${page_size}&status=${status}&no_permintaan=${no_permintaan}&lokasi_stok_tujuan_uuid=${lokasi_stok_tujuan_uuid}`,
         payload
       );
     },

@@ -46,11 +46,11 @@ export default class PermintaanUnitRepository {
     }
 
     static async getDetail(req){
+        // Isolasi faskes: permintaan hanya boleh dibaca/diproses oleh faskes pemiliknya.
+        const where = { uuid: req.uuid, deleted_at: null };
+        if (req.faskes_uuid) where.faskes_uuid = req.faskes_uuid;
         const result = await PermintaanUnitModel.findOne({
-            where: {
-                uuid: req.uuid,
-                deleted_at: null,
-            },
+            where,
             attributes : {
                 exclude: ["deleted_at", "created_at", "updated_at", "id"]
             },
@@ -71,12 +71,12 @@ export default class PermintaanUnitRepository {
     }
 
     static async update(req, transaction){
+        const where = { uuid: req.uuid };
+        if (req.faskes_uuid) where.faskes_uuid = req.faskes_uuid;
         return await PermintaanUnitModel.update(
             req,
             {
-                where: {
-                    uuid: req.uuid
-                },
+                where,
                 transaction
             }
         );

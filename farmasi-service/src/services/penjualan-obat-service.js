@@ -13,6 +13,8 @@ import { uuidv7 } from "uuidv7";
 import NotfoundException from "../errors/notfound-exception.js";
 
 export default class PenjualanObatService {
+  // token: Authorization pemanggil, disiapkan untuk integrasi tagihan Kasir (payment-service) yang belum ada;
+  // saat ini pembayaran OTC dicatat langsung di apotek lewat bayarOtc.
   static async create(data, author, token) {
     ZodValidator.validate(PenjualanObatValidation.CREATE_OTC, data);
 
@@ -34,8 +36,32 @@ export default class PenjualanObatService {
       const stockMap = new Map(
         stockDetails.map((stock) => [stock.uuid, stock])
       );
+
+      // Lokasi penjualan wajib milik faskes pengguna (faskes dari JWT), begitu pula batch stok yang dipilih.
+      const lokasiStok = await PenjualanObatRepository.getLokasiStok(
+        data.lokasi_stok_uuid,
+        faskesUuid
+      );
+      if (!lokasiStok) {
+        throw new NotfoundException("Lokasi farmasi tidak ditemukan.");
+      }
+
+      const kodeTerpakai = await PenjualanObatRepository.getByCode({
+        no_transaksi: data.no_transaksi,
+        faskes_uuid: faskesUuid,
+      });
+      if (kodeTerpakai) {
+        throw new BadRequestException(
+          `No. transaksi ${data.no_transaksi} sudah dipakai, muat ulang halaman untuk kode baru.`
+        );
+      }
+
       const penjualanUuid = uuidv7();
       const konfigurasiHarga = await KonfigurasiHargaRepository.get(faskesUuid);
+      // Harga jual = HPP x (1 + margin% Konfigurasi Harga), sama dengan tagihan resep (prescription-service).
+      // Sebelumnya OTC dijual seharga HPP tanpa margin, dan metode "average" terbaca sebagai harga terakhir.
+      const isAvg = ["avg", "average"].includes(konfigurasiHarga?.metode_hpp);
+      const margin = Number(konfigurasiHarga?.margin || 0);
 
       let totalHargaCalculated = 0;
       const processedItems = [];
@@ -46,6 +72,7 @@ export default class PenjualanObatService {
         const stockDetail = stockMap.get(item.stock_uuid);
         if (
           !stockDetail ||
+          stockDetail.faskes_uuid !== faskesUuid ||
           !stockDetail.item_medis_jenis_stok ||
           !stockDetail.item_medis_jenis_stok.item_medis
         ) {
@@ -54,20 +81,30 @@ export default class PenjualanObatService {
           );
         }
 
-        if (stockDetail.sisa_stok < item.qty) {
-          throw new BadRequestException(
-            `Stok untuk ${stockDetail.item_medis_jenis_stok.item_medis.name} (Batch UUID: ${item.stock_uuid}) tidak mencukupi. Sisa: ${stockDetail.sisa_stok}, diminta: ${item.qty}`
-          );
-        }
-
-        const itemMedisJenisStokUuid = stockDetail.item_medis_jenis_stok_uuid;
         const itemMedisUuid = stockDetail.item_medis_jenis_stok.item_medis_uuid;
         const itemMedisData = stockDetail.item_medis_jenis_stok.item_medis;
 
+        // Jenis stok mengikuti pilihan pengguna (Umum/BPJS/...); batch stock_uuid hanya penunjuk item.
+        // Sebelumnya jenis stok pilihan diabaikan sehingga harga & stok yang dipotong bisa berbeda dari layar.
+        const jenisStokUuid =
+          item.jenis_stok_uuid || stockDetail.item_medis_jenis_stok.jenis_stok_uuid;
+        const itemJenisStok =
+          jenisStokUuid === stockDetail.item_medis_jenis_stok.jenis_stok_uuid
+            ? stockDetail.item_medis_jenis_stok
+            : await PenjualanObatRepository.getItemJenisStok(
+                itemMedisUuid,
+                jenisStokUuid
+              );
+        if (!itemJenisStok) {
+          throw new BadRequestException(
+            `Jenis stok yang dipilih tidak tersedia untuk ${itemMedisData.name}.`
+          );
+        }
+
         const hargaInfo =
           await DataMasterItemMedisRepository.findLatestPricesForItemJenisStok(
-            itemMedisJenisStokUuid,
-            konfigurasiHarga.metode_hpp === "avg"
+            itemJenisStok.uuid,
+            isAvg
           );
         if (
           !hargaInfo ||
@@ -78,17 +115,28 @@ export default class PenjualanObatService {
             `Harga (avg/terakhir) untuk item medis ${itemMedisData.name} (UUID: ${itemMedisUuid}) tidak ditemukan di database.`
           );
         }
-        const hargaSatuan = hargaInfo.dataValues.harga;
+        const hargaSatuan = Math.round(
+          Number(hargaInfo.dataValues.harga) * (1 + margin / 100)
+        );
 
-        totalHargaCalculated += (hargaSatuan - (item.diskon || 0)) * item.qty;
+        // Diskon = potongan nominal per baris (sesuai kolom "Diskon Rp." di layar), bukan per satuan.
+        const diskon = Number(item.diskon || 0);
+        const jumlah = hargaSatuan * item.qty;
+        if (diskon > jumlah) {
+          throw new BadRequestException(
+            `Diskon ${itemMedisData.name} melebihi jumlah harga (${jumlah}).`
+          );
+        }
+        const subtotal = jumlah - diskon;
+        totalHargaCalculated += subtotal;
 
         processedItems.push({
           stock_uuid: item.stock_uuid,
           item_medis_uuid: itemMedisUuid,
           item_medis_name: itemMedisData.name,
-          jenis_stok_uuid: stockDetail.item_medis_jenis_stok.jenis_stok_uuid,
+          jenis_stok_uuid: jenisStokUuid,
           qty: item.qty,
-          diskon: item.diskon || 0,
+          diskon: diskon,
           uuid: uuidv7(),
           penjualan_obat_uuid: penjualanUuid,
           faskes_uuid: faskesUuid,
@@ -96,7 +144,7 @@ export default class PenjualanObatService {
           satuan_uuid: itemMedisData.satuan_penggunaan_uuid,
           satuan_name: itemMedisData.satuan_penggunaan?.name || null,
           exp_date: stockDetail.exp_date,
-          subtotal: (hargaSatuan - (item.diskon || 0)) * item.qty,
+          subtotal: subtotal,
         });
       }
 
@@ -108,6 +156,7 @@ export default class PenjualanObatService {
         total_harga: totalHargaCalculated,
         status: "belum_lunas",
         faskes_uuid: faskesUuid,
+        lokasi_stok_uuid: lokasiStok.uuid,
         items: undefined,
       };
 
@@ -132,7 +181,7 @@ export default class PenjualanObatService {
             jenis_stok_uuid: itemData.jenis_stok_uuid,
             quantity: itemData.qty,
             metode_pemotongan_stok: konfigurasiHarga.metode_pemotongan_stok,
-            name: itemData.name,
+            name: itemData.item_medis_name,
             lokasi_stok_uuid: penjualan.lokasi_stok_uuid,
           },
           mutasiData,
@@ -144,7 +193,7 @@ export default class PenjualanObatService {
         const { item_medis_name, satuan_name, subtotal, ...dbPayload } =
           itemData;
 
-        await PenjualanObatRepository.createOtcItem(itemData, transaction);
+        await PenjualanObatRepository.createOtcItem(dbPayload, transaction);
       }
 
       await PenjualanObatRepository.updateOtc(
@@ -262,6 +311,43 @@ export default class PenjualanObatService {
     }
   }
 
+  // Pembayaran di apotek: hanya penjualan berstatus belum_lunas milik faskes pengguna yang dapat dilunasi.
+  static async bayarOtc(data, author) {
+    ZodValidator.validate(PenjualanObatValidation.BAYAR_OTC, data);
+    const faskesUuid = author.faskesUuid;
+    const transaction = await sequelizeInstance.transaction();
+
+    try {
+      const penjualan = await PenjualanObatRepository.getOtcByUuid(
+        { uuid: data.uuid, faskes_uuid: faskesUuid },
+        transaction
+      );
+      if (!penjualan) {
+        throw new NotfoundException(
+          `Penjualan obat dengan UUID ${data.uuid} tidak ditemukan.`
+        );
+      }
+      if (penjualan.status !== "belum_lunas") {
+        throw new BadRequestException(
+          `Penjualan obat tidak dapat dibayar karena statusnya sudah '${penjualan.status}'.`
+        );
+      }
+
+      await PenjualanObatRepository.updateOtc(
+        { status: "lunas" },
+        data.uuid,
+        transaction,
+        faskesUuid
+      );
+      await transaction.commit();
+
+      return { uuid: data.uuid, no_transaksi: penjualan.no_transaksi, status: "lunas" };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
   static async getAll(req) {
     setRangeDate(req);
 
@@ -280,7 +366,11 @@ export default class PenjualanObatService {
   }
 
   static async getByUuid(req) {
-    return await PenjualanObatRepository.getOtcByUuid(req);
+    const result = await PenjualanObatRepository.getOtcByUuid(req);
+    if (!result) {
+      throw new NotfoundException("Penjualan obat tidak ditemukan.");
+    }
+    return result;
   }
 
   static async generateCode(req) {

@@ -5,6 +5,7 @@ import SidebarLayout from "@/layouts/HeaderLayout.vue";
 // NOTE Component View
 import LoginView from "@/views/LoginView.vue";
 import DashboardView from "@/views/Dashboard/DashboardView.vue";
+import DashboardPage from "@/views/Dashboard/DashboardPage.vue";
 import RawatJalanView from "@/views/RawatJalan/RawatJalanView.vue";
 import SettingView from "@/views/SettingPage/SettingView.vue";
 import DatamasterView from "@/views/Datamaster/DatamasterView.vue";
@@ -503,12 +504,10 @@ const router = createRouter({
       meta: { layout: DefaultLayout },
       component: () => import("@/views/Antrian/Layar/KioskLayarPage.vue"),
     },
-    {
-      path: "/dashboard",
-      name: "dashboard",
-      meta: { layout: SidebarLayout, requiresAuth: true },
-      component: DashboardView,
-    },
+    // Dashboard: view bersidebar + izin dasar modul Dashboard (STD-0049, utils/permissions.ts)
+    ...halamanModul(DashboardView, [
+      ["/dashboard", "dashboard", DashboardPage],
+    ]),
     {
       path: "/dashboard/virtual-office",
       name: "dashboard-virtual-office",

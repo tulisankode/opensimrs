@@ -212,7 +212,14 @@ export default class PenerimaanBarangService {
             // Kalkulasi HPP / Average Cost
             const hargaLamaData = hargaItemMap.get(itemJenisStokUuid);
 
-            const stokFisikLama = stokConfigData.stock_medis ? parseFloat(stokConfigData.stock_medis.sisa_stok) : 0;
+            // Relasi yang di-include bernama "stocks" (array batch). Sebelumnya dibaca sebagai stock_medis
+            // (selalu undefined) sehingga stok lama dianggap 0: HPP rata-rata selalu = harga beli terakhir
+            // dan stok_awal kartu stok penerimaan selalu 0.
+            const batchAktif = (stokConfigData.stocks || []).filter((s) => !s.deleted_at);
+            const stokFisikLama = batchAktif.reduce((acc, s) => acc + Number(s.sisa_stok || 0), 0);
+            const stokLokasiLama = batchAktif
+                .filter((s) => s.lokasi_stok_uuid === purchaseOrder.lokasi_stok_uuid)
+                .reduce((acc, s) => acc + Number(s.sisa_stok || 0), 0);
             const hargaAvgLama = hargaLamaData ? parseFloat(hargaLamaData.harga_avg) : 0;
 
             let newHargaAvg = 0;
@@ -269,7 +276,7 @@ export default class PenerimaanBarangService {
                     qty_terima_fisik: qtyTerimaInput,
                 },
                 petugas: validatedData.petugas_penerima_uuid,
-                stok_awal: stokFisikLama,
+                stok_awal: stokLokasiLama,
                 stok_mutasi: qtyStokMasuk,
                 sumber_mutasi: "inventory",
                 type: "surplus",

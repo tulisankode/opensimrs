@@ -13,6 +13,7 @@ import { branchDasar, branchLokal, direktoriKerja, folderBranchTerbuka, hapusWor
 import { pathDiubahDalamDesain, periksaKebijakan, temukanDataPribadi, zonaTersentuh } from "./kebijakan.js";
 import { FOLDER_MIGRASI, awalanLayak, hitungAwalan, rencanaUrutMigrasi, terapkanUrutMigrasi } from "./migrasi.js";
 import { batalGabung, dikenal, masihBerpenanda, sedangMenggabung, selesaikanGabung, sinkronkan } from "./gabung.js";
+import { bersihkanKonteks, teksKonteksAsal, teksModulKatalog } from "./konteks.js";
 import { FOLDER_LAMPIRAN, estimasiBiaya, jalankanAgen, periksaBatas } from "./agen/index.js";
 import { CATATAN_LANJUTAN, susunRantai, waktuLanjut } from "./agen/kuota.js";
 import { NAMA_TAHAP, susunPromptCoding, susunPromptDokumen, uraiKeluaran } from "./agen/prompt.js";
@@ -157,7 +158,8 @@ const konteksTambahan = async (item, tahap) => {
   const berkas = (item.berkas ?? []).map((b) => b.path);
   const desain = (await artefakTerbaru(item.uuid, "desain"))?.isi ?? "";
   const pathDesain = pathDiubahDalamDesain(desain);
-  const modul = (item.modul_terdampak ?? []).map((m) => String(m).toLowerCase());
+  // Modul terdampak (nama) + kode modul halaman asal: aturan area boleh berkunci nama maupun kode modul.
+  const modul = [...(item.modul_terdampak ?? []), item.konteks_asal?.modul?.kode].filter(Boolean).map((m) => String(m).toLowerCase());
   const cocokArea = (k) => {
     const kunci = String(k).toLowerCase();
     return [...berkas, ...pathDesain].some((p) => p.toLowerCase().startsWith(kunci)) || modul.includes(kunci);
@@ -184,7 +186,9 @@ const konteksTambahan = async (item, tahap) => {
       }
     }
   }
-  return { aturanArea, tambahanTahap, pengetahuan, lampiran };
+  const konteksAsal = teksKonteksAsal(item.konteks_asal);
+  const katalogModul = teksModulKatalog([...(item.modul_terdampak ?? []), item.konteks_asal?.modul?.kode].filter(Boolean));
+  return { aturanArea, tambahanTahap, pengetahuan, lampiran, konteksAsal, katalogModul };
 };
 
 // Prompt efektif (pratinjau, rancangan §9.1).
@@ -205,17 +209,21 @@ export const pratinjauPrompt = async (item, tahap) => {
 
 // ---------- Item ----------
 
-export const buatItem = async ({ judul, jenis = "fitur", prioritas = "P2", permintaan = {}, modul_terdampak = [] }, author) => {
+export const buatItem = async ({ judul, jenis = "fitur", prioritas = "P2", permintaan = {}, modul_terdampak = [], konteks_asal = null }, author) => {
   if (!judul?.trim()) throw permintaanSalah("Judul wajib diisi");
   if (!permintaan.masalah?.trim() && !permintaan.harapan?.trim()) throw permintaanSalah("Isi minimal masalah atau hasil yang diharapkan");
   pastikanBebasDataPribadi(judul, permintaan.masalah, permintaan.siapa, permintaan.harapan, permintaan.contoh);
+  const konteks = bersihkanKonteks(konteks_asal);
+  // Modul halaman asal mengisi modul terdampak bila pengusul tidak memilihnya (aturan area per modul ikut terpakai).
+  if ((!Array.isArray(modul_terdampak) || !modul_terdampak.length) && konteks?.modul?.nama) modul_terdampak = [konteks.modul.nama];
   await periksaBatas(null, author.username);
   const item = await sisipkan("studio_item", {
     judul: judul.trim().slice(0, 255),
     jenis: ["fitur", "perbaikan", "laporan", "modul"].includes(jenis) ? jenis : "fitur",
     prioritas: ["P1", "P2", "P3"].includes(prioritas) ? prioritas : "P2",
     permintaan,
-    modul_terdampak: Array.isArray(modul_terdampak) ? modul_terdampak.slice(0, 20) : [],
+    modul_terdampak: Array.isArray(modul_terdampak) ? modul_terdampak.map((m) => String(m).slice(0, 120)).slice(0, 20) : [],
+    konteks_asal: konteks,
     faskes_uuid: author.faskesUuid ?? null,
     dibuat_oleh: author.username,
     tahap_mulai: sekarang(),
@@ -451,10 +459,23 @@ const kerjakanDokumen = async (tugas, item, tahap, instruksi) => {
     const artefak = await simpanArtefak(terkini, tahap, k.artefak, "agen", tugas.uuid);
     const ubahItem = {};
     const risikoBaru = String(k.meta?.risiko ?? "").toLowerCase();
-    if (URUTAN_RISIKO.includes(risikoBaru) && lebihTinggi(risikoBaru, terkini.risiko)) ubahItem.risiko = risikoBaru;
+    // Usulan risiko agen tidak boleh menimpa diam-diam keputusan superadmin (Triase risiko): bila risiko pernah
+    // ditetapkan manual, usulan lebih tinggi hanya dicatat di diskusi; selain itu dinaikkan dengan pesan & audit.
+    let usulanRisiko = null;
+    if (URUTAN_RISIKO.includes(risikoBaru) && lebihTinggi(risikoBaru, terkini.risiko)) {
+      const manual = await satu(`SELECT 1 FROM studio_audit WHERE item_uuid = $1 AND aksi LIKE 'Menetapkan risiko%' LIMIT 1`, [item.uuid]);
+      usulanRisiko = manual ? risikoBaru : null;
+      if (!manual) ubahItem.risiko = risikoBaru;
+    }
     if (Array.isArray(k.meta?.modul) && !(terkini.modul_terdampak ?? []).length) ubahItem.modul_terdampak = k.meta.modul.slice(0, 20);
     if (k.commit) ubahItem.pesan_commit = k.commit;
     let setelah = Object.keys(ubahItem).length ? await ubah("studio_item", item.uuid, ubahItem) : terkini;
+    if (ubahItem.risiko) {
+      await pesan(setelah, tahap, "sistem", `Risiko dinaikkan menjadi "${ubahItem.risiko}" atas penilaian agen ${tahap}. Bila keliru, turunkan lewat Triase (superadmin).`);
+      await audit("agen", `Menaikkan risiko ${terkini.risiko} → ${ubahItem.risiko} (penilaian agen ${tahap})`, item.uuid);
+    } else if (usulanRisiko) {
+      await pesan(setelah, tahap, "sistem", `Agen ${tahap} menilai risiko "${usulanRisiko}", tetapi risiko "${terkini.risiko}" sudah ditetapkan superadmin sehingga tidak diubah. Naikkan lewat Triase bila setuju.`);
+    }
     // Desain menyebut berkas zona kuning/merah → risiko naik otomatis (rancangan §8, F3-8).
     if (tahap === "desain") {
       const zona = zonaTersentuh(pathDiubahDalamDesain(k.artefak));

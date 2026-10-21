@@ -1,12 +1,14 @@
 import successResponse from "../responses/success-response.js";
 import PenjualanObatService from "../services/penjualan-obat-service.js";
+import BadRequestException from "../errors/bad-request-exception.js";
 
 export default class PenjualanObatController {
   static async create(req, res, nextFunction) {
     try {
       const author = req.author;
       const data = req.body;
-      const result = await PenjualanObatService.create(data, author);
+      const token = req.headers.authorization;
+      const result = await PenjualanObatService.create(data, author, token);
 
       res.status(200).json(successResponse(`Data berhasil disimpan`, result));
     } catch (error) {
@@ -51,6 +53,21 @@ export default class PenjualanObatController {
       res
         .status(200)
         .json(successResponse("Penjualan obat berhasil dibatalkan"));
+    } catch (error) {
+      nextFunction(error);
+    }
+  }
+
+  // Terima pembayaran penjualan bebas di apotek: status belum_lunas -> lunas (dihitung di Laporan Pendapatan).
+  static async bayarOtc(req, res, nextFunction) {
+    try {
+      const result = await PenjualanObatService.bayarOtc(
+        { uuid: req.params.uuid },
+        req.author
+      );
+      res
+        .status(200)
+        .json(successResponse("Pembayaran penjualan obat berhasil dicatat", result));
     } catch (error) {
       nextFunction(error);
     }

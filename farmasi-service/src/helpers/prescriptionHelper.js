@@ -150,4 +150,95 @@ export default class PrescriptionHelper {
   static mapPrescriptionList(list) {
     return list.map(this.mapPrescription);
   }
+
+  static LABEL_ALASAN_SUBSTITUSI = {
+    stok_kosong: "Stok kosong",
+    tidak_ada_di_formularium: "Tidak tersedia di formularium",
+    permintaan_pasien: "Permintaan pasien",
+    penjamin: "Ketentuan penjamin",
+    lainnya: "Lainnya",
+  };
+
+  // Tempelkan riwayat substitusi ke resep: tiap item mendapat `substitusi` (urut waktu) dan
+  // `substitusi_dari` (nama obat yang diresepkan dokter = obat asal substitusi pertama).
+  // kunciItem: "obat_items" (detail resep) atau "obat" (data cetak e-resep).
+  static lampirkanSubstitusi(resep, riwayat = [], kunciItem = "obat_items") {
+    const perItem = new Map();
+    const daftar = riwayat.map((r) => ({
+      ...r,
+      kategori_alasan_label:
+        this.LABEL_ALASAN_SUBSTITUSI[r.kategori_alasan] ?? r.kategori_alasan,
+    }));
+    for (const r of daftar) {
+      if (!perItem.has(r.prescription_item_uuid)) perItem.set(r.prescription_item_uuid, []);
+      perItem.get(r.prescription_item_uuid).push(r);
+    }
+    for (const item of resep[kunciItem] ?? []) {
+      const milikItem = perItem.get(item.uuid) ?? [];
+      item.substitusi = milikItem;
+      item.substitusi_dari = milikItem[0]?.nama_obat_asal ?? null;
+    }
+    resep.riwayat_substitusi = daftar;
+    return resep;
+  }
+
+  // Arti angka order_status resep dokter
+  static STATUS = {
+    BATAL: 0,
+    RESEP_MASUK: 1,
+    SUDAH_DITELAAH: 2,
+    OBAT_DISIAPKAN: 3, // sudah diverifikasi: stok terpotong & tagihan terkirim
+    SIAP_DISERAHKAN: 4,
+    DISERAHKAN: 5,
+    RETUR: 6,
+  };
+
+  static NAMA_STATUS = {
+    0: "Batal",
+    1: "Resep Masuk",
+    2: "Sudah Ditelaah",
+    3: "Obat Disiapkan (terverifikasi)",
+    4: "Siap Diserahkan",
+    5: "Sudah Diserahkan",
+    6: "Retur",
+  };
+
+  // Pengali biaya racik/embalase. "paket": satu tarif per kelipatan isi bentuk racikan
+  // (mis. isi 10: 1–10 bungkus = 1 paket, 11–20 = 2 paket); "item": per komponen racikan.
+  static kaliBiayaRacik(metode, qty, isiPerPaket, jumlahKomponen) {
+    if (metode === "paket") {
+      const isi = Number(isiPerPaket) > 0 ? Number(isiPerPaket) : 1;
+      return Math.max(1, Math.ceil(Number(qty || 0) / isi));
+    }
+    if (metode === "item") return jumlahKomponen;
+    return null;
+  }
+
+  // harga jual = HPP x (1 + margin% Konfigurasi Harga), dibulatkan ke rupiah
+  static hargaJual(hpp, margin) {
+    return Math.round(Number(hpp || 0) * (1 + Number(margin || 0) / 100));
+  }
+
+  // Item tagihan resep; racikan ditagih sebagai satu paket: komponen + biaya racik + embalase.
+  static itemTagihan(obatList, margin) {
+    return obatList.map((item) => {
+      if (item.is_compound) {
+        const komponen = (item.racikan ?? []).reduce(
+          (sum, r) =>
+            sum + this.hargaJual(r.harga_satuan, margin) * Number(r.medication_qty || 0),
+          0
+        );
+        return {
+          nama_item: item.nama_racikan || item.name || "Obat Racikan",
+          harga: komponen + Number(item.biaya_racik || 0) + Number(item.biaya_embalase || 0),
+          qty: 1,
+        };
+      }
+      return {
+        nama_item: item.item_medis?.name,
+        harga: this.hargaJual(item.harga_satuan, margin),
+        qty: Number(item.medication_qty),
+      };
+    });
+  }
 }

@@ -1,5 +1,6 @@
+import { Op } from "sequelize";
 import {
-    ItemMedisModel, JenisStokModel, OrderAlkesItemModel, PrescriptionItemModel,
+    ItemMedisModel, JenisStokModel, OrderAlkesItemModel, OrderAlkesModel, PrescriptionItemModel, PrescriptionModel,
     ReturItemModel, ReturModel,
     SatuanModel
 } from "@opensimrs/model-sdk/farmasi";
@@ -17,7 +18,8 @@ export default class ReturRepository {
         return await PrescriptionItemModel.findAll({
             where : {
                 prescription_uuid : req.prescription_uuid,
-                is_compound : false
+                is_compound : false,
+                ...(req.faskes_uuid ? { faskes_uuid : req.faskes_uuid } : {})
             },
             attributes : [
                 "medication_qty",
@@ -52,6 +54,7 @@ export default class ReturRepository {
         return await OrderAlkesItemModel.findAll({
             where : {
                 order_alkes_uuid : req.order_alkes_uuid,
+                ...(req.faskes_uuid ? { faskes_uuid : req.faskes_uuid } : {})
             },
             attributes : ["qty", "stok_medis_uuides", "harga_satuan", "uuid"],
             include : [{
@@ -75,6 +78,50 @@ export default class ReturRepository {
             }
             ]
         })
+    }
+
+    // Order asal retur milik faskes token, dikunci selama transaksi retur.
+    static async getResep(uuid, faskesUuid, transaction){
+        return await PrescriptionModel.findOne({ where : { uuid, faskes_uuid : faskesUuid }, transaction, lock : transaction.LOCK.UPDATE });
+    }
+
+    static async getOrderAlkes(uuid, faskesUuid, transaction){
+        return await OrderAlkesModel.findOne({ where : { uuid, faskes_uuid : faskesUuid }, transaction, lock : transaction.LOCK.UPDATE });
+    }
+
+    static async getResepItem(uuid, prescriptionUuid, transaction){
+        return await PrescriptionItemModel.findOne({
+            where : { uuid, prescription_uuid : prescriptionUuid },
+            include : [{ model : ItemMedisModel, as : 'item_medis', required : false, attributes : ['name'] }],
+            transaction
+        });
+    }
+
+    static async getOrderAlkesItem(uuid, orderAlkesUuid, transaction){
+        return await OrderAlkesItemModel.findOne({
+            where : { uuid, order_alkes_uuid : orderAlkesUuid },
+            include : [{ model : ItemMedisModel, as : 'item_medis', required : false, attributes : ['name'] }],
+            transaction
+        });
+    }
+
+    // Jumlah yang sudah pernah diretur per item order (kolom: prescription_item_uuid / order_alkes_item_uuid).
+    static async getQtyDiretur(kolom, itemUuids, transaction){
+        if (!itemUuids.length) return {};
+        const rows = await ReturItemModel.findAll({
+            where : { [kolom] : { [Op.in] : itemUuids }, deleted_at : { [Op.is] : null } },
+            attributes : [kolom, 'qty_retur'],
+            transaction
+        });
+        return rows.reduce((acc, r) => ({ ...acc, [r[kolom]] : (acc[r[kolom]] ?? 0) + Number(r.qty_retur || 0) }), {});
+    }
+
+    static async editResep(uuid, data, transaction){
+        return await PrescriptionModel.update(data, { where : { uuid }, transaction });
+    }
+
+    static async editOrderAlkes(uuid, data, transaction){
+        return await OrderAlkesModel.update(data, { where : { uuid }, transaction });
     }
 
     static async getObatOne(req){

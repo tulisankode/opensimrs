@@ -120,7 +120,7 @@ Data pendukung lain ada di submenu yang sama: **Aturan Pakai**, **Satuan**, **Be
 ## Pertanyaan yang sering diajukan
 **Mengapa tombol Verifikasi tidak bisa diklik?** Telaah resep belum disimpan. Centang semua butir telaah, pilih **Petugas Telaah**, lalu klik **Simpan Telaah**.
 
-**Apakah obat harus dibayar dulu sebelum diserahkan?** Aplikasi tidak menahan penyerahan obat sampai tagihan lunas. Biaya obat masuk ke tagihan pasien saat resep diverifikasi. Ikuti kebijakan pembayaran di faskes Anda.
+**Apakah obat harus dibayar dulu sebelum diserahkan?** Ya, untuk pasien tunai rawat jalan dan IGD. Biaya obat atau alkes masuk ke tagihan pasien saat diverifikasi. Selama tagihan belum dibayar di kasir, kartu di kolom Penyerahan berlencana **MENUNGGU PEMBAYARAN** dan tombol **Serahkan** nonaktif. Pengecualian: pasien rawat inap (dibayar saat pulang), pasien penjamin (BPJS/asuransi), dan BHP Kamar Operasi/Hemodialisa. Tagihan yang ditutup kasir sebagai piutang juga dianggap selesai.
 
 **Bagaimana kalau dokter salah menulis obat?** Bila resep masih di kolom **Resep Masuk**, petugas farmasi bisa mengubah obat lewat ikon pensil. Bila resep harus diganti total, klik **Batal Order**, lalu minta dokter mengorder ulang.
 
@@ -131,8 +131,7 @@ Data pendukung lain ada di submenu yang sama: **Aturan Pakai**, **Satuan**, **Be
 - Peran belum punya izin: admin › **Datamaster › Role** (modul Farmasi, dan modul STOK untuk tombol **Stok**).
 
 ## Catatan untuk peninjau
-- Di daftar **Resep Dokter**, resep rawat inap (`ri`) diberi label "RAWAT JALAN". Ini tampaknya salah ketik di kode.
-- Daftar izin Farmasi memuat aksi "MENUNGGU PEMBAYARAN …", tetapi layar hanya punya tiga kolom (**Resep Masuk**, **Obat Disiapkan**, **Penyerahan Obat**). Mohon dipastikan apakah memang tidak ada tahap "menunggu pembayaran".
+- Daftar izin Farmasi memuat aksi "MENUNGGU PEMBAYARAN …". Tahap ini tidak menjadi kolom tersendiri, tetapi tampil sebagai lencana di kolom **Penyerahan Obat**/**Penyerahan Alkes** (lihat pertanyaan pembayaran di atas).
 - Belum dapat dipastikan dari kode apakah transaksi **Penjualan Obat** dibayar di **Pembayaran › Transaksi › APS & OTC** dan bagaimana status berubah menjadi **Lunas**. Layanan farmasi hanya membuat status "belum_lunas" dan "cancel". Mohon dikonfirmasi alurnya.
 - Langkah retur (kolom **Terima Retur**) ditulis dari judul kolom. Mohon dicek apakah petugas juga mengisi jumlah retur.
 - Tombol **Stok** juga muncul di sidebar modul lain (Admisi, Rawat Jalan, Rawat Inap, IGD, Laboratorium, Pembayaran, dll.). Menu di dalam jendela Stok tampaknya tidak disaring per izin di layar.

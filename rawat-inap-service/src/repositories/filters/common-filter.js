@@ -38,6 +38,11 @@ export function cancelReportFilter({faskesUuid, args = {}, options = {}}) {
             statusRi: 0
         }
     });
-    
+
+        //* Pembatalan SPRI belum punya bed: ruangan/kelas diambil dari bed bila ada, selain itu dari ruangan SPRI
+    const kolomRuangan = (kolom) => sequelizeInstance.fn("coalesce", sequelizeInstance.col(`monitoring_room.room.${kolom}`), sequelizeInstance.col(`ruangan.${kolom}`));
+    if (args.room) filter.room = sequelizeInstance.where(kolomRuangan("name"), { [Op.iLike]: `%${args.room || ""}%` });
+    if (args.kelas) filter.kelas = sequelizeInstance.where(kolomRuangan("class_name"), { [Op.iLike]: `%${args.kelas || ""}%` });
+
     return filter;
 }

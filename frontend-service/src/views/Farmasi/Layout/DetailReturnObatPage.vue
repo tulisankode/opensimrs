@@ -120,7 +120,7 @@ const onSubmit = async () => {
     console.log("item:", item);
     const expired =
       Array.isArray(item.stokMedisUuides) && item.stokMedisUuides.length
-        ? item.stokMedisUuides.expiredDate
+        ? item.stokMedisUuides[0]?.expiredDate
         : "";
     if (item.qtyRetur && item.qtyRetur > 0) {
       items.push({
@@ -138,11 +138,10 @@ const onSubmit = async () => {
       alasan_retur: alasan.value,
       items,
     });
-    console.log("API Response:", response);
+    if (response) emit("update:isDialogVisible", false);
   } catch (error) {
     console.error("Error in API call:", error);
   }
-  emit("update:isDialogVisible", false);
 };
 
 defineExpose({
@@ -389,7 +388,7 @@ onMounted(() => {
                 <Column header="Exp. Date">
                   <template #body="slotProps">
                     <div class="text-SM">
-                      {{ slotProps.data.stokMedisUuides?.expiredDate || "-" }}
+                      {{ slotProps.data.stokMedisUuides?.[0]?.expiredDate || "-" }}
                     </div>
                   </template>
                 </Column>

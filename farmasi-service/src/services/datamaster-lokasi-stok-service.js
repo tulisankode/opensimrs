@@ -48,7 +48,7 @@ export default class DatamasterLokasiStokService {
       DatamasterValidation.DELETE_SATUAN,
       req
     );
-    return DataMasterLokasiStokRepository.delete(validData);
+    return DataMasterLokasiStokRepository.delete({ ...validData, faskes_uuid: req.faskes_uuid });
   }
 
   static import(req) {

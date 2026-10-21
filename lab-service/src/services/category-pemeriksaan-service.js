@@ -97,9 +97,10 @@ export default class CategoryPemeriksaanService {
     return categoryPemeriksaan;
   }
 
-  static async findByCode(code) {
+  static async findByCode(code, faskesUuid) {
     const categoryPemeriksaan = await CategoryPemeriksaanRepository.findByCode(
-      code
+      code,
+      faskesUuid
     );
     return categoryPemeriksaan;
   }
@@ -143,8 +144,10 @@ export default class CategoryPemeriksaanService {
     });
 
     // Cek duplikat no_urut dengan yang sudah ada di database
+    // faskes_uuid wajib: tanpa itu WHERE faskes_uuid = undefined → impor kategori selalu galat.
     const existingNoUrut = await CategoryPemeriksaanRepository.findAllNoUrut(
-      noUrutList
+      noUrutList,
+      faskes_uuid
     );
     if (existingNoUrut.length > 0) {
       throw new ConflictException(

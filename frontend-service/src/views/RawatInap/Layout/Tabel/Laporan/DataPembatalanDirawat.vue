@@ -77,7 +77,7 @@ const expandedRows = ref<any[]>([]);
       class="text-SM"
       style="min-width: 100px"
     >
-       <template #body="{ data }">{{ data?.ruangan?.name ?? '-' }}</template>
+       <template #body="{ data }">{{ data?.monitoringRoom?.room?.name ?? data?.ruangan?.name ?? '-' }}</template>
     </Column>
 
     <Column
@@ -112,7 +112,7 @@ const expandedRows = ref<any[]>([]);
             class="p-5 text-black text-SM"
             style="width: 300px"
           >
-             <template #body="{ data }">{{ data?.monitoringRoom?.room?.className ?? '-' }}</template>
+             <template #body="{ data }">{{ data?.monitoringRoom?.room?.className ?? data?.ruangan?.className ?? '-' }}</template>
           </Column>
           <Column
             header="No. Bed"

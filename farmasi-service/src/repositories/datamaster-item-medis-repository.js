@@ -170,9 +170,11 @@ export default class DataMasterItemMedisRepository {
   }
 
   static async update(req, transaction) {
+    // Isolasi faskes: hanya item milik faskes pengguna yang boleh diubah.
     const [affectedRow] = await ItemMedisModel.update(req, {
       where: {
         uuid: req.uuid,
+        faskes_uuid: req.faskes_uuid,
       },
       transaction,
     });
@@ -193,8 +195,10 @@ export default class DataMasterItemMedisRepository {
         {
           where: {
             item_medis_uuid: req.uuid,
+            faskes_uuid: req.faskes_uuid,
           },
-          tr,
+          // Opsi Sequelize bernama transaction (sebelumnya "tr" sehingga query di luar transaksi).
+          transaction: tr,
         }
       );
 
@@ -205,9 +209,10 @@ export default class DataMasterItemMedisRepository {
         {
           where: {
             uuid: req.uuid,
+            faskes_uuid: req.faskes_uuid,
             deleted_at: null,
           },
-          tr,
+          transaction: tr,
         }
       );
 
@@ -317,9 +322,11 @@ export default class DataMasterItemMedisRepository {
   }
 
   static async updateJenisStok(req, transaction) {
-    const [affectedRow] = ItemMedisJenisStokModel.update(req, {
+    // Sebelumnya tanpa await: destrukturisasi Promise melempar TypeError (galat 500) saat jenis stok diubah.
+    const [affectedRow] = await ItemMedisJenisStokModel.update(req, {
       where: {
         uuid: req.uuid,
+        faskes_uuid: req.faskes_uuid,
       },
       transaction,
     });
@@ -339,6 +346,7 @@ export default class DataMasterItemMedisRepository {
       {
         where: {
           uuid: req.uuid,
+          faskes_uuid: req.faskes_uuid,
         },
         transaction,
       }

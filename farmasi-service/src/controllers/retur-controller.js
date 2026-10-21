@@ -6,7 +6,6 @@ export default class ReturController {
     try {
       const data = req.body; 
       const author = req.author; 
-      console.log("author", author);
       const token = req.headers.authorization; 
 
       const result = await ReturService.create(data, author, token);
@@ -19,6 +18,7 @@ export default class ReturController {
 
   static async getDetail(req, res, nextFunction) {
     try {
+      req.query.faskes_uuid = req.author.faskesUuid;
       const result = await ReturService.getDetail(req.query);
       res
         .status(200)

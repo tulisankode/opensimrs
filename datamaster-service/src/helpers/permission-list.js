@@ -490,6 +490,7 @@ export const farmasiPermission = {
         "SIMPAN EDIT",
         "OBAT DIGERUS",
         "SIMPAN DAN UBAH MENJADI RACIK",
+        "SUBSTITUSI",
         "MENUNGGU PEMBAYARAN BATAL",
         "MENUGGU PEMBAYARAN CETAK",
         "OBAT DISIAPKAN TUNAI CETAK",

@@ -113,6 +113,8 @@ export const selesaiJadwalOk = (uuid: string, serahTerima?: string) => apiPenunj
 // ── Pra-operasi
 export const praOperasiOk = (jadwalUuid: string) => apiPenunjangGet(`/kamar-operasi/jadwal/${jadwalUuid}/praoperasi`);
 export const simpanPraOperasiOk = (jadwalUuid: string, data: Record<string, any>) => apiPenunjangPut(`/kamar-operasi/jadwal/${jadwalUuid}/praoperasi`, data);
+// Daftar persetujuan (inform consent) pasien pada jadwal ini, untuk dipilih — bukan mengetik UUID (KF-1).
+export const referensiPersetujuanOk = (jadwalUuid: string) => apiPenunjangGet(`/kamar-operasi/jadwal/${jadwalUuid}/praoperasi/referensi-persetujuan`);
 
 // ── Checklist keselamatan bedah WHO
 export const checklistOk = (jadwalUuid: string) => apiPenunjangGet(`/kamar-operasi/jadwal/${jadwalUuid}/checklist`);
@@ -141,3 +143,6 @@ export const rekapOk = (params: { tanggalDari?: string; tanggalSampai?: string }
 export const daftarDokterOk = (semua = false) => apiPenunjangGet(`/kamar-operasi/referensi/dokter${qs({ semua: semua ? 1 : "" })}`);
 export const cariIcd9cmOk = (cari: string) => apiPenunjangGet(`/kamar-operasi/referensi/icd9cm${qs({ cari })}`);
 export const cariIcd10Ok = (cari: string) => apiPenunjangGet(`/kamar-operasi/referensi/icd10${qs({ cari })}`);
+// Item medis & lokasi stok (Depo OK) untuk dipilih pada pemakaian BHP/obat — bukan mengetik UUID (KF-1/KF-4).
+export const cariItemMedisOk = (cari: string) => apiPenunjangGet(`/kamar-operasi/referensi/item-medis${qs({ cari })}`);
+export const daftarLokasiStokOk = () => apiPenunjangGet(`/kamar-operasi/referensi/lokasi-stok`);

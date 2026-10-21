@@ -78,8 +78,11 @@ export default class PengadaanBarangService {
         headers,
       );
 
-      const selectedConversion = conversionList.find(c => 
-        c.satuan_pembelian_uuid === itemRequest.satuan_uuid 
+      // Endpoint konversi farmasi mengembalikan konversi SEMUA item faskes (parameter item_medis_uuid
+      // diabaikan), jadi cocokkan juga item-nya; tanpa ini "Box" item lain (isi berbeda) bisa terpakai.
+      const selectedConversion = (conversionList || []).find(c => 
+        c.satuan_pembelian_uuid === itemRequest.satuan_uuid &&
+        (!c.item_medis_uuid || c.item_medis_uuid === itemRequest.item_uuid)
       );
 
       if (!selectedConversion) {
@@ -215,8 +218,10 @@ export default class PengadaanBarangService {
         headers, // Headers diteruskan kesini
       );
 
-      const selectedConversion = conversionList.find(c => 
-        c.satuan_pembelian_uuid === itemRequest.satuan_uuid 
+      // Saring per item juga (lihat catatan pada create): daftar konversi berisi semua item faskes.
+      const selectedConversion = (conversionList || []).find(c => 
+        c.satuan_pembelian_uuid === itemRequest.satuan_uuid &&
+        (!c.item_medis_uuid || c.item_medis_uuid === itemRequest.item_uuid)
       );
 
       if (!selectedConversion) {

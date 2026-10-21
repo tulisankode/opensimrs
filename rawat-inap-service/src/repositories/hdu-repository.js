@@ -180,9 +180,27 @@ export default class HduRepository {
                 await q(`INSERT INTO icu_serah_terimas (uuid, faskes_uuid, perawatan_uuid, perpindahan_uuid, jenis, kondisi, terapi_berjalan, tindak_lanjut, pencatat, waktu_konfirmasi, dikonfirmasi_oleh, created_at)
                     VALUES (:uuid, :f, :icu, :p, 'masuk', :kondisi, :terapi_berjalan, :tindak_lanjut, :pengirim, :waktu, :pelaku, :sekarang)`, { ...st.ringkasan, uuid: uuidv7(), icu: id, p: p.uuid, pengirim: st.pengirim, waktu: data.waktu_kejadian });
             }
-            await q(`UPDATE hdu_episode SET status = 'selesai', waktu_keluar = :waktu, perpindahan_keluar_uuid = :p, versi = versi + 1, updated_at = :sekarang WHERE uuid = :uuid AND faskes_uuid = :f AND deleted_at IS NULL`, { uuid: episodeUuid, waktu: data.waktu_kejadian, p: p.uuid });
+            await q(`UPDATE hdu_episode SET status = 'selesai', waktu_keluar = :waktu, perpindahan_keluar_uuid = :p, jenis_keluar = 'pindah', versi = versi + 1, updated_at = :sekarang WHERE uuid = :uuid AND faskes_uuid = :f AND deleted_at IS NULL`, { uuid: episodeUuid, waktu: data.waktu_kejadian, p: p.uuid });
         }
         await q(`UPDATE hdu_serah_terima SET episode_uuid = :episode, penerima = :pelaku, waktu_penerimaan = :waktu, waktu_konfirmasi = :sekarang, versi = versi + 1, updated_at = :sekarang WHERE uuid = :uuid AND faskes_uuid = :f AND deleted_at IS NULL`, { uuid, episode: episodeUuid, waktu: data.waktu_kejadian });
         return { serah_terima: await this.satu(q, "hdu_serah_terima", uuid), episode: await this.satu(q, "hdu_episode", episodeUuid) };
+    }
+
+    // Penutupan episode tanpa perpindahan bed: pasien meninggal di HDU, atau pulang langsung setelah pemulangan
+    // admisi selesai (bed dilepas oleh proses pemulangan sumber). Pindah ruangan tetap wajib lewat serah terima keluar.
+    async selesai(q, uuid, data) {
+        const episode = await this.satu(q, "hdu_episode", uuid, true);
+        periksaVersi(episode, data.versi);
+        if (episode.status !== "aktif") gagal("Episode telah selesai.");
+        periksaWaktu(data.waktu_kejadian, Math.floor(Date.now() / 1000), Number(episode.waktu_masuk));
+        const ri = await this.satu(q, "rawat_inaps", episode.rawat_inap_uuid, true);
+        const [menunggu] = await q(`SELECT st.uuid FROM hdu_serah_terima st JOIN perpindahans p ON p.uuid = st.perpindahan_uuid AND p.faskes_uuid = st.faskes_uuid
+            AND p.deleted_at IS NULL AND p.status_pindah = 'pending' WHERE st.episode_uuid = :uuid AND st.faskes_uuid = :f AND st.arah = 'keluar'
+            AND st.penerima IS NULL AND st.deleted_at IS NULL`, { uuid });
+        if (menunggu) gagal("Masih ada serah terima keluar yang menunggu konfirmasi; selesaikan atau batalkan perpindahannya terlebih dahulu.");
+        if (data.jenis_keluar === "pulang" && (Number(ri.status_ri) !== 4 || !ri.discharge_date)) gagal("Selesaikan pemulangan pasien di Rawat Inap terlebih dahulu.");
+        await q(`UPDATE hdu_episode SET status = 'selesai', waktu_keluar = :waktu, jenis_keluar = :jenis, catatan_keluar = :catatan, versi = versi + 1, updated_at = :sekarang
+            WHERE uuid = :uuid AND faskes_uuid = :f AND status = 'aktif' AND deleted_at IS NULL`, { uuid, waktu: data.waktu_kejadian, jenis: data.jenis_keluar, catatan: data.catatan });
+        return this.satu(q, "hdu_episode", uuid);
     }
 }

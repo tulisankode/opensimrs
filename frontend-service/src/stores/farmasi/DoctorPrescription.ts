@@ -57,6 +57,13 @@ export const useDoctorPrescriptionStore = defineStore({
     async batalSiapDiserahkan(payload = {}) {
       return apiFarmasiPost("/farmasi/prescriptions/batal-siap-diserahkan", payload);
     },
+    // Substitusi obat (status Resep Masuk/Sudah Ditelaah): opsi obat pengganti berstok di depo resep
+    async opsiSubstitusi(prescriptionItemUuid: string) {
+      return apiFarmasiGet(`/farmasi/prescriptions/obat/${prescriptionItemUuid}/opsi-substitusi`, {});
+    },
+    async substitusiObat(payload = {}) {
+      return apiFarmasiPut("/farmasi/prescriptions/substitution", payload);
+    },
     async cetakETiket(uuid: string) {
       return apiFarmasiGet(`/farmasi/cetak/e-ticket/${uuid}`, {});
     },

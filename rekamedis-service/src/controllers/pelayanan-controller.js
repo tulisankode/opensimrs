@@ -34,11 +34,12 @@ export default class PelayananController {
 
     static async createBillingLayanan(request, response, nextFunction) {
         try {
-            const { session_uuid, type, items } = request.body;
+            const { session_uuid, type, items, ref } = request.body;
 
             const requestBilling = {
                 session_uuid: session_uuid,
                 type: type,
+                ref: ref,
                 token: request.headers["authorization"]
             };
 

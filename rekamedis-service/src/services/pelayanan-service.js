@@ -287,6 +287,11 @@ export default class PelayananService {
             items = Utils.buildTindakanItems(serviceData).map((item) => ({ ...item, additional_info: { ref: replaceRef } }));
         } else if (requestBilling.type === "order_obat") {
             items = await Utils.buildFarmasiItems(serviceData, "2");
+            // Resep farmasi mengirim ref per resep: verifikasi ulang mengganti item, batal menarik item.
+            if (requestBilling.ref) {
+                replaceRef = requestBilling.ref;
+                items = items.map((item) => ({ ...item, additional_info: { ref: replaceRef } }));
+            }
         } else if (requestBilling.type === "alkes") {
             items = await Utils.buildFarmasiItems(serviceData, "3");
         }

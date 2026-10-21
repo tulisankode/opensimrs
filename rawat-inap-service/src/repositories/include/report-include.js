@@ -15,7 +15,7 @@ export const kunjunganReportInclude = [
             {
                 model: AddressModel,
                 as: "address",
-                required: true,
+                required: false,
                 where: {
                 deletedAt: { [Op.is]: null },
                 },
@@ -72,6 +72,24 @@ export const kunjunganReportInclude = [
     }
 ]
 
+// Ruangan tujuan dari SPRI (rawat_inaps.lokasi_uuid); model-sdk belum mendefinisikan relasi ini.
+if (!RawatInapModel.associations.ruangan) {
+    RawatInapModel.belongsTo(LokasiModel, { as: "ruangan", foreignKey: "lokasi_uuid", targetKey: "uuid", constraints: false });
+}
+
+// Pembatalan hanya untuk status 1 (SPRI) yang umumnya belum mendapat bed, sehingga bed dan ruangan bersifat opsional.
+export const cancelReportInclude = kunjunganReportInclude.map((include) => include.as !== "monitoring_room" ? include : {
+    ...include,
+    required: false,
+    include: include.include.map((anak) => ({ ...anak, required: false })),
+}).concat({
+    model: LokasiModel,
+    as: "ruangan",
+    required: false,
+    where: { deletedAt: { [Op.is]: null } },
+    attributes: ["uuid", "code", "name", "class_code", "class_name"],
+});
+
 export const perpindahanReportInclude = [
     {
         model: RawatInapModel,
@@ -91,7 +109,7 @@ export const perpindahanReportInclude = [
                     {
                         model: AddressModel,
                         as: "address",
-                        required: true,
+                        required: false,
                         where: {
                             deletedAt: {[Op.is]: null}
                         },

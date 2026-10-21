@@ -55,6 +55,8 @@ interface RoomPharmacyResponse {
   paymentMethod: string;
   patient: string;
   lokasiStok: { name: string };
+  // status pembayaran kasir pada tahap Penyerahan Alkes (farmasi-service tagihan-farmasi-service.js)
+  statusPembayaran?: { kode: string; label: string; bolehDiserahkan: boolean; sisa?: number };
 }
 
 interface ApiResponse {
@@ -601,12 +603,35 @@ onMounted(() => {
                       {{ epochToDate(itemHandover.createdAt, "date") }}
                     </div>
                     <div>
+                      <!-- dulu selalu "BPJS"; kini metode bayar & status pembayaran kasir -->
                       <CustomChip
-                        label="BPJS"
-                        borderColor="border-warning-300"
-                        bgColor="bg-warning-50"
+                        :label="itemHandover.paymentMethod || '-'"
+                        :borderColor="
+                          itemHandover.paymentMethod === 'Tunai'
+                            ? 'border-opensimrs-300'
+                            : 'border-warning-300'
+                        "
+                        :bgColor="
+                          itemHandover.paymentMethod === 'Tunai'
+                            ? 'bg-opensimrs-50'
+                            : 'bg-warning-50'
+                        "
                         :showCheckedIcon="false"
-                        textColor="text-warning-300"
+                        :textColor="
+                          itemHandover.paymentMethod === 'Tunai'
+                            ? 'text-opensimrs-300'
+                            : 'text-warning-300'
+                        "
+                        customClass="h-5"
+                        class="mr-[5px]"
+                      />
+                      <CustomChip
+                        v-if="itemHandover.statusPembayaran"
+                        :label="itemHandover.statusPembayaran.label.toUpperCase()"
+                        :borderColor="itemHandover.statusPembayaran.bolehDiserahkan ? 'border-grass-300' : 'border-warning-300'"
+                        :bgColor="itemHandover.statusPembayaran.bolehDiserahkan ? 'bg-grass-50' : 'bg-warning-50'"
+                        :showCheckedIcon="false"
+                        :textColor="itemHandover.statusPembayaran.bolehDiserahkan ? 'text-grass-300' : 'text-warning-300'"
                         customClass="h-5"
                         class="mr-[5px]"
                       />

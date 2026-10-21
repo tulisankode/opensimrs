@@ -3,6 +3,7 @@ import { onMounted, ref, watch, type PropType } from "vue";
 import { useStockLocationStore } from "@/stores/datamasterFarmasi/StockLocation";
 import { useDrugSalesStore } from "@/stores/farmasi/DrugSales";
 import { useMedicalItemStore } from "@/stores/datamasterFarmasi/MedicalItem";
+import { usePriceConfigurationStore } from "@/stores/datamasterFarmasi/PriceConfiguration";
 import { utilsStore } from "@/stores/utils";
 import { dateToEpoch, formatPrice } from "@/utils/Helpers";
 import { useForm, useFieldArray } from "vee-validate";
@@ -144,14 +145,40 @@ const onSubmit = handleSubmit(async (values: any) => {
     };
 
     const response = await DrugSalesStore.createApi(payload);
-    console.log("response", response);
+    // Kembali ke daftar hanya bila tersimpan; saat gagal (stok kurang, dsb.) isian tetap agar bisa diperbaiki.
+    if (response) emit("back");
   } catch (error) {
     console.error("Failed to process the data:", error);
   } finally {
     UseUtilsStore.setLoading(false);
-    emit("back");
   }
 });
+
+// Harga jual = HPP x (1 + margin% Konfigurasi Harga), sama dengan perhitungan server.
+const marginPersen = ref(0);
+const hargaJual = (hpp: number) =>
+  Math.round(Number(hpp || 0) * (1 + marginPersen.value / 100));
+
+const fetchMargin = async () => {
+  try {
+    const response = await usePriceConfigurationStore().getApiKonfig();
+    marginPersen.value = Number(response?.payload?.margin || 0);
+  } catch (error) {
+    console.error("Failed to fetch konfigurasi harga", error);
+  }
+};
+
+// Grand total = jumlah (qty x harga - diskon per baris); diskon adalah potongan nominal per baris.
+const hitungTotal = () => {
+  grandTotal.value = filedsPenjualan.value.reduce(
+    (sum, item) =>
+      sum +
+      Number(item.value.qty || 0) * Number(item.value.hargaSatuan || 0) -
+      Number(item.value.diskon || 0),
+    0
+  );
+  totalItem.value = filedsPenjualan.value.length;
+};
 
 const updateNameItem = (index: number) => {
   const selectedUuid = filedsPenjualan.value[index].value.itemMedisUuid;
@@ -167,11 +194,16 @@ const updateNameItem = (index: number) => {
   filedsPenjualan.value[index].value.satuanUuid =
     selectedItem?.satuanUuid ?? "";
   filedsPenjualan.value[index].value.satuan = selectedItem?.satuan ?? "";
+  // Jenis stok harus dipilih ulang untuk item baru
+  filedsPenjualan.value[index].value.jenisStokUuid = "";
 
   // Opsional: sinkronkan harga jika tersedia
   if (selectedItem?.hargaSatuan !== undefined) {
-    filedsPenjualan.value[index].value.hargaSatuan = selectedItem.hargaSatuan;
+    filedsPenjualan.value[index].value.hargaSatuan = hargaJual(
+      selectedItem.hargaSatuan
+    );
   }
+  hitungTotal();
 
   // Muat ulang opsi Jenis Stok untuk item & lokasi aktif
   const lokasiUuid = lokasiStokUuid.value as string | undefined;
@@ -185,34 +217,20 @@ const updateJenisStok = (index: number) => {
     (item) =>
       filedsPenjualan.value[index].value.jenisStokUuid == item.detailStok.uuid
   );
-  filedsPenjualan.value[index].value.hargaSatuan = newHarga.harga;
+  if (newHarga) {
+    filedsPenjualan.value[index].value.hargaSatuan = hargaJual(newHarga.harga);
+  }
+  hitungTotal();
 };
 
-const updateQty = (index: number) => {
-  grandTotal.value = 0;
-  totalItem.value = 0;
-  filedsPenjualan.value.forEach((item) => {
-    grandTotal.value += item.value.qty * item.value.hargaSatuan;
-  });
-  totalItem.value = filedsPenjualan.value.length;
-};
+// Sebelumnya total mengabaikan diskon saat qty diubah dan hanya menyisakan baris terakhir saat item dihapus.
+const updateQty = () => hitungTotal();
 
-const updateDiskon = (index: number) => {
-  grandTotal.value = 0;
-  filedsPenjualan.value.forEach((item) => {
-    grandTotal.value +=
-      item.value.qty * item.value.hargaSatuan - item.value.diskon;
-  });
-};
+const updateDiskon = () => hitungTotal();
 
 const handleDelete = (index: number) => {
-  grandTotal.value = 0;
   remove(index);
-  totalItem.value = filedsPenjualan.value.length;
-  filedsPenjualan.value.forEach((item) => {
-    grandTotal.value =
-      item.value.qty * item.value.hargaSatuan - item.value.diskon;
-  });
+  hitungTotal();
 };
 
 // State Management
@@ -310,8 +328,11 @@ const fetchAvailableJenisStok = async (
   lokasiUuid: string
 ) => {
   try {
+    // stok dihitung di lokasi farmasi terpilih, bukan seluruh lokasi
     const response = await MedicalItemStore.getAvailableJenisStokApi(
-      itemMedisUuid
+      itemMedisUuid,
+      {},
+      lokasiUuid
     );
 
     // Normalisasi payload ke array label/value agar Select bisa menampilkan opsi
@@ -359,6 +380,7 @@ watch(
 );
 
 onMounted(() => {
+  fetchMargin();
   fetchWithoutPagination();
   fetchStockLocation();
   fetchInventoryStok();

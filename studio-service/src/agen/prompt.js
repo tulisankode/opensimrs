@@ -93,8 +93,9 @@ export const teksLampiran = (lampiran = []) =>
       ].filter(Boolean).join("\n")
     : null;
 
-// konteks tambahan (semua opsional): aturanArea, tambahanTahap, pengetahuan, lampiran
-export const susunPromptDokumen = ({ item, tahap, artefakSebelumnya, artefakTahapIni, diskusi, instruksi, aturanInstalasi, perubahan, aturanArea, tambahanTahap, pengetahuan, lampiran }) =>
+// konteks tambahan (semua opsional): aturanArea, tambahanTahap, pengetahuan, lampiran, konteksAsal (halaman asal dari
+// Asisten Pengembang), katalogModul (entri katalog modul terdampak)
+export const susunPromptDokumen = ({ item, tahap, artefakSebelumnya, artefakTahapIni, diskusi, instruksi, aturanInstalasi, perubahan, aturanArea, tambahanTahap, pengetahuan, lampiran, konteksAsal, katalogModul }) =>
   [
     `# SIMRS Studio — item STD-${String(item.nomor).padStart(4, "0")}: ${item.judul}`,
     TEMPLATE[tahap],
@@ -103,6 +104,8 @@ export const susunPromptDokumen = ({ item, tahap, artefakSebelumnya, artefakTaha
     blok("Aturan area terdampak", aturanArea),
     blok("Basis pengetahuan instalasi", pengetahuan),
     blok("Lampiran pengguna", teksLampiran(lampiran)),
+    blok("Konteks asal permintaan", konteksAsal),
+    blok("Modul terdampak menurut katalog", katalogModul),
     blok("Permintaan pengguna", teksPermintaan(item)),
     ...artefakSebelumnya.map((a) => blok(`Dokumen tahap ${NAMA_TAHAP[a.tahap]} (versi ${a.versi}, disetujui)`, a.isi)),
     blok("Perubahan berkas di branch kerja", perubahan),
@@ -124,7 +127,7 @@ export const aturanBerkasItem = (item, awalanMigrasi) => {
   ].join("\n");
 };
 
-export const susunPromptCoding = ({ item, artefak, instruksi, aturanInstalasi, branch, revisi, awalanMigrasi = null, aturanArea, tambahanTahap, pengetahuan, lampiran }) =>
+export const susunPromptCoding = ({ item, artefak, instruksi, aturanInstalasi, branch, revisi, awalanMigrasi = null, aturanArea, tambahanTahap, pengetahuan, lampiran, konteksAsal, katalogModul }) =>
   [
     `# SIMRS Studio — CODING item STD-${String(item.nomor).padStart(4, "0")}: ${item.judul}`,
     revisi
@@ -138,6 +141,8 @@ Hanya ubah berkas yang diperlukan. Jangan menjalankan git commit/push, npm insta
     blok("Aturan area terdampak", aturanArea),
     blok("Basis pengetahuan instalasi", pengetahuan),
     blok("Lampiran pengguna", teksLampiran(lampiran)),
+    blok("Konteks asal permintaan", konteksAsal),
+    blok("Modul terdampak menurut katalog", katalogModul),
     ...artefak.map((a) => blok(`Dokumen tahap ${NAMA_TAHAP[a.tahap]} (disetujui)`, a.isi)),
     blok("Instruksi revisi dari pengguna/QA", instruksi),
     `\n\nFormat jawaban akhir: ringkasan perubahan per berkas, hasil verifikasi yang Anda jalankan, dan hal yang perlu diuji manual. Lalu usulan pesan commit Conventional Commits berbahasa Indonesia di antara <commit> dan </commit>.`,

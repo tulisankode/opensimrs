@@ -5,7 +5,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "test": "mocha --exit tests/*",
+    "test": "node --test test/*.test.js",
     "start": "node ./src/app.js",
     "dev": "nodemon ./src/app.js"
   },

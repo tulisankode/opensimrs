@@ -18,14 +18,14 @@ export default function rawatInapFilter({faskesUuid, args = {}, options = {}}) {
     //* filter untuk modul pelayanan RI
     if(args.status){
         if(parseInt(args.status) === 1){
-                //* Dirawat
-            filter.statusRi = {[Op.in]: [1, 3]};
+                //* Dirawat (2 = menunggu persetujuan pindah kamar, pasien masih dirawat)
+            filter.statusRi = {[Op.in]: [1, 2, 3]};
         }else if(parseInt(args.status) === 0){
                 //* Discharge
             filter.statusRi = {[Op.in]: [4]};
         }else if (parseInt(args.status) === 2){
                 //* Semua status
-            filter.statusRi = {[Op.in]: [1, 3, 4]};
+            filter.statusRi = {[Op.in]: [1, 2, 3, 4]};
         }
     }
 

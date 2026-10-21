@@ -232,6 +232,9 @@ const getItemByUuid = (uuid: string) =>
 const applyItemToRow = (row: any, item: any | undefined) => {
   row.namaItem = item?.itemName ?? "";
   row.stockUuid = item?.stockUuid ?? "";
+  // Stok dipotong dalam satuan penggunaan (satuan terkecil) batch, jadi satuan baris dikunci ke
+  // satuan itu agar jumlah yang diketik tidak disalahartikan sebagai Box/Strip.
+  row.selectedSatuanUuid = item?.satuanUuid ?? "";
   row.hpp = item?.hpp ?? 0;
   row.expDate = item?.expDate ?? "";
   row.hna = item?.hna ?? 0;
@@ -739,6 +742,7 @@ const onSubmit = handleSubmit(async (values: any) => {
                     class="w-full"
                     v-model="slotProps.data.value.selectedSatuanUuid"
                     placeHolder="Pilih Satuan"
+                    :disabled="Boolean(slotProps.data.value.stockUuid)"
                     :options="SatuanPayload"
                     optionLabel="name"
                     optionValue="uuid"

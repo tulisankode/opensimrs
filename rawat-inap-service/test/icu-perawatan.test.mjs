@@ -102,3 +102,52 @@ test("Versi arsip tetap dapat dibaca pada episode lama", async () => {
     siapkan(); tiruan.handler = () => [{ uuid: "v", status: "diarsipkan", nomor_versi: 1 }];
     assert.equal((await Template.ambil("v")).status, "diarsipkan");
 });
+test("Keluar meninggal menutup episode tanpa perpindahan; pindah tetap wajib perpindahan approve", async () => {
+    const { default: IcuRequest } = await import("../src/validations/icu-request.js");
+    const pindah = "019a0000-0000-7000-8000-000000000001";
+    assert.equal(IcuRequest.KELUAR_PERAWATAN.safeParse({ kondisi_keluar: "hidup", ringkasan: {} }).success, false);
+    assert.equal(IcuRequest.KELUAR_PERAWATAN.safeParse({ jenis_keluar: "meninggal", perpindahan_keluar_uuid: pindah }).success, false);
+    assert.equal(IcuRequest.KELUAR_PERAWATAN.safeParse({ jenis_keluar: "pulang", kondisi_keluar: "meninggal" }).success, false);
+    assert.equal(IcuRequest.KELUAR_PERAWATAN.parse({ jenis_keluar: "meninggal" }).kondisi_keluar, "meninggal");
+    assert.equal(IcuRequest.KELUAR_PERAWATAN.parse({ jenis_keluar: "pulang" }).kondisi_keluar, "hidup");
+    assert.equal(IcuRequest.KELUAR_PERAWATAN.parse({ perpindahan_keluar_uuid: pindah, kondisi_keluar: "hidup", ringkasan: {} }).jenis_keluar, "pindah");
+
+    siapkan(); const handler = tiruan.handler;
+    tiruan.handler = (sql, opsi) => sql.startsWith("UPDATE icu_perawatans") ? [{ ...episode, status: "selesai" }] : handler(sql, opsi);
+    tiruan.pindah.findOne = async () => assert.fail("Keluar meninggal tidak boleh membaca perpindahan");
+    await Repository.KeluarPerawatan(episode.uuid, { jenis_keluar: "meninggal", kondisi_keluar: "meninggal", ringkasan: { kondisi: "Kondisi fiktif" } });
+    tiruan.pindah.findOne = async () => tiruan.perpindahan;
+    const ubah = tiruan.kueri.find((q) => q.sql.startsWith("UPDATE icu_perawatans")).opsi.replacements;
+    assert.equal(ubah.perpindahanUuid, null); assert.equal(ubah.jenisKeluar, "meninggal"); assert.equal(ubah.kondisiKeluar, "meninggal");
+    assert.equal(tiruan.kueri.find((q) => q.sql.includes("INSERT INTO icu_serah_terimas")).opsi.replacements.perpindahanUuid, null);
+    assert.equal(tiruan.audit.length, 1);
+});
+test("Keluar pulang hanya setelah pemulangan admisi selesai", async () => {
+    siapkan();
+    await assert.rejects(Repository.KeluarPerawatan(episode.uuid, { jenis_keluar: "pulang", kondisi_keluar: "hidup" }), /pemulangan/);
+    assert.equal(tiruan.kueri.some((q) => q.sql.startsWith("UPDATE icu_perawatans")), false);
+    siapkan(); tiruan.admisi = { ...tiruan.admisi, statusRi: 4, dischargeDate: 1700000000 };
+    const handler = tiruan.handler;
+    tiruan.handler = (sql, opsi) => sql.startsWith("UPDATE icu_perawatans") ? [{ ...episode, status: "selesai" }] : handler(sql, opsi);
+    await Repository.KeluarPerawatan(episode.uuid, { jenis_keluar: "pulang", kondisi_keluar: "hidup" });
+    assert.equal(tiruan.kueri.find((q) => q.sql.startsWith("UPDATE icu_perawatans")).opsi.replacements.jenisKeluar, "pulang");
+});
+test("Perpindahan siap masuk dan penerimaan menolak admisi yang sudah pulang", async () => {
+    siapkan();
+    await Repository.GetPerpindahanSiap("masuk");
+    assert.match(tiruan.kueri.at(-1).sql, /ri\.status_ri IN \(1, 2, 3\) AND ri\.discharge_date IS NULL/);
+    siapkan(); tiruan.admisi = { ...tiruan.admisi, statusRi: 4, dischargeDate: 1700000000 };
+    await assert.rejects(Repository.MulaiPerawatan("pindah-fiktif", { layanan_kode: "umum" }), /sudah pulang/);
+    assert.equal(tiruan.kueri.some((q) => q.sql.includes("INSERT INTO icu_perawatans")), false);
+});
+test("Laporan kelengkapan, riwayat, dan daftar unit ICU tidak memuat episode CCU", async () => {
+    const { default: Dokumentasi } = await import("../src/repositories/icu-dokumentasi-repository.js");
+    siapkan(); const handler = tiruan.handler;
+    tiruan.handler = (sql, opsi) => sql.includes("COUNT(*) AS total") ? [{ total: 0 }] : handler(sql, opsi);
+    await Dokumentasi.laporan({ dari: 1, sampai: 2, halaman: 1, batas: 10 });
+    await Dokumentasi.riwayat(episode.uuid, { halaman: 1, batas: 10 });
+    await Konfigurasi.daftarUnit();
+    const episodeIcu = tiruan.kueri.filter((q) => /FROM icu_perawatans WHERE faskes_uuid=:f/.test(q.sql));
+    assert.equal(episodeIcu.length, 5);
+    for (const q of episodeIcu) assert.match(q.sql, /unit='icu'/);
+});

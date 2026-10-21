@@ -1236,14 +1236,18 @@ defineExpose({
                       header-class="text-black bg-opensimrs-50"
                     >
                       <template #body="{ data }">
-                        {{ data.patient.gender == "Male" ? "L" : "P" }}
+                        {{ ['Male', 'Laki-laki'].includes(data.patient.gender) ? 'L' : ['Female', 'Perempuan'].includes(data.patient.gender) ? 'P' : '-' }}
                       </template>
                     </Column>
                     <Column
                       field="patient.birthDetail.birthDate"
                       header="Tgl. Lahir"
                       header-class="text-black bg-opensimrs-50"
-                    ></Column>
+                    >
+                      <template #body="{ data }">
+                        {{ data.patient.birthDetail?.birthDate ?? "-" }}
+                      </template>
+                    </Column>
                     <Column
                       field="patient.birthDetail.birthDate"
                       header="Umur"
@@ -1251,7 +1255,9 @@ defineExpose({
                     >
                       <template #body="{ data }">
                         {{
-                          `${data.patient.birthDetail.ageYear} Tahun ${data.patient.birthDetail.ageMonth} Bulan ${data.patient.birthDetail.ageDay} Hari`
+                          data.patient.birthDetail
+                            ? `${data.patient.birthDetail.ageYear} Tahun ${data.patient.birthDetail.ageMonth} Bulan ${data.patient.birthDetail.ageDay} Hari`
+                            : "-"
                         }}
                       </template>
                     </Column>
@@ -1259,7 +1265,11 @@ defineExpose({
                       field="patient.address.fullAddress"
                       header="Alamat"
                       header-class="text-black bg-opensimrs-50"
-                    />
+                    >
+                      <template #body="{ data }">
+                        {{ data.patient.address?.fullAddress ?? "-" }}
+                      </template>
+                    </Column>
                     <Column
                       field="patient.identity"
                       header="Jenis ID"
@@ -1571,7 +1581,7 @@ defineExpose({
                       header-class="text-black bg-opensimrs-50"
                     >
                       <template #body="{ data }">
-                        {{ data.genderBaby == "Male" ? "L" : "P" }}
+                        {{ ['Male', 'Laki-laki'].includes(data.genderBaby) ? 'L' : ['Female', 'Perempuan'].includes(data.genderBaby) ? 'P' : '-' }}
                       </template>
                     </Column>
                     <Column

@@ -1,0 +1,23 @@
+### Diperbaiki
+- **Farmasi › Penjualan Obat (bebas/OTC)**:
+  - Harga jual kini HPP × (1 + margin Konfigurasi Harga), sama dengan tagihan resep. Sebelumnya obat dijual seharga HPP tanpa margin, dan metode HPP "average" terbaca sebagai harga terakhir.
+  - Diskon dihitung sebagai potongan nominal per baris, sesuai tampilan layar. Sebelumnya server memotongnya per satuan sehingga total tersimpan berbeda dari layar.
+  - Jenis stok yang dipilih kini dipakai untuk harga dan pemotongan stok. Lokasi farmasi dan batch stok wajib milik faskes pengguna.
+  - Penjualan ditolak bila jumlah ≤ 0 atau pecahan, diskon negatif atau melebihi harga, tanpa item, atau memakai no. transaksi yang sudah terpakai.
+  - Pembatalan tanpa alasan sebelumnya galat 500, kini 400 dengan pesan yang jelas. Detail yang tidak ditemukan kini 404.
+  - Penjualan kini bisa dilunasi: `PUT /farmasi/penjualan-obat/:uuid/bayar` dan tombol "Terima Pembayaran". Sebelumnya tidak ada jalan menuju status lunas, sehingga tab Lunas dan Laporan Pendapatan Penjualan Obat selalu kosong. Tombol Batal dan Bayar hanya tampil untuk penjualan yang belum dibayar.
+  - Filter "Farmasi" (Semua/IGD/RJ/RI) di daftar penjualan berfungsi. Sebelumnya "Semua" atau pilihan lebih dari satu selalu kosong.
+  - Form penjualan: Grand Total kini menghitung diskon dan tidak salah setelah baris dihapus. Stok jenis stok dihitung di lokasi terpilih. Form tetap terbuka bila penyimpanan gagal. Pesan stok tidak cukup kini berbahasa Indonesia.
+- **Farmasi › Riwayat Transaksi**: detail hanya bisa dibuka untuk transaksi faskes sendiri. Sebelumnya cukup dengan UUID, dan UUID salah menyebabkan galat 500. Item racikan kini menampilkan nama, satuan, dan harga komponen. Sebelumnya hanya jasa racik yang terhitung, sehingga Grand Total lebih kecil dari total resep.
+- **Farmasi › Laporan**:
+  - Rentang tanggal dihitung per hari WIB (`REPORT_TZ_OFFSET`, bawaan +07:00), tidak bergantung zona server.
+  - Rekap Pendapatan per Apotik mengelompokkan tanggal menurut WIB. Sebelumnya resep pukul 00.00–06.59 masuk ke tanggal sebelumnya.
+  - Pendapatan dan Rekap per Apotik memakai nilai bersih setelah retur obat dan menghitung status diserahkan maupun diretur. Sebelumnya resep yang diretur terhitung penuh di Pendapatan tetapi hilang dari Rekap.
+  - Laporan Pendapatan:
+    - Menampilkan Grand Total seluruh periode.
+    - Nama dokter ditampilkan, bukan UUID.
+    - Pilihan "Semua" yang selalu kosong dihapus.
+    - Laporan Penjualan Obat bebas kini terisi.
+    - Filter metode Asuransi tidak lagi memunculkan penjualan bebas.
+  - Waktu Tunggu: filter Racikan/Non-Racikan kini berfungsi, dan waktu negatif ditampilkan 0.
+  - Ekspor Excel Pendapatan, Rekap per Apotik, dan Waktu Tunggu kini memuat seluruh baris, bukan hanya halaman aktif. Baris total tidak lagi menimpa data. Kolom nama pasien dan asal resep di Excel Pendapatan terisi.

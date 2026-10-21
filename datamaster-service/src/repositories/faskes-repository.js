@@ -295,6 +295,41 @@ export default class FaskesRepository extends BaseRePosiotry {
     }
   }
 
+  // Profil dan alamat wajib berasal dari faskes token yang sama serta belum terhapus.
+  static async findActiveProfileForPatient(faskesUuid) {
+    if (!faskesUuid) return null;
+    const faskes = await FaskesModel.findOne({
+      attributes: ["uuid", "name"],
+      where: {
+        [Op.and]: [
+          { uuid: faskesUuid },
+          { status: true },
+          { deletedAt: { [Op.is]: null } },
+        ],
+      },
+      include: [
+        {
+          model: FaskesProfilesModel,
+          required: false,
+          as: "faskes_profile",
+          where: { faskesUuid, deletedAt: { [Op.is]: null } },
+          attributes: ["phone", "logo"],
+          include: [
+            {
+              model: AddressModel,
+              required: false,
+              as: "address",
+              where: { faskesUuid, deletedAt: { [Op.is]: null } },
+              attributes: ["fullAddress"],
+            },
+          ],
+        },
+      ],
+    });
+
+    return faskes ? faskes.toJSON() : null;
+  }
+
   static async findFaskesIncludePoliAndAddress(request) {
     FaskesModel.hasMany(LokasiModel, {
       constraints: false,

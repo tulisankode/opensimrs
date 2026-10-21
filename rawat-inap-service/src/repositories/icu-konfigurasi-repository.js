@@ -40,7 +40,7 @@ export default class IcuKonfigurasiRepository {
     static async daftarUnit() {
         const unit = filterUnitIcu("x");
         return pilihIcu(`SELECT DISTINCT x.ruangan_uuid AS uuid, l.name AS nama FROM (
-                SELECT ruangan_uuid FROM icu_perawatans WHERE faskes_uuid=:f AND deleted_at IS NULL
+                SELECT ruangan_uuid FROM icu_perawatans WHERE faskes_uuid=:f AND unit='icu' AND deleted_at IS NULL
                 UNION SELECT ruangan_uuid FROM icu_layanan_beds WHERE faskes_uuid=:f AND deleted_at IS NULL) x
             JOIN lokasi l ON l.uuid=x.ruangan_uuid AND l.faskes_uuid=:f WHERE ${unit.sql} ORDER BY l.name`, unit.replacements);
     }

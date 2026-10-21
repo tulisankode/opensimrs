@@ -69,7 +69,7 @@ export default class StockMedisRepository {
 
     if (totalStock < req.quantity) {
       throw new BadRequestException(
-        `${req.name} not enough or empty (total stock : ${totalStock})`
+        `Stok ${req.name} tidak mencukupi (total stok tersedia: ${totalStock})`
       );
     }
 

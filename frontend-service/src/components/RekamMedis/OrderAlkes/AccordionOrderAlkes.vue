@@ -56,10 +56,9 @@ const getStringStatus = (index: number) => {
   if (index == 0) return "Dibatalkan";
   else if (index == 1) return "Order Masuk";
   else if (index == 2) return "Sedang Disiapkan";
-  else if (index == 3) return "Proses";
+  else if (index == 3) return "Siap Diserahkan";
   else if (index == 4) return "Alkes Diserahkan";
-  else if (index == 5) return "Dispense";
-  else if (index == 6) return "Return";
+  else if (index == 5) return "Diretur";
 };
 
 const openedAlkesData = ref<any>({});

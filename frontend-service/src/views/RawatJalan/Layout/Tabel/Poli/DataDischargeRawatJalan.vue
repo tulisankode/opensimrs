@@ -204,12 +204,12 @@ const handleOpenHistory = async (historyItem: any) => {
           />
           <CustomChip
             :showCheckedIcon="false"
-            :label="slotProps.data.patient?.gender == 'Female' ? 'Perempuan' : 'Laki-laki'"
+            :label="['Female', 'Perempuan'].includes(slotProps.data.patient?.gender) ? 'Perempuan' : 'Laki-laki'"
             :bgColor="
-              slotProps.data.patient?.gender == 'Female' ? 'bg-female-75' : 'bg-male-75'
+              ['Female', 'Perempuan'].includes(slotProps.data.patient?.gender) ? 'bg-female-75' : 'bg-male-75'
             "
             :textColor="
-              slotProps.data.patient?.gender == 'Female' ? 'text-female-300' : 'text-male-300'
+              ['Female', 'Perempuan'].includes(slotProps.data.patient?.gender) ? 'text-female-300' : 'text-male-300'
             "
             customClass="h-5 pr-[6px] border-none mr-[5px]"
           />

@@ -62,6 +62,7 @@ export const downloadExportExcelKunjunganIGD = async (
             switch (status) {
                 case 'home': return 'Pulang atas persetujuan dokter';
                 case 'aadvice': return 'Pulang atas permintaan sendiri';
+                case 'other-hfc':
                 case 'other-hcf': return 'Dirujuk';
                 case 'exp-lt48h': return 'Meninggal < 48 jam';
                 case 'exp-gt48h': return 'Meninggal > 48 jam';
@@ -104,7 +105,7 @@ export const downloadExportExcelKunjunganIGD = async (
             noreg: row.no_reg ?? "-",
             noRm: patient.no_rm ?? "-",
             namaPasien: patient.name ?? "-",
-            jenisKelamin: patient.gender === "Male" ? "L" : patient.gender === "Female" ? "P" : "-",
+            jenisKelamin: ["Male", "Laki-laki"].includes(patient.gender) ? "L" : ["Female", "Perempuan"].includes(patient.gender) ? "P" : "-",
             tglLahir: birthDetail.birth_date?.split("T")[0] ?? "-",
             umur: umur,
             alamat: address.full_address ?? "-",

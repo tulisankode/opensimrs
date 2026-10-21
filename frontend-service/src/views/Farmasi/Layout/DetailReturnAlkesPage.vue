@@ -119,13 +119,13 @@ const onSubmit = async () => {
       jenis_retur: props.selectMedicine,
       order_alkes_uuid: props.payloadAlkes.uuid,
       alasan_retur: alasan.value,
-      items: items,
+      items: items.filter((i) => Number(i.qty_retur) > 0),
     });
-    console.log("API Response:", response);
+    // dialog ditutup hanya bila retur tersimpan; galat (mis. melebihi sisa) ditampilkan apiHandler
+    if (response) emit("update:isDialogVisible", false);
   } catch (error) {
     console.error("Error in API call:", error);
   }
-  emit("update:isDialogVisible", false);
 };
 
 defineExpose({

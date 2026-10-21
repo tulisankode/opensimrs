@@ -155,7 +155,7 @@ onMounted(() => {
               <div class="">Tanggal</div>
             </template>
             <template #body="slotProps">
-              <div class="">{{ epochToDate(slotProps.data.tanggalRetur, "date") }}</div>
+              <div class="">{{ epochToDate(slotProps.data.tanggalRetur > 1e11 ? slotProps.data.tanggalRetur / 1000 : slotProps.data.tanggalRetur, "date") }}</div>
             </template>
           </Column>
           <!-- No. Permintaan -->

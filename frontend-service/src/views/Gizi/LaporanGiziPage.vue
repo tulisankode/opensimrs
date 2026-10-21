@@ -57,7 +57,7 @@ onMounted(async () => {
 
     <div class="grid grid-cols-2 gap-3 overflow-auto">
       <Card v-if="boleh('READ')" pt:body:class="pt-0">
-        <template #header><div class="px-4 pt-4 font-semibold text-opensimrs-300">Jumlah Pasien per Jenis Diet</div></template>
+        <template #header><div class="px-4 pt-4 font-semibold text-opensimrs-300">Jumlah Pasien per Jenis Diet <span class="font-normal text-xs text-grey-400">(pasien dirawat saat ini, tanpa filter tanggal)</span></div></template>
         <template #content>
           <NoData v-if="!jumlahDiet.length" />
           <DataTable v-else :value="jumlahDiet" stripedRows class="text-xs">

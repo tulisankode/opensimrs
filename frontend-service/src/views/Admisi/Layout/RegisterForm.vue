@@ -29,6 +29,7 @@ import { useForm } from "vee-validate";
 import { createGeneralConsentPdf, createPatientLabel, createPatientVisit, createPatientBracelet } from "@/utils/PdfMake";
 import { useGeneralConsentStore } from "@/stores/datamaster/generalConsent";
 import CustomTextArea from "@/components/Base/CustomTextArea.vue";
+import GeneralConsentContent from "@/components/Base/GeneralConsentContent.vue";
 
 const props = defineProps({
   pageType: {
@@ -1035,11 +1036,11 @@ const deleteGeneralConsent = async () => {
             v-if="generalConsentDialogInputType == 'add'"
             class="h-[400px] border-[1px] border-grey-200 border-dashed rounded-[10px] mt-5 flex overflow-auto"
           >
-            <div
+            <GeneralConsentContent
               v-if="selectedDataGeneralConsent"
-              v-html="selectedDataGeneralConsent.isiSurat"
+              :isiSurat="selectedDataGeneralConsent.isiSurat"
               class="w-full px-10"
-            ></div>
+            />
             <div v-else class="m-auto font-semibold text-normal">
               Default General Consent Rawat Jalan Pilihan Awal
             </div>

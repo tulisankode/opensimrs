@@ -222,7 +222,9 @@ export default class StockMedisRepository {
         if (existingStock) {
             const previous_stock = existingStock.sisa_stok;
             const new_stock = previous_stock + req.quantity_to_add;
+            // Kolom stok = total yang pernah masuk ke batch ini; ikut bertambah agar sisa_stok <= stok.
             await existingStock.update({ 
+                stok: Number(existingStock.stok || 0) + req.quantity_to_add,
                 sisa_stok: new_stock 
             }, { transaction: t });
             return { existingStock, previous_stock, new_stock };
@@ -335,10 +337,10 @@ export default class StockMedisRepository {
     }
 
     static async update(req, transaction) {
+        const where = { uuid: req.uuid };
+        if (req.faskes_uuid) where.faskes_uuid = req.faskes_uuid;
         const result = await StockMedisModel.update(req, {
-            where: {
-                uuid: req.uuid
-            },
+            where,
             transaction
         });
 
@@ -392,10 +394,11 @@ export default class StockMedisRepository {
     }
 
     static async getDetail(req) {
+        const where = { uuid: req.uuid };
+        // Isolasi faskes bila pemanggil menyertakan faskes_uuid (mis. stok adjustment).
+        if (req.faskes_uuid) where.faskes_uuid = req.faskes_uuid;
         return await StockMedisModel.findOne({
-            where: {
-                uuid: req.uuid
-            },
+            where,
             include: [
                 {
                     model: ItemMedisJenisStokModel,
@@ -536,8 +539,12 @@ export default class StockMedisRepository {
     }
 
     static async findStockByItem(req) {
+        // Isolasi faskes: tanpa saringan ini, permintaan tanpa lokasi (atau dengan lokasi faskes lain)
+        // menampilkan stok seluruh faskes.
         const whereClause = {
-            sisa_stok: { [Op.gt]: 0 }
+            sisa_stok: { [Op.gt]: 0 },
+            faskes_uuid: req.faskes_uuid,
+            deleted_at: null,
         };
 
         if (req.lokasi_stok_uuid) {
@@ -634,72 +641,51 @@ export default class StockMedisRepository {
             order.push(["created_at", "DESC"]); 
         }
 
+        // Ambil semua batch yang memenuhi (lokasi, faskes, item, jenis stok) sekali saja, urut sesuai metode
+        // pemotongan, lalu bagi kebutuhan ke batch berurutan. Sebelumnya findOne di dalam loop selalu
+        // mengembalikan batch pertama yang sama (pengurangan hanya di memori) sehingga kebutuhan yang
+        // melebihi satu batch dialokasikan berulang ke batch itu dan gagal saat dikirim; jenis stok juga
+        // tidak ikut disaring.
+        const itemJenisStokWhere = { item_medis_uuid: req.item_medis_uuid };
+        if (req.jenis_stok_uuid) {
+            itemJenisStokWhere.jenis_stok_uuid = req.jenis_stok_uuid;
+        }
+
         const allStocks = await StockMedisModel.findAll({
             where: {
                 sisa_stok: { [Op.gt]: 0 },
                 exp_date: { [Op.gte]: today }, 
                 lokasi_stok_uuid: req.lokasi_stok_uuid,
                 faskes_uuid: req.faskes_uuid, 
+                deleted_at: null,
             },
             include: [
                 {
                     model: ItemMedisJenisStokModel,
                     as: "item_medis_jenis_stok",
                     required: true,
-                    attributes: [], // Kita tidak butuh datanya, cuma buat filter
-                    where: {
-                        item_medis_uuid: req.item_medis_uuid
-                    }
+                    attributes: [],
+                    where: itemJenisStokWhere,
                 }
             ],
+            order: [...order, ["id", "ASC"]],
             transaction: t, 
         });
 
         const totalStockResult = allStocks.reduce((acc, stock) => acc + Number(stock.sisa_stok), 0);
 
-        console.log(`[ALLOCATION CHECK] Butuh: ${req.quantity_needed}, Tersedia: ${totalStockResult}`);
-
         if (totalStockResult < req.quantity_needed) {
-            throw new BadRequestException(`Stok item tidak cukup (butuh: ${req.quantity_needed}, tersedia: ${totalStockResult})`);
+            throw new BadRequestException(`Stok ${itemExist.name || "item"} tidak cukup (butuh: ${req.quantity_needed}, tersedia: ${totalStockResult})`);
         }
 
-        while (remainingQuantity > 0) {
-            const stockBatch = await StockMedisModel.findOne({
-                where: {
-                    sisa_stok: { [Op.gt]: 0 },
-                    exp_date: { [Op.gte]: today }, 
-                    lokasi_stok_uuid: req.lokasi_stok_uuid,
-                    faskes_uuid: req.faskes_uuid, 
-                },
-                include: [
-                    {
-                        model: ItemMedisJenisStokModel,
-                        as: "item_medis_jenis_stok",
-                        required: true,
-                        where: {
-                            item_medis_uuid: req.item_medis_uuid,
-                        },
-                        attributes: ["uuid"],
-                    }
-                ],
-                order: order,
-                transaction: t,
-            });
-
-            if (!stockBatch) {
-                 throw new InternalServerException("Gagal menemukan batch stok yang cukup (Data berubah saat proses).");
-            }
-
-            const quantityFromThisBatch = Math.min(stockBatch.sisa_stok, remainingQuantity);
-
+        for (const stockBatch of allStocks) {
+            if (remainingQuantity <= 0) break;
+            const quantityFromThisBatch = Math.min(Number(stockBatch.sisa_stok), remainingQuantity);
             allocatedBatches.push({
                 stock_medis_uuid: stockBatch.uuid,
                 quantity: quantityFromThisBatch,
             });
-
             remainingQuantity -= quantityFromThisBatch;
-
-            stockBatch.sisa_stok -= quantityFromThisBatch;
         }
 
         return allocatedBatches;

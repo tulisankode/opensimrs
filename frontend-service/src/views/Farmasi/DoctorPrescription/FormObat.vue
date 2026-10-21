@@ -153,26 +153,14 @@ const [totalObat] = defineField("totalObat");
 const [uuid] = defineField("uuid");
 const [racikanItems] = defineField("racikanItems");
 
-const isSubtitusi = ref(false);
-const originalItemMedisUuid = ref<string>("");
-
+// Obat non-racikan tidak diganti dari form edit: penggantian lewat tombol Substitusi di detail resep
+// (obat asal & alasan tercatat). Sebelumnya tombol "Subtitusi" di sini mengganti obat tanpa jejak.
 const isNamaObatDisabled = computed(() => {
   if (props.method === "add") return false;
   if (digerus.value) return false;
   if ((props.payload as any)?.isCompound) return false;
-  return !isSubtitusi.value;
+  return true;
 });
-
-const toggleSubtitusi = () => {
-  if (isSubtitusi.value) {
-    isSubtitusi.value = false;
-    itemMedisUuid.value = originalItemMedisUuid.value;
-    return;
-  }
-
-  originalItemMedisUuid.value = (itemMedisUuid.value as any) ?? "";
-  isSubtitusi.value = true;
-};
 
 // Fetch obat
 const fetchObat = async () => {
@@ -353,14 +341,10 @@ watch(
           (props.payload as any).racikan ??
           [];
       }
-      isSubtitusi.value = false;
-      originalItemMedisUuid.value = (props.payload as any)?.itemMedisUuid ?? "";
     } else {
       resetForm();
       tempArrayRacikan.value = [];
       tempDeletedRacikan.value = [];
-      isSubtitusi.value = false;
-      originalItemMedisUuid.value = "";
     }
   }
 );
@@ -547,14 +531,14 @@ const test = ref();
             </div>
           </div>
 
-          <!-- Substitusi -->
+          <!-- Obat non-racikan -->
           <p v-if="!payload.isCompound && !digerus" class="mt-[15px] font-bold">
             Obat 1
           </p>
           <hr class="border border-slate-200 mt-[10px]" />
           <div
             v-if="!payload.isCompound && !digerus"
-            class="grid gap-2 grid-cols-[60%,20%,20%] items-end"
+            class="grid gap-2 grid-cols-[75%,25%] items-end"
           >
             <!-- Nama Obat -->
             <div class="mt-[20px]">
@@ -570,15 +554,6 @@ const test = ref();
                 :invalidMessage="errors.itemMedisUuid"
                 :required="errors.itemMedisUuid ? true : false"
                 :disabled="isNamaObatDisabled"
-              />
-            </div>
-            <!-- Button Subtitusi -->
-            <div v-if="fiturAktif('farmasi_substitusi')" class="mt-[20px]">
-              <CustomButton
-                :label="isSubtitusi ? 'Batal Subtitusi' : 'Subtitusi'"
-                :icon="isSubtitusi ? 'PhX' : 'PhArrowsCounterClockwise'"
-                :background-color="isSubtitusi ? 'bg-danger-300' : ''"
-                @click="toggleSubtitusi"
               />
             </div>
             <!-- Jumlah Total -->

@@ -31,10 +31,12 @@ export default class KonfigurasiHargaRepository {
     });
   }
 
-  static async getHargaItemByUuid(uuid) {
+  static async getHargaItemByUuid(uuid, faskes_uuid) {
     return await HargaItemModel.findOne({
       where: {
         uuid: uuid,
+        faskes_uuid: faskes_uuid,
+        deleted_at: null,
       },
       attributes: {
         exclude: ["deleted_at", "created_at", "updated_at", "faskes_uuid"],

@@ -17,13 +17,15 @@ import CustomPaginator from "@/components/Base/CustomPaginator.vue";
 const startDateFilter = ref<Date>(new Date());
 const endDateFilter = ref<Date>(new Date());
 const expandedRows = ref();
-const revenue = ref<string>("");
+// Laporan per jenis pendapatan (Resep Dokter / Penjualan Obat bebas); pilihan "Semua" dihapus karena
+// server tidak menggabungkan keduanya (sebelumnya "Semua" selalu menampilkan data kosong).
+const revenue = ref<string>("prescription");
+const grandTotalPendapatan = ref(0);
 const recipeOrigin = ref<string>("");
 const typeOfService = ref<string>("");
 const paymentMethod = ref<string>("");
 const searchQuery = ref<string>("");
 const optionRevenue = ref([
-  { label: "Semua", value: "" },
   { label: "Resep Dokter", value: "prescription" },
   { label: "Penjualan Obat", value: "penjualan_obat"},
 ]);
@@ -33,6 +35,12 @@ const optionPelayanan = ref([
   { label: "Rawat Jalan", value: "rj" },
   { label: "Rawat Inap", value: "ri" },
 ]);
+const jenisPelayananLabel: Record<string, string> = {
+  ri: "Rawat Inap",
+  rj: "Rawat Jalan",
+  igd: "IGD",
+  otc: "Penjualan Bebas",
+};
 const optionPembayaran = ref([
   { label: "Semua", value: "" },
   { label: "Tunai", value: 1 },
@@ -113,12 +121,14 @@ const fetchRevenue = async () => {
       revenueProperties.value.page_size
     );
 
-    if (response && response.payload.items) {
+    if (response && response.payload?.items) {
       revenueProperties.value.total = response.properties.total;
       revenuePayload.value = response.payload.items;
+      grandTotalPendapatan.value = response.payload.grandTotal ?? 0;
     } else {
       revenuePayload.value = [];
-    }    
+      grandTotalPendapatan.value = 0;
+    }
   } catch (error) {
     console.error("Failed to fetch data", error);
     revenuePayload.value = [];
@@ -150,11 +160,11 @@ const resetData = () => {
   typeOfService.value = "";
   paymentMethod.value = "";
   searchQuery.value = "";
-  revenue.value = "";
+  revenue.value = "prescription";
   fetchRevenue();
 };
 
-// Cetak Excel
+// Cetak Excel: ambil seluruh baris tersaring (sebelumnya hanya halaman aktif, mis. 10 baris pertama)
 const print = async () => {
   try {
     const response = await revenueStore.getApi(
@@ -165,8 +175,8 @@ const print = async () => {
       paymentMethod.value,
       searchQuery.value,
       revenue.value,
-      revenueProperties.value.page,
-      revenueProperties.value.page_size
+      1,
+      Math.max(revenueProperties.value.total, 1)
     );
     
     const faskes = response.payload.faskes;
@@ -182,7 +192,9 @@ const print = async () => {
     const faskesName = [`${faskes}`];
     const faskesAddress = [`${address}`];
     const userName = [`${user}`];
-    const title = ["Laporan Pendapatan Farmasi Resep"];
+    const judulJenis =
+      revenue.value === "penjualan_obat" ? "Penjualan Obat Bebas" : "Resep";
+    const title = [`Laporan Pendapatan Farmasi ${judulJenis}`];
     const periode = [`Periode: ${formatDate(startDateFilter.value)} - ${formatDate(endDateFilter.value)}`];
     const grandTotal = ["Grand Total"];
     const data = [];
@@ -212,6 +224,7 @@ const print = async () => {
       ri: "Rawat Inap",
       rj: "Rawat Jalan",
       igd: "Instalasi Gawat Darurat",
+      otc: "Penjualan Bebas",
     };
 
     // Data Rows
@@ -225,9 +238,9 @@ const print = async () => {
         NoInvoice: rows[i].noInvoice,
         NoRegis: rows[i].noReg,
         NoRM: rows[i].noRm,
-        Nama: rows[i].patient,
+        Nama: rows[i].patient?.name ?? "-",
         NamaDokter: rows[i].dokterOrder,
-        AsalResep: rows[i].lokasi.name,
+        AsalResep: rows[i].lokasi?.name ?? "-",
         JenisPelayanan: jenisPelayananMapping[rows[i].jenisPelayanan as string] || rows[i].jenisPelayanan,
         MetodePembayaran: rows[i].paymentMethod,
         Total: formatPrice(rows[i].totalHarga),
@@ -244,15 +257,17 @@ const print = async () => {
     XLSX.utils.sheet_add_aoa(worksheet, [userName], { origin: "A3" });
     XLSX.utils.sheet_add_aoa(worksheet, [title], { origin: "A4" });
     XLSX.utils.sheet_add_aoa(worksheet, [periode], { origin: "A5" });
-    XLSX.utils.sheet_add_aoa(worksheet, [grandTotal], { origin: "A13" });
-    XLSX.utils.sheet_add_aoa(worksheet, [[grandTotalValue]], { origin: "L13" });
+    // Baris Grand Total tepat di bawah data (sebelumnya tetap di baris 13 sehingga menimpa data ke-7)
+    const barisTotal = data.length + 1;
+    XLSX.utils.sheet_add_aoa(worksheet, [grandTotal], { origin: `A${barisTotal}` });
+    XLSX.utils.sheet_add_aoa(worksheet, [[grandTotalValue]], { origin: `L${barisTotal}` });
     worksheet["!merges"] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: 11 } },
       { s: { r: 2, c: 0 }, e: { r: 2, c: 11 } },
       { s: { r: 3, c: 0 }, e: { r: 3, c: 11 } },
       { s: { r: 4, c: 0 }, e: { r: 4, c: 11 } },
-      { s: { r: 12, c: 0 }, e: { r: 12, c: 10 } },     
+      { s: { r: barisTotal - 1, c: 0 }, e: { r: barisTotal - 1, c: 10 } },
     ];
 
     // Style Title
@@ -273,11 +288,11 @@ const print = async () => {
       alignment: { horizontal: "center", vertical: "center" },
       font: { bold: true, sz: 14 },
     };
-    worksheet["A13"].s = {
+    worksheet[`A${barisTotal}`].s = {
       alignment: { horizontal: "center", vertical: "center" },
       font: { bold: true, sz: 10 },
     };
-    worksheet["L13"] = { v: formatPrice(grandTotalValue), 
+    worksheet[`L${barisTotal}`] = { v: formatPrice(grandTotalValue), 
       s: { 
         alignment: { horizontal: "center", vertical: "center" }, 
         font: { bold: true, sz: 10 } 
@@ -336,7 +351,7 @@ const print = async () => {
 
     // Append Worksheet to Workbook and Save
     XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Pendapatan Farmasi");
-    XLSX.writeFile(workbook, `Laporan Pendapatan Farmasi Resep.xlsx`);
+    XLSX.writeFile(workbook, `Laporan Pendapatan Farmasi ${judulJenis}.xlsx`);
   } catch (error) {
     console.error("Error while exporting Excel", error);
   }
@@ -472,14 +487,8 @@ onMounted(() => {
           <!-- Jenis Pelayanan -->
           <Column header="Jenis Pelayanan" headerClass="bg-opensimrs-50">
             <template #body="slotProps">
-              <div class="text-SM" v-if="slotProps.data.jenisPelayanan == 'ri'">
-                Rawat Inap
-              </div>
-              <div class="text-SM" v-if="slotProps.data.jenisPelayanan == 'igd'">
-                IGD
-              </div>
-              <div class="text-SM" v-if="slotProps.data.jenisPelayanan == 'rj'">
-                Rawat Jalan
+              <div class="text-SM">
+                {{ jenisPelayananLabel[slotProps.data.jenisPelayanan] ?? slotProps.data.jenisPelayanan }}
               </div>
             </template>
           </Column>
@@ -511,7 +520,7 @@ onMounted(() => {
                 <!-- Asal Resep -->
                 <Column header="Asal Resep" headerClass="bg-opensimrs-50">
                   <template #body="slotProps">
-                    <div class="text-SM">{{ slotProps.data.lokasi.name }}</div>
+                    <div class="text-SM">{{ slotProps.data.lokasi?.name ?? "-" }}</div>
                   </template>
                 </Column>
                 <!-- Total -->
@@ -534,6 +543,9 @@ onMounted(() => {
             class="mr-[10px]"
             backgroundColor="bg-opensimrs-300"
           />
+          <div class="font-semibold text-SM self-center">
+            Grand Total: {{ formatPrice(grandTotalPendapatan) }}
+          </div>
           <CustomPaginator
             :rows="revenueProperties.page_size"
             :totalRecords="revenueProperties.total"

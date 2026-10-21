@@ -13,6 +13,8 @@ export const serahTerimaSchema = z.object({
     tujuan_icu: z.boolean().default(false),
 }).strict();
 export const konfirmasiSchema = z.object({ waktu_kejadian: waktu, versi }).strict();
+// Penutupan episode tanpa perpindahan bed (pulang langsung atau meninggal di HDU); pindah ruangan tetap lewat serah terima.
+export const selesaiSchema = z.object({ jenis_keluar: z.enum(["pulang", "meninggal"]), waktu_kejadian: waktu, catatan: alasan, versi }).strict();
 export const uuidSchema = uuid;
 export const paginasiSchema = z.object({
     halaman: z.coerce.number().int().positive().default(1), batas: z.coerce.number().int().min(1).max(100).default(25),

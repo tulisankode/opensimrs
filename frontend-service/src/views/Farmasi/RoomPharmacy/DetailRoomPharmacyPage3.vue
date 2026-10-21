@@ -48,6 +48,11 @@ const fetchEmployee = async () => {
 const RoomPharmacyStoreStore = useRoomPharmacyStore();
 const UseUtilsStore = utilsStore();
 
+// status pembayaran kasir dari detail order (farmasi-service): tombol Serahkan nonaktif bila belum dibayar
+const belumDibayar = computed(
+  () => props.payloadDetail3?.statusPembayaran?.bolehDiserahkan === false
+);
+
 const handover = async () => {
   UseUtilsStore.setLoading(true);
   try {
@@ -55,11 +60,11 @@ const handover = async () => {
       uuid: props.payloadDetail3.uuid,
       penerima: officerName.value,
     });
+    if (response) emit("close");
   } catch (error) {
     console.error("Failed to process the data:", error);
   } finally {
     UseUtilsStore.setLoading(false);
-    emit("close");
   }
 };
 
@@ -69,11 +74,11 @@ const previous = async () => {
     const response = await RoomPharmacyStoreStore.previousApi({
       uuid: props.payloadDetail3.uuid,
     });
+    if (response) emit("previous", props.payloadDetail3.uuid);
   } catch (error) {
     console.error("Failed to process the data:", error);
   } finally {
     UseUtilsStore.setLoading(false);
-    emit("previous", props.payloadDetail3.uuid);
   }
 };
 
@@ -456,12 +461,30 @@ onMounted(() => {
           </div>
           <div class="flex justify-end">
             <div class="mt-[20px]">
+              <!-- alkes dibayar dulu di kasir, kecuali rawat inap, penjamin & BHP Kamar Operasi/Hemodialisa -->
               <CustomButton
-                v-if="officerName == ''"
+                v-if="officerName == '' || belumDibayar"
                 disabled
                 label="Serahkan"
               />
               <CustomButton v-else label="Serahkan" @click="handover" />
+              <p
+                v-if="props.payloadDetail3.statusPembayaran"
+                class="text-xs text-right mt-1"
+                :class="belumDibayar ? 'text-warning-300' : 'text-grass-300'"
+              >
+                {{
+                  belumDibayar
+                    ? `Menunggu pembayaran di kasir${
+                        props.payloadDetail3.statusPembayaran.sisa
+                          ? ` (sisa Rp ${Number(
+                              props.payloadDetail3.statusPembayaran.sisa
+                            ).toLocaleString("id-ID")})`
+                          : ""
+                      }`
+                    : `Pembayaran: ${props.payloadDetail3.statusPembayaran.label}`
+                }}
+              </p>
             </div>
           </div>
         </div>

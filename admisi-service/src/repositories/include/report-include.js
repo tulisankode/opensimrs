@@ -20,7 +20,7 @@ export const kunjunganReportInclude = (args) => [
             {
                 model: AddressModel,
                 as: "address",
-                required: true,
+                required: false,
                 where: {
                     deletedAt: {
                         [Op.is]: null
@@ -31,7 +31,7 @@ export const kunjunganReportInclude = (args) => [
             {
                 model: BirthDetailModel,
                 as: "birth_detail",
-                required: true,
+                required: false,
                 where: {
                     deletedAt: {
                         [Op.is]: null
@@ -105,7 +105,7 @@ export const cancelReportInclude = [
             {
                 model: AddressModel,
                 as: "address",
-                required: true,
+                required: false,
                 where: {
                     deletedAt: { [Op.is]: null },
                 },
@@ -114,7 +114,7 @@ export const cancelReportInclude = [
             {
                 model: BirthDetailModel,
                 as: "birth_detail",
-                required: true,
+                required: false,
                 where: { deletedAt: { [Op.is]: null } },
                 attributes: ["age_year", "age_month", "age_day"],
             },
@@ -183,7 +183,7 @@ export const keperawatanInapInclude = [
             {
                 model: AddressModel,
                 as: "address",
-                required: true,
+                required: false,
                 where: {
                 deletedAt: { [Op.is]: null },
                 },
