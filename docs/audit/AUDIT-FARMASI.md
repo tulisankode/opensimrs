@@ -127,11 +127,11 @@ Sisa yang masih terbuka:
 | No | Topik | Pilihan |
 |---|---|---|
 | 1 | Pembayaran obat bebas | (a) tetap bayar di apotek, tambah metode bayar/petugas/waktu bayar; atau (b) masuk Kasir (payment-service perlu tagihan tanpa pasien terdaftar). |
-| 2 | Obat pasien tunai | **Diterapkan:** dibayar dulu baru diserahkan (lihat 2.1/2.2 dan `changelog.d/feat-farmasi-bayar-sebelum-serah.md`). Masih terbuka: iur biaya pasien penjamin (selisih yang tidak ditanggung) dan pasien IGD yang dirawat inap. |
+| 2 | Obat pasien tunai | **Diterapkan:** dibayar dulu baru diserahkan (lihat 2.1/2.2 dan `changelog.d/feat-farmasi-bayar-sebelum-serah.md`). Keputusan pemilik 2026-10-21: tagihan yang ditutup kasir sebagai piutang dianggap sudah dibayar (di akuntansi tetap tercatat sebagai Piutang Pasien lewat event *Tagihan Final*); IGD tidak dikecualikan (diperlakukan sama dengan RJ tunai); iur biaya pasien penjamin tidak menahan penyerahan (ditagih di kasir seperti biasa). |
 | 3 | Nilai retur | **Diterapkan:** HPP untuk `retur.total`, tampilan, dan koreksi tagihan; laporan pendapatan = harga jual tertagih − HPP retur. |
 | 4 | Retur setelah tagihan ditutup | Perlu dokumen refund resmi (saat ini manual di kasir). |
 | 5 | BHP Kamar Operasi/Hemodialisa | Ditagih HPP tanpa margin (beda dengan alkes RME). |
-| 6 | Substitusi obat | **Selesai (2026-10-21):** tabel `prescription_item_substitutions`, izin SUBSTITUSI, dan tombol Substitusi di detail Resep Dokter (status 1–2, non-racikan). Yang masih perlu dikonfirmasi: apakah persetujuan dokter wajib untuk kategori alasan tertentu. |
+| 6 | Substitusi obat | **Selesai (2026-10-21):** tabel `prescription_item_substitutions`, izin SUBSTITUSI, dan tombol Substitusi di detail Resep Dokter (status 1–2, non-racikan). **Persetujuan dokter wajib (2026-10-21):** apoteker mengajukan (obat belum diganti, verifikasi resep tertahan) atau mencatat konfirmasi lisan/telepon (langsung berlaku); dokter menyetujui/menolak/memverifikasi di **Farmasi › Persetujuan Substitusi** (`changelog.d/feat-farmasi-persetujuan-substitusi.md`). |
 | 7 | Antrian farmasi | Belum terhubung otomatis ke resep. |
 | 8 | PPN | PPN pembelian di-hardcode 11%; kolom PPN Konfigurasi Harga belum dipakai; tentukan apakah HPP termasuk PPN. |
 | 9 | Penomoran & satuan | Nomor transaksi acak 4 karakter (risiko ganda); jumlah obat pecahan; waktu tunggu dihitung dari verifikasi (standar mutu biasanya sejak resep diterima). |

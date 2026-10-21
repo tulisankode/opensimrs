@@ -766,6 +766,10 @@
               ]
             },
             {
+              "name": "Persetujuan Substitusi",
+              "allows": ["READ", "SETUJUI", "TOLAK"]
+            },
+            {
               "name": "Retur Obat dan Material",
               "allows": [
                 "READ",
@@ -2012,6 +2016,10 @@
                 "CREATE ITEM MULTIPLE",
                 "BATAL PEMBELIAN"
               ]
+            },
+            {
+              "name": "Persetujuan Substitusi",
+              "allows": ["READ", "SETUJUI", "TOLAK"]
             },
             {
               "name": "Retur Obat dan Material",

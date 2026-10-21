@@ -637,6 +637,10 @@ export const usePermissionStore = defineStore('permission', () => {
           ],
         },
         {
+          name: "Persetujuan Substitusi",
+          allows: ["READ", "SETUJUI", "TOLAK"],
+        },
+        {
           name: "Retur Obat dan Material",
           allows: ["READ", "RETUR"],
         },

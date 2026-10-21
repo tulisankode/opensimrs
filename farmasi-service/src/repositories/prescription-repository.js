@@ -180,7 +180,9 @@ export default class PrescriptionRepository {
           s.item_medis_asal_uuid, asal.name AS nama_obat_asal, s.jenis_stok_asal_uuid, jsa.name AS jenis_stok_asal,
           s.medication_qty_asal, s.item_medis_uuid, ganti.name AS nama_obat_pengganti,
           s.jenis_stok_uuid, jsg.name AS jenis_stok_pengganti, s.medication_qty, s.harga_satuan,
-          s.kategori_alasan, s.alasan, s.persetujuan_dokter, s.dokter_penyetuju, s.catatan, s.petugas, s.created_at
+          s.kategori_alasan, s.alasan, s.persetujuan_dokter, s.dokter_penyetuju, s.catatan, s.petugas, s.created_at,
+          s.status, s.cara_konfirmasi, s.waktu_konfirmasi, s.diputuskan_oleh, s.diputuskan_at, s.alasan_tolak,
+          s.diverifikasi_oleh, s.diverifikasi_at
         FROM prescription_item_substitutions s
         LEFT JOIN item_medis asal ON asal.uuid = s.item_medis_asal_uuid
         LEFT JOIN item_medis ganti ON ganti.uuid = s.item_medis_uuid
@@ -190,6 +192,69 @@ export default class PrescriptionRepository {
         ORDER BY s.created_at, s.id`,
       {
         replacements: { prescription_uuid, faskes_uuid },
+        type: QueryTypes.SELECT,
+      }
+    );
+  }
+
+  // Baris substitusi dikunci untuk keputusan dokter (setujui/tolak/verifikasi) agar tidak diputuskan dua kali.
+  static async lockSubstitusi(uuid, faskes_uuid, transaction) {
+    return await PrescriptionItemSubstitutionModel.findOne({
+      where: { uuid, faskes_uuid, deleted_at: null },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+  }
+
+  static async updateSubstitusi(uuid, data, transaction) {
+    const [affectedRows] = await PrescriptionItemSubstitutionModel.update(
+      { ...data, updated_at: moment().unix() },
+      { where: { uuid }, transaction }
+    );
+    return affectedRows;
+  }
+
+  // Jumlah pengajuan substitusi yang masih menunggu dokter pada satu resep (opsional: satu item resep).
+  static async countSubstitusiMenunggu(
+    { prescription_uuid, prescription_item_uuid, faskes_uuid },
+    transaction
+  ) {
+    const where = { faskes_uuid, status: "menunggu", deleted_at: null };
+    if (prescription_uuid) where.prescription_uuid = prescription_uuid;
+    if (prescription_item_uuid) where.prescription_item_uuid = prescription_item_uuid;
+    return await PrescriptionItemSubstitutionModel.count({ where, transaction });
+  }
+
+  // Daftar persetujuan substitusi untuk dokter. menunggu: hanya resep yang masih bisa diubah (status 1–2);
+  // verifikasi: konfirmasi lisan & data lama yang belum diverifikasi dokter (status resep apa pun).
+  static async getDaftarPersetujuanSubstitusi({ faskes_uuid, status, dokter }) {
+    const syaratStatus = {
+      menunggu: "s.status = 'menunggu' AND p.order_status IN (1, 2)",
+      verifikasi:
+        "s.status IN ('disetujui_lisan', 'tanpa_persetujuan') AND s.diverifikasi_at IS NULL",
+      semua: "TRUE",
+    }[status];
+    return await sequelizeInstance.query(
+      `SELECT s.uuid, s.prescription_uuid, s.prescription_item_uuid, s.status,
+          p.no_resep, p.no_reg, p.no_rm, p.order_status, p.dokter_order, p.jenis_pelayanan, pt.name AS nama_pasien,
+          asal.name AS nama_obat_asal, jsa.name AS jenis_stok_asal, s.medication_qty_asal,
+          ganti.name AS nama_obat_pengganti, jsg.name AS jenis_stok_pengganti, s.medication_qty,
+          s.kategori_alasan, s.alasan, s.catatan, s.petugas, s.created_at,
+          s.dokter_penyetuju, s.cara_konfirmasi, s.waktu_konfirmasi, s.diputuskan_oleh, s.diputuskan_at, s.alasan_tolak,
+          s.diverifikasi_oleh, s.diverifikasi_at
+        FROM prescription_item_substitutions s
+        JOIN prescriptions p ON p.uuid = s.prescription_uuid AND p.faskes_uuid = s.faskes_uuid
+        LEFT JOIN patients pt ON pt.uuid = p.patient_uuid
+        LEFT JOIN item_medis asal ON asal.uuid = s.item_medis_asal_uuid
+        LEFT JOIN item_medis ganti ON ganti.uuid = s.item_medis_uuid
+        LEFT JOIN jenis_stok jsa ON jsa.uuid = s.jenis_stok_asal_uuid
+        LEFT JOIN jenis_stok jsg ON jsg.uuid = s.jenis_stok_uuid
+        WHERE s.faskes_uuid = :faskes_uuid AND s.deleted_at IS NULL AND ${syaratStatus}
+          AND (CAST(:dokter AS varchar) IS NULL OR p.dokter_order = :dokter)
+        ORDER BY s.created_at DESC, s.id DESC
+        LIMIT 500`,
+      {
+        replacements: { faskes_uuid, dokter: dokter ?? null },
         type: QueryTypes.SELECT,
       }
     );

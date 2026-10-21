@@ -160,12 +160,33 @@ export default class PrescriptionValidation {
         errorMap: () => ({ message: "Kategori alasan substitusi tidak dikenal" }),
       }),
       alasan: z.string().trim().min(1, "Alasan substitusi wajib diisi").max(1000),
-      persetujuan_dokter: z.boolean().default(false),
+      // ajukan = menunggu persetujuan dokter di aplikasi (obat belum diganti);
+      // konfirmasi_lisan = dokter sudah menyetujui lewat telepon/lisan, langsung diterapkan lalu diverifikasi dokter
+      mode: z.enum(["ajukan", "konfirmasi_lisan"]).default("ajukan"),
       dokter_penyetuju: z.string().trim().max(255).optional().nullable(),
+      cara_konfirmasi: z.enum(["telepon", "lisan", "langsung"]).optional().nullable(),
+      waktu_konfirmasi: z.number().int().positive().optional().nullable(),
       catatan: z.string().trim().max(1000).optional().nullable(),
     })
-    .refine((d) => !d.persetujuan_dokter || !!d.dokter_penyetuju, {
+    .refine((d) => d.mode !== "konfirmasi_lisan" || !!d.dokter_penyetuju, {
       message: "Nama dokter yang menyetujui wajib diisi",
       path: ["dokter_penyetuju"],
+    })
+    .refine((d) => d.mode !== "konfirmasi_lisan" || !!d.cara_konfirmasi, {
+      message: "Cara konfirmasi dokter wajib dipilih",
+      path: ["cara_konfirmasi"],
     });
+
+  static STATUS_SUBSTITUSI = ["menunggu", "verifikasi", "semua"];
+
+  // Daftar persetujuan substitusi untuk dokter: menunggu = pengajuan yang belum diputuskan,
+  // verifikasi = konfirmasi lisan/data lama yang belum diverifikasi dokter; milik_saya = resep yang ditulis user ini.
+  static DAFTAR_PERSETUJUAN_SUBSTITUSI = z.object({
+    status: z.enum(PrescriptionValidation.STATUS_SUBSTITUSI).default("menunggu"),
+    milik_saya: z.preprocess((v) => v === true || v === "true" || v === "1", z.boolean()).default(false),
+  });
+
+  static TOLAK_SUBSTITUSI = z.object({
+    alasan_tolak: z.string().trim().min(1, "Alasan penolakan wajib diisi").max(1000),
+  });
 }

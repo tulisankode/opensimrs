@@ -22,6 +22,17 @@ const sidebarBodyList = ref<SidebarBody[]>([
         },
       },
       {
+        name: "Persetujuan Substitusi",
+        icon: "PhSealCheck",
+        type: linkType.LINK,
+        url: "/farmasi/persetujuan-substitusi",
+        permission: {
+          module: "Farmasi",
+          submodule: "Persetujuan Substitusi",
+          action: "READ",
+        },
+      },
+      {
         name: "Penjualan Obat",
         icon: "ShoppingBagIcon",
         type: linkType.LINK,

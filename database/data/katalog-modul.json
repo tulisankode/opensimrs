@@ -1193,10 +1193,10 @@
       "kode": "farmasi_substitusi",
       "modul": "farmasi",
       "nama": "Substitusi Obat",
-      "deskripsi": "Apoteker mengganti obat dengan padanannya (generik/merek lain) saat telaah resep.",
+      "deskripsi": "Apoteker mengganti obat dengan padanannya (generik/merek lain) saat telaah resep, dengan persetujuan dokter (di aplikasi atau konfirmasi lisan/telepon).",
       "tersedia": true,
       "wajib": false,
-      "rute": [],
+      "rute": ["/farmasi/persetujuan-substitusi"],
       "urutan": 35
     },
     {

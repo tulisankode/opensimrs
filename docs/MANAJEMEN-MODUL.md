@@ -420,7 +420,7 @@ Kolom **Wajib**: fitur tidak bisa dimatikan. **Syarat modul**: fitur hanya berfu
 | `farmasi_telaah` | Telaah & Validasi Resep | Telaah administratif, farmasetik & klinis sebelum obat diserahkan (standar pelayanan kefarmasian). | Tersedia | Ya | – | – |
 | `farmasi_racikan` | Obat Racikan | Order obat racikan (puyer, kapsul, salep) dari RME. | Tersedia | – | – | – |
 | `farmasi_obat_kronis` | Obat Kronis BPJS (23/7) | Penandaan obat kronis: 7 hari masuk paket INA-CBG, 23 hari ditagihkan terpisah ke BPJS. | Tersedia | – | BPJS FKRTL (VClaim/SEP) (`bpjs_fkrtl`) | – |
-| `farmasi_substitusi` | Substitusi Obat | Apoteker mengganti obat dengan padanannya (generik/merek lain) saat telaah resep. | Tersedia | – | – | – |
+| `farmasi_substitusi` | Substitusi Obat | Apoteker mengganti obat dengan padanannya (generik/merek lain) saat telaah resep, dengan persetujuan dokter (di aplikasi atau konfirmasi lisan/telepon). | Tersedia | – | – | – |
 | `farmasi_retur` | Retur Obat & Material | Pengembalian obat/BMHP dari pasien atau ruangan ke farmasi. | Tersedia | – | – | PM |
 
 #### Gudang & Pengadaan (`inventory`)

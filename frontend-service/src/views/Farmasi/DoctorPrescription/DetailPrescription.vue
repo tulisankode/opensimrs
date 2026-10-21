@@ -162,11 +162,22 @@ const ringkasSubstitusi = (obat: any) =>
   (obat?.substitusi ?? [])
     .map(
       (s: any) =>
-        `${s.namaObatAsal} → ${s.namaObatPengganti} (${s.kategoriAlasanLabel}: ${s.alasan}; ${s.petugas}${
-          s.persetujuanDokter ? `, disetujui ${s.dokterPenyetuju}` : ""
-        })`
+        `${s.namaObatAsal} → ${s.namaObatPengganti} (${s.kategoriAlasanLabel}: ${s.alasan}; ${s.petugas}) — ${
+          s.statusLabel ?? "-"
+        }${s.dokterPenyetuju ? ` oleh ${s.dokterPenyetuju}` : ""}${s.alasanTolak ? `: ${s.alasanTolak}` : ""}`
     )
     .join("\n");
+// pengajuan yang belum diputuskan dokter bisa dibatalkan apoteker (mis. salah pilih obat)
+const membatalkanPengajuan = ref(false);
+const batalPengajuan = async (obat: any) => {
+  if (!obat?.substitusiMenunggu?.uuid || membatalkanPengajuan.value) return;
+  membatalkanPengajuan.value = true;
+  try {
+    if (await DoctorPrescriptionStore.batalSubstitusi(obat.substitusiMenunggu.uuid)) await setelahSubstitusi();
+  } finally {
+    membatalkanPengajuan.value = false;
+  }
+};
 
 // define ref datatable items obat dan racikan
 const itemsObat = ref([
@@ -1055,6 +1066,18 @@ onMounted(() => {
                         customClass="h-5"
                         class="my-auto ml-[10px]"
                       />
+                      <!-- pengajuan substitusi menunggu dokter: obat pada resep belum diganti -->
+                      <CustomChip
+                        v-if="obat.value.substitusiMenunggu"
+                        v-tooltip.top="ringkasSubstitusi(obat.value)"
+                        :label="`Menunggu persetujuan dokter → ${obat.value.substitusiMenunggu.namaObatPengganti}`"
+                        borderColor="border-danger-300"
+                        bgColor="bg-danger-50"
+                        :showCheckedIcon="false"
+                        textColor="text-danger-300"
+                        customClass="h-5"
+                        class="my-auto ml-[10px]"
+                      />
                     </div>
                     <div class="flex justify-end">
                       <CustomChip
@@ -1107,13 +1130,29 @@ onMounted(() => {
                         v-if="
                           !obat.value.isCompound &&
                           bolehSubstitusi &&
+                          !obat.value.substitusiMenunggu &&
                           [1, 2].includes(payload.orderStatus)
                         "
-                        v-tooltip.top="'Ganti dengan obat lain yang tersedia di depo'"
+                        v-tooltip.top="'Ganti dengan obat lain yang tersedia di depo (perlu persetujuan dokter)'"
                         label="Substitusi"
                         icon="PhArrowsCounterClockwise"
                         class="h-6 text-xs px-2 mr-[10px]"
                         @click="bukaSubstitusi(obat.value)"
+                      />
+                      <CustomButton
+                        v-if="
+                          bolehSubstitusi &&
+                          obat.value.substitusiMenunggu &&
+                          [1, 2].includes(payload.orderStatus)
+                        "
+                        v-tooltip.top="'Batalkan pengajuan substitusi yang belum diputuskan dokter'"
+                        label="Batal Pengajuan"
+                        outlined
+                        borderColor="border-danger-300"
+                        textColor="text-danger-300"
+                        class="h-6 text-xs px-2 mr-[10px]"
+                        :disabled="membatalkanPengajuan"
+                        @click="batalPengajuan(obat.value)"
                       />
                       <CustomButton
                         v-show="payload.orderStatus === 1"

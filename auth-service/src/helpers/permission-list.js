@@ -590,6 +590,10 @@ export const farmasiPermission = {
       allows: ["READ", "CREATE BELI OBAT", "CREATE ITEM", "CREATE ITEM OBAT", "CREATE ITEM MULTIPLE", "BATAL PEMBELIAN"],
     },
     {
+      name: "Persetujuan Substitusi",
+      allows: ["READ", "SETUJUI", "TOLAK"],
+    },
+    {
       name: "Retur Obat dan Material",
       allows: ["READ", "RETUR"],
     },

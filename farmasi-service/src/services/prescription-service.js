@@ -288,12 +288,16 @@ export default class PrescriptionService {
   // dibuat, sehingga cukup mengganti obat pada item resep; verifikasi kemudian memotong stok & menagih obat
   // pengganti. Obat pengganti wajib punya stok cukup di lokasi stok resep pada jenis stok yang dipilih.
   // Racikan ditolak: komponen racikan diubah lewat edit komposisi racikan.
+  // Wajib persetujuan dokter (keputusan pemilik 21-10-2026):
+  // - mode "ajukan": dicatat "menunggu", obat di resep belum diganti sampai dokter menyetujui (setujuiSubstitusi);
+  // - mode "konfirmasi_lisan": dokter sudah setuju lewat telepon/lisan → langsung diterapkan, lalu diverifikasi dokter.
   static async substituteItem(data, author) {
     const validatedData = ZodValidator.validate(
       PrescriptionValidation.SUBSTITUTE_PRESCRIPTION_ITEM,
       data
     );
     const faskes_uuid = author.faskesUuid;
+    const lisan = validatedData.mode === "konfirmasi_lisan";
 
     const transaction = await sequelizeInstance.transaction();
 
@@ -336,58 +340,23 @@ export default class PrescriptionService {
           "Obat pengganti sama dengan obat pada resep."
         );
       }
-
-      const lokasiStok = (
-        await PrescriptionRepository.getByUuid(
-          originalItem.prescription_uuid,
-          transaction,
-          faskes_uuid
+      if (
+        await PrescriptionRepository.countSubstitusiMenunggu(
+          { prescription_item_uuid: originalItem.uuid, faskes_uuid },
+          transaction
         )
-      )?.lokasi_stok_uuid;
-      if (!lokasiStok) {
-        throw new BadRequestException("Lokasi stok resep belum dipilih.");
+      ) {
+        throw new BadRequestException(
+          "Obat ini masih punya pengajuan substitusi yang menunggu persetujuan dokter; batalkan pengajuan itu dulu."
+        );
       }
 
-      // obat pengganti: obat aktif faskes ini dengan stok belum kedaluwarsa di lokasi stok resep
-      const [stokPengganti] = await PrescriptionRepository.getStokObatDiLokasi(
-        {
-          faskes_uuid,
-          lokasi_stok_uuid: lokasiStok,
-          item_medis_uuid: validatedData.item_medis_uuid,
-          jenis_stok_uuid: validatedData.jenis_stok_uuid,
-        },
+      const hargaSatuan = await this.periksaObatPengganti(
+        originalItem,
+        validatedData,
+        faskes_uuid,
         transaction
       );
-      if (!stokPengganti) {
-        throw new BadRequestException(
-          "Obat pengganti tidak tersedia pada jenis stok tersebut di lokasi stok resep."
-        );
-      }
-      if (Number(stokPengganti.sisa_stok) < validatedData.medication_qty) {
-        throw new BadRequestException(
-          `Stok ${stokPengganti.name} (${stokPengganti.jenis_stok}) tidak mencukupi: tersedia ${stokPengganti.sisa_stok}, dibutuhkan ${validatedData.medication_qty}.`
-        );
-      }
-
-      // harga wajib ada agar verifikasi bisa menagih; HPP dicatat sebagai informasi (dihitung ulang saat verifikasi)
-      const hargaBaruData = await DataMasterItemMedisRepository.getPrice({
-        item_medis_uuid: validatedData.item_medis_uuid,
-        jenis_stok_uuid: validatedData.jenis_stok_uuid,
-      });
-      const detailHarga = hargaBaruData?.detail_harga?.[0];
-      if (!detailHarga) {
-        throw new BadRequestException(
-          `Harga ${stokPengganti.name} (${stokPengganti.jenis_stok}) belum diatur.`
-        );
-      }
-      const konfigurasiHarga = await KonfigurasiHargaService.get({
-        faskes_uuid,
-      });
-      const hargaSatuan = ["avg", "average"].includes(
-        konfigurasiHarga?.metode_hpp
-      )
-        ? detailHarga.harga_avg ?? 0
-        : detailHarga.harga_terakhir ?? 0;
 
       const KOLOM_KLINIS = [
         "medication_dose_qty",
@@ -408,31 +377,6 @@ export default class PrescriptionService {
         dataAsal[kolom] = originalItem[kolom] ?? null;
       }
 
-      await PrescriptionRepository.createSubstitutionLog(
-        {
-          faskes_uuid,
-          prescription_uuid: originalItem.prescription_uuid,
-          prescription_item_uuid: originalItem.uuid,
-          item_medis_asal_uuid: originalItem.item_medis_uuid,
-          jenis_stok_asal_uuid: originalItem.jenis_stok_uuid,
-          medication_qty_asal: originalItem.medication_qty,
-          data_asal: dataAsal,
-          item_medis_uuid: validatedData.item_medis_uuid,
-          jenis_stok_uuid: validatedData.jenis_stok_uuid,
-          medication_qty: validatedData.medication_qty,
-          harga_satuan: hargaSatuan,
-          kategori_alasan: validatedData.kategori_alasan,
-          alasan: validatedData.alasan,
-          persetujuan_dokter: validatedData.persetujuan_dokter,
-          dokter_penyetuju: validatedData.persetujuan_dokter
-            ? validatedData.dokter_penyetuju
-            : null,
-          catatan: validatedData.catatan ?? null,
-          petugas: author.username,
-        },
-        transaction
-      );
-
       // dosis/aturan/cara pakai tetap mengikuti resep kecuali diisi; harga & batch stok diisi saat verifikasi
       const perubahan = {
         item_medis_uuid: validatedData.item_medis_uuid,
@@ -450,14 +394,48 @@ export default class PrescriptionService {
         if (validatedData[kolom] !== undefined) perubahan[kolom] = validatedData[kolom];
       }
 
-      await PrescriptionRepository.updatePrescriptionItem(
-        originalItem.uuid,
-        perubahan,
+      const status = lisan ? "disetujui_lisan" : "menunggu";
+      const log = await PrescriptionRepository.createSubstitutionLog(
+        {
+          faskes_uuid,
+          prescription_uuid: originalItem.prescription_uuid,
+          prescription_item_uuid: originalItem.uuid,
+          item_medis_asal_uuid: originalItem.item_medis_uuid,
+          jenis_stok_asal_uuid: originalItem.jenis_stok_uuid,
+          medication_qty_asal: originalItem.medication_qty,
+          data_asal: dataAsal,
+          item_medis_uuid: validatedData.item_medis_uuid,
+          jenis_stok_uuid: validatedData.jenis_stok_uuid,
+          medication_qty: validatedData.medication_qty,
+          harga_satuan: hargaSatuan,
+          kategori_alasan: validatedData.kategori_alasan,
+          alasan: validatedData.alasan,
+          status,
+          perubahan,
+          persetujuan_dokter: lisan,
+          dokter_penyetuju: lisan ? validatedData.dokter_penyetuju : null,
+          cara_konfirmasi: lisan ? validatedData.cara_konfirmasi : null,
+          waktu_konfirmasi: lisan
+            ? validatedData.waktu_konfirmasi ?? Math.floor(Date.now() / 1000)
+            : null,
+          catatan: validatedData.catatan ?? null,
+          petugas: author.username,
+        },
         transaction
       );
 
+      if (lisan) {
+        await PrescriptionRepository.updatePrescriptionItem(
+          originalItem.uuid,
+          perubahan,
+          transaction
+        );
+      }
+
       await transaction.commit();
       return {
+        uuid: log?.uuid,
+        status,
         prescription_uuid: originalItem.prescription_uuid,
         prescription_item_uuid: originalItem.uuid,
         item_medis_asal_uuid: originalItem.item_medis_uuid,
@@ -469,6 +447,222 @@ export default class PrescriptionService {
       await transaction.rollback();
       throw error;
     }
+  }
+
+  // Obat pengganti: obat aktif faskes ini dengan stok belum kedaluwarsa & cukup di lokasi stok resep, dan harganya
+  // sudah diatur (agar verifikasi bisa menagih). Hasil: HPP satuan (informasi; dihitung ulang saat verifikasi).
+  // Dipakai saat pengajuan dan diulang saat dokter menyetujui (stok bisa berubah di antaranya).
+  static async periksaObatPengganti(item, pengganti, faskes_uuid, transaction) {
+    const lokasiStok = (
+      await PrescriptionRepository.getByUuid(
+        item.prescription_uuid,
+        transaction,
+        faskes_uuid
+      )
+    )?.lokasi_stok_uuid;
+    if (!lokasiStok) {
+      throw new BadRequestException("Lokasi stok resep belum dipilih.");
+    }
+
+    const [stokPengganti] = await PrescriptionRepository.getStokObatDiLokasi(
+      {
+        faskes_uuid,
+        lokasi_stok_uuid: lokasiStok,
+        item_medis_uuid: pengganti.item_medis_uuid,
+        jenis_stok_uuid: pengganti.jenis_stok_uuid,
+      },
+      transaction
+    );
+    if (!stokPengganti) {
+      throw new BadRequestException(
+        "Obat pengganti tidak tersedia pada jenis stok tersebut di lokasi stok resep."
+      );
+    }
+    if (Number(stokPengganti.sisa_stok) < pengganti.medication_qty) {
+      throw new BadRequestException(
+        `Stok ${stokPengganti.name} (${stokPengganti.jenis_stok}) tidak mencukupi: tersedia ${stokPengganti.sisa_stok}, dibutuhkan ${pengganti.medication_qty}.`
+      );
+    }
+
+    const hargaBaruData = await DataMasterItemMedisRepository.getPrice({
+      item_medis_uuid: pengganti.item_medis_uuid,
+      jenis_stok_uuid: pengganti.jenis_stok_uuid,
+    });
+    const detailHarga = hargaBaruData?.detail_harga?.[0];
+    if (!detailHarga) {
+      throw new BadRequestException(
+        `Harga ${stokPengganti.name} (${stokPengganti.jenis_stok}) belum diatur.`
+      );
+    }
+    const konfigurasiHarga = await KonfigurasiHargaService.get({
+      faskes_uuid,
+    });
+    return ["avg", "average"].includes(konfigurasiHarga?.metode_hpp)
+      ? detailHarga.harga_avg ?? 0
+      : detailHarga.harga_terakhir ?? 0;
+  }
+
+  // Keputusan dokter atas substitusi:
+  // - "menunggu" disetujui → obat pada item resep diganti saat itu (resep harus masih status 1–2, obat pada resep
+  //   masih obat asal, dan stok pengganti masih cukup);
+  // - "disetujui_lisan"/"tanpa_persetujuan" (sudah diterapkan) → dicatat sebagai verifikasi dokter.
+  static async setujuiSubstitusi(uuid, author) {
+    const faskes_uuid = author.faskesUuid;
+    const sekarang = Math.floor(Date.now() / 1000);
+    const transaction = await sequelizeInstance.transaction();
+    try {
+      const s = await PrescriptionRepository.lockSubstitusi(uuid, faskes_uuid, transaction);
+      if (!s) {
+        throw new NotfoundException("Pengajuan substitusi tidak ditemukan.");
+      }
+
+      if (["disetujui_lisan", "tanpa_persetujuan"].includes(s.status)) {
+        if (s.diverifikasi_at) {
+          throw new BadRequestException("Substitusi ini sudah diverifikasi dokter.");
+        }
+        await PrescriptionRepository.updateSubstitusi(
+          uuid,
+          { diverifikasi_oleh: author.username, diverifikasi_at: sekarang },
+          transaction
+        );
+        await transaction.commit();
+        return { uuid, status: s.status, diverifikasi: true };
+      }
+
+      if (s.status !== "menunggu") {
+        throw new BadRequestException(
+          `Pengajuan substitusi sudah diputuskan (${PrescriptionHelper.LABEL_STATUS_SUBSTITUSI[s.status] ?? s.status}).`
+        );
+      }
+
+      const resep = await PrescriptionRepository.lockPrescription(
+        s.prescription_uuid,
+        faskes_uuid,
+        transaction
+      );
+      if (!resep) {
+        throw new NotfoundException("Resep tidak ditemukan.");
+      }
+      this.cekStatus(resep.order_status, [
+        PrescriptionHelper.STATUS.RESEP_MASUK,
+        PrescriptionHelper.STATUS.SUDAH_DITELAAH,
+      ]);
+
+      const item = await PrescriptionRepository.getPrescriptionItemByUuid(
+        s.prescription_item_uuid,
+        transaction
+      );
+      if (!item || item.faskes_uuid !== faskes_uuid) {
+        throw new NotfoundException("Item resep tidak ditemukan.");
+      }
+      if (item.item_medis_uuid !== s.item_medis_asal_uuid) {
+        throw new BadRequestException(
+          "Obat pada resep sudah berubah sejak substitusi diajukan; minta apoteker mengajukan ulang."
+        );
+      }
+
+      const perubahan = s.perubahan ?? {
+        item_medis_uuid: s.item_medis_uuid,
+        jenis_stok_uuid: s.jenis_stok_uuid,
+        medication_qty: s.medication_qty,
+        sisa_qty_order: s.medication_qty,
+        harga_satuan: null,
+      };
+      const hargaSatuan = await this.periksaObatPengganti(
+        item,
+        perubahan,
+        faskes_uuid,
+        transaction
+      );
+
+      await PrescriptionRepository.updatePrescriptionItem(item.uuid, perubahan, transaction);
+      await PrescriptionRepository.updateSubstitusi(
+        uuid,
+        {
+          status: "disetujui",
+          persetujuan_dokter: true,
+          dokter_penyetuju: author.username,
+          harga_satuan: hargaSatuan,
+          diputuskan_oleh: author.username,
+          diputuskan_at: sekarang,
+        },
+        transaction
+      );
+      await transaction.commit();
+      return { uuid, status: "disetujui", prescription_uuid: s.prescription_uuid };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  // Dokter menolak pengajuan "menunggu": obat pada resep tetap obat asal.
+  static async tolakSubstitusi(uuid, data, author) {
+    const { alasan_tolak } = ZodValidator.validate(
+      PrescriptionValidation.TOLAK_SUBSTITUSI,
+      data
+    );
+    return await this.akhiriPengajuan(uuid, author, {
+      status: "ditolak",
+      alasan_tolak,
+    });
+  }
+
+  // Apoteker membatalkan pengajuannya sendiri yang belum diputuskan (mis. salah pilih obat).
+  static async batalSubstitusi(uuid, author) {
+    return await this.akhiriPengajuan(uuid, author, { status: "dibatalkan" });
+  }
+
+  static async akhiriPengajuan(uuid, author, perubahan) {
+    const transaction = await sequelizeInstance.transaction();
+    try {
+      const s = await PrescriptionRepository.lockSubstitusi(
+        uuid,
+        author.faskesUuid,
+        transaction
+      );
+      if (!s) {
+        throw new NotfoundException("Pengajuan substitusi tidak ditemukan.");
+      }
+      if (s.status !== "menunggu") {
+        throw new BadRequestException(
+          `Hanya pengajuan yang menunggu persetujuan yang bisa ${perubahan.status === "ditolak" ? "ditolak" : "dibatalkan"} (status: ${PrescriptionHelper.LABEL_STATUS_SUBSTITUSI[s.status] ?? s.status}).`
+        );
+      }
+      await PrescriptionRepository.updateSubstitusi(
+        uuid,
+        {
+          ...perubahan,
+          diputuskan_oleh: author.username,
+          diputuskan_at: Math.floor(Date.now() / 1000),
+        },
+        transaction
+      );
+      await transaction.commit();
+      return { uuid, status: perubahan.status };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  // Daftar untuk halaman Farmasi › Persetujuan Substitusi (dokter).
+  static async getDaftarPersetujuanSubstitusi(query, author) {
+    const { status, milik_saya } = ZodValidator.validate(
+      PrescriptionValidation.DAFTAR_PERSETUJUAN_SUBSTITUSI,
+      query ?? {}
+    );
+    const daftar = await PrescriptionRepository.getDaftarPersetujuanSubstitusi({
+      faskes_uuid: author.faskesUuid,
+      status,
+      dokter: milik_saya ? author.username : null,
+    });
+    return daftar.map((r) => ({
+      ...r,
+      kategori_alasan_label:
+        PrescriptionHelper.LABEL_ALASAN_SUBSTITUSI[r.kategori_alasan] ?? r.kategori_alasan,
+      status_label: PrescriptionHelper.LABEL_STATUS_SUBSTITUSI[r.status] ?? r.status,
+    }));
   }
 
   // Pilihan obat pengganti untuk satu item resep: obat lain yang punya stok di lokasi stok resep.
@@ -827,6 +1021,17 @@ export default class PrescriptionService {
       this.cekStatus(terkunci.order_status, [
         PrescriptionHelper.STATUS.SUDAH_DITELAAH,
       ]);
+      // substitusi yang belum diputuskan dokter: obat di resep belum final
+      if (
+        await PrescriptionRepository.countSubstitusiMenunggu(
+          { prescription_uuid: req.uuid, faskes_uuid: req.faskes_uuid },
+          transaction
+        )
+      ) {
+        throw new BadRequestException(
+          "Masih ada substitusi obat yang menunggu persetujuan dokter; tunggu keputusan dokter atau batalkan pengajuannya."
+        );
+      }
 
       const prescription = await PrescriptionRepository.getByUuid(
         req.uuid,
@@ -1350,12 +1555,17 @@ export default class PrescriptionService {
     if (prescription === null) {
       throw new BadRequestException("data tidak ditemukan");
     }
-    // e-resep mencantumkan obat yang disubstitusi beserta obat asal & alasannya
+    // e-resep mencantumkan obat yang disubstitusi beserta obat asal & alasannya (hanya yang sudah diterapkan;
+    // pengajuan menunggu/ditolak/dibatalkan tidak mengubah obat pada resep)
     return PrescriptionHelper.lampirkanSubstitusi(
       prescription.get({ plain: true }),
-      await PrescriptionRepository.getSubstitutionByPrescription(
-        uuid,
-        faskes_uuid
+      (
+        await PrescriptionRepository.getSubstitutionByPrescription(
+          uuid,
+          faskes_uuid
+        )
+      ).filter(
+        (r) => !r.status || PrescriptionHelper.STATUS_SUBSTITUSI_DITERAPKAN.includes(r.status)
       ),
       "obat"
     );
