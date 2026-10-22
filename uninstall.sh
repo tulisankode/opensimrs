@@ -183,15 +183,22 @@ elif [ "$SEMUA_YA" = 1 ] || [ "$SIMULASI" = 1 ] || tanya "Cadangkan PostgreSQL &
   DB_PASS="$(baca_env .env DB_PASSWORD "")"; MONGO_PASS="$(baca_env .env MONGO_DB_PASSWORD "")"
   # Perintah dibungkus fungsi: ui_jalankan mencatat argumennya ke log (dan menampilkannya bila gagal), jadi sandi tidak
   # boleh muncul sebagai argumen. Berkas kosong dianggap gagal (mis. redirect tetap membuat berkas walau perintah gagal).
+  # Tidak pernah meminta sandi (-w, stdin /dev/null): di balik spinner prompt tak terlihat dan uninstall tampak macet.
+  # Sandi kosong (mis. instalasi berhenti sebelum .env terisi) → coba tanpa autentikasi; gagal cepat bila Mongo memakai auth.
   cadangan_pg() {
-    if [ "$PODMAN" = 1 ]; then podman exec -e PGPASSWORD="$DB_PASS" opensimrs-db pg_dump -Fc -h 127.0.0.1 -U "$DB_USER" "$DB_NAMA" > "$CADANGAN/postgres.dump"
-    else PGPASSWORD="$DB_PASS" pg_dump -Fc -h 127.0.0.1 -p "$DB_PORT" -U "$DB_USER" -f "$CADANGAN/postgres.dump" "$DB_NAMA"; fi
+    if [ "$PODMAN" = 1 ]; then podman exec -e PGPASSWORD="$DB_PASS" opensimrs-db pg_dump -w -Fc -h 127.0.0.1 -U "$DB_USER" "$DB_NAMA" > "$CADANGAN/postgres.dump" </dev/null
+    else PGPASSWORD="$DB_PASS" pg_dump -w -Fc -h 127.0.0.1 -p "$DB_PORT" -U "$DB_USER" -f "$CADANGAN/postgres.dump" "$DB_NAMA" </dev/null; fi
     [ -s "$CADANGAN/postgres.dump" ]
   }
   cadangan_mongo() {
     if [ "$PODMAN" = 1 ]; then
-      podman exec -e MONGO_PASS="$MONGO_PASS" opensimrs-mongodb sh -c 'mongodump --quiet -u "$1" -p "$MONGO_PASS" --authenticationDatabase admin --db "$2" --archive' _ "$MONGO_USER" "$MONGO_DB" > "$CADANGAN/mongo.archive"
-    else mongodump --quiet --host 127.0.0.1 -u "$MONGO_USER" -p "$MONGO_PASS" --authenticationDatabase admin --db "$MONGO_DB" --archive="$CADANGAN/mongo.archive"; fi
+      podman exec -e MONGO_PASS="$MONGO_PASS" opensimrs-mongodb sh -c 'if [ -n "$MONGO_PASS" ]; then set -- -u "$1" -p "$MONGO_PASS" --authenticationDatabase admin --db "$2"; else set -- --db "$2"; fi; mongodump --quiet "$@" --archive' _ "$MONGO_USER" "$MONGO_DB" > "$CADANGAN/mongo.archive" </dev/null
+    elif [ -n "$MONGO_PASS" ]; then
+      mongodump --quiet --host 127.0.0.1 -u "$MONGO_USER" -p "$MONGO_PASS" --authenticationDatabase admin --db "$MONGO_DB" --archive="$CADANGAN/mongo.archive" </dev/null
+    else
+      warn "MONGO_DB_PASSWORD kosong di .env; mencadangkan MongoDB tanpa autentikasi"
+      mongodump --quiet --host 127.0.0.1 --db "$MONGO_DB" --archive="$CADANGAN/mongo.archive" </dev/null
+    fi
     [ -s "$CADANGAN/mongo.archive" ]
   }
   CADANGAN_GAGAL=""
@@ -222,9 +229,10 @@ else
     # Database dihapus oleh role aplikasi sendiri (pemiliknya) — tanpa superuser/sudo. Role hanya bisa dihapus superuser.
     DB_PASS="$(baca_env .env DB_PASSWORD "")"
     hapus_db() {
-      PGPASSWORD="$DB_PASS" psql -X -q -h 127.0.0.1 -p "$DB_PORT" -U "$DB_USER" -d postgres -v ON_ERROR_STOP=1 \
+      # -w: tanpa prompt sandi (tak terlihat di balik spinner); gagal → jalur superuser di bawah
+      PGPASSWORD="$DB_PASS" psql -w -X -q -h 127.0.0.1 -p "$DB_PORT" -U "$DB_USER" -d postgres -v ON_ERROR_STOP=1 \
         -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$DB_NAMA' AND pid <> pg_backend_pid();" \
-        -c "DROP DATABASE IF EXISTS $DB_NAMA;"
+        -c "DROP DATABASE IF EXISTS $DB_NAMA;" </dev/null
     }
     aksi "PostgreSQL: putuskan koneksi & DROP DATABASE $DB_NAMA (sebagai $DB_USER)" hapus_db \
       || $AKSI_PG "PostgreSQL: DROP DATABASE $DB_NAMA (superuser)" pgadmin -c "DROP DATABASE IF EXISTS $DB_NAMA WITH (FORCE);" \

@@ -165,19 +165,23 @@ onMounted(async () => {
             <div class="p-3 border rounded-lg border-grey-100">
               <div class="mb-2 font-semibold">Jenis MCU</div>
               <table class="w-full text-xs">
-                <tr v-for="j in data.perJenisMcu" :key="j.jenisMcu" class="border-t border-grey-100">
-                  <td class="py-1.5">{{ JENIS_MCU[j.jenisMcu] ?? j.jenisMcu }}</td><td class="text-right">{{ j.peserta }}</td>
-                </tr>
-                <tr v-if="!data.perJenisMcu.length"><td class="py-2 text-grey-400">-</td></tr>
+                <tbody>
+                  <tr v-for="j in data.perJenisMcu" :key="j.jenisMcu" class="border-t border-grey-100">
+                    <td class="py-1.5">{{ JENIS_MCU[j.jenisMcu] ?? j.jenisMcu }}</td><td class="text-right">{{ j.peserta }}</td>
+                  </tr>
+                  <tr v-if="!data.perJenisMcu.length"><td class="py-2 text-grey-400">-</td></tr>
+                </tbody>
               </table>
             </div>
             <div class="p-3 border rounded-lg border-grey-100">
               <div class="mb-2 font-semibold">Status Gizi (IMT) Peserta</div>
               <table class="w-full text-xs">
-                <tr v-for="k in data.kategoriImt" :key="k.kategori" class="border-t border-grey-100">
-                  <td class="py-1.5">{{ k.kategori }}</td><td class="text-right">{{ k.jumlah }}</td>
-                </tr>
-                <tr v-if="!data.kategoriImt.length"><td class="py-2 text-grey-400">Belum ada data tanda vital</td></tr>
+                <tbody>
+                  <tr v-for="k in data.kategoriImt" :key="k.kategori" class="border-t border-grey-100">
+                    <td class="py-1.5">{{ k.kategori }}</td><td class="text-right">{{ k.jumlah }}</td>
+                  </tr>
+                  <tr v-if="!data.kategoriImt.length"><td class="py-2 text-grey-400">Belum ada data tanda vital</td></tr>
+                </tbody>
               </table>
             </div>
           </div>

@@ -105,19 +105,23 @@ watch(
             <div v-if="hasil[o.uuid] === null" class="text-grey-400">Memuat hasil…</div>
             <div v-else-if="!hasil[o.uuid]?.length" class="text-grey-400">Belum ada hasil pemeriksaan.</div>
             <table v-else class="w-full">
-              <tr class="text-grey-400">
-                <td>Pemeriksaan</td>
-                <td>Hasil</td>
-                <td>Rujukan</td>
-              </tr>
-              <tr v-for="h in hasil[o.uuid]" :key="h.uuid">
-                <td>{{ h.itemPemeriksaan?.name ?? "-" }}</td>
-                <td :class="h.flag ? 'font-semibold text-[#B42318]' : 'font-semibold'">
-                  {{ h.result ?? "-" }} {{ h.itemPemeriksaan?.satuan && h.itemPemeriksaan.satuan !== "-" ? h.itemPemeriksaan.satuan : "" }}
-                  <span v-if="h.flag">({{ h.flag }})</span>
-                </td>
-                <td class="text-grey-400">{{ h.itemPemeriksaan?.nilaiRujukan ?? "-" }}</td>
-              </tr>
+              <thead>
+                <tr class="text-grey-400">
+                  <td>Pemeriksaan</td>
+                  <td>Hasil</td>
+                  <td>Rujukan</td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="h in hasil[o.uuid]" :key="h.uuid">
+                  <td>{{ h.itemPemeriksaan?.name ?? "-" }}</td>
+                  <td :class="h.flag ? 'font-semibold text-[#B42318]' : 'font-semibold'">
+                    {{ h.result ?? "-" }} {{ h.itemPemeriksaan?.satuan && h.itemPemeriksaan.satuan !== "-" ? h.itemPemeriksaan.satuan : "" }}
+                    <span v-if="h.flag">({{ h.flag }})</span>
+                  </td>
+                  <td class="text-grey-400">{{ h.itemPemeriksaan?.nilaiRujukan ?? "-" }}</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
