@@ -86,7 +86,8 @@ tanya() { # tanya "pertanyaan" → 0 bila ya
   case "$j" in y|Y|ya|Ya|YA) return 0 ;; *) return 1 ;; esac
 }
 ada() { command -v "$1" >/dev/null 2>&1; }
-mayor() { echo "$1" | grep -Eo '[0-9]+' | head -1; }
+# tanpa angka → keluaran kosong, status 0 (grep tanpa hasil + pipefail + set -e dulu menghentikan skrip tanpa pesan)
+mayor() { { echo "$1" | grep -Eo '[0-9]+' || true; } | head -1; }
 
 # ---------- deteksi OS ----------
 OS="$(uname -s)"
@@ -113,6 +114,16 @@ cek() { # cek <nama> <perintah> <versi-minimal> <perintah-versi...>
   local nama="$1" cmd="$2" min="$3"; shift 3
   if ! ada "$cmd"; then gagal "$nama belum terpasang"; KURANG="$KURANG $nama"; return; fi
   local v; v="$("$@" 2>/dev/null | head -1 || true)"
+  # terpasang tetapi tidak bisa dijalankan (mis. mongod di CPU tanpa AVX: "Illegal instruction", pustaka kurang)
+  if [ -n "$min" ] && [ -z "$v" ]; then
+    local e kode=0; e="$("$cmd" --version 2>&1 | tail -2 | tr '\n' ' ')" || kode=$?
+    "$cmd" --version >/dev/null 2>&1 || kode=$?
+    gagal "$nama terpasang ($(command -v "$cmd")) tetapi tidak bisa dijalankan (kode $kode)${e:+: $e}"
+    if [ "$kode" = 132 ] || { [ "$cmd" = mongod ] && [ "$(uname -m)" = x86_64 ] && [ -r /proc/cpuinfo ] && ! grep -qw avx /proc/cpuinfo; }; then
+      warn "CPU tidak mendukung AVX; MongoDB ≥ 5 butuh AVX. Ganti tipe CPU VPS (mis. 'host' di Proxmox/KVM) atau pilih paket VPS lain."
+    fi
+    KURANG="$KURANG $nama"; return
+  fi
   local m; m="$(mayor "$v")"
   if [ -n "$min" ] && [ -n "$m" ] && [ "$m" -lt "$min" ]; then
     gagal "$nama versi $m terlalu lama (minimal $min): $v"; KURANG="$KURANG $nama"
@@ -138,6 +149,41 @@ else
   cek mongosh  mongosh  ""  mongosh --version
 fi
 if ada node && [ "$(mayor "$(node -v)")" -lt 22 ] 2>/dev/null; then warn "Node.js 22 LTS disarankan (terpasang $(node -v))"; fi
+
+# MongoDB tidak ada di repositori apt bawaan Ubuntu/Debian → pasang dari repositori resmi (repo.mongodb.org).
+# 8.0 didukung resmi di Ubuntu 20.04/22.04/24.04 dan Debian 12; rilis yang lebih baru (mis. Ubuntu 25.x, Debian 13)
+# memakai repositori rilis terdekat yang didukung.
+pasang_mongo_apt() {
+  local ver=8.0 id="" kode="" ubuntu_kode="" mirip="" repo
+  # shellcheck disable=SC1091
+  [ -r /etc/os-release ] && { id="$(. /etc/os-release; echo "${ID:-}")"; kode="$(. /etc/os-release; echo "${VERSION_CODENAME:-}")"
+    ubuntu_kode="$(. /etc/os-release; echo "${UBUNTU_CODENAME:-}")"; mirip="$(. /etc/os-release; echo "${ID_LIKE:-}")"; }
+  # turunan Ubuntu (Linux Mint, Pop!_OS, dst.) memakai kode rilis Ubuntu induknya
+  if [ "$id" != ubuntu ] && [ "$id" != debian ] && [ -n "$ubuntu_kode" ]; then id=ubuntu; kode="$ubuntu_kode"; fi
+  if [ "$id" != ubuntu ] && [ "$id" != debian ]; then case " $mirip " in *" debian "*) id=debian ;; esac; fi
+  case "$id" in
+    ubuntu)
+      case "$kode" in focal|jammy|noble) ;; *) warn "Ubuntu '$kode' belum didukung resmi MongoDB $ver; memakai repositori noble (24.04)"; kode=noble ;; esac
+      repo="https://repo.mongodb.org/apt/ubuntu $kode/mongodb-org/$ver multiverse" ;;
+    debian)
+      case "$kode" in bookworm) ;; *) warn "Debian '$kode' belum didukung resmi MongoDB $ver; memakai repositori bookworm (12)"; kode=bookworm ;; esac
+      repo="https://repo.mongodb.org/apt/debian $kode/mongodb-org/$ver main" ;;
+    *) mati "Distro '$id' tidak dikenali. Pasang MongoDB ≥ 6 + mongosh secara manual (https://www.mongodb.com/docs/manual/administration/install-on-linux/) lalu jalankan ulang." ;;
+  esac
+  case "$(uname -m)" in x86_64|amd64|aarch64|arm64) ;; *) mati "MongoDB $ver hanya tersedia untuk x86_64/arm64 (mesin ini: $(uname -m))." ;; esac
+  # MongoDB ≥ 5 butuh CPU x86_64 dengan AVX; tanpa AVX mongod berhenti dengan "Illegal instruction"
+  if [ "$(uname -m)" = x86_64 ] && [ -r /proc/cpuinfo ] && ! grep -qw avx /proc/cpuinfo; then
+    mati "CPU VPS ini tidak mendukung AVX, padahal MongoDB ≥ 5 membutuhkannya. Pilih paket/tipe CPU VPS yang mendukung AVX (mis. tipe CPU 'host' di Proxmox/KVM), lalu jalankan ulang."
+  fi
+  sudo apt-get update -qq && sudo apt-get install -y gnupg curl ca-certificates
+  curl -fsSL "https://www.mongodb.org/static/pgp/server-$ver.asc" | sudo gpg --dearmor --yes -o "/usr/share/keyrings/mongodb-server-$ver.gpg" \
+    || mati "Gagal mengunduh kunci GPG MongoDB (cek koneksi internet VPS)."
+  echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-$ver.gpg ] $repo" \
+    | sudo tee "/etc/apt/sources.list.d/mongodb-org-$ver.list" >/dev/null
+  sudo apt-get update -qq && sudo apt-get install -y mongodb-org || mati "Gagal memasang mongodb-org dari $repo"
+  sudo systemctl enable --now mongod 2>/dev/null || sudo service mongod start 2>/dev/null || true
+  ok "MongoDB $ver + mongosh terpasang"
+}
 
 if [ -n "$KURANG" ]; then
   echo
@@ -192,7 +238,10 @@ if [ -n "$KURANG" ]; then
         tanya "Pasang Node.js 22 dari NodeSource?" || mati "Pasang Node.js 22 lalu jalankan ulang."
         curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt-get install -y nodejs
       fi
-      [ "$PERLU_MONGO" = 1 ] && mati "MongoDB 7 + mongosh perlu repositori resmi MongoDB: https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/ — pasang lalu jalankan ulang."
+      if [ "$PERLU_MONGO" = 1 ]; then
+        tanya "Pasang MongoDB 8.0 + mongosh dari repositori resmi MongoDB?" || mati "Pasang MongoDB ≥ 6 + mongosh (https://www.mongodb.com/docs/manual/administration/install-on-linux/) lalu jalankan ulang."
+        pasang_mongo_apt
+      fi
       ;;
     *) mati "Pasang dependensi di atas secara manual (docs/INSTALLATION_GUIDE.md bagian 9) lalu jalankan ulang." ;;
   esac

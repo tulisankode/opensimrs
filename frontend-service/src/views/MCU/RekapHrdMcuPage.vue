@@ -88,21 +88,27 @@ onMounted(async () => {
             <div class="p-3 border rounded-lg border-grey-100">
               <div class="mb-2 font-semibold">Temuan abnormal utama</div>
               <table class="w-full text-xs">
-                <tr v-for="tm in data.ringkasan.temuan" :key="tm.kunci" class="border-t border-grey-100">
-                  <td class="py-1.5">{{ tm.label }}</td>
-                  <td class="text-right"><b>{{ tm.jumlah }}</b> / {{ tm.diperiksa }}</td>
-                  <td class="w-32 pl-3"><ProgressBar :value="tm.persen" :showValue="false" style="height: 6px" /></td>
-                  <td class="w-12 text-right">{{ tm.persen }}%</td>
-                </tr>
+                <tbody>
+                  <tr v-for="tm in data.ringkasan.temuan" :key="tm.kunci" class="border-t border-grey-100">
+                    <td class="py-1.5">{{ tm.label }}</td>
+                    <td class="text-right"><b>{{ tm.jumlah }}</b> / {{ tm.diperiksa }}</td>
+                    <td class="w-32 pl-3"><ProgressBar :value="tm.persen" :showValue="false" style="height: 6px" /></td>
+                    <td class="w-12 text-right">{{ tm.persen }}%</td>
+                  </tr>
+                </tbody>
               </table>
             </div>
             <div class="p-3 border rounded-lg border-grey-100">
               <div class="mb-2 font-semibold">Per bagian</div>
               <table class="w-full text-xs">
-                <tr class="text-grey-400"><td>Bagian</td><td class="text-right">Peserta</td><td class="text-right">Fit</td><td class="text-right">Catatan</td><td class="text-right">Unfit</td></tr>
-                <tr v-for="b in data.ringkasan.perBagian" :key="b.bagian" class="border-t border-grey-100">
-                  <td class="py-1.5">{{ b.bagian }}</td><td class="text-right">{{ b.peserta }}</td><td class="text-right">{{ b.fit }}</td><td class="text-right">{{ b.fitCatatan }}</td><td class="text-right">{{ b.unfit }}</td>
-                </tr>
+                <thead>
+                  <tr class="text-grey-400"><td>Bagian</td><td class="text-right">Peserta</td><td class="text-right">Fit</td><td class="text-right">Catatan</td><td class="text-right">Unfit</td></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="b in data.ringkasan.perBagian" :key="b.bagian" class="border-t border-grey-100">
+                    <td class="py-1.5">{{ b.bagian }}</td><td class="text-right">{{ b.peserta }}</td><td class="text-right">{{ b.fit }}</td><td class="text-right">{{ b.fitCatatan }}</td><td class="text-right">{{ b.unfit }}</td>
+                  </tr>
+                </tbody>
               </table>
             </div>
           </div>

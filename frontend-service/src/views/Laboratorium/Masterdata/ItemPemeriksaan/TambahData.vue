@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, defineEmits, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { utilsStore } from "@/stores/utils";
 import { useForm, ErrorMessage } from "vee-validate";
 import * as yup from "yup";
