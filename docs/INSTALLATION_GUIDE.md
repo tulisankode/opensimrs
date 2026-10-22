@@ -784,7 +784,7 @@ Yang dilakukan installer:
 
 1. Menulis `frontend-service/.env.local` (diabaikan git): `ALLOWED_HOSTS=<domain>,<api>` untuk Vite, `VITE_KEEP_API_HOST=true`, dan semua `VITE_BASE_*` diarahkan ke `https://<api>/api/v3/...`. Berkas `.env.local` lama yang bukan buatan installer dicadangkan dulu.
 2. Membuat `~/.opensimrs/gateway-lokal.conf` dengan `node scripts/gateway-lokal.mjs`, dari `deploy/server/gateway.nginx.conf` dengan upstream diarahkan ke mesin ini.
-3. Menjalankan kontainer nginx `opensimrs-gateway` (Podman, atau Docker bila Podman tidak ada) di port 8080 dengan `--restart=always`. Tanpa Podman/Docker, konfigurasinya tetap dibuat untuk dipakai nginx di mesin itu.
+3. Menjalankan kontainer nginx `opensimrs-gateway` (Podman, atau Docker bila Podman tidak ada) di port 8080 dengan `--restart=always`. Tanpa Podman/Docker di Ubuntu/Debian, installer menawarkan nginx dari apt dan memasang gateway sebagai `/etc/nginx/conf.d/opensimrs-gateway.conf` (listen 8080, upstream `127.0.0.1`). Di macOS tanpa Podman/Docker, konfigurasinya hanya dibuat untuk dipakai nginx Anda sendiri. Bila tunnel/reverse proxy berjalan di perangkat lain, arahkan ke IP LAN server (mis. `http://192.168.x.x:5520` dan `:8080`), bukan `localhost`.
 
 Lalu arahkan tunnel atau reverse proxy:
 
@@ -802,7 +802,7 @@ Pasangan installer ini menghapus **hanya jejak OpenSIMRS**, dengan bilah kemajua
 - MongoDB: database dan akun aplikasi;
 - Redis: hanya kunci sesi `token-*`, bukan `FLUSHDB`;
 - mode Podman: kontainer dan volume OpenSIMRS (`podman compose down -v --remove-orphans`, sehingga sisa kontainer proyek dari compose lain seperti `opensimrs-gateway` ikut terhapus);
-- gateway akses domain (bila ada): kontainer `opensimrs-gateway` (Podman/Docker), `~/.opensimrs/gateway-lokal.conf`, dan `frontend-service/.env.local` buatan installer (berkas `.env.local` buatan Anda sendiri dibiarkan);
+- gateway akses domain (bila ada): kontainer `opensimrs-gateway` (Podman/Docker) atau `/etc/nginx/conf.d/opensimrs-gateway.conf` (nginx native; nginx-nya tidak dicopot), `~/.opensimrs/gateway-lokal.conf`, dan `frontend-service/.env.local` buatan installer (berkas `.env.local` buatan Anda sendiri dibiarkan);
 - berkas buatan instalasi di repo: `node_modules`, `.env` (termasuk cadangan `.env.bak*`), `dist`, data SIMRS Studio, dan worktree Studio.
 
 PostgreSQL, MongoDB, Redis, Node.js, database atau akun lain, OpenClaw, serta Ollama beserta modelnya tidak disentuh.
@@ -961,6 +961,36 @@ docker compose exec -T mongodb mongorestore --archive --gzip \
 | Cetak PDF tidak terbuka | Popup diblokir browser | Izinkan popup untuk domain aplikasi; bila tetap diblokir, PDF otomatis diunduh. |
 | Integrasi BPJS/SATUSEHAT selalu timeout | Server tidak keluar lewat IP Indonesia atau koneksi keluar diblokir | Pastikan IP publik server berada di Indonesia; cek firewall. |
 | Disk penuh saat build Docker | Cache build menumpuk | `docker builder prune -af` dan `docker image prune -f`; build layanan satu per satu. `deploy.sh` menolak berjalan bila ruang kosong di bawah `MIN_FREE_GB`. |
+
+### 11.1 Instalasi `install.sh` di server/VM Linux (VPS, Proxmox) + akses domain
+
+Kasus berikut ditemui saat memasang staging di VM Debian 13 (Proxmox) tanpa Podman/Docker, dengan Cloudflare Tunnel di perangkat lain. Contoh di bawah memakai `simrs.contoh.id` (frontend), `api-simrs.contoh.id` (API), dan `192.168.x.x` (IP LAN server).
+
+| Gejala | Penyebab | Solusi |
+|---|---|---|
+| `install.sh` berhenti: *"MongoDB 7 + mongosh perlu repositori resmi MongoDB"* | MongoDB tidak ada di repositori apt bawaan Ubuntu/Debian (installer versi lama) | `git pull` lalu jalankan ulang. Installer kini memasang MongoDB 8.0 + mongosh dari `repo.mongodb.org` (Ubuntu 20.04–24.04, Debian 12; rilis lebih baru memakai repositori terdekat). |
+| `install.sh` keluar **tanpa pesan** setelah baris cek Redis; `mongod --version` mencetak **`Illegal instruction`** (kode 132); MongoDB `ECONNREFUSED 127.0.0.1:27017` | CPU VM **tanpa AVX**. MongoDB ≥ 5 wajib AVX. Model CPU bawaan QEMU/KVM ("QEMU Virtual CPU version 2.5+", `qemu64`) menyembunyikan AVX | Cek: `grep -c avx /proc/cpuinfo` (harus > 0). Proxmox: VM › Hardware › Processors › Type → `host` (atau `x86-64-v3`), lalu **Shutdown + Start** VM (reboot dari dalam VM tidak cukup). VPS sewaan: minta *CPU passthrough* atau pindah paket. Docker/Podman tidak membantu karena image `mongo` juga butuh AVX. Installer versi baru menampilkan alasan ini. |
+| `uninstall.sh` tampak macet di "mongodump … / pg_dump …" (prompt *"Enter password for mongo user"* tertutup spinner) | Sandi di `.env` kosong karena instalasi berhenti sebelum `.env` terisi (versi lama meminta sandi interaktif) | Ctrl+C, lalu `bash uninstall.sh --tanpa-cadangan` bila memang belum ada data. Versi baru tidak pernah meminta sandi. |
+| Browser: *"Blocked request. This host ("simrs.contoh.id") is not allowed"* | Vite hanya menerima `localhost` | Jalankan `bash install.sh --domain simrs.contoh.id --api api-simrs.contoh.id` (mengisi `ALLOWED_HOSTS` dan mengarahkan semua API frontend ke domain API), lalu mulai ulang `npm run dev`. Tanpa domain API, panggilan API dari browser menuju `localhost` milik pengguna dan login gagal. |
+| Tunnel/reverse proxy di **perangkat lain** tidak bisa membuka aplikasi (`curl` kosong/timeout) | Tujuan route salah atau perangkat tunnel tidak sejaringan dengan server | Cek IP server: `ip -4 -br addr`. Arahkan route ke **IP LAN server**: `http://192.168.x.x:5520` (frontend) dan `http://192.168.x.x:8080` (gateway). Jangan pakai `localhost` (itu perangkat tunnel sendiri), dan jangan IP VPN kecuali perangkat tunnel juga di VPN itu. Uji **dari perangkat tunnel**: `curl http://192.168.x.x:8080/health` → `{"status":"ok"}`. Alternatif paling sederhana: pasang `cloudflared` langsung di server dan arahkan ke `localhost`. |
+| Domain API menjawab **502 Bad Gateway**; di server `curl http://127.0.0.1:8080/health` gagal | Gateway API port 8080 tidak jalan. Installer versi lama melewatinya bila Podman/Docker tidak ada | `git pull` lalu ulangi `install.sh --domain …`: installer menawarkan nginx dari apt dan memasang `/etc/nginx/conf.d/opensimrs-gateway.conf`. Manual: `sudo apt-get install -y nginx`; `node scripts/gateway-lokal.mjs --host 127.0.0.1 --keluar /tmp/gw.conf`; `sed 's/listen 80;/listen 8080;/' /tmp/gw.conf \| sudo tee /etc/nginx/conf.d/opensimrs-gateway.conf`; `sudo nginx -t && sudo systemctl reload nginx`. |
+| `/health` gateway OK tetapi `/api/v3/auth/login` lewat gateway **502** | Layanan di belakang gateway (mis. auth-service :8083) belum/tidak jalan | `ss -ltn \| grep 8083`; jalankan `npm run dev` (lihat baris "layanan bergantian mati" di bawah). Log nginx: `sudo tail /var/log/nginx/error.log` (`connect() failed (111)` = layanan mati). |
+| Lewat domain API hanya **login** yang jalan; endpoint lain *"Cannot GET /api/v3/…"* dan `/health` dijawab Express, bukan `{"status":"ok"}` | Route domain API diarahkan langsung ke satu layanan (mis. `:8083`), bukan ke gateway | Arahkan route domain API ke **port 8080** (gateway). Gateway yang membagi `/api/v3/<layanan>/` ke 20 layanan. Cek: `curl https://api-simrs.contoh.id/health` → `{"status":"ok"}`. |
+| Layanan **bergantian mati** (sebagian port kosong, `EADDRINUSE`, *"exited with code 143"*); seeder gagal *"GET admisi/rawat-jalan/jadwal-dokter → 500"* atau *"fetch failed"* | `npm run dev` berjalan **dua kali**: sebagai root (`sudo su`) dan sebagai user biasa, atau nodemon lama tertinggal. Keduanya berebut port 8081–8100 (jadwal dokter admisi bergantung pada antrian-service) | Hentikan semuanya: Ctrl+C di setiap terminal `npm run dev`, keluar dari root, lalu `sudo pkill -f node` dan `sudo chown -R $USER:$USER ~/opensimrs`. Cek `pgrep -u root -c node` → `0`. Jalankan **sekali** sebagai user biasa (lihat baris berikut). **Jangan jalankan `npm run dev` dengan sudo/root.** |
+| Aplikasi mati saat terminal SSH ditutup | `npm run dev` terikat ke sesi SSH | Jalankan di latar belakang: `nohup npm run dev > ~/opensimrs-dev.log 2>&1 &` (hentikan dengan `pkill -f node`), atau di `tmux` (`tmux new -s opensimrs`, lalu Ctrl+B, D; kembali dengan `tmux attach -t opensimrs`). Untuk server tetap, pakai pm2/systemd ([bagian 9](#9-menjalankan-tanpa-docker-instal-native)). |
+| `db:demo:transaksi` lama dengan pesan *"Menunggu batas laju payment-service pulih"* / *"jeda … dtk: batas laju payment-service"* | payment-service membatasi 100 permintaan/5 menit per IP, dan seeder ini menjalankan alur API sungguhan sampai kasir | Normal. Sekitar 10–20 menit per faskes. Jalankan dengan `nohup … > ~/seed-transaksi.log 2>&1 &` agar tidak berhenti saat SSH putus. Selama berjalan, halaman kasir bisa sesekali menolak *"Too many requests"* (di belakang gateway semua pengguna terhitung satu IP). Bila terhenti di tengah, bersihkan dulu faskes itu (`npm run db:demo:transaksi -- --faskes <KODE> --bersihkan`) sebelum mengulang. |
+| Data demo "belum masuk" setelah `db:demo:seed` | `db:demo:seed` hanya mengisi master data; `db:demo:modul` hanya modul rawat inap & penunjang di faskes yang modulnya aktif (rumah sakit) | Rawat jalan/IGD/farmasi/kasir diisi `db:demo:transaksi` per faskes ([bagian 6](#6-data-demo--akun-demo)). Pastikan juga faskes yang dibuka benar (mis. RSA untuk modul RS) dan perlebar filter tanggal (banyak daftar bawaan hari ini). |
+
+Urutan pemeriksaan cepat di server (semua harus berhasil sebelum memeriksa tunnel/DNS):
+
+```bash
+grep -c avx /proc/cpuinfo                        # > 0 (MongoDB)
+systemctl is-active mongod postgresql redis-server nginx
+pgrep -u root -c node                            # 0 (tidak ada npm run dev milik root)
+for p in 8081 8082 8083 8084 8085 8086 8087 8088 8089 8090 8091 8092 8093 8094 8095 8096 8097 8098 8099 8100 5520; do ss -ltn | grep -q ":$p " || echo "port $p mati"; done
+curl -s http://127.0.0.1:8080/health             # {"status":"ok"}
+curl -si -X OPTIONS http://127.0.0.1:8080/api/v3/auth/login -H "Origin: https://simrs.contoh.id" -H "Access-Control-Request-Method: POST" | head -1   # 204
+```
 
 Masih buntu? Buka issue di GitHub dengan label `bantuan dibutuhkan`, atau tanyakan di kanal komunitas ([COMMUNITY.md](../COMMUNITY.md)). Sertakan langkah, log (tanpa kata sandi/token/data pasien), OS, serta versi Node dan Docker.
 
