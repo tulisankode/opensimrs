@@ -27,7 +27,7 @@
 #    ./install.sh --domain simrs.contoh.id --api api-simrs.contoh.id
 #                                 akses dari luar lewat domain (Cloudflare Tunnel / reverse proxy HTTPS):
 #                                 frontend-service/.env.local mengarahkan API ke https://<api> dan mengizinkan host <domain>,
-#                                 lalu gateway nginx (Podman/Docker) dijalankan di port 8080 untuk semua API.
+#                                 lalu gateway nginx (kontainer Podman/Docker, atau nginx dari apt) di port 8080 untuk semua API.
 #                                 Arahkan tunnel: <domain> → http://localhost:5520, <api> → http://localhost:8080.
 #
 #  Hanya untuk development lokal. Untuk server/production lihat docs/INSTALLATION_GUIDE.md & docs/LINGKUNGAN.md.
@@ -562,7 +562,30 @@ if [ -n "$DOMAIN" ]; then
   elif ada docker && docker info >/dev/null 2>&1; then CLI_GW=docker; HOST_GW=host.docker.internal; fi
   ui_jalankan "Konfigurasi gateway → $KONF_GW (upstream $HOST_GW)" node scripts/gateway-lokal.mjs --host "$HOST_GW" --keluar "$KONF_GW" \
     || mati "Konfigurasi gateway gagal dibuat"
-  if [ -z "$CLI_GW" ]; then
+  # Tanpa Podman/Docker di Linux: nginx dari apt, konfigurasi gateway di /etc/nginx/conf.d (listen 8080, upstream 127.0.0.1)
+  KONF_NGINX=/etc/nginx/conf.d/opensimrs-gateway.conf
+  if [ -z "$CLI_GW" ] && [ "$PLATFORM" = apt ]; then
+    if ! ada nginx && tanya "Podman/Docker tidak ada. Pasang nginx dari apt untuk gateway API (port 8080)?"; then
+      sudo apt-get update -qq && sudo apt-get install -y nginx || warn "nginx gagal dipasang"
+    fi
+    if ! ada nginx && [ ! -x /usr/sbin/nginx ]; then
+      warn "nginx tidak tersedia: gateway tidak dijalankan. Pasang nginx/Podman/Docker lalu jalankan ulang installer dengan --domain."
+    elif [ ! -f "$KONF_NGINX" ] && (exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null; then
+      warn "Port 8080 sudah dipakai program lain: gateway tidak dijalankan (hentikan program itu lalu jalankan ulang)"
+    else
+      sed 's/^\(\s*\)listen 80;/\1listen 8080;/' "$KONF_GW" | sudo tee "$KONF_NGINX" >/dev/null
+      if sudo nginx -t >>"$UI_LOG" 2>&1; then
+        sudo systemctl enable nginx >/dev/null 2>&1 || true
+        sudo systemctl reload nginx 2>/dev/null || sudo systemctl restart nginx 2>/dev/null || sudo service nginx restart 2>/dev/null || true
+        GW_OK=0; for _ in 1 2 3 4 5; do curl -fsS -m 3 http://127.0.0.1:8080/health >/dev/null 2>&1 && { GW_OK=1; break; }; sleep 1; done
+        if [ "$GW_OK" = 1 ]; then ok "Gateway nginx ($KONF_NGINX) menjawab di http://localhost:8080/health"
+        else warn "Gateway nginx belum menjawab di port 8080 (cek: sudo systemctl status nginx)"; fi
+      else
+        sudo rm -f "$KONF_NGINX"
+        warn "Konfigurasi nginx tidak lolos 'nginx -t' (lihat log); gateway tidak dijalankan"
+      fi
+    fi
+  elif [ -z "$CLI_GW" ]; then
     warn "Podman/Docker tidak tersedia: gateway tidak dijalankan. Pakai $KONF_GW di nginx mesin ini (ubah listen ke 8080)."
   elif ! "$CLI_GW" container inspect opensimrs-gateway >/dev/null 2>&1 && (exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null; then
     warn "Port 8080 sudah dipakai program lain: gateway tidak dijalankan (hentikan program itu lalu jalankan ulang)"
