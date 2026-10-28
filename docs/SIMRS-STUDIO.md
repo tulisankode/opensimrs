@@ -249,20 +249,26 @@ Buka **SIMRS Studio › Aturan & Pengetahuan** (yang mengubah: superadmin).
 
 ### Peta kode (codebase-memory)
 
-Agen Claude Code di Studio dijalankan dengan `--strict-mcp-config`, sehingga server MCP pribadi Anda (`claude mcp add …`) **tidak** ikut. Untuk memberi agen peta kode repo, Studio bisa memasang `codebase-memory-mcp` sebagai server MCP tambahan.
+Agen Studio tidak memakai server MCP pribadi Anda: Claude Code dijalankan dengan `--strict-mcp-config` dan Codex dengan `--ignore-user-config`, sehingga `claude mcp add …` atau `~/.codex/config.toml` **tidak** ikut. Untuk memberi agen peta kode repo, Studio bisa memasang `codebase-memory-mcp` sendiri untuk semua agen:
+
+| Agen | Cara Studio memasang |
+|---|---|
+| Claude Code | server MCP tambahan di `--mcp-config` |
+| Codex | `-c mcp_servers.codebase-memory.*`, alat dibatasi `enabled_tools` dan disetujui otomatis |
+| Konektor API | klien MCP di `studio-service`; alat peta kode digabung ke alat bawaan konektor |
 
 1. Pasang `codebase-memory-mcp` di mesin Studio. Lokasi bawaan installer, `~/.local/bin/codebase-memory-mcp`, dikenali otomatis walau tidak ada di `PATH`. Lokasi lain diisi lewat `STUDIO_CODEBASE_MEMORY_BIN` di `studio-service/.env`.
 2. Di **Pengaturan & Agen › Agen langganan › Peta kode (codebase-memory)**, centang **Aktif** lalu **Simpan**. Versi yang terbaca tampil di baris itu.
 
-Setelah aktif, setiap tugas Claude Code (dokumen dan coding):
+Setelah aktif, setiap tugas agen (dokumen dan coding):
 - mengindeks repo atau worktree item bila belum terindeks (`index_repository` mode `fast`);
-- menelusuri graph lebih dulu (`get_architecture`, `search_graph`, `trace_path`, `get_code_snippet`), lalu memastikan path dengan `Read`;
+- menelusuri graph lebih dulu (`get_architecture`, `search_graph`, `trace_path`, `get_code_snippet`), lalu memastikan path dengan membaca berkasnya;
 - membaca **catatan arsitektur** proyek (`manage_adr`) dan, pada tahap desain/coding, menambah atau memperbarui satu bagian per modul berisi tujuan, berkas dan tabel utama, rute API, izin/katalog, dan nomor item STD. Catatan ini menjadi rujukan saat modul berikutnya dikembangkan.
 
 Batasannya:
 - Indeks dan catatan arsitektur disimpan di cache codebase-memory milik pengguna OS yang menjalankan Studio, bukan di repo, dan tidak ikut di-commit.
 - Alat `delete_project` dan `ingest_traces` tidak diizinkan untuk agen.
-- Codex dan konektor API belum memakai peta kode.
+- Konektor API: bila server peta kode gagal dibuka, tugas tetap berjalan tanpa alat peta kode dan galatnya tercatat di log tugas. Kemampuan memakai alat berbeda tiap model; model lokal kecil bisa mengabaikan panduan peta kode.
 
 ### Agen tahan kuota
 

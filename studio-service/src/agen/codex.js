@@ -16,6 +16,7 @@ import { Galat } from "../respons.js";
 import { git, statusBerkas } from "../git.js";
 import { ATURAN_PLATFORM } from "./prompt.js";
 import { daftarkanPembatal, lepaskanPembatal } from "./claude.js";
+import { ALAT_PETA_KODE, panduanCodebaseMemory } from "./petakode.js";
 
 // Berkas yang tidak boleh diubah agen (padanan --disallowedTools Claude Code).
 export const ZONA_TERLARANG = [
@@ -177,9 +178,21 @@ const logTugas = (tugasUuid, jenis, teks) =>
 // dari CODEX_HOME. Tanpa -m, Codex memakai model bawaan akun.
 // Windows: workspace-write butuh sandbox Windows Codex (windows.sandbox). Tanpa itu — dan config pengguna diabaikan —
 // Codex jatuh ke read-only sehingga coding "selesai" tanpa satu berkas pun berubah. "unelevated" tidak meminta UAC.
-export const argumenCodex = ({ mode, model, base, berkasHasil, platform = process.platform }) => {
+// codebaseMemory = path biner codebase-memory-mcp (pengaturan codebase_memory aktif) atau null. Alatnya disetujui otomatis
+// (approval_policy "never" menolak alat yang butuh persetujuan) dan dibatasi enabled_tools.
+export const argumenCodex = ({ mode, model, base, berkasHasil, platform = process.platform, codebaseMemory = null }) => {
   const args = ["exec", "--json", "--ignore-user-config", "--color", "never", "-C", base, "-s", mode === "coding" ? "workspace-write" : "read-only", "-c", 'approval_policy="never"', "-o", berkasHasil];
   if (mode === "coding" && platform === "win32") args.push("-c", 'windows.sandbox="unelevated"');
+  if (codebaseMemory) {
+    // Nilai -c diurai sebagai TOML; string & larik JSON juga valid TOML.
+    const server = "mcp_servers.codebase-memory";
+    args.push(
+      "-c", `${server}.command=${JSON.stringify(codebaseMemory)}`,
+      "-c", `${server}.enabled_tools=${JSON.stringify(ALAT_PETA_KODE)}`,
+      "-c", `${server}.default_tools_approval_mode="approve"`,
+      "-c", `${server}.tool_timeout_sec=600`,
+    );
+  }
   if (model) args.push("-m", model);
   args.push("-"); // instruksi dari stdin
   return args;
@@ -236,13 +249,13 @@ export const jagaZonaTerlarang = async (base, { head, kotor, env = {} }) => {
   return catatan;
 };
 
-export const jalankanCodex = async ({ tugasUuid, prompt, mode = "dokumen", model = "", base = config.repoDir }) => {
+export const jalankanCodex = async ({ tugasUuid, prompt, mode = "dokumen", model = "", base = config.repoDir, codebaseMemory = null }) => {
   const { bin, awal } = await temukanCodex();
   const berkasHasil = path.join(os.tmpdir(), `simrs-studio-codex-${tugasUuid}.txt`);
   const awalKerja = mode === "coding"
     ? { head: (await git(["rev-parse", "HEAD"], { cwd: base, izinkanGagal: true })).keluaran, kotor: await statusBerkas(base), env: potretEnv(base) }
     : null;
-  const args = [...awal, ...argumenCodex({ mode, model, base, berkasHasil })];
+  const args = [...awal, ...argumenCodex({ mode, model, base, berkasHasil, codebaseMemory })];
 
   return new Promise((resolve, reject) => {
     const anak = spawn(bin, args, { cwd: base, windowsHide: true, env: { ...process.env } });
@@ -324,6 +337,7 @@ export const jalankanCodex = async ({ tugasUuid, prompt, mode = "dokumen", model
       reject(new Error(galatTugas || galatStderr.replace(/^WARNING.*$/gm, "").trim().split("\n").slice(-3).join(" ") || `Codex berhenti (kode ${kode})`));
     });
 
-    anak.stdin.end(`${ATURAN_PLATFORM}${ATURAN_CODEX}\n\n---\n\n${prompt}`, "utf8");
+    const panduan = codebaseMemory ? `\n\n${panduanCodebaseMemory(base)}` : "";
+    anak.stdin.end(`${ATURAN_PLATFORM}${ATURAN_CODEX}${panduan}\n\n---\n\n${prompt}`, "utf8");
   });
 };

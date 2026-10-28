@@ -428,8 +428,8 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
                 <b>Peta kode (codebase-memory)</b>
                 <span class="text-grey-400"> · {{ sistem?.codebaseMemory?.terpasang ? sistem.codebaseMemory.versi : sistem?.codebaseMemory ? sistem.codebaseMemory.pesan : "memuat…" }}</span>
                 <div class="text-[11px] text-grey-400">
-                  Agen Claude Code mengindeks repo, menelusuri graph kode (arsitektur, pemanggil, dampak) sebelum mencari berkas, dan mencatat keputusan arsitektur per modul
-                  agar pengembangan modul berikutnya lebih terarah. Indeks & catatan disimpan di cache codebase-memory mesin ini, bukan di repo. Codex dan konektor API belum memakainya.
+                  Agen (Claude Code, Codex, dan konektor API) mengindeks repo, menelusuri graph kode (arsitektur, pemanggil, dampak) sebelum mencari berkas, dan mencatat
+                  keputusan arsitektur per modul agar pengembangan modul berikutnya lebih terarah. Indeks & catatan disimpan di cache codebase-memory mesin ini, bukan di repo.
                 </div>
               </span>
               <label v-if="nilai.codebaseMemory" class="flex items-center gap-2" :title="sistem?.codebaseMemory?.terpasang ? '' : 'Pasang codebase-memory-mcp atau isi STUDIO_CODEBASE_MEMORY_BIN'">
