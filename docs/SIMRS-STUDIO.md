@@ -247,6 +247,23 @@ Buka **SIMRS Studio › Aturan & Pengetahuan** (yang mengubah: superadmin).
   - **Alat Studio**: `daftar_item`, `baca_item`, `kirim_artefak` (dokumen versi baru, tetap perlu persetujuan), `kirim_pesan`.
   - Alat tulis berkas hanya aktif bila `STUDIO_MCP_TULIS=aktif`.
 
+### Peta kode (codebase-memory)
+
+Agen Claude Code di Studio dijalankan dengan `--strict-mcp-config`, sehingga server MCP pribadi Anda (`claude mcp add …`) **tidak** ikut. Untuk memberi agen peta kode repo, Studio bisa memasang `codebase-memory-mcp` sebagai server MCP tambahan.
+
+1. Pasang `codebase-memory-mcp` di mesin Studio. Lokasi bawaan installer, `~/.local/bin/codebase-memory-mcp`, dikenali otomatis walau tidak ada di `PATH`. Lokasi lain diisi lewat `STUDIO_CODEBASE_MEMORY_BIN` di `studio-service/.env`.
+2. Di **Pengaturan & Agen › Agen langganan › Peta kode (codebase-memory)**, centang **Aktif** lalu **Simpan**. Versi yang terbaca tampil di baris itu.
+
+Setelah aktif, setiap tugas Claude Code (dokumen dan coding):
+- mengindeks repo atau worktree item bila belum terindeks (`index_repository` mode `fast`);
+- menelusuri graph lebih dulu (`get_architecture`, `search_graph`, `trace_path`, `get_code_snippet`), lalu memastikan path dengan `Read`;
+- membaca **catatan arsitektur** proyek (`manage_adr`) dan, pada tahap desain/coding, menambah atau memperbarui satu bagian per modul berisi tujuan, berkas dan tabel utama, rute API, izin/katalog, dan nomor item STD. Catatan ini menjadi rujukan saat modul berikutnya dikembangkan.
+
+Batasannya:
+- Indeks dan catatan arsitektur disimpan di cache codebase-memory milik pengguna OS yang menjalankan Studio, bukan di repo, dan tidak ikut di-commit.
+- Alat `delete_project` dan `ingest_traces` tidak diizinkan untuk agen.
+- Codex dan konektor API belum memakai peta kode.
+
 ### Agen tahan kuota
 
 Kuota langganan (Claude Code, Codex) dan rate limit API bisa habis di tengah pekerjaan. Studio menanganinya tanpa membuat tugas gagal.

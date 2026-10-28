@@ -9,7 +9,7 @@ import { BAWAAN, bacaSemua, simpan, untukTampilan } from "./pengaturan.js";
 import { enkripsi, samarkan } from "./rahasia.js";
 import { branchSekarang, git, urlRepo } from "./git.js";
 import { branchLokal, diDalamRepo } from "./kerja.js";
-import { batalkanProses, jalankanClaude, versiClaude } from "./agen/claude.js";
+import { batalkanProses, jalankanClaude, versiClaude, versiCodebaseMemory } from "./agen/claude.js";
 import { jalankanApi } from "./agen/api.js";
 import { ATURAN_PLATFORM } from "./agen/prompt.js";
 import { ambilKonektor } from "./agen/index.js";
@@ -508,7 +508,7 @@ rute.put("/pengaturan", tangani(async (req, res) => {
   const body = req.body ?? {};
   const BOLEH = ["branch_dasar", "konektor_tahap", "model_tahap", "aturan_instalasi", "atribusi_commit", "cek_build_frontend", "fitur", "pemisahan_tugas", "mode_kerja",
     "direktori_worktree", "batas_biaya_tugas", "batas_biaya_item", "batas_biaya_bulan", "batas_kuota_persen", "batas_tugas_per_jam", "git_penyedia", "git_api_url", "git_repo", "git_token", "mode_rilis", "branch_lokal", "migrasi_otomatis",
-    "aktivasi_otomatis", "aktivasi_faskes", "konektor_cadangan", "maks_agen_bersamaan"];
+    "aktivasi_otomatis", "aktivasi_faskes", "konektor_cadangan", "maks_agen_bersamaan", "codebase_memory"];
   // Model per tahap harus cocok dengan agennya. Tahap berkonektor API memakai model konektornya (model tahap dibuang).
   if (body.konektor_tahap || body.model_tahap) {
     const { nilai: lama } = await bacaSemua();
@@ -561,6 +561,7 @@ rute.put("/pengaturan", tangani(async (req, res) => {
       if (!v || String(v).startsWith("••")) continue; // tidak diubah
       nilai = enkripsi(String(v));
     }
+    if (k === "codebase_memory") nilai = { aktif: Boolean(v?.aktif) };
     if (k.startsWith("batas_")) nilai = v === "" || v === null || v === undefined ? null : Number(v);
     if (typeof BAWAAN[k] === "boolean") nilai = Boolean(v);
     if (["fitur", "konektor_tahap", "model_tahap"].includes(k)) nilai = typeof v === "object" && v ? v : {};
@@ -790,15 +791,16 @@ crudTeks("studio_pengetahuan", "pengetahuan", []);
 
 rute.get("/sistem", tangani(async (req, res) => {
   await bolehBaca(req);
-  const [claude, codexCli, branch, repo, kuota, biaya] = await Promise.all([
+  const [claude, codexCli, branch, repo, kuota, biaya, codebaseMemory] = await Promise.all([
     versiClaude(),
     codex.versiCodex(),
     branchSekarang().catch((e) => `galat: ${e.message}`),
     urlRepo(),
     satu(`SELECT kuota, updated_at FROM studio_tugas WHERE kuota IS NOT NULL ORDER BY updated_at DESC LIMIT 1`),
     satu(`SELECT COALESCE(SUM(biaya_usd), 0) AS total, COUNT(*) AS jumlah FROM studio_tugas WHERE created_at >= $1`, [sekarang() - 30 * 86400]),
+    versiCodebaseMemory(),
   ]);
-  kirim(res, { claude, codex: codexCli, repoDir: config.repoDir, repo, branch, lingkungan: config.lingkungan, kuota: kuota?.kuota ?? null, kuotaPada: kuota ? Number(kuota.updated_at) : null, biaya30Hari: biaya });
+  kirim(res, { claude, codex: codexCli, codebaseMemory, repoDir: config.repoDir, repo, branch, lingkungan: config.lingkungan, kuota: kuota?.kuota ?? null, kuotaPada: kuota ? Number(kuota.updated_at) : null, biaya30Hari: biaya });
 }));
 
 rute.get("/audit", tangani(async (req, res) => {

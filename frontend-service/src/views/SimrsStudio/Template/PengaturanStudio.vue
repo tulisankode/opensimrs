@@ -421,6 +421,21 @@ const PENYEDIA: Record<string, string> = { anthropic: "Anthropic API", openai: "
                 <CustomButton v-if="akunCodex.masuk" icon="PhSignOut" outlined text-color="text-danger-300" border-color="border-danger-300" :disabled="prosesCodex" title="Putuskan akun Codex" @click="keluarCodex" />
               </template>
             </div>
+            <!-- Peta kode: codebase-memory-mcp dipasang sebagai server MCP agen Claude Code -->
+            <div class="flex flex-wrap items-center gap-2 rounded-lg bg-opensimrs-50 p-2 text-XS text-grey-500">
+              <PhGraph :size="20" weight="duotone" class="text-opensimrs-300" aria-hidden="true" />
+              <span class="min-w-0 flex-1">
+                <b>Peta kode (codebase-memory)</b>
+                <span class="text-grey-400"> · {{ sistem?.codebaseMemory?.terpasang ? sistem.codebaseMemory.versi : sistem?.codebaseMemory ? sistem.codebaseMemory.pesan : "memuat…" }}</span>
+                <div class="text-[11px] text-grey-400">
+                  Agen Claude Code mengindeks repo, menelusuri graph kode (arsitektur, pemanggil, dampak) sebelum mencari berkas, dan mencatat keputusan arsitektur per modul
+                  agar pengembangan modul berikutnya lebih terarah. Indeks & catatan disimpan di cache codebase-memory mesin ini, bukan di repo. Codex dan konektor API belum memakainya.
+                </div>
+              </span>
+              <label v-if="nilai.codebaseMemory" class="flex items-center gap-2" :title="sistem?.codebaseMemory?.terpasang ? '' : 'Pasang codebase-memory-mcp atau isi STUDIO_CODEBASE_MEMORY_BIN'">
+                <input v-model="nilai.codebaseMemory.aktif" type="checkbox" :disabled="!sistem?.codebaseMemory?.terpasang && !nilai.codebaseMemory.aktif" /> Aktif
+              </label>
+            </div>
             <div v-if="hasilUji && ujiTerakhir === 'claude_code'" class="text-XS text-success-400">✔ {{ hasilUji.hasil }} ({{ hasilUji.tugas?.model }}, ≈ {{ formatUsd(hasilUji.tugas?.biayaUsd) }})</div>
             <div v-if="hasilUji && ujiTerakhir === 'codex'" class="text-XS text-success-400">✔ {{ hasilUji.hasil }} ({{ hasilUji.tugas?.model }})</div>
             <div class="text-XS text-grey-400">Repo <code>{{ sistem?.repoDir }}</code> · branch <b>{{ sistem?.branch }}</b> · lingkungan <b>{{ sistem?.lingkungan }}</b><template v-if="kuota?.reset"> · kuota Claude direset {{ kuota.reset }}</template></div>

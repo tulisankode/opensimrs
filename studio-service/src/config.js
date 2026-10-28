@@ -18,6 +18,8 @@ export default {
   claudeBin: process.env.STUDIO_CLAUDE_BIN || "claude",
   // Codex CLI (OpenAI, langganan ChatGPT). Kosong = dicari dari paket npm global @openai/codex.
   codexBin: process.env.STUDIO_CODEX_BIN || "",
+  // codebase-memory-mcp (peta kode/graph repo untuk agen Claude Code). Kosong = ~/.local/bin bila ada, lalu PATH.
+  codebaseMemoryBin: process.env.STUDIO_CODEBASE_MEMORY_BIN || "",
   // Runtime ekstensi tanpa kode (validasi, pratinjau, pasang) ada di laporan-service.
   laporanUrl: (process.env.BASE_URL_API_LAPORAN || "http://localhost:8088/api/v3/laporan").replace(/\/$/, ""),
   // Helpdesk AI: OpenClaw di mesin ini (menu Helpdesk AI) & pengaturan Helpdesk di setting-service.

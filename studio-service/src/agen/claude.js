@@ -2,6 +2,8 @@
 // Memakai login yang sudah ada di mesin ini (langganan Claude Pro/Max lewat /login, atau ANTHROPIC_API_KEY),
 // sehingga pengembangan lewat SIMRS Studio memakai langganan yang sama dengan Claude Code di VS Code/terminal.
 import { spawn, execFile } from "child_process";
+import fs from "fs";
+import os from "os";
 import path from "path";
 import { fileURLToPath } from "url";
 import config from "../config.js";
@@ -38,6 +40,27 @@ const proses = new Map(); // tugas_uuid → child process | AbortController (ada
 const BERKAS_MCP = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "mcp.js");
 // Alat MCP OpenSIMRS yang boleh dipakai agen Claude Code (baca saja).
 const ALAT_MCP = ["mcp__opensimrs__baca_skema_db", "mcp__opensimrs__baca_katalog"];
+// Alat codebase-memory-mcp (pengaturan codebase_memory): telusur graph, indeks repo, dan catatan arsitektur (ADR).
+// delete_project & ingest_traces sengaja tidak diizinkan. Indeks & ADR disimpan di cache codebase-memory, bukan di repo.
+const ALAT_CODEBASE_MEMORY = [
+  "search_graph", "trace_path", "get_code_snippet", "query_graph", "get_architecture", "search_code", "get_graph_schema",
+  "get_file_outline", "list_projects", "index_status", "detect_changes", "check_index_coverage", "compare_graphs",
+  "index_repository", "manage_adr",
+].map((a) => `mcp__codebase-memory__${a}`);
+
+export const panduanCodebaseMemory = (base) => `Peta kode (server MCP codebase-memory) tersedia untuk repo ${base}:
+1. Di awal tugas, cari proyek repo ini dengan list_projects/index_status. Bila belum ada atau usang, jalankan index_repository {"repo_path": "${base}", "mode": "fast"} — tanpa persistence (jangan menulis .codebase-memory/ ke repo).
+2. Petakan dulu lewat graph sebelum Grep/Glob: get_architecture untuk gambaran layanan, search_graph untuk simbol/rute, trace_path untuk pemanggil & dampak, get_code_snippet untuk sumber. Graph bisa tertinggal dari berkas; pastikan path dengan Read sebelum mengutip atau mengubahnya.
+3. Baca catatan arsitektur proyek (manage_adr mode "outline"/"get") untuk keputusan modul sebelumnya, dan ikuti polanya.
+4. Pada tahap desain dan coding, setelah keputusan arsitektur penting (modul/tabel/API baru, pola integrasi), catat dengan manage_adr mode "set_sections" — satu bagian per modul (judul bagian = nama modul), isi ringkas dalam Bahasa Indonesia: tujuan, berkas & tabel utama, rute API, izin/katalog, nomor item STD. Jangan menghapus bagian modul lain.`;
+
+// Lokasi codebase-memory-mcp: STUDIO_CODEBASE_MEMORY_BIN, lalu ~/.local/bin (lokasi installer bawaan, sering tidak ada di
+// PATH layanan), lalu nama perintah di PATH.
+export const binCodebaseMemory = () => {
+  if (config.codebaseMemoryBin) return config.codebaseMemoryBin;
+  const lokal = path.join(os.homedir(), ".local", "bin", process.platform === "win32" ? "codebase-memory-mcp.exe" : "codebase-memory-mcp");
+  return fs.existsSync(lokal) ? lokal : "codebase-memory-mcp";
+};
 
 const logTugas = (tugasUuid, jenis, teks) =>
   query(`INSERT INTO studio_tugas_log (tugas_uuid, jenis, teks, waktu) VALUES ($1, $2, $3, $4)`, [
@@ -53,31 +76,37 @@ const ringkasAlat = (nama, masukan = {}) => {
   return `${nama} ${relatif}`.trim();
 };
 
-export const argumenClaude = ({ mode, model, resume, base, folderTambahan = [], batasBiaya = null, mcp = true }) => {
-  const args = ["-p", "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--append-system-prompt", ATURAN_PLATFORM];
+// codebaseMemory = path biner codebase-memory-mcp (pengaturan aktif) atau null.
+export const argumenClaude = ({ mode, model, resume, base, folderTambahan = [], batasBiaya = null, mcp = true, codebaseMemory = null }) => {
+  const peta = mcp && codebaseMemory;
+  const sistem = peta ? `${ATURAN_PLATFORM}\n\n${panduanCodebaseMemory(base ?? config.repoDir)}` : ATURAN_PLATFORM;
+  const args = ["-p", "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--append-system-prompt", sistem];
   if (model) args.push("--model", model);
   if (resume) args.push("--resume", resume);
   if (batasBiaya) args.push("--max-budget-usd", String(batasBiaya));
   for (const d of folderTambahan) args.push("--add-dir", d);
   if (mcp) {
-    args.push("--mcp-config", JSON.stringify({ mcpServers: { opensimrs: { command: process.execPath, args: [BERKAS_MCP], env: { STUDIO_MCP_BASE: base ?? config.repoDir } } } }));
+    const server = { opensimrs: { command: process.execPath, args: [BERKAS_MCP], env: { STUDIO_MCP_BASE: base ?? config.repoDir } } };
+    if (peta) server["codebase-memory"] = { command: codebaseMemory, args: [] };
+    args.push("--mcp-config", JSON.stringify({ mcpServers: server }));
   }
+  const alatMcp = mcp ? [...ALAT_MCP, ...(peta ? ALAT_CODEBASE_MEMORY : [])] : [];
   if (mode === "coding") {
     args.push("--tools", [...ALAT_BACA, "Edit", "Write", "Bash"].join(","));
     args.push("--permission-mode", "acceptEdits");
-    args.push("--allowedTools", ...ALAT_BACA, "Edit", "Write", ...PERINTAH_DIIZINKAN, ...(mcp ? ALAT_MCP : []));
+    args.push("--allowedTools", ...ALAT_BACA, "Edit", "Write", ...PERINTAH_DIIZINKAN, ...alatMcp);
   } else {
     args.push("--tools", ALAT_BACA.join(","));
-    args.push("--allowedTools", ...ALAT_BACA, ...(mcp ? ALAT_MCP : []));
+    args.push("--allowedTools", ...ALAT_BACA, ...alatMcp);
   }
   args.push("--disallowedTools", ...DILARANG);
   return args;
 };
 
 // Jalankan satu tugas agen. Resolves { hasil, sessionId } atau melempar galat. Status tugas diperbarui di DB.
-export const jalankanClaude = ({ tugasUuid, prompt, mode = "dokumen", model = "", resume = null, base = config.repoDir, folderTambahan = [], batasBiaya = null, mcp = true }) =>
+export const jalankanClaude = ({ tugasUuid, prompt, mode = "dokumen", model = "", resume = null, base = config.repoDir, folderTambahan = [], batasBiaya = null, mcp = true, codebaseMemory = null }) =>
   new Promise((resolve, reject) => {
-    const args = argumenClaude({ mode, model, resume, base, folderTambahan, batasBiaya, mcp });
+    const args = argumenClaude({ mode, model, resume, base, folderTambahan, batasBiaya, mcp, codebaseMemory });
     const anak = spawn(config.claudeBin, args, { cwd: base, windowsHide: true, env: { ...process.env } });
     proses.set(tugasUuid, anak);
     ubah("studio_tugas", tugasUuid, { status: "jalan", pid: anak.pid ?? null, mulai: sekarang() }).catch(() => {});
@@ -175,3 +204,13 @@ export const versiClaude = () =>
       resolve(err ? { terpasang: false, pesan: err.code === "ENOENT" ? "Claude Code CLI tidak ditemukan" : err.message } : { terpasang: true, versi: stdout.trim() }),
     ),
   );
+
+// Versi & lokasi codebase-memory-mcp (untuk halaman Pengaturan).
+export const versiCodebaseMemory = () => {
+  const bin = binCodebaseMemory();
+  return new Promise((resolve) =>
+    execFile(bin, ["--version"], { windowsHide: true, timeout: 20000 }, (err, stdout) =>
+      resolve(err ? { terpasang: false, bin, pesan: err.code === "ENOENT" ? "codebase-memory-mcp tidak ditemukan" : err.message } : { terpasang: true, bin, versi: stdout.trim().split("\n")[0] }),
+    ),
+  );
+};

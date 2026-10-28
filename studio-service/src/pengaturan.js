@@ -35,6 +35,10 @@ export const BAWAAN = {
   konektor_cadangan: [],
   // Model per tahap; "" = bawaan konektor. Kunci: permintaan, usecase, prd, desain, coding, qa, rilis, ekstensi.
   model_tahap: {},
+  // Peta kode codebase-memory-mcp untuk agen Claude Code: agen mengindeks repo, menelusuri graph (pemanggil, dampak,
+  // arsitektur) sebelum Grep, dan mencatat keputusan arsitektur per modul (ADR) agar modul berikutnya lebih terarah.
+  // Mati bawaan; butuh codebase-memory-mcp terpasang di mesin ini.
+  codebase_memory: { aktif: false },
   // Aturan prompt lapis instalasi (ditambahkan ke setiap tugas agen).
   aturan_instalasi: "",
   // Baris atribusi commit (kosong = tanpa).
