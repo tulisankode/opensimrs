@@ -1,0 +1,13 @@
+### Ditambahkan
+- Panduan instalasi bagian 11.1 baru, **Instalasi `install.sh` di server/VM Linux + akses domain**: kasus nyata dari pemasangan staging beserta solusinya, ditambah daftar pemeriksaan cepat di server. Kasus yang dibahas:
+  - MongoDB tidak ada di apt;
+  - CPU VM tanpa AVX ("Illegal instruction", tipe CPU Proxmox `host`);
+  - `uninstall.sh` tampak macet;
+  - "Blocked request … host is not allowed";
+  - tunnel di perangkat lain;
+  - 502 karena gateway 8080 tidak jalan;
+  - route domain API yang salah ke satu layanan;
+  - `npm run dev` ganda root + user yang membuat layanan bergantian mati;
+  - aplikasi mati saat SSH ditutup;
+  - batas laju payment-service saat `db:demo:transaksi`;
+  - data demo yang belum lengkap.

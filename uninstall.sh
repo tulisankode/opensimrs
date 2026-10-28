@@ -147,7 +147,7 @@ else
   echo "    • Redis (port $REDIS_PORT, db $REDIS_DB): kunci sesi token-*"
 fi
 echo "    • Berkas buatan instalasi di repo: node_modules, .env*, dist, studio-service/data, worktree SIMRS Studio"
-echo "    • Gateway akses domain (bila ada): kontainer opensimrs-gateway, ~/.opensimrs/gateway-lokal.conf, frontend-service/.env.local buatan installer"
+echo "    • Gateway akses domain (bila ada): kontainer opensimrs-gateway atau /etc/nginx/conf.d/opensimrs-gateway.conf, ~/.opensimrs/gateway-lokal.conf, frontend-service/.env.local buatan installer"
 WT="$(worktree_studio)"; [ -n "$WT" ] && echo "$WT" | sed 's/^/        worktree: /'
 [ "$HAPUS_FOLDER" = 1 ] && echo "    • FOLDER REPO INI: $ROOT"
 [ "$ALAT_AI" = 1 ] && echo "    • Claude Code, Codex & OpenCode CLI (npm global)"
@@ -269,6 +269,11 @@ for c in podman docker; do
   fi
 done
 if [ -f "$HOME/.opensimrs/gateway-lokal.conf" ]; then aksi "Konfigurasi gateway ~/.opensimrs/gateway-lokal.conf" rm -f "$HOME/.opensimrs/gateway-lokal.conf"; fi
+# Gateway nginx native (Linux tanpa Podman/Docker); nginx-nya sendiri tidak dicopot
+if [ -f /etc/nginx/conf.d/opensimrs-gateway.conf ]; then
+  hapus_gw_nginx() { sudo rm -f /etc/nginx/conf.d/opensimrs-gateway.conf && { sudo systemctl reload nginx 2>/dev/null || sudo service nginx reload 2>/dev/null || true; }; }
+  aksi_langsung "Gateway nginx /etc/nginx/conf.d/opensimrs-gateway.conf (sudo)" hapus_gw_nginx || warn "Konfigurasi gateway nginx gagal dihapus"
+fi
 # frontend-service/.env.local hanya bila dibuat install.sh --domain (berkas buatan pengguna dibiarkan)
 env_lokal_buatan() { local f="$ROOT/frontend-service/.env.local"; if [ -f "$f" ] && head -1 "$f" | grep -q '^# Dibuat install.sh --domain'; then echo "$f"; fi; }
 # node_modules (root, layanan, frontend, SDK), .env*, dist, data Studio — hanya di dalam folder repo
