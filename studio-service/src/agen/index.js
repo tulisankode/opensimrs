@@ -11,6 +11,7 @@ import { query, satu, sekarang } from "../db.js";
 import { Galat } from "../respons.js";
 import { bacaSemua } from "../pengaturan.js";
 import { daftarkanPembatal, jalankanClaude, lepaskanPembatal } from "./claude.js";
+import { binCodebaseMemory } from "./petakode.js";
 import { jalankanApi } from "./api.js";
 import { jalankanCodex, modelCodex, pilihModelCodex } from "./codex.js";
 import { cocokModel } from "./model.js";
@@ -78,9 +79,11 @@ const logTugas = (tugasUuid, jenis, teks) =>
 const statusTugas = async (tugasUuid) => (await satu(`SELECT status FROM studio_tugas WHERE uuid = $1`, [tugasUuid]))?.status;
 
 // Jalankan satu konektor tertentu.
-const jalankanKonektor = async (konektor, { tugasUuid, prompt, mode, model, base, item, sesiClaude, batasBiaya }) => {
+const jalankanKonektor = async (konektor, { tugasUuid, prompt, mode, model, base, item, sesiClaude, batasBiaya, petaKode }) => {
+  // Peta kode codebase-memory (pengaturan codebase_memory) untuk semua agen: Claude Code, Codex, dan konektor API.
+  const codebaseMemory = petaKode ? binCodebaseMemory() : null;
   if (konektor.penyedia === "codex") {
-    return jalankanCodex({ tugasUuid, prompt, mode, model: pilihModelCodex(model, modelCodex()), base });
+    return jalankanCodex({ tugasUuid, prompt, mode, model: pilihModelCodex(model, modelCodex()), base, codebaseMemory });
   }
   if (konektor.penyedia === "claude_code") {
     const lampiran = item ? path.join(FOLDER_LAMPIRAN, item.uuid) : null;
@@ -93,12 +96,13 @@ const jalankanKonektor = async (konektor, { tugasUuid, prompt, mode, model, base
       base,
       batasBiaya,
       folderTambahan: lampiran && fs.existsSync(lampiran) ? [lampiran] : [],
+      codebaseMemory,
     });
   }
   const pengendali = new AbortController();
   daftarkanPembatal(tugasUuid, pengendali);
   try {
-    return await jalankanApi({ tugasUuid, prompt, mode, konektor, model, base, signal: pengendali.signal, batasBiaya });
+    return await jalankanApi({ tugasUuid, prompt, mode, konektor, model, base, signal: pengendali.signal, batasBiaya, codebaseMemory });
   } catch (e) {
     if (pengendali.signal.aborted) throw new Error("Tugas dihentikan");
     throw e;
@@ -150,7 +154,7 @@ export const jalankanAgen = async ({ tugasUuid, prompt, mode, tahap, base = conf
       sudahJalan = true;
       try {
         const r = await jalankanKonektor(konektor, {
-          tugasUuid, prompt: promptDipakai, mode, model, base, item, batasBiaya,
+          tugasUuid, prompt: promptDipakai, mode, model, base, item, batasBiaya, petaKode: Boolean(nilai.codebase_memory?.aktif),
           // Sesi Claude hanya dilanjutkan oleh Claude Code.
           sesiClaude: konektor.penyedia === "claude_code" ? sesiClaude : null,
         });

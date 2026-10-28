@@ -4,6 +4,7 @@ import { query, sekarang, ubah } from "../db.js";
 import { dekripsi } from "../rahasia.js";
 import { alatUntukMode, ringkasArgumen } from "./alat.js";
 import { ATURAN_PLATFORM } from "./prompt.js";
+import { bukaPetaKode, panduanCodebaseMemory } from "./petakode.js";
 
 const MAKS_LANGKAH = { dokumen: 30, coding: 80 };
 
@@ -38,7 +39,7 @@ const jalankanAlat = async (alat, nama, args, konteks, tugasUuid) => {
   }
 };
 
-const loopAnthropic = async ({ konektor, model, prompt, alat, konteks, tugasUuid, batasBiaya }) => {
+const loopAnthropic = async ({ konektor, model, prompt, sistem, alat, konteks, tugasUuid, batasBiaya }) => {
   const url = `${(konektor.endpoint || "https://api.anthropic.com").replace(/\/$/, "")}/v1/messages`;
   const headers = { "x-api-key": dekripsi(konektor.kunci_api), "anthropic-version": "2023-06-01" };
   const tools = alat.map((a) => ({ name: a.nama, description: a.deskripsi, input_schema: a.skema }));
@@ -46,7 +47,7 @@ const loopAnthropic = async ({ konektor, model, prompt, alat, konteks, tugasUuid
   let masuk = 0;
   let keluar = 0;
   for (let langkah = 0; langkah < MAKS_LANGKAH[konteks.mode]; langkah++) {
-    const res = await panggil(url, headers, { model, max_tokens: 16000, system: ATURAN_PLATFORM, messages, tools }, konteks.signal);
+    const res = await panggil(url, headers, { model, max_tokens: 16000, system: sistem, messages, tools }, konteks.signal);
     masuk += (res.usage?.input_tokens ?? 0) + (res.usage?.cache_read_input_tokens ?? 0) + (res.usage?.cache_creation_input_tokens ?? 0);
     keluar += res.usage?.output_tokens ?? 0;
     await ubah("studio_tugas", tugasUuid, { token_masuk: masuk, token_keluar: keluar, biaya_usd: hitungBiaya(konektor, masuk, keluar) }).catch(() => {});
@@ -64,13 +65,13 @@ const loopAnthropic = async ({ konektor, model, prompt, alat, konteks, tugasUuid
   throw new Error("Agen melebihi batas langkah");
 };
 
-const loopOpenAI = async ({ konektor, model, prompt, alat, konteks, tugasUuid, batasBiaya }) => {
+const loopOpenAI = async ({ konektor, model, prompt, sistem, alat, konteks, tugasUuid, batasBiaya }) => {
   const dasar = (konektor.endpoint || "https://api.openai.com/v1").replace(/\/$/, "");
   const kunci = dekripsi(konektor.kunci_api);
   const headers = kunci ? { Authorization: `Bearer ${kunci}` } : {};
   const tools = alat.map((a) => ({ type: "function", function: { name: a.nama, description: a.deskripsi, parameters: a.skema } }));
   const messages = [
-    { role: "system", content: ATURAN_PLATFORM },
+    { role: "system", content: sistem },
     { role: "user", content: prompt },
   ];
   let masuk = 0;
@@ -100,12 +101,29 @@ const loopOpenAI = async ({ konektor, model, prompt, alat, konteks, tugasUuid, b
 };
 
 // Dipanggil src/agen/index.js. signal = AbortController.signal untuk pembatalan.
-export const jalankanApi = async ({ tugasUuid, prompt, mode, konektor, model, base, signal, batasBiaya }) => {
+// codebaseMemory = path biner codebase-memory-mcp (pengaturan codebase_memory aktif) atau null.
+export const jalankanApi = async ({ tugasUuid, prompt, mode, konektor, model, base, signal, batasBiaya, codebaseMemory = null }) => {
   const modelDipakai = model || konektor.model;
   if (!modelDipakai) throw new Error(`Konektor ${konektor.nama} belum menentukan model`);
   await ubah("studio_tugas", tugasUuid, { status: "jalan", mulai: sekarang(), model: modelDipakai });
   await logTugas(tugasUuid, "info", `Agen dimulai lewat ${konektor.nama} (${modelDipakai}, ${mode})`);
-  const args = { konektor, model: modelDipakai, prompt, alat: alatUntukMode(mode), konteks: { base, signal, mode }, tugasUuid, batasBiaya };
-  const hasil = konektor.penyedia === "anthropic" ? await loopAnthropic(args) : await loopOpenAI(args);
-  return { hasil, sessionId: null };
+  // Peta kode gagal dibuka (tidak terpasang, galat server) → tugas tetap jalan tanpa alat peta kode.
+  let peta = null;
+  if (codebaseMemory) {
+    peta = await bukaPetaKode(codebaseMemory).catch(async (e) => {
+      await logTugas(tugasUuid, "galat", `Peta kode tidak tersedia: ${e.message}`);
+      return null;
+    });
+    // Dibatalkan → hentikan server agar panggilan yang menunggu (mis. indeks) langsung gagal.
+    if (peta) signal?.addEventListener("abort", () => peta.tutup(), { once: true });
+  }
+  const sistem = peta ? `${ATURAN_PLATFORM}\n\n${panduanCodebaseMemory(base)}` : ATURAN_PLATFORM;
+  const alat = [...alatUntukMode(mode), ...(peta?.alat ?? [])];
+  const args = { konektor, model: modelDipakai, prompt, sistem, alat, konteks: { base, signal, mode }, tugasUuid, batasBiaya };
+  try {
+    const hasil = konektor.penyedia === "anthropic" ? await loopAnthropic(args) : await loopOpenAI(args);
+    return { hasil, sessionId: null };
+  } finally {
+    peta?.tutup();
+  }
 };

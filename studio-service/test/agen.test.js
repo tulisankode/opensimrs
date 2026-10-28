@@ -47,6 +47,21 @@ test("argumen CLI: dokumen hanya baca, coding tanpa git commit/push", () => {
   assert.equal(kode[kode.indexOf("--resume") + 1], "abc");
 });
 
+test("argumen CLI: peta kode codebase-memory hanya bila diaktifkan", () => {
+  const mcpConfig = (args) => JSON.parse(args[args.indexOf("--mcp-config") + 1]).mcpServers;
+  const tanpa = argumenClaude({ mode: "dokumen", base: "/repo" });
+  assert.deepEqual(Object.keys(mcpConfig(tanpa)), ["opensimrs"]);
+  assert.ok(!tanpa.some((a) => a.startsWith("mcp__codebase-memory__")));
+  const dengan = argumenClaude({ mode: "coding", base: "/repo", codebaseMemory: "/bin/codebase-memory-mcp" });
+  assert.equal(mcpConfig(dengan)["codebase-memory"].command, "/bin/codebase-memory-mcp");
+  assert.ok(dengan.includes("mcp__codebase-memory__search_graph"));
+  assert.ok(dengan.includes("mcp__codebase-memory__manage_adr"));
+  assert.ok(!dengan.includes("mcp__codebase-memory__delete_project"));
+  assert.match(dengan[dengan.indexOf("--append-system-prompt") + 1], /"repo_path": "\/repo"/);
+  // Uji koneksi (mcp: false) tidak memasang server apa pun.
+  assert.ok(!argumenClaude({ mode: "dokumen", mcp: false, codebaseMemory: "/bin/x" }).includes("--mcp-config"));
+});
+
 test("namaBranch mengikuti <jenis>/STD-<nomor>-<ringkasan>", () => {
   assert.equal(namaBranch({ nomor: 7, jenis: "perbaikan", judul: "Blokir bayar sebelum discharge!" }), "fix/STD-0007-blokir-bayar-sebelum-discharge");
   assert.equal(namaBranch({ nomor: 12, jenis: "modul", judul: "Modul Gizi: menu & diet pasien rawat inap" }), "feat/STD-0012-modul-gizi-menu-diet-pasien-rawat");

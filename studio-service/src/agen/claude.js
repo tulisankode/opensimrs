@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import config from "../config.js";
 import { query, sekarang, ubah } from "../db.js";
 import { ATURAN_PLATFORM } from "./prompt.js";
+import { ALAT_PETA_KODE, panduanCodebaseMemory } from "./petakode.js";
 
 // Alat per mode. Dokumen: hanya membaca repo. Coding: menyunting + perintah verifikasi dari daftar putih.
 const ALAT_BACA = ["Read", "Grep", "Glob"];
@@ -38,6 +39,8 @@ const proses = new Map(); // tugas_uuid → child process | AbortController (ada
 const BERKAS_MCP = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "mcp.js");
 // Alat MCP OpenSIMRS yang boleh dipakai agen Claude Code (baca saja).
 const ALAT_MCP = ["mcp__opensimrs__baca_skema_db", "mcp__opensimrs__baca_katalog"];
+// Alat peta kode codebase-memory (pengaturan codebase_memory), lihat petakode.js.
+const ALAT_CODEBASE_MEMORY = ALAT_PETA_KODE.map((a) => `mcp__codebase-memory__${a}`);
 
 const logTugas = (tugasUuid, jenis, teks) =>
   query(`INSERT INTO studio_tugas_log (tugas_uuid, jenis, teks, waktu) VALUES ($1, $2, $3, $4)`, [
@@ -53,31 +56,37 @@ const ringkasAlat = (nama, masukan = {}) => {
   return `${nama} ${relatif}`.trim();
 };
 
-export const argumenClaude = ({ mode, model, resume, base, folderTambahan = [], batasBiaya = null, mcp = true }) => {
-  const args = ["-p", "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--append-system-prompt", ATURAN_PLATFORM];
+// codebaseMemory = path biner codebase-memory-mcp (pengaturan aktif) atau null.
+export const argumenClaude = ({ mode, model, resume, base, folderTambahan = [], batasBiaya = null, mcp = true, codebaseMemory = null }) => {
+  const peta = mcp && codebaseMemory;
+  const sistem = peta ? `${ATURAN_PLATFORM}\n\n${panduanCodebaseMemory(base ?? config.repoDir)}` : ATURAN_PLATFORM;
+  const args = ["-p", "--output-format", "stream-json", "--verbose", "--strict-mcp-config", "--append-system-prompt", sistem];
   if (model) args.push("--model", model);
   if (resume) args.push("--resume", resume);
   if (batasBiaya) args.push("--max-budget-usd", String(batasBiaya));
   for (const d of folderTambahan) args.push("--add-dir", d);
   if (mcp) {
-    args.push("--mcp-config", JSON.stringify({ mcpServers: { opensimrs: { command: process.execPath, args: [BERKAS_MCP], env: { STUDIO_MCP_BASE: base ?? config.repoDir } } } }));
+    const server = { opensimrs: { command: process.execPath, args: [BERKAS_MCP], env: { STUDIO_MCP_BASE: base ?? config.repoDir } } };
+    if (peta) server["codebase-memory"] = { command: codebaseMemory, args: [] };
+    args.push("--mcp-config", JSON.stringify({ mcpServers: server }));
   }
+  const alatMcp = mcp ? [...ALAT_MCP, ...(peta ? ALAT_CODEBASE_MEMORY : [])] : [];
   if (mode === "coding") {
     args.push("--tools", [...ALAT_BACA, "Edit", "Write", "Bash"].join(","));
     args.push("--permission-mode", "acceptEdits");
-    args.push("--allowedTools", ...ALAT_BACA, "Edit", "Write", ...PERINTAH_DIIZINKAN, ...(mcp ? ALAT_MCP : []));
+    args.push("--allowedTools", ...ALAT_BACA, "Edit", "Write", ...PERINTAH_DIIZINKAN, ...alatMcp);
   } else {
     args.push("--tools", ALAT_BACA.join(","));
-    args.push("--allowedTools", ...ALAT_BACA, ...(mcp ? ALAT_MCP : []));
+    args.push("--allowedTools", ...ALAT_BACA, ...alatMcp);
   }
   args.push("--disallowedTools", ...DILARANG);
   return args;
 };
 
 // Jalankan satu tugas agen. Resolves { hasil, sessionId } atau melempar galat. Status tugas diperbarui di DB.
-export const jalankanClaude = ({ tugasUuid, prompt, mode = "dokumen", model = "", resume = null, base = config.repoDir, folderTambahan = [], batasBiaya = null, mcp = true }) =>
+export const jalankanClaude = ({ tugasUuid, prompt, mode = "dokumen", model = "", resume = null, base = config.repoDir, folderTambahan = [], batasBiaya = null, mcp = true, codebaseMemory = null }) =>
   new Promise((resolve, reject) => {
-    const args = argumenClaude({ mode, model, resume, base, folderTambahan, batasBiaya, mcp });
+    const args = argumenClaude({ mode, model, resume, base, folderTambahan, batasBiaya, mcp, codebaseMemory });
     const anak = spawn(config.claudeBin, args, { cwd: base, windowsHide: true, env: { ...process.env } });
     proses.set(tugasUuid, anak);
     ubah("studio_tugas", tugasUuid, { status: "jalan", pid: anak.pid ?? null, mulai: sekarang() }).catch(() => {});

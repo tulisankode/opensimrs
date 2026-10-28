@@ -55,6 +55,17 @@ test("argumenCodex: sandbox per mode & instruksi dari stdin", () => {
   assert.ok(cod.includes("--json") && cod.includes("--ignore-user-config") && cod.includes('approval_policy="never"') && cod.includes("gpt-5-codex"));
 });
 
+test("argumenCodex: peta kode codebase-memory lewat -c hanya bila diaktifkan", () => {
+  const tanpa = argumenCodex({ mode: "dokumen", model: "", base: "/repo", berkasHasil: "h.txt" });
+  assert.ok(!tanpa.some((a) => a.startsWith("mcp_servers.")));
+  const dengan = argumenCodex({ mode: "coding", model: "", base: "/repo", berkasHasil: "h.txt", codebaseMemory: "/bin/codebase-memory-mcp" });
+  assert.ok(dengan.includes('mcp_servers.codebase-memory.command="/bin/codebase-memory-mcp"'));
+  assert.ok(dengan.includes('mcp_servers.codebase-memory.default_tools_approval_mode="approve"'));
+  const alat = dengan.find((a) => a.startsWith("mcp_servers.codebase-memory.enabled_tools="));
+  assert.ok(alat.includes('"manage_adr"') && !alat.includes("delete_project"));
+  assert.equal(dengan.at(-1), "-");
+});
+
 test("argumenCodex: coding di Windows memakai sandbox Windows agar bisa menulis; dokumen & non-Windows tidak", () => {
   const win = argumenCodex({ mode: "coding", model: "", base: "C:\\repo", berkasHasil: "h.txt", platform: "win32" });
   assert.ok(win.includes('windows.sandbox="unelevated"'));
